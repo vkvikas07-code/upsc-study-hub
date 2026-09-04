@@ -1,0 +1,17 @@
+{
+  "name": "UPSC Study Hub",
+  "short_name": "UPSC Hub",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#111827",
+  "description": "Accessible UPSC preparation, current affairs, tests and progress tracking.",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
