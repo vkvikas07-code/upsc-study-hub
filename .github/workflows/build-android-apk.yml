@@ -26,7 +26,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-
+      - name: Keep the same debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: ${{ runner.os }}-upsc-study-hub-debug-keystore-v1
       - run: npm install
 
       - run: npm run build
