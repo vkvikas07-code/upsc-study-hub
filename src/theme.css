@@ -82,3 +82,20 @@ button { cursor: pointer; }
   .mobile-bottom-nav { display: none; }.mobile-only { display: none; }
   .main-area { padding-bottom: 20px; }.page-wrap { padding-left: 30px; padding-right: 30px; }.topbar { min-height: 96px; }
 }
+
+/* Android bottom system-navigation safe area */
+@media (max-width: 999px) {
+  :root {
+    --android-bottom-safe: max(env(safe-area-inset-bottom, 0px), 44px);
+  }
+
+  .mobile-bottom-nav {
+    height: calc(72px + var(--android-bottom-safe));
+    padding-bottom: var(--android-bottom-safe);
+  }
+
+  .main-area {
+    min-height: 100dvh;
+    padding-bottom: calc(88px + var(--android-bottom-safe));
+  }
+}
