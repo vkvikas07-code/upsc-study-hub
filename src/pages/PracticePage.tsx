@@ -9,18 +9,20 @@ type LiveQuestion = {
   options: string[];
   correct_index: number;
   explanation: string;
-
   subject: string;
   difficulty: string;
-
   topic: string | null;
-
   tags: string[];
-
   is_pyq: boolean;
   pyq_year: number | null;
-
   source: string | null;
+};
+
+type AnswerRecord = {
+  question_id: string;
+  selected_index: number;
+  correct_index: number;
+  is_correct: boolean;
 };
 
 export function PracticePage() {
@@ -36,6 +38,9 @@ export function PracticePage() {
   const [score, setScore] =
     useState(0);
 
+  const [answers, setAnswers] =
+    useState<AnswerRecord[]>([]);
+
   const [finished, setFinished] =
     useState(false);
 
@@ -44,6 +49,15 @@ export function PracticePage() {
 
   const [error, setError] =
     useState('');
+
+  const [savingResult, setSavingResult] =
+    useState(false);
+
+  const [resultMessage, setResultMessage] =
+    useState('');
+
+  const [attemptSaved, setAttemptSaved] =
+    useState(false);
 
   async function loadQuestions() {
     if (!supabase) {
@@ -146,7 +160,11 @@ export function PracticePage() {
     setIndex(0);
     setSelected(null);
     setScore(0);
+    setAnswers([]);
     setFinished(false);
+
+    setAttemptSaved(false);
+    setResultMessage('');
 
     setLoading(false);
   }
@@ -165,26 +183,147 @@ export function PracticePage() {
       return;
     }
 
+    const currentQuestion =
+      questions[index];
+
+    const isCorrect =
+      option ===
+      currentQuestion.correct_index;
+
     setSelected(option);
 
-    if (
-      option ===
-      questions[index]
-        .correct_index
-    ) {
+    if (isCorrect) {
       setScore(
         current =>
           current + 1
       );
     }
+
+    setAnswers(
+      current => [
+        ...current,
+        {
+          question_id:
+            currentQuestion.id,
+
+          selected_index:
+            option,
+
+          correct_index:
+            currentQuestion.correct_index,
+
+          is_correct:
+            isCorrect
+        }
+      ]
+    );
   }
 
-  function next() {
+  async function savePracticeAttempt() {
+    if (
+      !supabase ||
+      attemptSaved
+    ) {
+      return;
+    }
+
+    setSavingResult(true);
+    setResultMessage('');
+
+    const {
+      data: { user }
+    } =
+      await supabase.auth.getUser();
+
+    if (!user) {
+      setSavingResult(false);
+
+      setResultMessage(
+        'Result completed. Sign in as a student to save practice history.'
+      );
+
+      return;
+    }
+
+    const percentage =
+      Math.round(
+        (
+          score /
+          questions.length
+        ) *
+          100
+      );
+
+    const subjects =
+      Array.from(
+        new Set(
+          questions.map(
+            item =>
+              item.subject
+          )
+        )
+      );
+
+    const sessionSubject =
+      subjects.length === 1
+        ? subjects[0]
+        : 'Mixed';
+
+    const { error: saveError } =
+      await supabase
+        .from('practice_attempts')
+        .insert({
+          user_id:
+            user.id,
+
+          total_questions:
+            questions.length,
+
+          correct_answers:
+            score,
+
+          score_percent:
+            percentage,
+
+          subject:
+            sessionSubject,
+
+          answers
+        });
+
+    if (saveError) {
+      console.error(
+        'Unable to save practice result:',
+        saveError
+      );
+
+      setResultMessage(
+        `Result could not be saved: ${saveError.message}`
+      );
+
+      setSavingResult(false);
+
+      return;
+    }
+
+    setAttemptSaved(true);
+
+    setResultMessage(
+      'Practice result saved successfully.'
+    );
+
+    setSavingResult(false);
+  }
+
+  async function next() {
     if (
       index ===
       questions.length - 1
     ) {
       setFinished(true);
+
+      await savePracticeAttempt();
+
       return;
     }
 
@@ -200,26 +339,27 @@ export function PracticePage() {
     setIndex(0);
     setSelected(null);
     setScore(0);
+    setAnswers([]);
+
     setFinished(false);
+
+    setAttemptSaved(false);
+    setResultMessage('');
   }
 
   if (loading) {
     return (
       <div className="page-wrap">
-
         <TopBar
           title="Practice"
           subtitle="Learn from every answer"
         />
 
         <section className="panel">
-
           <h2>
             Loading MCQs...
           </h2>
-
         </section>
-
       </div>
     );
   }
@@ -227,14 +367,12 @@ export function PracticePage() {
   if (error) {
     return (
       <div className="page-wrap">
-
         <TopBar
           title="Practice"
           subtitle="Learn from every answer"
         />
 
         <section className="panel">
-
           <h2>
             Unable to load questions
           </h2>
@@ -251,9 +389,7 @@ export function PracticePage() {
           >
             Try again
           </button>
-
         </section>
-
       </div>
     );
   }
@@ -263,14 +399,12 @@ export function PracticePage() {
   ) {
     return (
       <div className="page-wrap">
-
         <TopBar
           title="Practice"
           subtitle="Learn from every answer"
         />
 
         <section className="panel">
-
           <span className="eyebrow">
             PRACTICE BANK
           </span>
@@ -293,9 +427,7 @@ export function PracticePage() {
           >
             Refresh questions
           </button>
-
         </section>
-
       </div>
     );
   }
@@ -315,14 +447,12 @@ export function PracticePage() {
 
     return (
       <div className="page-wrap">
-
         <TopBar
           title="Practice"
           subtitle="Your practice result"
         />
 
         <section className="result-card">
-
           <span className="result-icon">
             🎯
           </span>
@@ -342,6 +472,18 @@ export function PracticePage() {
             missed.
           </p>
 
+          {savingResult && (
+            <p>
+              Saving your result...
+            </p>
+          )}
+
+          {resultMessage && (
+            <p className="form-message">
+              {resultMessage}
+            </p>
+          )}
+
           <button
             className="primary-btn"
             onClick={restart}
@@ -360,27 +502,21 @@ export function PracticePage() {
           >
             Refresh questions
           </button>
-
         </section>
-
       </div>
     );
   }
 
   return (
     <div className="page-wrap">
-
       <TopBar
         title="Practice"
         subtitle="Learn from every answer"
       />
 
       <section className="quiz-card">
-
         <div className="quiz-meta">
-
           <div>
-
             <span>
               {q.subject}
             </span>
@@ -397,18 +533,15 @@ export function PracticePage() {
                 {q.topic}
               </small>
             )}
-
           </div>
 
           <strong>
             {index + 1}/
             {questions.length}
           </strong>
-
         </div>
 
         <div className="progress-track">
-
           <span
             style={{
               width:
@@ -421,7 +554,6 @@ export function PracticePage() {
                 }%`
             }}
           />
-
         </div>
 
         <div
@@ -431,7 +563,6 @@ export function PracticePage() {
               '12px'
           }}
         >
-
           <span className="tag">
             {q.difficulty}
           </span>
@@ -453,7 +584,6 @@ export function PracticePage() {
               </span>
             )
           )}
-
         </div>
 
         <h2>
@@ -461,9 +591,11 @@ export function PracticePage() {
         </h2>
 
         <div className="option-list">
-
           {q.options.map(
-            (option, optionIndex) => {
+            (
+              option,
+              optionIndex
+            ) => {
               const state =
                 selected === null
                   ? ''
@@ -489,7 +621,6 @@ export function PracticePage() {
                     )
                   }
                 >
-
                   <span>
                     {String.fromCharCode(
                       65 +
@@ -498,17 +629,14 @@ export function PracticePage() {
                   </span>
 
                   {option}
-
                 </button>
               );
             }
           )}
-
         </div>
 
         {selected !== null && (
           <div className="explanation">
-
             <strong>
               Explanation
             </strong>
@@ -529,7 +657,6 @@ export function PracticePage() {
                   '16px'
               }}
             >
-
               <button
                 className="primary-btn"
                 onClick={next}
@@ -540,14 +667,10 @@ export function PracticePage() {
                   ? 'See result'
                   : 'Next question'}
               </button>
-
             </div>
-
           </div>
         )}
-
       </section>
-
     </div>
   );
 }
