@@ -13,7 +13,52 @@ type FilterKey =
 type DetailedArticle =
   CurrentAffair & {
     body: string | null;
+
+    source_url: string | null;
+    background: string | null;
+    key_facts: string | null;
+    prelims_points: string | null;
+    mains_relevance: string | null;
+    issues: string | null;
+    way_forward: string | null;
   };
+
+function AnalysisSection({
+  title,
+  children
+}: {
+  title: string;
+  children: string | null;
+}) {
+  if (!children?.trim()) {
+    return null;
+  }
+
+  return (
+    <section
+      className="panel"
+      style={{
+        padding: '20px',
+        marginTop: '16px'
+      }}
+    >
+      <span className="eyebrow">
+        {title}
+      </span>
+
+      <div
+        style={{
+          whiteSpace: 'pre-wrap',
+          color: '#cbd5e1',
+          lineHeight: 1.8,
+          marginTop: '12px'
+        }}
+      >
+        {children}
+      </div>
+    </section>
+  );
+}
 
 export function CurrentPage({
   items
@@ -28,8 +73,8 @@ export function CurrentPage({
       null
     );
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loadingId, setLoadingId] =
+    useState<string | null>(null);
 
   const [error, setError] =
     useState('');
@@ -57,15 +102,25 @@ export function CurrentPage({
     item: CurrentAffair
   ) {
     setError('');
-    setLoading(true);
+    setLoadingId(item.id);
 
     if (!supabase) {
       setSelected({
         ...item,
-        body: item.summary
+
+        body: item.summary,
+
+        source_url: null,
+        background: null,
+        key_facts: null,
+        prelims_points: null,
+        mains_relevance: null,
+        issues: null,
+        way_forward: null
       });
 
-      setLoading(false);
+      setLoadingId(null);
+
       return;
     }
 
@@ -79,9 +134,16 @@ export function CurrentPage({
         id,
         title,
         source,
+        source_url,
         subject,
         summary,
         body,
+        background,
+        key_facts,
+        prelims_points,
+        mains_relevance,
+        issues,
+        way_forward,
         tags,
         prelims,
         mains,
@@ -93,7 +155,10 @@ export function CurrentPage({
       .eq('status', 'published')
       .single();
 
-    if (loadError || !data) {
+    if (
+      loadError ||
+      !data
+    ) {
       console.error(
         'Unable to load analysis:',
         loadError
@@ -104,28 +169,59 @@ export function CurrentPage({
           'Unable to load this analysis.'
       );
 
-      setLoading(false);
+      setLoadingId(null);
+
       return;
     }
 
     setSelected({
-      id: data.id,
+      id:
+        data.id,
 
-      title: data.title,
+      title:
+        data.title,
 
-      source: data.source,
+      source:
+        data.source,
 
-      subject: data.subject,
+      source_url:
+        data.source_url,
 
-      summary: data.summary,
+      subject:
+        data.subject,
 
-      body: data.body,
+      summary:
+        data.summary,
 
-      tags: data.tags || [],
+      body:
+        data.body,
 
-      prelims: data.prelims,
+      background:
+        data.background,
 
-      mains: data.mains,
+      key_facts:
+        data.key_facts,
+
+      prelims_points:
+        data.prelims_points,
+
+      mains_relevance:
+        data.mains_relevance,
+
+      issues:
+        data.issues,
+
+      way_forward:
+        data.way_forward,
+
+      tags:
+        data.tags || [],
+
+      prelims:
+        data.prelims,
+
+      mains:
+        data.mains,
 
       publishedAt:
         data.published_at
@@ -142,16 +238,37 @@ export function CurrentPage({
           : ''
     });
 
-    setLoading(false);
+    setLoadingId(null);
+
+    const mainArea =
+      document.querySelector(
+        '.main-area'
+      );
+
+    if (mainArea) {
+      mainArea.scrollTo({
+        top: 0
+      });
+    }
   }
 
   if (selected) {
+    const hasStructuredAnalysis =
+      Boolean(
+        selected.background ||
+        selected.key_facts ||
+        selected.prelims_points ||
+        selected.mains_relevance ||
+        selected.issues ||
+        selected.way_forward
+      );
+
     return (
       <div className="page-wrap">
 
         <TopBar
           title="Current Affairs Analysis"
-          subtitle="Detailed, revision-ready understanding"
+          subtitle="UPSC-focused, revision-ready understanding"
         />
 
         <button
@@ -161,7 +278,7 @@ export function CurrentPage({
             setSelected(null)
           }
           style={{
-            marginBottom: '16px'
+            marginBottom: '18px'
           }}
         >
           ← Back to Current Affairs
@@ -170,8 +287,9 @@ export function CurrentPage({
         <article
           className="panel"
           style={{
-            maxWidth: '900px',
-            margin: '0 auto 28px'
+            maxWidth: '940px',
+            margin: '0 auto 18px',
+            padding: '24px'
           }}
         >
 
@@ -189,8 +307,11 @@ export function CurrentPage({
 
           <h1
             style={{
-              margin: '12px 0 10px',
-              lineHeight: 1.2
+              margin:
+                '12px 0 8px',
+
+              lineHeight:
+                1.25
             }}
           >
             {selected.title}
@@ -199,7 +320,7 @@ export function CurrentPage({
           <div
             className="tag-row"
             style={{
-              marginTop: '14px'
+              marginTop: '15px'
             }}
           >
 
@@ -216,15 +337,27 @@ export function CurrentPage({
 
           </div>
 
+        </article>
+
+        <div
+          style={{
+            maxWidth: '940px',
+            margin: '0 auto 32px'
+          }}
+        >
+
           <section
             style={{
-              margin: '20px 0',
-              padding: '16px',
-              borderRadius: '14px',
+              padding: '20px',
+
+              borderRadius:
+                '16px',
+
               background:
-                'rgba(20,184,166,.08)',
+                'rgba(20,184,166,.09)',
+
               border:
-                '1px solid rgba(20,184,166,.20)'
+                '1px solid rgba(20,184,166,.24)'
             }}
           >
 
@@ -234,9 +367,14 @@ export function CurrentPage({
 
             <p
               style={{
-                color: '#e2e8f0',
-                marginBottom: 0,
-                lineHeight: 1.7
+                color:
+                  '#e2e8f0',
+
+                lineHeight:
+                  1.75,
+
+                marginBottom:
+                  0
               }}
             >
               {selected.summary}
@@ -244,62 +382,102 @@ export function CurrentPage({
 
           </section>
 
-          <section>
+          <AnalysisSection
+            title="BACKGROUND"
+          >
+            {selected.background}
+          </AnalysisSection>
 
-            <span className="eyebrow">
-              DETAILED ANALYSIS
-            </span>
+          <AnalysisSection
+            title="KEY FACTS"
+          >
+            {selected.key_facts}
+          </AnalysisSection>
 
-            <div
-              style={{
-                whiteSpace:
-                  'pre-wrap',
-
-                color:
-                  '#cbd5e1',
-
-                lineHeight: 1.8,
-
-                marginTop:
-                  '12px',
-
-                fontSize:
-                  '.98rem'
-              }}
+          {selected.prelims && (
+            <AnalysisSection
+              title="PRELIMS POINTS"
             >
-              {selected.body?.trim() ||
-                'Detailed analysis has not been added yet.'}
-            </div>
+              {selected.prelims_points}
+            </AnalysisSection>
+          )}
 
-          </section>
+          {selected.mains && (
+            <AnalysisSection
+              title="MAINS RELEVANCE"
+            >
+              {selected.mains_relevance}
+            </AnalysisSection>
+          )}
 
-          <div
+          <AnalysisSection
+            title="ISSUES / CHALLENGES"
+          >
+            {selected.issues}
+          </AnalysisSection>
+
+          <AnalysisSection
+            title="WAY FORWARD"
+          >
+            {selected.way_forward}
+          </AnalysisSection>
+
+          {!hasStructuredAnalysis &&
+            selected.body?.trim() && (
+              <AnalysisSection
+                title="DETAILED ANALYSIS"
+              >
+                {selected.body}
+              </AnalysisSection>
+            )}
+
+          <section
+            className="panel"
             style={{
-              marginTop: '24px',
-              paddingTop: '14px',
-              borderTop:
-                '1px solid rgba(255,255,255,.08)',
-              color:
-                '#94a3b8',
-              fontSize:
-                '.82rem'
+              marginTop: '16px',
+              padding: '20px'
             }}
           >
 
-            Source:{' '}
+            <span className="eyebrow">
+              SOURCE
+            </span>
 
-            <strong
+            <p
               style={{
-                color:
-                  '#cbd5e1'
+                color: '#cbd5e1',
+                marginBottom:
+                  selected.source_url
+                    ? '14px'
+                    : 0
               }}
             >
               {selected.source}
-            </strong>
+            </p>
 
-          </div>
+            {selected.source_url && (
+              <a
+                href={
+                  selected.source_url
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="primary-btn"
+                style={{
+                  display:
+                    'inline-block',
 
-        </article>
+                  textDecoration:
+                    'none'
+                }}
+              >
+                Open official source ↗
+              </a>
+            )}
+
+          </section>
+
+        </div>
 
       </div>
     );
@@ -339,7 +517,9 @@ export function CurrentPage({
             }`
           }
           onClick={() =>
-            setFilter('prelims')
+            setFilter(
+              'prelims'
+            )
           }
         >
           Prelims
@@ -354,7 +534,9 @@ export function CurrentPage({
             }`
           }
           onClick={() =>
-            setFilter('mains')
+            setFilter(
+              'mains'
+            )
           }
         >
           Mains
@@ -445,14 +627,18 @@ export function CurrentPage({
                 <button
                   className="text-btn"
                   type="button"
-                  disabled={loading}
+                  disabled={
+                    loadingId ===
+                    item.id
+                  }
                   onClick={() =>
                     openAnalysis(
                       item
                     )
                   }
                 >
-                  {loading
+                  {loadingId ===
+                  item.id
                     ? 'Loading...'
                     : 'Read analysis'}
                 </button>
@@ -463,7 +649,8 @@ export function CurrentPage({
           )
         )}
 
-        {filteredItems.length === 0 && (
+        {filteredItems.length ===
+          0 && (
           <div className="panel">
 
             <p
