@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { TopBar } from '../components/TopBar';
+import { QuestionManager } from '../components/QuestionManager';
 import type { CurrentAffair } from '../types';
 
 import {
@@ -1629,7 +1630,9 @@ export function AdminPage({
 
         </div>
 
-      </section>
+           </section>
+
+      <QuestionManager />
 
     </div>
   );
