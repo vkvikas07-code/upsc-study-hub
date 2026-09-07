@@ -18,32 +18,62 @@ type AdminArticle = {
   id: string;
   title: string;
   source: string;
+  source_url: string | null;
   subject: string;
   summary: string;
+
   body: string | null;
+
+  background: string | null;
+  key_facts: string | null;
+  prelims_points: string | null;
+  mains_relevance: string | null;
+  issues: string | null;
+  way_forward: string | null;
+
   tags: string[];
   prelims: boolean;
   mains: boolean;
+
   status: ArticleStatus;
+
   published_at: string | null;
   created_at: string;
   updated_at: string;
 };
+
+const ARTICLE_SELECT = `
+  id,
+  title,
+  source,
+  source_url,
+  subject,
+  summary,
+  body,
+  background,
+  key_facts,
+  prelims_points,
+  mains_relevance,
+  issues,
+  way_forward,
+  tags,
+  prelims,
+  mains,
+  status,
+  published_at,
+  created_at,
+  updated_at
+`;
 
 export function AdminPage({
   onPublish
 }: {
   onPublish: (item: CurrentAffair) => void;
 }) {
-  const [email, setEmail] =
-    useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const [password, setPassword] =
-    useState('');
-
-  const [isAdmin, setIsAdmin] =
-    useState(false);
-
+  const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAuth, setCheckingAuth] =
     useState(true);
 
@@ -56,19 +86,30 @@ export function AdminPage({
   const [editingId, setEditingId] =
     useState<string | null>(null);
 
-  const [title, setTitle] =
-    useState('');
-
-  const [source, setSource] =
-    useState('PIB');
-
+  const [title, setTitle] = useState('');
+  const [source, setSource] = useState('PIB');
+  const [sourceUrl, setSourceUrl] = useState('');
   const [subject, setSubject] =
     useState('Polity & Governance');
 
-  const [summary, setSummary] =
+  const [summary, setSummary] = useState('');
+
+  const [background, setBackground] =
     useState('');
 
-  const [body, setBody] =
+  const [keyFacts, setKeyFacts] =
+    useState('');
+
+  const [prelimsPoints, setPrelimsPoints] =
+    useState('');
+
+  const [mainsRelevance, setMainsRelevance] =
+    useState('');
+
+  const [issues, setIssues] =
+    useState('');
+
+  const [wayForward, setWayForward] =
     useState('');
 
   const [tagsText, setTagsText] =
@@ -81,7 +122,7 @@ export function AdminPage({
     useState(true);
 
   const [status, setStatus] =
-    useState<ArticleStatus>('published');
+    useState<ArticleStatus>('draft');
 
   const [message, setMessage] =
     useState('');
@@ -131,23 +172,7 @@ export function AdminPage({
     const { data, error } =
       await supabase
         .from('current_affairs')
-        .select(
-          `
-          id,
-          title,
-          source,
-          subject,
-          summary,
-          body,
-          tags,
-          prelims,
-          mains,
-          status,
-          published_at,
-          created_at,
-          updated_at
-          `
-        )
+        .select(ARTICLE_SELECT)
         .order(
           'created_at',
           { ascending: false }
@@ -159,11 +184,9 @@ export function AdminPage({
         error
       );
 
-      setMessage(
-        error.message
-      );
-
+      setMessage(error.message);
       setLoadingArticles(false);
+
       return;
     }
 
@@ -229,9 +252,7 @@ export function AdminPage({
       return;
     }
 
-    setMessage(
-      'Signing in...'
-    );
+    setMessage('Signing in...');
 
     const { data, error } =
       await supabase.auth
@@ -248,6 +269,7 @@ export function AdminPage({
         error?.message ||
           'Unable to sign in.'
       );
+
       return;
     }
 
@@ -281,22 +303,18 @@ export function AdminPage({
     await supabase.auth.signOut();
 
     setIsAdmin(false);
-
     setPassword('');
-
     setArticles([]);
 
-    setMessage(
-      'Logged out.'
-    );
+    setMessage('Logged out.');
   }
 
   function resetForm() {
     setEditingId(null);
 
     setTitle('');
-
     setSource('PIB');
+    setSourceUrl('');
 
     setSubject(
       'Polity & Governance'
@@ -304,44 +322,60 @@ export function AdminPage({
 
     setSummary('');
 
-    setBody('');
+    setBackground('');
+    setKeyFacts('');
+    setPrelimsPoints('');
+    setMainsRelevance('');
+    setIssues('');
+    setWayForward('');
 
     setTagsText(
       'Prelims, Mains'
     );
 
     setPrelims(true);
-
     setMains(true);
 
-    setStatus('published');
+    setStatus('draft');
   }
 
   function startEdit(
     article: AdminArticle
   ) {
-    setEditingId(
-      article.id
+    setEditingId(article.id);
+
+    setTitle(article.title);
+    setSource(article.source);
+
+    setSourceUrl(
+      article.source_url || ''
     );
 
-    setTitle(
-      article.title
+    setSubject(article.subject);
+    setSummary(article.summary);
+
+    setBackground(
+      article.background || ''
     );
 
-    setSource(
-      article.source
+    setKeyFacts(
+      article.key_facts || ''
     );
 
-    setSubject(
-      article.subject
+    setPrelimsPoints(
+      article.prelims_points || ''
     );
 
-    setSummary(
-      article.summary
+    setMainsRelevance(
+      article.mains_relevance || ''
     );
 
-    setBody(
-      article.body || ''
+    setIssues(
+      article.issues || ''
+    );
+
+    setWayForward(
+      article.way_forward || ''
     );
 
     setTagsText(
@@ -349,26 +383,57 @@ export function AdminPage({
         .join(', ')
     );
 
-    setPrelims(
-      article.prelims
-    );
-
-    setMains(
-      article.mains
-    );
-
-    setStatus(
-      article.status
-    );
+    setPrelims(article.prelims);
+    setMains(article.mains);
+    setStatus(article.status);
 
     setMessage(
       `Editing: ${article.title}`
     );
 
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    const mainArea =
+      document.querySelector(
+        '.main-area'
+      );
+
+    if (mainArea) {
+      mainArea.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  }
+
+  function createFallbackBody() {
+    const sections = [
+      background.trim()
+        ? `BACKGROUND\n${background.trim()}`
+        : '',
+
+      keyFacts.trim()
+        ? `KEY FACTS\n${keyFacts.trim()}`
+        : '',
+
+      prelimsPoints.trim()
+        ? `PRELIMS POINTS\n${prelimsPoints.trim()}`
+        : '',
+
+      mainsRelevance.trim()
+        ? `MAINS RELEVANCE\n${mainsRelevance.trim()}`
+        : '',
+
+      issues.trim()
+        ? `ISSUES / CHALLENGES\n${issues.trim()}`
+        : '',
+
+      wayForward.trim()
+        ? `WAY FORWARD\n${wayForward.trim()}`
+        : ''
+    ];
+
+    return sections
+      .filter(Boolean)
+      .join('\n\n');
   }
 
   function toCurrentAffair(
@@ -415,6 +480,7 @@ export function AdminPage({
       setMessage(
         'Supabase is not configured.'
       );
+
       return;
     }
 
@@ -422,6 +488,7 @@ export function AdminPage({
       setMessage(
         'Admin login required.'
       );
+
       return;
     }
 
@@ -432,8 +499,9 @@ export function AdminPage({
       !subject.trim()
     ) {
       setMessage(
-        'Title, source, subject and summary are required.'
+        'Title, source, subject and quick summary are required.'
       );
+
       return;
     }
 
@@ -452,7 +520,6 @@ export function AdminPage({
 
     if (!user) {
       setSaving(false);
-
       setIsAdmin(false);
 
       setMessage(
@@ -478,9 +545,13 @@ export function AdminPage({
 
     const publishedAt =
       status === 'published'
-        ? oldArticle?.published_at ||
+        ? oldArticle
+            ?.published_at ||
           new Date().toISOString()
         : null;
+
+    const fallbackBody =
+      createFallbackBody();
 
     const payload = {
       title:
@@ -489,14 +560,47 @@ export function AdminPage({
       source:
         source.trim(),
 
+      source_url:
+        sourceUrl.trim() ||
+        null,
+
       subject:
         subject.trim(),
 
       summary:
         summary.trim(),
 
+      background:
+        background.trim() ||
+        null,
+
+      key_facts:
+        keyFacts.trim() ||
+        null,
+
+      prelims_points:
+        prelimsPoints.trim() ||
+        null,
+
+      mains_relevance:
+        mainsRelevance.trim() ||
+        null,
+
+      issues:
+        issues.trim() ||
+        null,
+
+      way_forward:
+        wayForward.trim() ||
+        null,
+
+      /*
+        Keep body populated for
+        backwards compatibility with
+        the existing Read Analysis page.
+      */
       body:
-        body.trim() || null,
+        fallbackBody || null,
 
       tags,
 
@@ -525,21 +629,7 @@ export function AdminPage({
             editingId
           )
           .select(
-            `
-            id,
-            title,
-            source,
-            subject,
-            summary,
-            body,
-            tags,
-            prelims,
-            mains,
-            status,
-            published_at,
-            created_at,
-            updated_at
-            `
+            ARTICLE_SELECT
           )
           .single();
 
@@ -599,21 +689,7 @@ export function AdminPage({
             user.id
         })
         .select(
-          `
-          id,
-          title,
-          source,
-          subject,
-          summary,
-          body,
-          tags,
-          prelims,
-          mains,
-          status,
-          published_at,
-          created_at,
-          updated_at
-          `
+          ARTICLE_SELECT
         )
         .single();
 
@@ -678,7 +754,8 @@ export function AdminPage({
     const publishedAt =
       nextStatus ===
       'published'
-        ? article.published_at ||
+        ? article
+            .published_at ||
           new Date().toISOString()
         : null;
 
@@ -702,21 +779,7 @@ export function AdminPage({
           article.id
         )
         .select(
-          `
-          id,
-          title,
-          source,
-          subject,
-          summary,
-          body,
-          tags,
-          prelims,
-          mains,
-          status,
-          published_at,
-          created_at,
-          updated_at
-          `
+          ARTICLE_SELECT
         )
         .single();
 
@@ -780,6 +843,7 @@ export function AdminPage({
       setMessage(
         error.message
       );
+
       return;
     }
 
@@ -898,7 +962,8 @@ export function AdminPage({
                       e.target.value
                     )
                 }
-                autoComplete="current-password"
+                autoComplete=
+                  "current-password"
               />
             </label>
 
@@ -928,23 +993,27 @@ export function AdminPage({
 
       <TopBar
         title="Admin Studio"
-        subtitle="Create and manage UPSC content"
+        subtitle="Professional UPSC content publishing"
       />
 
       <section className="admin-status">
 
         <div>
-          <span className="status-dot online" />
+
+          <span
+            className="status-dot online"
+          />
 
           <strong>
             Secure Admin connected
           </strong>
+
         </div>
 
         <p>
-          Create, edit, publish,
-          archive or delete Current
-          Affairs directly from here.
+          Create structured UPSC Current
+          Affairs and manage existing
+          content.
         </p>
 
         <div
@@ -992,8 +1061,8 @@ export function AdminPage({
 
           <h2>
             {editingId
-              ? 'Update analysis'
-              : 'Create analysis'}
+              ? 'Update UPSC analysis'
+              : 'Create UPSC analysis'}
           </h2>
 
           <label>
@@ -1007,7 +1076,7 @@ export function AdminPage({
                     e.target.value
                   )
               }
-              placeholder="What happened and why does it matter?"
+              placeholder="Clear current-affairs headline"
             />
           </label>
 
@@ -1024,7 +1093,7 @@ export function AdminPage({
                       e.target.value
                     )
                 }
-                placeholder="PIB"
+                placeholder="PIB / Ministry / RBI"
               />
             </label>
 
@@ -1046,7 +1115,23 @@ export function AdminPage({
           </div>
 
           <label>
-            Short UPSC summary
+            Official Source URL
+
+            <input
+              type="url"
+              value={sourceUrl}
+              onChange={
+                e =>
+                  setSourceUrl(
+                    e.target.value
+                  )
+              }
+              placeholder="https://..."
+            />
+          </label>
+
+          <label>
+            Quick Revision Summary
 
             <textarea
               value={summary}
@@ -1056,24 +1141,104 @@ export function AdminPage({
                     e.target.value
                   )
               }
-              rows={5}
-              placeholder="Short revision-ready summary."
+              rows={4}
+              placeholder="2–4 lines explaining why this matters for UPSC."
             />
           </label>
 
           <label>
-            Detailed analysis
+            Background
 
             <textarea
-              value={body}
+              value={background}
               onChange={
                 e =>
-                  setBody(
+                  setBackground(
                     e.target.value
                   )
               }
-              rows={8}
-              placeholder="Detailed background, key facts, issues and UPSC relevance."
+              rows={5}
+              placeholder="Context and background of the issue."
+            />
+          </label>
+
+          <label>
+            Key Facts
+
+            <textarea
+              value={keyFacts}
+              onChange={
+                e =>
+                  setKeyFacts(
+                    e.target.value
+                  )
+              }
+              rows={5}
+              placeholder="Important facts, institutions, numbers, provisions or reports."
+            />
+          </label>
+
+          <label>
+            Prelims Points
+
+            <textarea
+              value={prelimsPoints}
+              onChange={
+                e =>
+                  setPrelimsPoints(
+                    e.target.value
+                  )
+              }
+              rows={5}
+              placeholder="Facts, definitions, organisations, locations, schemes and likely MCQ points."
+            />
+          </label>
+
+          <label>
+            Mains Relevance
+
+            <textarea
+              value={mainsRelevance}
+              onChange={
+                e =>
+                  setMainsRelevance(
+                    e.target.value
+                  )
+              }
+              rows={5}
+              placeholder="GS paper, syllabus linkage, analytical dimensions and answer-writing value."
+            />
+          </label>
+
+          <label>
+            Issues / Challenges
+
+            <textarea
+              value={issues}
+              onChange={
+                e =>
+                  setIssues(
+                    e.target.value
+                  )
+              }
+              rows={5}
+              placeholder="Major concerns, implementation gaps, limitations or debates."
+            />
+          </label>
+
+          <label>
+            Way Forward
+
+            <textarea
+              value={wayForward}
+              onChange={
+                e =>
+                  setWayForward(
+                    e.target.value
+                  )
+              }
+              rows={5}
+              placeholder="Balanced solutions, reforms and conclusion points."
             />
           </label>
 
@@ -1090,11 +1255,16 @@ export function AdminPage({
               }
               placeholder="Environment, GS-III, Energy"
             />
+
+            <small>
+              Separate tags using commas.
+            </small>
           </label>
 
           <div className="checkbox-row">
 
             <label>
+
               <input
                 type="checkbox"
                 checked={prelims}
@@ -1105,10 +1275,13 @@ export function AdminPage({
                     )
                 }
               />
+
               Prelims
+
             </label>
 
             <label>
+
               <input
                 type="checkbox"
                 checked={mains}
@@ -1119,7 +1292,9 @@ export function AdminPage({
                     )
                 }
               />
+
               Mains
+
             </label>
 
           </div>
@@ -1137,6 +1312,7 @@ export function AdminPage({
                   )
               }
             >
+
               <option value="draft">
                 Draft
               </option>
@@ -1148,7 +1324,9 @@ export function AdminPage({
               <option value="archived">
                 Archived
               </option>
+
             </select>
+
           </label>
 
           <div
@@ -1168,9 +1346,10 @@ export function AdminPage({
                 ? 'Saving...'
                 : editingId
                 ? 'Save changes'
-                : status === 'published'
+                : status ===
+                    'published'
                 ? 'Publish to students'
-                : 'Save article'}
+                : 'Save draft'}
             </button>
 
             {editingId && (
@@ -1197,7 +1376,7 @@ export function AdminPage({
         <aside className="panel admin-side">
 
           <span className="eyebrow">
-            EDITOR CHECKLIST
+            UPSC EDITOR CHECKLIST
           </span>
 
           <h3>
@@ -1206,37 +1385,49 @@ export function AdminPage({
 
           <ol>
             <li>
-              Use a reliable primary source.
+              Verify the primary source.
             </li>
 
             <li>
-              Keep the title clear.
+              Keep the quick summary short.
             </li>
 
             <li>
-              Connect the issue to the UPSC syllabus.
+              Add only exam-relevant facts.
             </li>
 
             <li>
-              Separate facts from interpretation.
+              Separate Prelims facts from
+              Mains analysis.
             </li>
 
             <li>
-              Use Draft when content still needs review.
+              Mention challenges without
+              exaggeration.
+            </li>
+
+            <li>
+              Finish with a balanced way
+              forward.
+            </li>
+
+            <li>
+              Save as Draft until reviewed.
             </li>
           </ol>
 
           <div className="callout">
+
             <strong>
-              Draft workflow
+              Recommended workflow
             </strong>
 
             <p>
-              Draft and archived items are
-              hidden from ordinary students.
-              Only published articles appear
-              on the public Current Affairs page.
+              Create → Draft → Review →
+              Publish. Students see only
+              Published articles.
             </p>
+
           </div>
 
         </aside>
@@ -1262,6 +1453,7 @@ export function AdminPage({
         >
 
           <div>
+
             <span className="eyebrow">
               CONTENT MANAGER
             </span>
@@ -1269,6 +1461,7 @@ export function AdminPage({
             <h2>
               Existing Current Affairs
             </h2>
+
           </div>
 
           <button
@@ -1336,7 +1529,8 @@ export function AdminPage({
                     </h3>
 
                     <p>
-                      Source: {article.source}
+                      Source:{' '}
+                      {article.source}
                     </p>
 
                     <p>
@@ -1353,7 +1547,8 @@ export function AdminPage({
                       display: 'flex',
                       gap: '8px',
                       flexWrap: 'wrap',
-                      alignItems: 'flex-start'
+                      alignItems:
+                        'flex-start'
                     }}
                   >
 
