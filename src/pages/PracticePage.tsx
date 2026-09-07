@@ -185,7 +185,6 @@ export function PracticePage() {
       questions.length - 1
     ) {
       setFinished(true);
-
       return;
     }
 
