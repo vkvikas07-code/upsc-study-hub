@@ -99,3 +99,36 @@ button { cursor: pointer; }
     padding-bottom: calc(88px + var(--android-bottom-safe));
   }
 }
+
+/* Fix long-page scrolling inside Ionic app */
+html,
+body,
+#root,
+ion-app {
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-shell {
+  height: 100%;
+  min-height: 0;
+}
+
+.main-area {
+  height: 100dvh;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+@media (min-width: 1000px) {
+  .app-shell {
+    height: 100vh;
+  }
+
+  .main-area {
+    height: 100vh;
+  }
+}
