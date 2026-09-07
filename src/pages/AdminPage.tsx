@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 
 import { TopBar } from '../components/TopBar';
 import { QuestionManager } from '../components/QuestionManager';
+import { MainsQuestionManager } from '../components/MainsQuestionManager';
 import type { CurrentAffair } from '../types';
 
 import {
@@ -1630,10 +1631,12 @@ export function AdminPage({
 
         </div>
 
-           </section>
+          </section>
 
-      <QuestionManager />
+<QuestionManager />
 
-    </div>
-  );
+<MainsQuestionManager />
+
+</div>
+);
 }
