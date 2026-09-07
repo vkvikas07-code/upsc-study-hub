@@ -132,3 +132,34 @@ ion-app {
     height: 100vh;
   }
 }
+
+/* Admin Studio dropdown styling */
+.admin-form select {
+  width: 100%;
+  min-height: 46px;
+  background: #0e1525;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 11px;
+  padding: 11px 12px;
+  font: inherit;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.admin-form select:hover {
+  border-color: rgba(20, 184, 166, 0.40);
+}
+
+.admin-form select:focus {
+  border-color: rgba(20, 184, 166, 0.70);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.10);
+}
+
+.admin-form select option {
+  background: #151c2e;
+  color: #f8fafc;
+  padding: 10px;
+}
