@@ -532,35 +532,118 @@ const [
 
 
   const filteredItems =
-    useMemo(
-      () => {
-        if (
-          statusFilter ===
-          'all'
-        ) {
-          return items;
+  useMemo(
+    () => {
+      const search =
+        searchText
+          .trim()
+          .toLowerCase();
+
+
+      return items.filter(
+        (
+          item:
+            EvaluationItem
+        ) => {
+          const status =
+            item.evaluation
+              ?.status ||
+            'pending';
+
+
+          const question =
+            item.question;
+
+
+          const matchesStatus =
+            statusFilter ===
+              'all' ||
+            status ===
+              statusFilter;
+
+
+          const matchesSection =
+            sectionFilter ===
+              'all' ||
+            question
+              ?.section_type ===
+              sectionFilter;
+
+
+          const matchesSubmissionMode =
+            submissionModeFilter ===
+              'all' ||
+            item.attempt
+              .submission_mode ===
+              submissionModeFilter;
+
+
+          const matchesSearch =
+            !search ||
+            (
+              question
+                ?.question ||
+              ''
+            )
+              .toLowerCase()
+              .includes(
+                search
+              ) ||
+            (
+              question
+                ?.subject ||
+              ''
+            )
+              .toLowerCase()
+              .includes(
+                search
+              ) ||
+            (
+              question
+                ?.topic ||
+              ''
+            )
+              .toLowerCase()
+              .includes(
+                search
+              ) ||
+            (
+              question
+                ?.gs_paper ||
+              ''
+            )
+              .toLowerCase()
+              .includes(
+                search
+              ) ||
+            (
+              question
+                ?.optional_subject ||
+              ''
+            )
+              .toLowerCase()
+              .includes(
+                search
+              );
+
+
+          return (
+            matchesStatus &&
+            matchesSection &&
+            matchesSubmissionMode &&
+            matchesSearch
+          );
         }
-
-        return items.filter(
-          item => {
-            const status =
-              item.evaluation
-                ?.status ||
-              'pending';
-
-            return (
-              status ===
-              statusFilter
-            );
-          }
-        );
-      },
-      [
-        items,
-        statusFilter
-      ]
-    );
-
+      );
+    },
+    [
+      items,
+      statusFilter,
+      searchText,
+      sectionFilter,
+      submissionModeFilter
+    ]
+  );
 
   const selectedItem =
     useMemo(
