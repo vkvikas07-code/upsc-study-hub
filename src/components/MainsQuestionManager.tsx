@@ -1013,9 +1013,7 @@ function clearBankFilters() {
   );
 }
 
-
-return (
-  return (
+ return (
     <section
       style={{
         marginTop: '30px'
