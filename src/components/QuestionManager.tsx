@@ -519,7 +519,21 @@ const [
 
     setPyqYear('');
 
-    setSource('');
+
+setUpscExamName('');
+
+setCustomUpscExamName('');
+
+setUpscExamCycle('');
+
+setUpscExamStage('');
+
+setUpscExamPaper('');
+
+setUpscExamYear('');
+
+
+setSource('');
 
     setSourceUrl('');
 
@@ -616,15 +630,70 @@ const [
 
 
     setPyqYear(
-      item.pyq_year
-        ? String(
-            item.pyq_year
-          )
-        : ''
-    );
+  item.pyq_year
+    ? String(
+        item.pyq_year
+      )
+    : ''
+);
 
 
-    setSource(
+if (
+  item.upsc_exam_name &&
+  UPSC_EXAMS.includes(
+    item.upsc_exam_name
+  )
+) {
+  setUpscExamName(
+    item.upsc_exam_name
+  );
+
+  setCustomUpscExamName('');
+} else if (
+  item.upsc_exam_name
+) {
+  setUpscExamName(
+    'Other UPSC Examination'
+  );
+
+  setCustomUpscExamName(
+    item.upsc_exam_name
+  );
+} else {
+  setUpscExamName('');
+
+  setCustomUpscExamName('');
+}
+
+
+setUpscExamCycle(
+  item.upsc_exam_cycle ||
+  ''
+);
+
+
+setUpscExamStage(
+  item.upsc_exam_stage ||
+  ''
+);
+
+
+setUpscExamPaper(
+  item.upsc_exam_paper ||
+  ''
+);
+
+
+setUpscExamYear(
+  item.upsc_exam_year
+    ? String(
+        item.upsc_exam_year
+      )
+    : ''
+);
+
+
+setSource(
       item.source ||
       ''
     );
@@ -729,18 +798,43 @@ const [
 
 
     if (
-      isPyq &&
-      !pyqYear.trim()
-    ) {
-      setMessage(
-        'Enter the PYQ year.'
-      );
+  isPyq &&
+  !pyqYear.trim()
+) {
+  setMessage(
+    'Enter the PYQ year.'
+  );
 
-      return;
-    }
+  return;
+}
 
 
-    setSaving(true);
+if (
+  upscExamName ===
+    'Other UPSC Examination' &&
+  !customUpscExamName.trim()
+) {
+  setMessage(
+    'Enter the UPSC examination name.'
+  );
+
+  return;
+}
+
+
+if (
+  upscExamName &&
+  !upscExamYear.trim()
+) {
+  setMessage(
+    'Enter the examination year.'
+  );
+
+  return;
+}
+
+
+setSaving(true);
 
 
     setMessage(
@@ -815,14 +909,53 @@ const [
         isPyq,
 
       pyq_year:
-        isPyq &&
-        pyqYear.trim()
-          ? Number(
-              pyqYear
-            )
-          : null,
+  isPyq &&
+  pyqYear.trim()
+    ? Number(
+        pyqYear
+      )
+    : null,
 
-      source:
+
+upsc_exam_name:
+  upscExamName ===
+    'Other UPSC Examination'
+    ? customUpscExamName
+        .trim() ||
+      null
+    : upscExamName
+        .trim() ||
+      null,
+
+
+upsc_exam_cycle:
+  upscExamCycle
+    .trim() ||
+  null,
+
+
+upsc_exam_stage:
+  upscExamStage
+    .trim() ||
+  null,
+
+
+upsc_exam_paper:
+  upscExamPaper
+    .trim() ||
+  null,
+
+
+upsc_exam_year:
+  upscExamName &&
+  upscExamYear.trim()
+    ? Number(
+        upscExamYear
+      )
+    : null,
+
+
+source:
         source.trim() ||
         null,
 
