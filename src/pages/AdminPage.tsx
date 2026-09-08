@@ -345,8 +345,7 @@ export function AdminPage({
     }
 
     const rows =
-      (data || [])
-        as AdminArticle[];
+  (data || []) as AdminArticle[];
 
     setArticles(
       rows
