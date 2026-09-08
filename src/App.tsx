@@ -134,13 +134,53 @@ export default function App() {
     content = <LearnPage />;
   }
 
-  if (active === 'practice') {
-  content =
-    practiceMode === 'prelims'
-      ? <PracticePage />
-      : <MainsPracticePage />;
-}
+ if (active === 'practice') {
+  content = (
+    <>
+      <div className="page-wrap">
+        <div
+          className="filter-row"
+          style={{
+            paddingTop: '18px',
+            paddingBottom: '0'
+          }}
+        >
+          <button
+            type="button"
+            className={
+              practiceMode === 'prelims'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setPracticeMode('prelims')
+            }
+          >
+            Prelims MCQ
+          </button>
 
+          <button
+            type="button"
+            className={
+              practiceMode === 'mains'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setPracticeMode('mains')
+            }
+          >
+            Mains Answer Writing
+          </button>
+        </div>
+      </div>
+
+      {practiceMode === 'prelims'
+        ? <PracticePage />
+        : <MainsPracticePage />}
+    </>
+  );
+}
   if (active === 'current') {
     content = <CurrentPage items={articles} />;
   }
