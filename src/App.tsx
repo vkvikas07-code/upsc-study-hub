@@ -5,6 +5,7 @@ import { Shell } from './components/Shell';
 import { HomePage } from './pages/HomePage';
 import { LearnPage } from './pages/LearnPage';
 import { PracticePage } from './pages/PracticePage';
+import { MainsPracticePage } from './pages/MainsPracticePage';
 import { CurrentPage } from './pages/CurrentPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
@@ -38,7 +39,9 @@ const defaultTasks: DailyTask[] = [
 
 export default function App() {
   const [active, setActive] = useState<NavKey>('home');
-
+  const [practiceMode, setPracticeMode] =
+    useState<'prelims' | 'mains'>('prelims');
+  
   const [tasks, setTasksState] = useState<DailyTask[]>(() => {
     try {
       return (
@@ -132,8 +135,11 @@ export default function App() {
   }
 
   if (active === 'practice') {
-    content = <PracticePage />;
-  }
+  content =
+    practiceMode === 'prelims'
+      ? <PracticePage />
+      : <MainsPracticePage />;
+}
 
   if (active === 'current') {
     content = <CurrentPage items={articles} />;
