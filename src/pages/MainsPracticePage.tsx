@@ -1,78 +1,78 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { CSSProperties } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
 
-import { TopBar } from '../components/TopBar';
-import { supabase } from '../lib/supabase';
+import type {
+  CSSProperties
+} from 'react';
 
-type SectionType =
-  | 'gs'
-  | 'optional';
+import {
+  TopBar
+} from '../components/TopBar';
+
+import {
+  supabase
+} from '../lib/supabase';
+
+import {
+  MainsAnswerWorkspace
+} from '../MainsAnswerWorkspace';
+
+import type {
+  MainsWorkspaceQuestion
+} from '../MainsAnswerWorkspace';
+
 
 type QuestionType =
   | 'practice'
   | 'pyq';
 
-type MainSectionFilter =
+type SectionFilter =
   | 'all'
   | 'gs'
   | 'optional';
 
-type TypeFilter =
+type QuestionTypeFilter =
   | 'all'
   | 'practice'
   | 'pyq';
 
-type MainsQuestion = {
-  id: string;
-  question: string;
 
-  question_type: QuestionType;
-  section_type: SectionType;
+type MainsQuestion =
+  MainsWorkspaceQuestion & {
+    question_type:
+      QuestionType;
 
-  gs_paper: string | null;
+    pyq_year:
+      number | null;
 
-  optional_subject: string | null;
-  optional_paper: string | null;
+    tags:
+      string[];
 
-  subject: string;
-  topic: string | null;
-  syllabus_link: string | null;
+    difficulty:
+      string;
 
-  directive: string | null;
+    created_at:
+      string;
+  };
 
-  marks: number | null;
-  word_limit: number | null;
-
-  pyq_year: number | null;
-
-  answer_framework: string | null;
-  key_points: string | null;
-
-  introduction_hint: string | null;
-  conclusion_hint: string | null;
-
-  source: string | null;
-  source_url: string | null;
-
-  tags: string[];
-
-  difficulty: string;
-
-  created_at: string;
-};
 
 const controlStyle: CSSProperties = {
   width: '100%',
   minHeight: '48px',
   padding: '0 14px',
   borderRadius: '12px',
-  border: '1px solid rgba(255,255,255,0.12)',
+  border:
+    '1px solid rgba(255,255,255,0.12)',
   background: '#0e1525',
   color: '#f8fafc',
   fontSize: '0.92rem',
   outline: 'none',
   colorScheme: 'dark'
 };
+
 
 const labelStyle: CSSProperties = {
   display: 'grid',
@@ -83,38 +83,69 @@ const labelStyle: CSSProperties = {
   fontWeight: 700
 };
 
-const optionStyle: CSSProperties = {
-  background: '#0e1525',
-  color: '#f8fafc'
-};
 
-const outlineButtonStyle: CSSProperties = {
-  minHeight: '44px',
-  padding: '0 16px',
-  borderRadius: '12px',
-  border: '1px solid rgba(45,212,191,0.55)',
-  background: 'rgba(20,184,166,0.04)',
-  color: '#5eead4',
-  fontWeight: 750
-};
+const outlineButtonStyle:
+  CSSProperties = {
+    minHeight: '44px',
+    padding: '0 16px',
+    borderRadius: '12px',
+    border:
+      '1px solid rgba(45,212,191,0.55)',
+    background:
+      'rgba(20,184,166,0.04)',
+    color: '#5eead4',
+    fontWeight: 750
+  };
+
 
 export function MainsPracticePage() {
-  const [questions, setQuestions] =
+  const [
+    questions,
+    setQuestions
+  ] =
     useState<MainsQuestion[]>([]);
 
-  const [loading, setLoading] =
+
+  const [
+    selectedQuestion,
+    setSelectedQuestion
+  ] =
+    useState<MainsQuestion | null>(
+      null
+    );
+
+
+  const [
+    loading,
+    setLoading
+  ] =
     useState(true);
 
-  const [error, setError] =
+
+  const [
+    error,
+    setError
+  ] =
     useState('');
+
 
   const [
     sectionFilter,
     setSectionFilter
   ] =
-    useState<MainSectionFilter>(
+    useState<SectionFilter>(
       'all'
     );
+
+
+  const [
+    typeFilter,
+    setTypeFilter
+  ] =
+    useState<QuestionTypeFilter>(
+      'all'
+    );
+
 
   const [
     gsFilter,
@@ -122,13 +153,6 @@ export function MainsPracticePage() {
   ] =
     useState('all');
 
-  const [
-    typeFilter,
-    setTypeFilter
-  ] =
-    useState<TypeFilter>(
-      'all'
-    );
 
   const [
     optionalSubjectFilter,
@@ -136,11 +160,13 @@ export function MainsPracticePage() {
   ] =
     useState('all');
 
+
   const [
     optionalPaperFilter,
     setOptionalPaperFilter
   ] =
     useState('all');
+
 
   const [
     marksFilter,
@@ -148,17 +174,20 @@ export function MainsPracticePage() {
   ] =
     useState('all');
 
+
   const [
     yearFilter,
     setYearFilter
   ] =
     useState('all');
 
+
   const [
     searchText,
     setSearchText
   ] =
     useState('');
+
 
   const [
     expandedId,
@@ -168,6 +197,7 @@ export function MainsPracticePage() {
       null
     );
 
+
   async function loadQuestions() {
     if (!supabase) {
       setError(
@@ -175,18 +205,23 @@ export function MainsPracticePage() {
       );
 
       setLoading(false);
+
       return;
     }
 
+
     setLoading(true);
     setError('');
+
 
     const {
       data,
       error: loadError
     } =
       await supabase
-        .from('mains_questions')
+        .from(
+          'mains_questions'
+        )
         .select(`
           id,
           question,
@@ -223,6 +258,7 @@ export function MainsPracticePage() {
           }
         );
 
+
     if (loadError) {
       console.error(
         'Unable to load Mains questions:',
@@ -234,8 +270,10 @@ export function MainsPracticePage() {
       );
 
       setLoading(false);
+
       return;
     }
+
 
     const formatted =
       (data || []).map(
@@ -243,9 +281,11 @@ export function MainsPracticePage() {
           ...item,
 
           tags:
-            item.tags || []
+            item.tags ||
+            []
         })
       ) as MainsQuestion[];
+
 
     setQuestions(
       formatted
@@ -254,14 +294,19 @@ export function MainsPracticePage() {
     setLoading(false);
   }
 
-  useEffect(() => {
-    loadQuestions();
-  }, []);
+
+  useEffect(
+    () => {
+      loadQuestions();
+    },
+    []
+  );
+
 
   const optionalSubjects =
-    useMemo(() => {
-      return Array.from(
-        new Set(
+    useMemo(
+      () => {
+        const values =
           questions
             .filter(
               item =>
@@ -273,16 +318,27 @@ export function MainsPracticePage() {
                 item.optional_subject
             )
             .filter(
-              Boolean
-            ) as string[]
-        )
-      ).sort();
-    }, [questions]);
+              (
+                value
+              ): value is string =>
+                Boolean(value)
+            );
+
+
+        return Array.from(
+          new Set(values)
+        ).sort();
+      },
+      [
+        questions
+      ]
+    );
+
 
   const years =
-    useMemo(() => {
-      return Array.from(
-        new Set(
+    useMemo(
+      () => {
+        const values =
           questions
             .filter(
               item =>
@@ -292,149 +348,169 @@ export function MainsPracticePage() {
             .map(
               item =>
                 item.pyq_year as number
-            )
-        )
-      ).sort(
-        (a, b) =>
-          b - a
-      );
-    }, [questions]);
+            );
+
+
+        return Array.from(
+          new Set(values)
+        ).sort(
+          (a, b) =>
+            b - a
+        );
+      },
+      [
+        questions
+      ]
+    );
+
 
   const filteredQuestions =
-    useMemo(() => {
-      const search =
-        searchText
-          .trim()
-          .toLowerCase();
+    useMemo(
+      () => {
+        const search =
+          searchText
+            .trim()
+            .toLowerCase();
 
-      return questions.filter(
-        item => {
-          if (
-            sectionFilter !==
-              'all' &&
-            item.section_type !==
-              sectionFilter
-          ) {
-            return false;
-          }
 
-          if (
-            item.section_type ===
-              'gs' &&
-            gsFilter !==
-              'all' &&
-            item.gs_paper !==
-              gsFilter
-          ) {
-            return false;
-          }
-
-          if (
-            typeFilter !==
-              'all' &&
-            item.question_type !==
-              typeFilter
-          ) {
-            return false;
-          }
-
-          if (
-            item.section_type ===
-              'optional' &&
-            optionalSubjectFilter !==
-              'all' &&
-            item.optional_subject !==
-              optionalSubjectFilter
-          ) {
-            return false;
-          }
-
-          if (
-            item.section_type ===
-              'optional' &&
-            optionalPaperFilter !==
-              'all' &&
-            item.optional_paper !==
-              optionalPaperFilter
-          ) {
-            return false;
-          }
-
-          if (
-            marksFilter !==
-              'all' &&
-            String(
-              item.marks
-            ) !==
-              marksFilter
-          ) {
-            return false;
-          }
-
-          if (
-            yearFilter !==
-              'all' &&
-            String(
-              item.pyq_year
-            ) !==
-              yearFilter
-          ) {
-            return false;
-          }
-
-          if (search) {
-            const searchable =
-              [
-                item.question,
-                item.subject,
-                item.topic,
-                item.directive,
-                item.gs_paper,
-                item.optional_subject,
-                item.optional_paper,
-                ...(item.tags ||
-                  [])
-              ]
-                .filter(
-                  Boolean
-                )
-                .join(' ')
-                .toLowerCase();
+        return questions.filter(
+          item => {
 
             if (
-              !searchable.includes(
-                search
-              )
+              sectionFilter !==
+                'all' &&
+              item.section_type !==
+                sectionFilter
             ) {
               return false;
             }
-          }
 
-          return true;
-        }
-      );
-    }, [
-      questions,
-      sectionFilter,
-      gsFilter,
-      typeFilter,
-      optionalSubjectFilter,
-      optionalPaperFilter,
-      marksFilter,
-      yearFilter,
-      searchText
-    ]);
+
+            if (
+              typeFilter !==
+                'all' &&
+              item.question_type !==
+                typeFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              item.section_type ===
+                'gs' &&
+              gsFilter !==
+                'all' &&
+              item.gs_paper !==
+                gsFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              item.section_type ===
+                'optional' &&
+              optionalSubjectFilter !==
+                'all' &&
+              item.optional_subject !==
+                optionalSubjectFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              item.section_type ===
+                'optional' &&
+              optionalPaperFilter !==
+                'all' &&
+              item.optional_paper !==
+                optionalPaperFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              marksFilter !==
+                'all' &&
+              String(
+                item.marks
+              ) !==
+                marksFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              yearFilter !==
+                'all' &&
+              String(
+                item.pyq_year
+              ) !==
+                yearFilter
+            ) {
+              return false;
+            }
+
+
+            if (search) {
+              const searchable =
+                [
+                  item.question,
+                  item.subject,
+                  item.topic,
+                  item.directive,
+                  item.gs_paper,
+                  item.optional_subject,
+                  item.optional_paper,
+                  ...(item.tags || [])
+                ]
+                  .filter(Boolean)
+                  .join(' ')
+                  .toLowerCase();
+
+
+              if (
+                !searchable.includes(
+                  search
+                )
+              ) {
+                return false;
+              }
+            }
+
+
+            return true;
+          }
+        );
+      },
+      [
+        questions,
+        sectionFilter,
+        typeFilter,
+        gsFilter,
+        optionalSubjectFilter,
+        optionalPaperFilter,
+        marksFilter,
+        yearFilter,
+        searchText
+      ]
+    );
+
 
   function clearFilters() {
     setSectionFilter(
       'all'
     );
 
-    setGsFilter(
+    setTypeFilter(
       'all'
     );
 
-    setTypeFilter(
+    setGsFilter(
       'all'
     );
 
@@ -454,8 +530,70 @@ export function MainsPracticePage() {
       'all'
     );
 
-    setSearchText('');
+    setSearchText(
+      ''
+    );
   }
+
+
+  function startAnswerWriting(
+    item:
+      MainsQuestion
+  ) {
+    setSelectedQuestion(
+      item
+    );
+
+
+    const mainArea =
+      document.querySelector(
+        '.main-area'
+      );
+
+
+    mainArea?.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }
+
+
+  function closeAnswerWorkspace() {
+    setSelectedQuestion(
+      null
+    );
+
+
+    const mainArea =
+      document.querySelector(
+        '.main-area'
+      );
+
+
+    mainArea?.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }
+
+
+  /*
+   * OPEN ANSWER-WRITING WORKSPACE
+   */
+
+  if (selectedQuestion) {
+    return (
+      <MainsAnswerWorkspace
+        question={
+          selectedQuestion
+        }
+        onBack={
+          closeAnswerWorkspace
+        }
+      />
+    );
+  }
+
 
   if (loading) {
     return (
@@ -466,15 +604,19 @@ export function MainsPracticePage() {
           subtitle="Answer writing, PYQs and optional subjects"
         />
 
+
         <section className="panel">
+
           <h2>
             Loading Mains questions...
           </h2>
+
         </section>
 
       </div>
     );
   }
+
 
   if (error) {
     return (
@@ -485,19 +627,22 @@ export function MainsPracticePage() {
           subtitle="Answer writing, PYQs and optional subjects"
         />
 
+
         <section className="panel">
 
           <h2>
             Unable to load Mains questions
           </h2>
 
+
           <p>
             {error}
           </p>
 
+
           <button
-            className="primary-btn"
             type="button"
+            className="primary-btn"
             onClick={
               loadQuestions
             }
@@ -511,6 +656,7 @@ export function MainsPracticePage() {
     );
   }
 
+
   return (
     <div className="page-wrap mains-practice-page">
 
@@ -519,6 +665,7 @@ export function MainsPracticePage() {
         subtitle="GS-I to GS-IV, PYQs, practice questions and optionals"
       />
 
+
       <section
         className="panel"
         style={{
@@ -526,25 +673,30 @@ export function MainsPracticePage() {
             '22px'
         }}
       >
+
         <span className="eyebrow">
           MAINS QUESTION BANK
         </span>
+
 
         <h2>
           Find the right question to practise
         </h2>
 
+
         <p>
-          Filter questions by General Studies
-          paper, Optional Subject, PYQ,
-          marks and year.
+          Choose a question and practise
+          answer writing directly in the app,
+          or upload a handwritten PDF.
         </p>
+
 
         <label
           style={
             labelStyle
           }
         >
+
           Search
 
           <input
@@ -555,27 +707,25 @@ export function MainsPracticePage() {
               searchText
             }
             onChange={
-              e =>
+              event =>
                 setSearchText(
-                  e.target.value
+                  event.target.value
                 )
             }
             placeholder="Search topic, subject, directive or keyword..."
           />
+
         </label>
 
-        <div
-          className="form-two"
-          style={{
-            marginTop:
-              '14px'
-          }}
-        >
+
+        <div className="form-two">
+
           <label
             style={
               labelStyle
             }
           >
+
             Section
 
             <select
@@ -586,47 +736,37 @@ export function MainsPracticePage() {
                 sectionFilter
               }
               onChange={
-                e =>
+                event =>
                   setSectionFilter(
-                    e.target
-                      .value as MainSectionFilter
+                    event.target
+                      .value as SectionFilter
                   )
               }
             >
-              <option
-                style={
-                  optionStyle
-                }
-                value="all"
-              >
+
+              <option value="all">
                 All Sections
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="gs"
-              >
+              <option value="gs">
                 General Studies
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="optional"
-              >
+              <option value="optional">
                 Optional Subject
               </option>
+
             </select>
+
           </label>
+
 
           <label
             style={
               labelStyle
             }
           >
+
             Question Type
 
             <select
@@ -637,42 +777,32 @@ export function MainsPracticePage() {
                 typeFilter
               }
               onChange={
-                e =>
+                event =>
                   setTypeFilter(
-                    e.target
-                      .value as TypeFilter
+                    event.target
+                      .value as QuestionTypeFilter
                   )
               }
             >
-              <option
-                style={
-                  optionStyle
-                }
-                value="all"
-              >
+
+              <option value="all">
                 All Question Types
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="practice"
-              >
+              <option value="practice">
                 Practice Question
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="pyq"
-              >
+              <option value="pyq">
                 Previous Year Question
               </option>
+
             </select>
+
           </label>
+
         </div>
+
 
         <div className="form-two">
 
@@ -681,6 +811,7 @@ export function MainsPracticePage() {
               labelStyle
             }
           >
+
             GS Paper
 
             <select
@@ -691,64 +822,44 @@ export function MainsPracticePage() {
                 gsFilter
               }
               onChange={
-                e =>
+                event =>
                   setGsFilter(
-                    e.target.value
+                    event.target.value
                   )
               }
             >
-              <option
-                style={
-                  optionStyle
-                }
-                value="all"
-              >
+
+              <option value="all">
                 All GS Papers
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="GS-I"
-              >
+              <option value="GS-I">
                 GS-I
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="GS-II"
-              >
+              <option value="GS-II">
                 GS-II
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="GS-III"
-              >
+              <option value="GS-III">
                 GS-III
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="GS-IV"
-              >
+              <option value="GS-IV">
                 GS-IV
               </option>
+
             </select>
+
           </label>
+
 
           <label
             style={
               labelStyle
             }
           >
+
             Marks
 
             <select
@@ -759,51 +870,35 @@ export function MainsPracticePage() {
                 marksFilter
               }
               onChange={
-                e =>
+                event =>
                   setMarksFilter(
-                    e.target.value
+                    event.target.value
                   )
               }
             >
-              <option
-                style={
-                  optionStyle
-                }
-                value="all"
-              >
+
+              <option value="all">
                 All Marks
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="10"
-              >
+              <option value="10">
                 10 Marks
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="15"
-              >
+              <option value="15">
                 15 Marks
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="20"
-              >
+              <option value="20">
                 20 Marks
               </option>
+
             </select>
+
           </label>
 
         </div>
+
 
         <div className="form-two">
 
@@ -812,6 +907,7 @@ export function MainsPracticePage() {
               labelStyle
             }
           >
+
             Optional Subject
 
             <select
@@ -822,46 +918,44 @@ export function MainsPracticePage() {
                 optionalSubjectFilter
               }
               onChange={
-                e =>
+                event =>
                   setOptionalSubjectFilter(
-                    e.target.value
+                    event.target.value
                   )
               }
             >
-              <option
-                style={
-                  optionStyle
-                }
-                value="all"
-              >
+
+              <option value="all">
                 All Optional Subjects
               </option>
 
+
               {optionalSubjects.map(
-                item => (
+                subject => (
                   <option
-                    style={
-                      optionStyle
-                    }
                     key={
-                      item
+                      subject
                     }
                     value={
-                      item
+                      subject
                     }
                   >
-                    {item}
+                    {subject}
                   </option>
                 )
               )}
+
             </select>
+
           </label>
+
 
           <label
             style={
               labelStyle
             }
           >
+
             Optional Paper
 
             <select
@@ -872,42 +966,31 @@ export function MainsPracticePage() {
                 optionalPaperFilter
               }
               onChange={
-                e =>
+                event =>
                   setOptionalPaperFilter(
-                    e.target.value
+                    event.target.value
                   )
               }
             >
-              <option
-                style={
-                  optionStyle
-                }
-                value="all"
-              >
+
+              <option value="all">
                 Both Papers
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="Paper-I"
-              >
+              <option value="Paper-I">
                 Paper-I
               </option>
 
-              <option
-                style={
-                  optionStyle
-                }
-                value="Paper-II"
-              >
+              <option value="Paper-II">
                 Paper-II
               </option>
+
             </select>
+
           </label>
 
         </div>
+
 
         <div className="form-two">
 
@@ -916,6 +999,7 @@ export function MainsPracticePage() {
               labelStyle
             }
           >
+
             PYQ Year
 
             <select
@@ -926,27 +1010,21 @@ export function MainsPracticePage() {
                 yearFilter
               }
               onChange={
-                e =>
+                event =>
                   setYearFilter(
-                    e.target.value
+                    event.target.value
                   )
               }
             >
-              <option
-                style={
-                  optionStyle
-                }
-                value="all"
-              >
+
+              <option value="all">
                 All Years
               </option>
+
 
               {years.map(
                 year => (
                   <option
-                    style={
-                      optionStyle
-                    }
                     key={
                       year
                     }
@@ -958,19 +1036,25 @@ export function MainsPracticePage() {
                   </option>
                 )
               )}
+
             </select>
+
           </label>
+
 
           <div
             style={{
               display:
                 'flex',
+
               alignItems:
                 'flex-end',
+
               marginBottom:
                 '14px'
             }}
           >
+
             <button
               type="button"
               style={
@@ -982,18 +1066,18 @@ export function MainsPracticePage() {
             >
               Clear filters
             </button>
+
           </div>
 
         </div>
 
       </section>
 
+
       <section
         style={{
-          display:
-            'grid',
-          gap:
-            '18px'
+          display: 'grid',
+          gap: '18px'
         }}
       >
 
@@ -1001,29 +1085,42 @@ export function MainsPracticePage() {
           style={{
             display:
               'flex',
+
             justifyContent:
               'space-between',
+
             alignItems:
               'center',
+
             gap:
               '12px',
+
             flexWrap:
               'wrap'
           }}
         >
 
           <div>
+
             <span className="eyebrow">
               RESULTS
             </span>
 
+
             <h2>
-              {filteredQuestions.length}{' '}
-              {filteredQuestions.length === 1
-                ? 'question'
-                : 'questions'}
+              {
+                filteredQuestions.length
+              }{' '}
+              {
+                filteredQuestions.length ===
+                1
+                  ? 'question'
+                  : 'questions'
+              }
             </h2>
+
           </div>
+
 
           <button
             type="button"
@@ -1039,28 +1136,35 @@ export function MainsPracticePage() {
 
         </div>
 
+
         {filteredQuestions.length ===
           0 && (
+
           <div className="panel">
 
             <h3>
               No published Mains questions found
             </h3>
 
+
             <p>
-              Draft questions remain hidden until
-              they are published by the
-              administrator.
+              Try changing the filters or ask
+              the administrator to publish more
+              questions.
             </p>
 
           </div>
+
         )}
+
 
         {filteredQuestions.map(
           item => {
+
             const expanded =
               expandedId ===
               item.id;
+
 
             return (
               <article
@@ -1068,68 +1172,35 @@ export function MainsPracticePage() {
                   item.id
                 }
                 className="panel"
-                style={{
-                  padding:
-                    '22px'
-                }}
               >
 
                 <div
                   style={{
                     display:
                       'flex',
+
                     justifyContent:
                       'space-between',
+
                     gap:
-                      '16px',
+                      '12px',
+
                     flexWrap:
                       'wrap'
                   }}
                 >
 
-                  <div>
+                  <span className="eyebrow">
 
-                    <span className="eyebrow">
-                      {item.section_type ===
+                    {
+                      item.section_type ===
                       'gs'
                         ? item.gs_paper
-                        : `${item.optional_subject} • ${item.optional_paper}`}
-                    </span>
+                        : `${item.optional_subject} • ${item.optional_paper}`
+                    }
 
-                    <div
-                      className="tag-row"
-                      style={{
-                        marginTop:
-                          '10px'
-                      }}
-                    >
+                  </span>
 
-                      <span className="tag">
-                        {item.question_type ===
-                        'pyq'
-                          ? `PYQ ${item.pyq_year || ''}`
-                          : 'Practice'}
-                      </span>
-
-                      {item.marks && (
-                        <span className="tag">
-                          {item.marks} marks
-                        </span>
-                      )}
-
-                      {item.word_limit && (
-                        <span className="tag">
-                          {item.word_limit} words
-                        </span>
-                      )}
-
-                      <span className="tag">
-                        {item.difficulty}
-                      </span>
-
-                    </div>
-
-                  </div>
 
                   {item.directive && (
                     <strong
@@ -1144,14 +1215,60 @@ export function MainsPracticePage() {
 
                 </div>
 
+
+                <div
+                  className="tag-row"
+                  style={{
+                    marginTop:
+                      '12px'
+                  }}
+                >
+
+                  <span className="tag">
+
+                    {
+                      item.question_type ===
+                      'pyq'
+                        ? `PYQ ${item.pyq_year || ''}`
+                        : 'Practice'
+                    }
+
+                  </span>
+
+
+                  {item.marks && (
+                    <span className="tag">
+                      {item.marks} marks
+                    </span>
+                  )}
+
+
+                  {item.word_limit && (
+                    <span className="tag">
+                      {item.word_limit} words
+                    </span>
+                  )}
+
+
+                  <span className="tag">
+                    {item.difficulty}
+                  </span>
+
+                </div>
+
+
                 <h2
                   style={{
                     marginTop:
-                      '18px'
+                      '18px',
+
+                    lineHeight:
+                      1.4
                   }}
                 >
                   {item.question}
                 </h2>
+
 
                 <p>
                   <strong>
@@ -1159,6 +1276,7 @@ export function MainsPracticePage() {
                   </strong>{' '}
                   {item.subject}
                 </p>
+
 
                 {item.topic && (
                   <p>
@@ -1169,39 +1287,62 @@ export function MainsPracticePage() {
                   </p>
                 )}
 
+
                 {item.tags.length >
                   0 && (
-                  <div
-                    className="tag-row"
-                    style={{
-                      marginTop:
-                        '12px'
-                    }}
-                  >
+
+                  <div className="tag-row">
+
                     {item.tags.map(
                       tag => (
                         <span
-                          className="tag"
                           key={
                             tag
                           }
+                          className="tag"
                         >
                           {tag}
                         </span>
                       )
                     )}
+
                   </div>
+
                 )}
+
 
                 <div
                   style={{
+                    display:
+                      'flex',
+
+                    gap:
+                      '10px',
+
+                    flexWrap:
+                      'wrap',
+
                     marginTop:
                       '18px'
                   }}
                 >
+
                   <button
                     type="button"
                     className="primary-btn"
+                    onClick={() =>
+                      startAnswerWriting(
+                        item
+                      )
+                    }
+                  >
+                    Start Answer Writing
+                  </button>
+
+
+                  <button
+                    type="button"
+                    className="secondary-btn"
                     onClick={() =>
                       setExpandedId(
                         expanded
@@ -1210,30 +1351,36 @@ export function MainsPracticePage() {
                       )
                     }
                   >
-                    {expanded
-                      ? 'Hide guidance'
-                      : 'View answer guidance'}
+
+                    {
+                      expanded
+                        ? 'Hide guidance'
+                        : 'View answer guidance'
+                    }
+
                   </button>
+
                 </div>
 
+
                 {expanded && (
+
                   <div
                     style={{
+                      display:
+                        'grid',
+
+                      gap:
+                        '12px',
+
                       marginTop:
-                        '22px'
+                        '20px'
                     }}
                   >
 
                     {item.syllabus_link && (
-                      <section
-                        className="panel"
-                        style={{
-                          marginBottom:
-                            '14px',
-                          background:
-                            'rgba(20,184,166,0.08)'
-                        }}
-                      >
+                      <div className="panel">
+
                         <span className="eyebrow">
                           UPSC SYLLABUS LINKAGE
                         </span>
@@ -1241,17 +1388,14 @@ export function MainsPracticePage() {
                         <p>
                           {item.syllabus_link}
                         </p>
-                      </section>
+
+                      </div>
                     )}
 
+
                     {item.introduction_hint && (
-                      <section
-                        className="panel"
-                        style={{
-                          marginBottom:
-                            '14px'
-                        }}
-                      >
+                      <div className="panel">
+
                         <span className="eyebrow">
                           INTRODUCTION HINT
                         </span>
@@ -1262,19 +1406,18 @@ export function MainsPracticePage() {
                               'pre-wrap'
                           }}
                         >
-                          {item.introduction_hint}
+                          {
+                            item.introduction_hint
+                          }
                         </p>
-                      </section>
+
+                      </div>
                     )}
 
+
                     {item.answer_framework && (
-                      <section
-                        className="panel"
-                        style={{
-                          marginBottom:
-                            '14px'
-                        }}
-                      >
+                      <div className="panel">
+
                         <span className="eyebrow">
                           ANSWER FRAMEWORK
                         </span>
@@ -1283,23 +1426,23 @@ export function MainsPracticePage() {
                           style={{
                             whiteSpace:
                               'pre-wrap',
+
                             lineHeight:
-                              1.75
+                              1.7
                           }}
                         >
-                          {item.answer_framework}
+                          {
+                            item.answer_framework
+                          }
                         </p>
-                      </section>
+
+                      </div>
                     )}
 
+
                     {item.key_points && (
-                      <section
-                        className="panel"
-                        style={{
-                          marginBottom:
-                            '14px'
-                        }}
-                      >
+                      <div className="panel">
+
                         <span className="eyebrow">
                           KEY POINTS
                         </span>
@@ -1307,24 +1450,19 @@ export function MainsPracticePage() {
                         <p
                           style={{
                             whiteSpace:
-                              'pre-wrap',
-                            lineHeight:
-                              1.75
+                              'pre-wrap'
                           }}
                         >
                           {item.key_points}
                         </p>
-                      </section>
+
+                      </div>
                     )}
 
+
                     {item.conclusion_hint && (
-                      <section
-                        className="panel"
-                        style={{
-                          marginBottom:
-                            '14px'
-                        }}
-                      >
+                      <div className="panel">
+
                         <span className="eyebrow">
                           CONCLUSION HINT
                         </span>
@@ -1335,48 +1473,16 @@ export function MainsPracticePage() {
                               'pre-wrap'
                           }}
                         >
-                          {item.conclusion_hint}
+                          {
+                            item.conclusion_hint
+                          }
                         </p>
-                      </section>
-                    )}
 
-                    {(item.source ||
-                      item.source_url) && (
-                      <section className="panel">
-
-                        <span className="eyebrow">
-                          SOURCE
-                        </span>
-
-                        {item.source && (
-                          <p>
-                            {item.source}
-                          </p>
-                        )}
-
-                        {item.source_url && (
-                          <a
-                            href={
-                              item.source_url
-                            }
-                            target="_blank"
-                            rel="noreferrer"
-                            className="primary-btn"
-                            style={{
-                              display:
-                                'inline-flex',
-                              textDecoration:
-                                'none'
-                            }}
-                          >
-                            Open official source ↗
-                          </a>
-                        )}
-
-                      </section>
+                      </div>
                     )}
 
                   </div>
+
                 )}
 
               </article>
