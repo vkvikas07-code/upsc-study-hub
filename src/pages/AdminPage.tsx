@@ -23,6 +23,10 @@ import {
   MainsEvaluationManager
 } from '../components/MainsEvaluationManager';
 
+import {
+  AdminWorkspaceStats
+} from '../components/AdminWorkspaceStats';
+
 import type {
   CurrentAffair
 } from '../types';
@@ -1524,7 +1528,10 @@ export function AdminPage({
 
         </div>
 
-      </section>
+       </section>
+
+
+      <AdminWorkspaceStats />
 
 
       {/* ADMIN WORKSPACE TABS */}
