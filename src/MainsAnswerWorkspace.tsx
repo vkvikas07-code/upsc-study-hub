@@ -4,8 +4,8 @@ import {
   useState
 } from 'react';
 
-import { TopBar } from './TopBar';
-import { supabase } from '../lib/supabase';
+import { TopBar } from './components/TopBar';
+import { supabase } from './lib/supabase';
 
 export type MainsWorkspaceQuestion = {
   id: string;
