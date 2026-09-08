@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { TopBar } from '../components/TopBar';
 import { QuestionManager } from '../components/QuestionManager';
 import { MainsQuestionManager } from '../components/MainsQuestionManager';
+import { MainsEvaluationManager } from '../components/MainsEvaluationManager';
 import type { CurrentAffair } from '../types';
 
 import {
@@ -1636,6 +1637,8 @@ export function AdminPage({
 <QuestionManager />
 
 <MainsQuestionManager />
+
+<MainsEvaluationManager />
 
 </div>
 );
