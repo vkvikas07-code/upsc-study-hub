@@ -342,9 +342,8 @@ export function MainsEvaluationManager() {
       return;
     }
 
-    const attempts =
-      (attemptData || [])
-        as AttemptRow[];
+   const attempts =
+  (attemptData || []) as AttemptRow[];
 
     if (
       attempts.length ===
@@ -434,12 +433,10 @@ export function MainsEvaluationManager() {
     }
 
     const questions =
-      (questionData || [])
-        as QuestionRow[];
+  (questionData || []) as QuestionRow[];
 
-    const evaluations =
-      (evaluationData || [])
-        as EvaluationRow[];
+   const evaluations =
+  (evaluationData || []) as EvaluationRow[];
 
     const questionMap =
       new Map<
