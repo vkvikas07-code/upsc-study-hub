@@ -8,6 +8,13 @@ import {
 } from '../lib/supabase';
 
 
+type AdminTab =
+  | 'current'
+  | 'mcq'
+  | 'mains'
+  | 'evaluation';
+
+
 type AttemptRow = {
   id: string;
 };
@@ -23,7 +30,12 @@ type EvaluationRow = {
 };
 
 
-export function AdminWorkspaceStats() {
+export function AdminWorkspaceStats({
+  onNavigate
+}: {
+  onNavigate:
+    (tab: AdminTab) => void;
+}) {
   const [
     loading,
     setLoading
@@ -202,6 +214,7 @@ export function AdminWorkspaceStats() {
       );
 
       setLoading(false);
+
       return;
     }
 
@@ -224,6 +237,7 @@ export function AdminWorkspaceStats() {
       setCompletedEvaluations(0);
 
       setLoading(false);
+
       return;
     }
 
@@ -261,6 +275,7 @@ export function AdminWorkspaceStats() {
       );
 
       setLoading(false);
+
       return;
     }
 
@@ -367,6 +382,24 @@ export function AdminWorkspaceStats() {
   );
 
 
+  const cardStyle = {
+    width:
+      '100%',
+
+    textAlign:
+      'left' as const,
+
+    cursor:
+      'pointer',
+
+    color:
+      'inherit',
+
+    font:
+      'inherit'
+  };
+
+
   return (
     <section
       style={{
@@ -411,6 +444,11 @@ export function AdminWorkspaceStats() {
             Content & Evaluation Status
           </h3>
 
+
+          <small>
+            Click any card to open its workspace.
+          </small>
+
         </div>
 
 
@@ -429,7 +467,18 @@ export function AdminWorkspaceStats() {
 
       <div className="metrics-grid">
 
-        <article className="metric-card">
+        <button
+          type="button"
+          className="metric-card"
+          style={
+            cardStyle
+          }
+          onClick={() =>
+            onNavigate(
+              'current'
+            )
+          }
+        >
 
           <div>
 
@@ -448,15 +497,26 @@ export function AdminWorkspaceStats() {
 
 
             <small>
-              Total articles
+              Open Current Affairs →
             </small>
 
           </div>
 
-        </article>
+        </button>
 
 
-        <article className="metric-card">
+        <button
+          type="button"
+          className="metric-card"
+          style={
+            cardStyle
+          }
+          onClick={() =>
+            onNavigate(
+              'mcq'
+            )
+          }
+        >
 
           <div>
 
@@ -475,15 +535,26 @@ export function AdminWorkspaceStats() {
 
 
             <small>
-              Question bank
+              Open MCQ Manager →
             </small>
 
           </div>
 
-        </article>
+        </button>
 
 
-        <article className="metric-card">
+        <button
+          type="button"
+          className="metric-card"
+          style={
+            cardStyle
+          }
+          onClick={() =>
+            onNavigate(
+              'mains'
+            )
+          }
+        >
 
           <div>
 
@@ -502,15 +573,26 @@ export function AdminWorkspaceStats() {
 
 
             <small>
-              GS + Optional
+              Open Mains Manager →
             </small>
 
           </div>
 
-        </article>
+        </button>
 
 
-        <article className="metric-card">
+        <button
+          type="button"
+          className="metric-card"
+          style={
+            cardStyle
+          }
+          onClick={() =>
+            onNavigate(
+              'evaluation'
+            )
+          }
+        >
 
           <div>
 
@@ -529,15 +611,32 @@ export function AdminWorkspaceStats() {
 
 
             <small>
-              Total Mains answers
+              Open Evaluation Queue →
             </small>
 
           </div>
 
-        </article>
+        </button>
 
 
-        <article className="metric-card">
+        <button
+          type="button"
+          className="metric-card"
+          style={{
+            ...cardStyle,
+
+            border:
+              pendingEvaluations >
+              0
+                ? '1px solid rgba(239,106,91,0.65)'
+                : undefined
+          }}
+          onClick={() =>
+            onNavigate(
+              'evaluation'
+            )
+          }
+        >
 
           <div>
 
@@ -556,15 +655,26 @@ export function AdminWorkspaceStats() {
 
 
             <small>
-              Need evaluation
+              Need evaluation →
             </small>
 
           </div>
 
-        </article>
+        </button>
 
 
-        <article className="metric-card">
+        <button
+          type="button"
+          className="metric-card"
+          style={
+            cardStyle
+          }
+          onClick={() =>
+            onNavigate(
+              'evaluation'
+            )
+          }
+        >
 
           <div>
 
@@ -583,15 +693,26 @@ export function AdminWorkspaceStats() {
 
 
             <small>
-              Evaluation started
+              Continue reviewing →
             </small>
 
           </div>
 
-        </article>
+        </button>
 
 
-        <article className="metric-card">
+        <button
+          type="button"
+          className="metric-card"
+          style={
+            cardStyle
+          }
+          onClick={() =>
+            onNavigate(
+              'evaluation'
+            )
+          }
+        >
 
           <div>
 
@@ -610,12 +731,12 @@ export function AdminWorkspaceStats() {
 
 
             <small>
-              Feedback published
+              View evaluations →
             </small>
 
           </div>
 
-        </article>
+        </button>
 
       </div>
 
