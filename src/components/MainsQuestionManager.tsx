@@ -883,10 +883,138 @@ const [
     }
 
     setMessage(
-      'Mains question deleted.'
-    );
-  }
+  'Mains question deleted.'
+);
+}
 
+
+const filteredQuestions =
+  questions.filter(
+    (
+      item:
+        MainsQuestion
+    ) => {
+      const search =
+        searchText
+          .trim()
+          .toLowerCase();
+
+
+      const matchesSearch =
+        !search ||
+        item.question
+          .toLowerCase()
+          .includes(
+            search
+          ) ||
+        item.subject
+          .toLowerCase()
+          .includes(
+            search
+          ) ||
+        (
+          item.topic ||
+          ''
+        )
+          .toLowerCase()
+          .includes(
+            search
+          ) ||
+        (
+          item.source ||
+          ''
+        )
+          .toLowerCase()
+          .includes(
+            search
+          );
+
+
+      const matchesSection =
+        bankSection ===
+          'all' ||
+        item.section_type ===
+          bankSection;
+
+
+      const matchesQuestionType =
+        bankQuestionType ===
+          'all' ||
+        item.question_type ===
+          bankQuestionType;
+
+
+      const matchesStatus =
+        bankStatus ===
+          'all' ||
+        item.status ===
+          bankStatus;
+
+
+      const matchesDifficulty =
+        bankDifficulty ===
+          'all' ||
+        item.difficulty ===
+          bankDifficulty;
+
+
+      const matchesGsPaper =
+        bankGsPaper ===
+          'all' ||
+        item.gs_paper ===
+          bankGsPaper;
+
+
+      const matchesOptionalSubject =
+        bankOptionalSubject ===
+          'all' ||
+        item.optional_subject ===
+          bankOptionalSubject;
+
+
+      return (
+        matchesSearch &&
+        matchesSection &&
+        matchesQuestionType &&
+        matchesStatus &&
+        matchesDifficulty &&
+        matchesGsPaper &&
+        matchesOptionalSubject
+      );
+    }
+  );
+
+
+function clearBankFilters() {
+  setSearchText('');
+
+  setBankSection(
+    'all'
+  );
+
+  setBankQuestionType(
+    'all'
+  );
+
+  setBankStatus(
+    'all'
+  );
+
+  setBankDifficulty(
+    'all'
+  );
+
+  setBankGsPaper(
+    'all'
+  );
+
+  setBankOptionalSubject(
+    'all'
+  );
+}
+
+
+return (
   return (
     <section
       style={{
@@ -1522,7 +1650,7 @@ const [
             marginTop: '18px'
           }}
         >
-          {questions.map(
+          {filteredQuestions.map(
             item => (
               <article
                 key={item.id}
