@@ -8,6 +8,21 @@ import {
 } from '../lib/supabase';
 
 
+type AttemptRow = {
+  id: string;
+};
+
+
+type EvaluationRow = {
+  attempt_id: string;
+
+  status:
+    | 'pending'
+    | 'in_review'
+    | 'completed';
+};
+
+
 export function AdminWorkspaceStats() {
   const [
     loading,
@@ -15,11 +30,13 @@ export function AdminWorkspaceStats() {
   ] =
     useState(true);
 
+
   const [
     currentAffairs,
     setCurrentAffairs
   ] =
     useState(0);
+
 
   const [
     mcqs,
@@ -27,15 +44,38 @@ export function AdminWorkspaceStats() {
   ] =
     useState(0);
 
+
   const [
     mainsQuestions,
     setMainsQuestions
   ] =
     useState(0);
 
+
   const [
-    evaluations,
-    setEvaluations
+    totalSubmissions,
+    setTotalSubmissions
+  ] =
+    useState(0);
+
+
+  const [
+    pendingEvaluations,
+    setPendingEvaluations
+  ] =
+    useState(0);
+
+
+  const [
+    inReviewEvaluations,
+    setInReviewEvaluations
+  ] =
+    useState(0);
+
+
+  const [
+    completedEvaluations,
+    setCompletedEvaluations
   ] =
     useState(0);
 
@@ -45,6 +85,7 @@ export function AdminWorkspaceStats() {
       setLoading(false);
       return;
     }
+
 
     setLoading(true);
 
@@ -113,23 +154,36 @@ export function AdminWorkspaceStats() {
         );
 
 
+    setCurrentAffairs(
+      currentCount ||
+      0
+    );
+
+
+    setMcqs(
+      mcqCount ||
+      0
+    );
+
+
+    setMainsQuestions(
+      mainsCount ||
+      0
+    );
+
+
     const {
-      count:
-        evaluationCount
+      data:
+        attemptData,
+      error:
+        attemptError
     } =
       await supabase
         .from(
           'mains_attempts'
         )
         .select(
-          'id',
-          {
-            count:
-              'exact',
-
-            head:
-              true
-          }
+          'id'
         )
         .eq(
           'status',
@@ -141,24 +195,163 @@ export function AdminWorkspaceStats() {
         );
 
 
-    setCurrentAffairs(
-      currentCount ||
-      0
+    if (attemptError) {
+      console.error(
+        'Unable to load evaluation submissions:',
+        attemptError
+      );
+
+      setLoading(false);
+      return;
+    }
+
+
+    const attempts =
+      (attemptData || []) as AttemptRow[];
+
+
+    setTotalSubmissions(
+      attempts.length
     );
 
-    setMcqs(
-      mcqCount ||
+
+    if (
+      attempts.length ===
       0
+    ) {
+      setPendingEvaluations(0);
+      setInReviewEvaluations(0);
+      setCompletedEvaluations(0);
+
+      setLoading(false);
+      return;
+    }
+
+
+    const attemptIds =
+      attempts.map(
+        attempt =>
+          attempt.id
+      );
+
+
+    const {
+      data:
+        evaluationData,
+      error:
+        evaluationError
+    } =
+      await supabase
+        .from(
+          'mains_evaluations'
+        )
+        .select(
+          'attempt_id, status'
+        )
+        .in(
+          'attempt_id',
+          attemptIds
+        );
+
+
+    if (evaluationError) {
+      console.error(
+        'Unable to load evaluation status:',
+        evaluationError
+      );
+
+      setLoading(false);
+      return;
+    }
+
+
+    const evaluations =
+      (evaluationData || []) as EvaluationRow[];
+
+
+    const evaluationMap =
+      new Map<
+        string,
+        EvaluationRow
+      >();
+
+
+    evaluations.forEach(
+      evaluation => {
+        evaluationMap.set(
+          evaluation.attempt_id,
+          evaluation
+        );
+      }
     );
 
-    setMainsQuestions(
-      mainsCount ||
-      0
+
+    let pending =
+      0;
+
+    let inReview =
+      0;
+
+    let completed =
+      0;
+
+
+    attempts.forEach(
+      attempt => {
+        const evaluation =
+          evaluationMap.get(
+            attempt.id
+          );
+
+
+        if (!evaluation) {
+          pending +=
+            1;
+
+          return;
+        }
+
+
+        if (
+          evaluation.status ===
+          'completed'
+        ) {
+          completed +=
+            1;
+
+          return;
+        }
+
+
+        if (
+          evaluation.status ===
+          'in_review'
+        ) {
+          inReview +=
+            1;
+
+          return;
+        }
+
+
+        pending +=
+          1;
+      }
     );
 
-    setEvaluations(
-      evaluationCount ||
-      0
+
+    setPendingEvaluations(
+      pending
+    );
+
+
+    setInReviewEvaluations(
+      inReview
+    );
+
+
+    setCompletedEvaluations(
+      completed
     );
 
 
@@ -213,8 +406,9 @@ export function AdminWorkspaceStats() {
             ADMIN OVERVIEW
           </span>
 
+
           <h3>
-            Content Status
+            Content & Evaluation Status
           </h3>
 
         </div>
@@ -243,6 +437,7 @@ export function AdminWorkspaceStats() {
               Current Affairs
             </span>
 
+
             <strong>
               {
                 loading
@@ -250,6 +445,7 @@ export function AdminWorkspaceStats() {
                   : currentAffairs
               }
             </strong>
+
 
             <small>
               Total articles
@@ -268,6 +464,7 @@ export function AdminWorkspaceStats() {
               Prelims MCQs
             </span>
 
+
             <strong>
               {
                 loading
@@ -275,6 +472,7 @@ export function AdminWorkspaceStats() {
                   : mcqs
               }
             </strong>
+
 
             <small>
               Question bank
@@ -293,6 +491,7 @@ export function AdminWorkspaceStats() {
               Mains Questions
             </span>
 
+
             <strong>
               {
                 loading
@@ -300,6 +499,7 @@ export function AdminWorkspaceStats() {
                   : mainsQuestions
               }
             </strong>
+
 
             <small>
               GS + Optional
@@ -315,19 +515,102 @@ export function AdminWorkspaceStats() {
           <div>
 
             <span>
-              Evaluations
+              Submissions
             </span>
+
 
             <strong>
               {
                 loading
                   ? '...'
-                  : evaluations
+                  : totalSubmissions
               }
             </strong>
 
+
             <small>
-              Student submissions
+              Total Mains answers
+            </small>
+
+          </div>
+
+        </article>
+
+
+        <article className="metric-card">
+
+          <div>
+
+            <span>
+              Pending
+            </span>
+
+
+            <strong>
+              {
+                loading
+                  ? '...'
+                  : pendingEvaluations
+              }
+            </strong>
+
+
+            <small>
+              Need evaluation
+            </small>
+
+          </div>
+
+        </article>
+
+
+        <article className="metric-card">
+
+          <div>
+
+            <span>
+              In Review
+            </span>
+
+
+            <strong>
+              {
+                loading
+                  ? '...'
+                  : inReviewEvaluations
+              }
+            </strong>
+
+
+            <small>
+              Evaluation started
+            </small>
+
+          </div>
+
+        </article>
+
+
+        <article className="metric-card">
+
+          <div>
+
+            <span>
+              Completed
+            </span>
+
+
+            <strong>
+              {
+                loading
+                  ? '...'
+                  : completedEvaluations
+              }
+            </strong>
+
+
+            <small>
+              Feedback published
             </small>
 
           </div>
