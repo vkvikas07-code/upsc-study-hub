@@ -1534,7 +1534,11 @@ export function AdminPage({
        </section>
 
 
-      <AdminWorkspaceStats />
+      <AdminWorkspaceStats
+  onNavigate={
+    switchAdminTab
+  }
+/>
 
 
       {/* ADMIN WORKSPACE TABS */}
