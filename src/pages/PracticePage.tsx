@@ -1,207 +1,1159 @@
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
 
-import { TopBar } from '../components/TopBar';
-import { supabase } from '../lib/supabase';
+import {
+  TopBar
+} from '../components/TopBar';
+
+import {
+  supabase
+} from '../lib/supabase';
+
+
+type QuestionOrigin =
+  | 'cse'
+  | 'upsc'
+  | 'state';
+
 
 type LiveQuestion = {
   id: string;
+
   question: string;
+
   options: string[];
+
   correct_index: number;
+
   explanation: string;
+
   subject: string;
+
   difficulty: string;
+
   topic: string | null;
+
   tags: string[];
+
   is_pyq: boolean;
+
   pyq_year: number | null;
+
+  /*
+   * OTHER UPSC EXAM
+   */
+
+  upsc_exam_name: string | null;
+
+  upsc_exam_cycle: string | null;
+
+  upsc_exam_stage: string | null;
+
+  upsc_exam_paper: string | null;
+
+  upsc_exam_year: number | null;
+
+  /*
+   * STATE PSC
+   */
+
+  state_psc_state: string | null;
+
+  state_psc_name: string | null;
+
+  state_psc_exam_name: string | null;
+
+  state_psc_year: number | null;
+
+  state_psc_stage: string | null;
+
+  state_psc_paper: string | null;
+
+  /*
+   * SOURCE
+   */
+
   source: string | null;
+
+  source_url: string | null;
 };
+
 
 type AnswerRecord = {
   question_id: string;
+
   selected_index: number;
+
   correct_index: number;
+
   is_correct: boolean;
 };
 
+
+const QUESTION_SELECT = `
+  id,
+  question,
+  options,
+  correct_index,
+  explanation,
+  subject,
+  difficulty,
+  topic,
+  tags,
+  is_pyq,
+  pyq_year,
+  upsc_exam_name,
+  upsc_exam_cycle,
+  upsc_exam_stage,
+  upsc_exam_paper,
+  upsc_exam_year,
+  state_psc_state,
+  state_psc_name,
+  state_psc_exam_name,
+  state_psc_year,
+  state_psc_stage,
+  state_psc_paper,
+  source,
+  source_url
+`;
+
+
 export function PracticePage() {
-  const [questions, setQuestions] =
-    useState<LiveQuestion[]>([]);
 
-  const [index, setIndex] =
-    useState(0);
+  /*
+   * ALL PUBLISHED QUESTIONS
+   */
 
-  const [selected, setSelected] =
-    useState<number | null>(null);
+  const [
+    allQuestions,
+    setAllQuestions
+  ] =
+    useState<
+      LiveQuestion[]
+    >([]);
 
-  const [score, setScore] =
-    useState(0);
 
-  const [answers, setAnswers] =
-    useState<AnswerRecord[]>([]);
+  /*
+   * ACTIVE PRACTICE SET
+   */
 
-  const [finished, setFinished] =
+  const [
+    questions,
+    setQuestions
+  ] =
+    useState<
+      LiveQuestion[]
+    >([]);
+
+
+  const [
+    practiceStarted,
+    setPracticeStarted
+  ] =
     useState(false);
 
-  const [loading, setLoading] =
+
+  /*
+   * QUIZ STATE
+   */
+
+  const [
+    index,
+    setIndex
+  ] =
+    useState(0);
+
+
+  const [
+    selected,
+    setSelected
+  ] =
+    useState<
+      number | null
+    >(null);
+
+
+  const [
+    score,
+    setScore
+  ] =
+    useState(0);
+
+
+  const [
+    answers,
+    setAnswers
+  ] =
+    useState<
+      AnswerRecord[]
+    >([]);
+
+
+  const [
+    finished,
+    setFinished
+  ] =
+    useState(false);
+
+
+  /*
+   * PAGE STATE
+   */
+
+  const [
+    loading,
+    setLoading
+  ] =
     useState(true);
 
-  const [error, setError] =
+
+  const [
+    error,
+    setError
+  ] =
     useState('');
 
-  const [savingResult, setSavingResult] =
-    useState(false);
 
-  const [resultMessage, setResultMessage] =
+  const [
+    setupMessage,
+    setSetupMessage
+  ] =
     useState('');
 
-  const [attemptSaved, setAttemptSaved] =
+
+  const [
+    savingResult,
+    setSavingResult
+  ] =
     useState(false);
+
+
+  const [
+    resultMessage,
+    setResultMessage
+  ] =
+    useState('');
+
+
+  const [
+    attemptSaved,
+    setAttemptSaved
+  ] =
+    useState(false);
+
+
+  /*
+   * PRACTICE FILTERS
+   */
+
+  const [
+    originFilter,
+    setOriginFilter
+  ] =
+    useState<
+      'all' |
+      QuestionOrigin
+    >('all');
+
+
+  const [
+    subjectFilter,
+    setSubjectFilter
+  ] =
+    useState('all');
+
+
+  const [
+    typeFilter,
+    setTypeFilter
+  ] =
+    useState<
+      'all' |
+      'practice' |
+      'pyq'
+    >('all');
+
+
+  /*
+   * OTHER UPSC FILTERS
+   */
+
+  const [
+    upscExamFilter,
+    setUpscExamFilter
+  ] =
+    useState('all');
+
+
+  const [
+    upscCycleFilter,
+    setUpscCycleFilter
+  ] =
+    useState('all');
+
+
+  const [
+    upscYearFilter,
+    setUpscYearFilter
+  ] =
+    useState('all');
+
+
+  /*
+   * STATE PSC FILTERS
+   */
+
+  const [
+    stateFilter,
+    setStateFilter
+  ] =
+    useState('all');
+
+
+  const [
+    stateExamFilter,
+    setStateExamFilter
+  ] =
+    useState('all');
+
+
+  const [
+    stateYearFilter,
+    setStateYearFilter
+  ] =
+    useState('all');
+
+
+  /*
+   * LOAD QUESTIONS
+   */
 
   async function loadQuestions() {
+
     if (!supabase) {
+
       setError(
         'Practice database is not configured.'
       );
 
-      setLoading(false);
+      setLoading(
+        false
+      );
+
       return;
     }
 
-    setLoading(true);
+
+    setLoading(
+      true
+    );
+
     setError('');
 
-    const { data, error: loadError } =
+    setSetupMessage('');
+
+
+    const {
+      data,
+      error:
+        loadError
+    } =
       await supabase
-        .from('questions')
-        .select(`
-          id,
-          question,
-          options,
-          correct_index,
-          explanation,
-          subject,
-          difficulty,
-          topic,
-          tags,
-          is_pyq,
-          pyq_year,
-          source
-        `)
-        .eq('status', 'published')
-        .eq('exam_stage', 'prelims')
+        .from(
+          'questions'
+        )
+        .select(
+          QUESTION_SELECT
+        )
+        .eq(
+          'status',
+          'published'
+        )
+        .eq(
+          'exam_stage',
+          'prelims'
+        )
         .order(
           'created_at',
-          { ascending: false }
+          {
+            ascending:
+              false
+          }
         );
 
+
     if (loadError) {
+
       console.error(
         'Unable to load questions:',
         loadError
       );
 
+
       setError(
         loadError.message
       );
 
-      setLoading(false);
+
+      setLoading(
+        false
+      );
+
       return;
     }
 
-    const formatted: LiveQuestion[] =
-      (data || []).map(item => ({
-        id: item.id,
 
-        question:
-          item.question,
+    const formatted:
+      LiveQuestion[] =
+        (
+          data ||
+          []
+        ).map(
+          item => ({
 
-        options:
-          Array.isArray(
-            item.options
-          )
-            ? item.options.map(
-                option =>
-                  String(option)
+            id:
+              item.id,
+
+            question:
+              item.question,
+
+            options:
+              Array.isArray(
+                item.options
               )
-            : [],
+                ? item.options.map(
+                    option =>
+                      String(
+                        option
+                      )
+                  )
+                : [],
 
-        correct_index:
-          item.correct_index,
+            correct_index:
+              item.correct_index,
 
-        explanation:
-          item.explanation,
+            explanation:
+              item.explanation,
 
-        subject:
-          item.subject,
+            subject:
+              item.subject,
 
-        difficulty:
-          item.difficulty,
+            difficulty:
+              item.difficulty,
 
-        topic:
-          item.topic,
+            topic:
+              item.topic,
 
-        tags:
-          item.tags || [],
+            tags:
+              Array.isArray(
+                item.tags
+              )
+                ? item.tags
+                : [],
 
-        is_pyq:
-          item.is_pyq,
+            is_pyq:
+              item.is_pyq,
 
-        pyq_year:
-          item.pyq_year,
+            pyq_year:
+              item.pyq_year,
 
-        source:
-          item.source
-      }));
+            upsc_exam_name:
+              item.upsc_exam_name,
 
-    setQuestions(formatted);
+            upsc_exam_cycle:
+              item.upsc_exam_cycle,
+
+            upsc_exam_stage:
+              item.upsc_exam_stage,
+
+            upsc_exam_paper:
+              item.upsc_exam_paper,
+
+            upsc_exam_year:
+              item.upsc_exam_year,
+
+            state_psc_state:
+              item.state_psc_state,
+
+            state_psc_name:
+              item.state_psc_name,
+
+            state_psc_exam_name:
+              item.state_psc_exam_name,
+
+            state_psc_year:
+              item.state_psc_year,
+
+            state_psc_stage:
+              item.state_psc_stage,
+
+            state_psc_paper:
+              item.state_psc_paper,
+
+            source:
+              item.source,
+
+            source_url:
+              item.source_url
+          })
+        );
+
+
+    setAllQuestions(
+      formatted
+    );
+
+
+    setQuestions([]);
+
+    setPracticeStarted(
+      false
+    );
 
     setIndex(0);
-    setSelected(null);
-    setScore(0);
-    setAnswers([]);
-    setFinished(false);
 
-    setAttemptSaved(false);
+    setSelected(
+      null
+    );
+
+    setScore(0);
+
+    setAnswers([]);
+
+    setFinished(
+      false
+    );
+
+    setAttemptSaved(
+      false
+    );
+
     setResultMessage('');
 
-    setLoading(false);
+    setLoading(
+      false
+    );
   }
 
-  useEffect(() => {
-    loadQuestions();
-  }, []);
 
-  function answer(
-    option: number
-  ) {
+  useEffect(
+    () => {
+
+      loadQuestions();
+
+    },
+    []
+  );
+
+
+  /*
+   * QUESTION ORIGIN
+   */
+
+  function getOrigin(
+    item:
+      LiveQuestion
+  ):
+    QuestionOrigin {
+
     if (
-      selected !== null ||
-      !questions[index]
+      item.state_psc_state
     ) {
+
+      return 'state';
+    }
+
+
+    if (
+      item.upsc_exam_name
+    ) {
+
+      return 'upsc';
+    }
+
+
+    return 'cse';
+  }
+
+
+  /*
+   * DYNAMIC SUBJECTS
+   */
+
+  const subjects =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            allQuestions
+              .map(
+                item =>
+                  item.subject
+              )
+              .filter(
+                Boolean
+              )
+          )
+        ).sort(),
+      [
+        allQuestions
+      ]
+    );
+
+
+  /*
+   * UPSC EXAM OPTIONS
+   */
+
+  const upscExams =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            allQuestions
+              .map(
+                item =>
+                  item.upsc_exam_name
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is string =>
+                    Boolean(
+                      value
+                    )
+              )
+          )
+        ).sort(),
+      [
+        allQuestions
+      ]
+    );
+
+
+  const upscCycles =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            allQuestions
+              .filter(
+                item =>
+                  upscExamFilter ===
+                    'all' ||
+                  item.upsc_exam_name ===
+                    upscExamFilter
+              )
+              .map(
+                item =>
+                  item.upsc_exam_cycle
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is string =>
+                    Boolean(
+                      value
+                    )
+              )
+          )
+        ).sort(),
+      [
+        allQuestions,
+        upscExamFilter
+      ]
+    );
+
+
+  const upscYears =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            allQuestions
+              .filter(
+                item =>
+                  upscExamFilter ===
+                    'all' ||
+                  item.upsc_exam_name ===
+                    upscExamFilter
+              )
+              .map(
+                item =>
+                  item.upsc_exam_year
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is number =>
+                    value !==
+                    null
+              )
+          )
+        ).sort(
+          (
+            a,
+            b
+          ) =>
+            b - a
+        ),
+      [
+        allQuestions,
+        upscExamFilter
+      ]
+    );
+
+
+  /*
+   * STATE OPTIONS
+   */
+
+  const states =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            allQuestions
+              .map(
+                item =>
+                  item.state_psc_state
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is string =>
+                    Boolean(
+                      value
+                    )
+              )
+          )
+        ).sort(),
+      [
+        allQuestions
+      ]
+    );
+
+
+  /*
+   * STATE EXAM OPTIONS
+   */
+
+  const stateExams =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            allQuestions
+              .filter(
+                item =>
+                  stateFilter ===
+                    'all' ||
+                  item.state_psc_state ===
+                    stateFilter
+              )
+              .map(
+                item =>
+                  item.state_psc_exam_name
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is string =>
+                    Boolean(
+                      value
+                    )
+              )
+          )
+        ).sort(),
+      [
+        allQuestions,
+        stateFilter
+      ]
+    );
+
+
+  /*
+   * STATE YEAR OPTIONS
+   */
+
+  const stateYears =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            allQuestions
+              .filter(
+                item =>
+                  (
+                    stateFilter ===
+                      'all' ||
+                    item.state_psc_state ===
+                      stateFilter
+                  ) &&
+                  (
+                    stateExamFilter ===
+                      'all' ||
+                    item.state_psc_exam_name ===
+                      stateExamFilter
+                  )
+              )
+              .map(
+                item =>
+                  item.state_psc_year
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is number =>
+                    value !==
+                    null
+              )
+          )
+        ).sort(
+          (
+            a,
+            b
+          ) =>
+            b - a
+        ),
+      [
+        allQuestions,
+        stateFilter,
+        stateExamFilter
+      ]
+    );
+
+
+  /*
+   * FILTER QUESTIONS
+   */
+
+  const filteredQuestions =
+    useMemo(
+      () =>
+        allQuestions.filter(
+          item => {
+
+            const origin =
+              getOrigin(
+                item
+              );
+
+
+            const matchesOrigin =
+              originFilter ===
+                'all' ||
+              origin ===
+                originFilter;
+
+
+            const matchesSubject =
+              subjectFilter ===
+                'all' ||
+              item.subject ===
+                subjectFilter;
+
+
+            const matchesType =
+              typeFilter ===
+                'all' ||
+
+              (
+                typeFilter ===
+                  'pyq' &&
+                item.is_pyq
+              ) ||
+
+              (
+                typeFilter ===
+                  'practice' &&
+                !item.is_pyq
+              );
+
+
+            const matchesUpscExam =
+              upscExamFilter ===
+                'all' ||
+              item.upsc_exam_name ===
+                upscExamFilter;
+
+
+            const matchesUpscCycle =
+              upscCycleFilter ===
+                'all' ||
+              item.upsc_exam_cycle ===
+                upscCycleFilter;
+
+
+            const matchesUpscYear =
+              upscYearFilter ===
+                'all' ||
+              String(
+                item.upsc_exam_year ||
+                ''
+              ) ===
+                upscYearFilter;
+
+
+            const matchesState =
+              stateFilter ===
+                'all' ||
+              item.state_psc_state ===
+                stateFilter;
+
+
+            const matchesStateExam =
+              stateExamFilter ===
+                'all' ||
+              item.state_psc_exam_name ===
+                stateExamFilter;
+
+
+            const matchesStateYear =
+              stateYearFilter ===
+                'all' ||
+              String(
+                item.state_psc_year ||
+                ''
+              ) ===
+                stateYearFilter;
+
+
+            return (
+              matchesOrigin &&
+              matchesSubject &&
+              matchesType &&
+              matchesUpscExam &&
+              matchesUpscCycle &&
+              matchesUpscYear &&
+              matchesState &&
+              matchesStateExam &&
+              matchesStateYear
+            );
+          }
+        ),
+      [
+        allQuestions,
+        originFilter,
+        subjectFilter,
+        typeFilter,
+        upscExamFilter,
+        upscCycleFilter,
+        upscYearFilter,
+        stateFilter,
+        stateExamFilter,
+        stateYearFilter
+      ]
+    );
+
+
+  /*
+   * CHANGE ORIGIN FILTER
+   */
+
+  function changeOriginFilter(
+    value:
+      'all' |
+      QuestionOrigin
+  ) {
+
+    setOriginFilter(
+      value
+    );
+
+
+    if (
+      value !==
+      'upsc'
+    ) {
+
+      setUpscExamFilter(
+        'all'
+      );
+
+      setUpscCycleFilter(
+        'all'
+      );
+
+      setUpscYearFilter(
+        'all'
+      );
+    }
+
+
+    if (
+      value !==
+      'state'
+    ) {
+
+      setStateFilter(
+        'all'
+      );
+
+      setStateExamFilter(
+        'all'
+      );
+
+      setStateYearFilter(
+        'all'
+      );
+    }
+  }
+
+
+  /*
+   * RESET PRACTICE FILTERS
+   */
+
+  function resetFilters() {
+
+    setOriginFilter(
+      'all'
+    );
+
+    setSubjectFilter(
+      'all'
+    );
+
+    setTypeFilter(
+      'all'
+    );
+
+    setUpscExamFilter(
+      'all'
+    );
+
+    setUpscCycleFilter(
+      'all'
+    );
+
+    setUpscYearFilter(
+      'all'
+    );
+
+    setStateFilter(
+      'all'
+    );
+
+    setStateExamFilter(
+      'all'
+    );
+
+    setStateYearFilter(
+      'all'
+    );
+
+    setSetupMessage('');
+  }
+
+
+  /*
+   * START PRACTICE
+   */
+
+  function startPractice() {
+
+    if (
+      filteredQuestions.length ===
+      0
+    ) {
+
+      setSetupMessage(
+        'No published questions match these filters.'
+      );
+
       return;
     }
+
+
+    setQuestions(
+      filteredQuestions
+    );
+
+    setIndex(0);
+
+    setSelected(
+      null
+    );
+
+    setScore(0);
+
+    setAnswers([]);
+
+    setFinished(
+      false
+    );
+
+    setAttemptSaved(
+      false
+    );
+
+    setResultMessage('');
+
+    setSetupMessage('');
+
+    setPracticeStarted(
+      true
+    );
+  }
+
+
+  /*
+   * ANSWER
+   */
+
+  function answer(
+    option:
+      number
+  ) {
+
+    if (
+      selected !==
+        null ||
+      !questions[index]
+    ) {
+
+      return;
+    }
+
 
     const currentQuestion =
       questions[index];
 
+
     const isCorrect =
       option ===
-      currentQuestion.correct_index;
+      currentQuestion
+        .correct_index;
 
-    setSelected(option);
+
+    setSelected(
+      option
+    );
+
 
     if (isCorrect) {
+
       setScore(
         current =>
           current + 1
       );
     }
 
+
     setAnswers(
       current => [
         ...current,
+
         {
           question_id:
             currentQuestion.id,
@@ -210,7 +1162,8 @@ export function PracticePage() {
             option,
 
           correct_index:
-            currentQuestion.correct_index,
+            currentQuestion
+              .correct_index,
 
           is_correct:
             isCorrect
@@ -219,24 +1172,47 @@ export function PracticePage() {
     );
   }
 
+
+  /*
+   * SAVE PRACTICE ATTEMPT
+   */
+
   async function savePracticeAttempt() {
+
     if (
       !supabase ||
-      attemptSaved
+      attemptSaved ||
+      questions.length ===
+        0
     ) {
+
       return;
     }
 
-    setSavingResult(true);
+
+    setSavingResult(
+      true
+    );
+
     setResultMessage('');
 
+
     const {
-      data: { user }
+      data: {
+        user
+      }
     } =
-      await supabase.auth.getUser();
+      await supabase
+        .auth
+        .getUser();
+
 
     if (!user) {
-      setSavingResult(false);
+
+      setSavingResult(
+        false
+      );
+
 
       setResultMessage(
         'Result completed. Sign in as a student to save practice history.'
@@ -245,16 +1221,18 @@ export function PracticePage() {
       return;
     }
 
+
     const percentage =
       Math.round(
         (
           score /
           questions.length
         ) *
-          100
+        100
       );
 
-    const subjects =
+
+    const practiceSubjects =
       Array.from(
         new Set(
           questions.map(
@@ -264,15 +1242,24 @@ export function PracticePage() {
         )
       );
 
+
     const sessionSubject =
-      subjects.length === 1
-        ? subjects[0]
+      practiceSubjects.length ===
+        1
+        ? practiceSubjects[0]
         : 'Mixed';
 
-    const { error: saveError } =
+
+    const {
+      error:
+        saveError
+    } =
       await supabase
-        .from('practice_attempts')
+        .from(
+          'practice_attempts'
+        )
         .insert({
+
           user_id:
             user.id,
 
@@ -291,95 +1278,204 @@ export function PracticePage() {
           answers
         });
 
+
     if (saveError) {
+
       console.error(
         'Unable to save practice result:',
         saveError
       );
 
+
       setResultMessage(
         `Result could not be saved: ${saveError.message}`
       );
 
-      setSavingResult(false);
+
+      setSavingResult(
+        false
+      );
 
       return;
     }
 
-    setAttemptSaved(true);
+
+    setAttemptSaved(
+      true
+    );
+
 
     setResultMessage(
       'Practice result saved successfully.'
     );
 
-    setSavingResult(false);
+
+    setSavingResult(
+      false
+    );
   }
 
+
+  /*
+   * NEXT
+   */
+
   async function next() {
+
     if (
       index ===
-      questions.length - 1
+      questions.length -
+        1
     ) {
-      setFinished(true);
+
+      setFinished(
+        true
+      );
 
       await savePracticeAttempt();
 
       return;
     }
 
+
     setIndex(
       current =>
         current + 1
     );
 
-    setSelected(null);
+
+    setSelected(
+      null
+    );
   }
 
+
+  /*
+   * SAME SET AGAIN
+   */
+
   function restart() {
+
     setIndex(0);
-    setSelected(null);
+
+    setSelected(
+      null
+    );
+
     setScore(0);
+
     setAnswers([]);
 
-    setFinished(false);
+    setFinished(
+      false
+    );
 
-    setAttemptSaved(false);
+    setAttemptSaved(
+      false
+    );
+
     setResultMessage('');
   }
 
+
+  /*
+   * RETURN TO FILTER SCREEN
+   */
+
+  function changePracticeSet() {
+
+    setPracticeStarted(
+      false
+    );
+
+    setQuestions([]);
+
+    setIndex(0);
+
+    setSelected(
+      null
+    );
+
+    setScore(0);
+
+    setAnswers([]);
+
+    setFinished(
+      false
+    );
+
+    setAttemptSaved(
+      false
+    );
+
+    setResultMessage('');
+  }
+
+
+  /*
+   * LOADING
+   */
+
   if (loading) {
+
     return (
-      <div className="page-wrap">
+
+      <div
+        className="page-wrap"
+      >
+
         <TopBar
-          title="Practice"
-          subtitle="Learn from every answer"
+          title="Prelims Practice"
+          subtitle="UPSC and State PSC question bank"
         />
 
-        <section className="panel">
+
+        <section
+          className="panel"
+        >
+
           <h2>
             Loading MCQs...
           </h2>
+
         </section>
+
       </div>
     );
   }
 
+
+  /*
+   * ERROR
+   */
+
   if (error) {
+
     return (
-      <div className="page-wrap">
+
+      <div
+        className="page-wrap"
+      >
+
         <TopBar
-          title="Practice"
-          subtitle="Learn from every answer"
+          title="Prelims Practice"
+          subtitle="UPSC and State PSC question bank"
         />
 
-        <section className="panel">
+
+        <section
+          className="panel"
+        >
+
           <h2>
             Unable to load questions
           </h2>
 
+
           <p>
             {error}
           </p>
+
 
           <button
             className="primary-btn"
@@ -389,172 +1485,903 @@ export function PracticePage() {
           >
             Try again
           </button>
+
         </section>
+
       </div>
     );
   }
+
+
+  /*
+   * PRACTICE SETUP SCREEN
+   */
 
   if (
-    questions.length === 0
+    !practiceStarted
   ) {
+
     return (
-      <div className="page-wrap">
+
+      <div
+        className="page-wrap"
+      >
+
         <TopBar
-          title="Practice"
-          subtitle="Learn from every answer"
+          title="Prelims Practice"
+          subtitle="Choose your practice question set"
         />
 
-        <section className="panel">
-          <span className="eyebrow">
-            PRACTICE BANK
+
+        <section
+          className="panel admin-form"
+        >
+
+          <span
+            className="eyebrow"
+          >
+            PRELIMS QUESTION BANK
           </span>
 
+
           <h2>
-            No published MCQs yet
+            Build Your Practice Set
           </h2>
 
+
           <p>
-            Draft questions remain hidden
-            until an administrator publishes
-            them.
+            Practice CSE questions,
+            other UPSC examination
+            questions and State PSC
+            questions from one place.
           </p>
 
-          <button
-            className="primary-btn"
-            onClick={
-              loadQuestions
-            }
+
+          {/* ORIGIN */}
+
+          <label>
+            Question Origin
+
+            <select
+              value={
+                originFilter
+              }
+              onChange={
+                event =>
+                  changeOriginFilter(
+                    event.target
+                      .value as
+                      | 'all'
+                      | QuestionOrigin
+                  )
+              }
+            >
+
+              <option
+                value="all"
+              >
+                All Prelims Questions
+              </option>
+
+              <option
+                value="cse"
+              >
+                CSE / General Practice
+              </option>
+
+              <option
+                value="upsc"
+              >
+                Other UPSC Examinations
+              </option>
+
+              <option
+                value="state"
+              >
+                State PSC Examinations
+              </option>
+
+            </select>
+
+          </label>
+
+
+          {/* GENERAL FILTERS */}
+
+          <div
+            className="form-two"
           >
-            Refresh questions
-          </button>
+
+            <label>
+              Subject
+
+              <select
+                value={
+                  subjectFilter
+                }
+                onChange={
+                  event =>
+                    setSubjectFilter(
+                      event.target.value
+                    )
+                }
+              >
+
+                <option
+                  value="all"
+                >
+                  All Subjects
+                </option>
+
+
+                {subjects.map(
+                  item => (
+
+                    <option
+                      key={
+                        item
+                      }
+                      value={
+                        item
+                      }
+                    >
+                      {item}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+
+            <label>
+              Question Type
+
+              <select
+                value={
+                  typeFilter
+                }
+                onChange={
+                  event =>
+                    setTypeFilter(
+                      event.target
+                        .value as
+                        | 'all'
+                        | 'practice'
+                        | 'pyq'
+                    )
+                }
+              >
+
+                <option
+                  value="all"
+                >
+                  All Questions
+                </option>
+
+                <option
+                  value="pyq"
+                >
+                  Previous Year Questions
+                </option>
+
+                <option
+                  value="practice"
+                >
+                  Practice Questions
+                </option>
+
+              </select>
+
+            </label>
+
+          </div>
+
+
+          {/* UPSC FILTERS */}
+
+          {originFilter ===
+            'upsc' && (
+
+            <div
+              style={{
+                marginTop:
+                  '18px',
+
+                padding:
+                  '16px',
+
+                border:
+                  '1px solid rgba(255,255,255,.10)',
+
+                borderRadius:
+                  '14px'
+              }}
+            >
+
+              <span
+                className="eyebrow"
+              >
+                OTHER UPSC EXAMS
+              </span>
+
+
+              <div
+                className="form-two"
+              >
+
+                <label>
+                  Examination
+
+                  <select
+                    value={
+                      upscExamFilter
+                    }
+                    onChange={
+                      event => {
+
+                        setUpscExamFilter(
+                          event.target.value
+                        );
+
+                        setUpscCycleFilter(
+                          'all'
+                        );
+
+                        setUpscYearFilter(
+                          'all'
+                        );
+                      }
+                    }
+                  >
+
+                    <option
+                      value="all"
+                    >
+                      All UPSC Exams
+                    </option>
+
+
+                    {upscExams.map(
+                      exam => (
+
+                        <option
+                          key={
+                            exam
+                          }
+                          value={
+                            exam
+                          }
+                        >
+                          {exam}
+                        </option>
+
+                      )
+                    )}
+
+                  </select>
+
+                </label>
+
+
+                <label>
+                  Cycle
+
+                  <select
+                    value={
+                      upscCycleFilter
+                    }
+                    onChange={
+                      event =>
+                        setUpscCycleFilter(
+                          event.target.value
+                        )
+                    }
+                  >
+
+                    <option
+                      value="all"
+                    >
+                      All Cycles
+                    </option>
+
+
+                    {upscCycles.map(
+                      cycle => (
+
+                        <option
+                          key={
+                            cycle
+                          }
+                          value={
+                            cycle
+                          }
+                        >
+                          {cycle}
+                        </option>
+
+                      )
+                    )}
+
+                  </select>
+
+                </label>
+
+              </div>
+
+
+              <label>
+                Examination Year
+
+                <select
+                  value={
+                    upscYearFilter
+                  }
+                  onChange={
+                    event =>
+                      setUpscYearFilter(
+                        event.target.value
+                      )
+                  }
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All Years
+                  </option>
+
+
+                  {upscYears.map(
+                    year => (
+
+                      <option
+                        key={
+                          year
+                        }
+                        value={
+                          String(
+                            year
+                          )
+                        }
+                      >
+                        {year}
+                      </option>
+
+                    )
+                  )}
+
+                </select>
+
+              </label>
+
+            </div>
+
+          )}
+
+
+          {/* STATE PSC FILTERS */}
+
+          {originFilter ===
+            'state' && (
+
+            <div
+              style={{
+                marginTop:
+                  '18px',
+
+                padding:
+                  '16px',
+
+                border:
+                  '1px solid rgba(255,255,255,.10)',
+
+                borderRadius:
+                  '14px'
+              }}
+            >
+
+              <span
+                className="eyebrow"
+              >
+                STATE PSC
+              </span>
+
+
+              <h3>
+                Choose State Examination
+              </h3>
+
+
+              <label>
+                State
+
+                <select
+                  value={
+                    stateFilter
+                  }
+                  onChange={
+                    event => {
+
+                      setStateFilter(
+                        event.target.value
+                      );
+
+                      setStateExamFilter(
+                        'all'
+                      );
+
+                      setStateYearFilter(
+                        'all'
+                      );
+                    }
+                  }
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All States
+                  </option>
+
+
+                  {states.map(
+                    state => (
+
+                      <option
+                        key={
+                          state
+                        }
+                        value={
+                          state
+                        }
+                      >
+                        {state}
+                      </option>
+
+                    )
+                  )}
+
+                </select>
+
+              </label>
+
+
+              <label>
+                Examination
+
+                <select
+                  value={
+                    stateExamFilter
+                  }
+                  onChange={
+                    event => {
+
+                      setStateExamFilter(
+                        event.target.value
+                      );
+
+                      setStateYearFilter(
+                        'all'
+                      );
+                    }
+                  }
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All Examinations
+                  </option>
+
+
+                  {stateExams.map(
+                    exam => (
+
+                      <option
+                        key={
+                          exam
+                        }
+                        value={
+                          exam
+                        }
+                      >
+                        {exam}
+                      </option>
+
+                    )
+                  )}
+
+                </select>
+
+              </label>
+
+
+              <label>
+                Examination Year
+
+                <select
+                  value={
+                    stateYearFilter
+                  }
+                  onChange={
+                    event =>
+                      setStateYearFilter(
+                        event.target.value
+                      )
+                  }
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All Years
+                  </option>
+
+
+                  {stateYears.map(
+                    year => (
+
+                      <option
+                        key={
+                          year
+                        }
+                        value={
+                          String(
+                            year
+                          )
+                        }
+                      >
+                        {year}
+                      </option>
+
+                    )
+                  )}
+
+                </select>
+
+              </label>
+
+            </div>
+
+          )}
+
+
+          {/* AVAILABLE COUNT */}
+
+          <div
+            className="callout"
+            style={{
+              marginTop:
+                '18px'
+            }}
+          >
+
+            <strong>
+              {
+                filteredQuestions
+                  .length
+              }{' '}
+              questions available
+            </strong>
+
+
+            <p>
+              Your practice session
+              will use the questions
+              matching the selected
+              filters.
+            </p>
+
+          </div>
+
+
+          {allQuestions.length ===
+            0 && (
+
+            <p>
+              No published Prelims
+              questions are currently
+              available.
+            </p>
+
+          )}
+
+
+          {setupMessage && (
+
+            <p
+              className="form-message"
+            >
+              {setupMessage}
+            </p>
+
+          )}
+
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              flexWrap:
+                'wrap',
+
+              marginTop:
+                '18px'
+            }}
+          >
+
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={
+                startPractice
+              }
+              disabled={
+                filteredQuestions
+                  .length ===
+                0
+              }
+            >
+              Start Practice
+            </button>
+
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={
+                resetFilters
+              }
+            >
+              Reset Filters
+            </button>
+
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={
+                loadQuestions
+              }
+            >
+              Refresh Questions
+            </button>
+
+          </div>
+
         </section>
+
       </div>
     );
   }
 
-  const q =
-    questions[index];
+
+  /*
+   * FINISHED RESULT
+   */
 
   if (finished) {
+
     const percentage =
       Math.round(
         (
           score /
           questions.length
         ) *
-          100
+        100
       );
 
+
     return (
-      <div className="page-wrap">
+
+      <div
+        className="page-wrap"
+      >
+
         <TopBar
-          title="Practice"
+          title="Prelims Practice"
           subtitle="Your practice result"
         />
 
-        <section className="result-card">
-          <span className="result-icon">
+
+        <section
+          className="result-card"
+        >
+
+          <span
+            className="result-icon"
+          >
             🎯
           </span>
+
 
           <h2>
             {score}/
             {questions.length}
           </h2>
 
+
           <h3>
             {percentage}%
           </h3>
 
+
           <p>
-            Review explanations and
-            strengthen the concepts you
-            missed.
+            Review the explanations
+            and strengthen the concepts
+            you missed.
           </p>
 
+
           {savingResult && (
+
             <p>
               Saving your result...
             </p>
+
           )}
+
 
           {resultMessage && (
-            <p className="form-message">
+
+            <p
+              className="form-message"
+            >
               {resultMessage}
             </p>
+
           )}
 
-          <button
-            className="primary-btn"
-            onClick={restart}
-          >
-            Practice again
-          </button>
 
-          <button
+          <div
             style={{
-              marginLeft:
-                '10px'
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              flexWrap:
+                'wrap',
+
+              justifyContent:
+                'center'
             }}
-            onClick={
-              loadQuestions
-            }
           >
-            Refresh questions
-          </button>
+
+            <button
+              className="primary-btn"
+              onClick={
+                restart
+              }
+            >
+              Practice Same Set Again
+            </button>
+
+
+            <button
+              className="secondary-btn"
+              onClick={
+                changePracticeSet
+              }
+            >
+              Choose Another Set
+            </button>
+
+          </div>
+
         </section>
+
       </div>
     );
   }
 
+
+  /*
+   * ACTIVE QUESTION
+   */
+
+  const q =
+    questions[index];
+
+
+  if (!q) {
+
+    return null;
+  }
+
+
+  const origin =
+    getOrigin(
+      q
+    );
+
+
   return (
-    <div className="page-wrap">
+
+    <div
+      className="page-wrap"
+    >
+
       <TopBar
-        title="Practice"
+        title="Prelims Practice"
         subtitle="Learn from every answer"
       />
 
-      <section className="quiz-card">
-        <div className="quiz-meta">
+
+      <section
+        className="quiz-card"
+      >
+
+        <div
+          className="quiz-meta"
+        >
+
           <div>
+
             <span>
               {q.subject}
             </span>
 
+
             {q.topic && (
+
               <small
                 style={{
                   display:
                     'block',
+
                   marginTop:
                     '4px'
                 }}
               >
                 {q.topic}
               </small>
+
             )}
+
           </div>
+
 
           <strong>
             {index + 1}/
             {questions.length}
           </strong>
+
         </div>
 
-        <div className="progress-track">
+
+        <div
+          className="progress-track"
+        >
+
           <span
             style={{
               width:
                 `${
                   (
-                    (index + 1) /
+                    (
+                      index +
+                      1
+                    ) /
                     questions.length
                   ) *
                   100
                 }%`
             }}
           />
+
         </div>
+
+
+        {/* QUESTION META */}
 
         <div
           className="tag-row"
@@ -563,51 +2390,198 @@ export function PracticePage() {
               '12px'
           }}
         >
-          <span className="tag">
+
+          <span
+            className="tag"
+          >
             {q.difficulty}
           </span>
 
-          {q.is_pyq && (
-            <span className="tag">
-              PYQ{' '}
-              {q.pyq_year || ''}
+
+          {origin ===
+            'cse' && (
+
+            <span
+              className="tag"
+            >
+              CSE / General
             </span>
+
           )}
+
+
+          {origin ===
+            'upsc' && (
+
+            <span
+              className="tag"
+            >
+              UPSC Value Add
+            </span>
+
+          )}
+
+
+          {origin ===
+            'state' && (
+
+            <span
+              className="tag"
+            >
+              State PSC
+            </span>
+
+          )}
+
+
+          {q.is_pyq && (
+
+            <span
+              className="tag"
+            >
+              PYQ{' '}
+              {
+                q.pyq_year ||
+                ''
+              }
+            </span>
+
+          )}
+
+
+          {/* UPSC META */}
+
+          {q.upsc_exam_name && (
+
+            <span
+              className="tag"
+            >
+              {
+                q.upsc_exam_name
+              }
+            </span>
+
+          )}
+
+
+          {q.upsc_exam_cycle && (
+
+            <span
+              className="tag"
+            >
+              Cycle{' '}
+              {
+                q.upsc_exam_cycle
+              }
+            </span>
+
+          )}
+
+
+          {q.upsc_exam_year && (
+
+            <span
+              className="tag"
+            >
+              {
+                q.upsc_exam_year
+              }
+            </span>
+
+          )}
+
+
+          {/* STATE META */}
+
+          {q.state_psc_state && (
+
+            <span
+              className="tag"
+            >
+              {
+                q.state_psc_state
+              }
+            </span>
+
+          )}
+
+
+          {q.state_psc_exam_name && (
+
+            <span
+              className="tag"
+            >
+              {
+                q.state_psc_exam_name
+              }
+            </span>
+
+          )}
+
+
+          {q.state_psc_year && (
+
+            <span
+              className="tag"
+            >
+              {
+                q.state_psc_year
+              }
+            </span>
+
+          )}
+
 
           {q.tags.map(
             tag => (
+
               <span
                 className="tag"
-                key={tag}
+                key={
+                  tag
+                }
               >
                 {tag}
               </span>
+
             )
           )}
+
         </div>
+
 
         <h2>
           {q.question}
         </h2>
 
-        <div className="option-list">
+
+        {/* OPTIONS */}
+
+        <div
+          className="option-list"
+        >
+
           {q.options.map(
             (
               option,
               optionIndex
             ) => {
+
               const state =
-                selected === null
+                selected ===
+                  null
                   ? ''
                   : optionIndex ===
-                      q.correct_index
+                    q.correct_index
                   ? 'correct'
                   : selected ===
-                      optionIndex
+                    optionIndex
                   ? 'wrong'
                   : 'muted';
 
+
               return (
+
                 <button
                   key={
                     `${q.id}-${optionIndex}`
@@ -621,56 +2595,249 @@ export function PracticePage() {
                     )
                   }
                 >
+
                   <span>
-                    {String.fromCharCode(
-                      65 +
+                    {
+                      String.fromCharCode(
+                        65 +
                         optionIndex
-                    )}
+                      )
+                    }
                   </span>
 
+
                   {option}
+
                 </button>
+
               );
             }
           )}
+
         </div>
 
-        {selected !== null && (
-          <div className="explanation">
+
+        {/* EXPLANATION */}
+
+        {selected !==
+          null && (
+
+          <div
+            className="explanation"
+          >
+
             <strong>
               Explanation
             </strong>
+
 
             <p>
               {q.explanation}
             </p>
 
-            {q.source && (
-              <small>
-                Source: {q.source}
-              </small>
+
+            {/* UPSC SOURCE DETAIL */}
+
+            {q.upsc_exam_name && (
+
+              <div
+                style={{
+                  marginTop:
+                    '12px'
+                }}
+              >
+
+                <strong>
+                  UPSC Examination Reference
+                </strong>
+
+
+                <p>
+                  {
+                    q.upsc_exam_name
+                  }
+
+                  {
+                    q.upsc_exam_cycle
+                      ? ` ${q.upsc_exam_cycle}`
+                      : ''
+                  }
+
+                  {
+                    q.upsc_exam_year
+                      ? ` • ${q.upsc_exam_year}`
+                      : ''
+                  }
+
+                  {
+                    q.upsc_exam_stage
+                      ? ` • ${q.upsc_exam_stage}`
+                      : ''
+                  }
+
+                  {
+                    q.upsc_exam_paper
+                      ? ` • ${q.upsc_exam_paper}`
+                      : ''
+                  }
+                </p>
+
+              </div>
+
             )}
+
+
+            {/* STATE SOURCE DETAIL */}
+
+            {q.state_psc_state && (
+
+              <div
+                style={{
+                  marginTop:
+                    '12px'
+                }}
+              >
+
+                <strong>
+                  State PSC Reference
+                </strong>
+
+
+                <p>
+                  {
+                    q.state_psc_state
+                  }
+
+                  {
+                    q.state_psc_name
+                      ? ` • ${q.state_psc_name}`
+                      : ''
+                  }
+                </p>
+
+
+                {q.state_psc_exam_name && (
+
+                  <p>
+                    Examination:{' '}
+                    <strong>
+                      {
+                        q.state_psc_exam_name
+                      }
+                    </strong>
+                  </p>
+
+                )}
+
+
+                <p>
+                  {
+                    q.state_psc_year
+                      ? `Year: ${q.state_psc_year}`
+                      : ''
+                  }
+
+                  {
+                    q.state_psc_stage
+                      ? ` • ${q.state_psc_stage}`
+                      : ''
+                  }
+
+                  {
+                    q.state_psc_paper
+                      ? ` • ${q.state_psc_paper}`
+                      : ''
+                  }
+                </p>
+
+              </div>
+
+            )}
+
+
+            {/* SOURCE */}
+
+            {q.source && (
+
+              <p>
+                <small>
+                  Source:{' '}
+                  {
+                    q.source
+                  }
+                </small>
+              </p>
+
+            )}
+
+
+            {q.source_url && (
+
+              <p>
+                <a
+                  href={
+                    q.source_url
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open source reference
+                </a>
+              </p>
+
+            )}
+
 
             <div
               style={{
                 marginTop:
-                  '16px'
+                  '16px',
+
+                display:
+                  'flex',
+
+                gap:
+                  '10px',
+
+                flexWrap:
+                  'wrap'
               }}
             >
+
               <button
                 className="primary-btn"
-                onClick={next}
+                onClick={
+                  next
+                }
               >
-                {index ===
-                questions.length -
-                  1
-                  ? 'See result'
-                  : 'Next question'}
+                {
+                  index ===
+                  questions.length -
+                    1
+                    ? 'See result'
+                    : 'Next question'
+                }
               </button>
+
+
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={
+                  changePracticeSet
+                }
+              >
+                Change Practice Set
+              </button>
+
             </div>
+
           </div>
+
         )}
+
       </section>
+
     </div>
   );
 }
