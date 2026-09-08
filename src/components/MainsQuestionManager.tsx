@@ -1593,8 +1593,8 @@ function clearBankFilters() {
         </form>
       </div>
 
-      <div
-        className="panel"
+     <div
+  className="panel admin-form"
         style={{
           marginTop: '22px'
         }}
@@ -1620,15 +1620,369 @@ function clearBankFilters() {
             </h2>
           </div>
 
-          <button
-            type="button"
-            onClick={loadQuestions}
-          >
-            Refresh questions
-          </button>
-        </div>
+        <button
+  type="button"
+  className="secondary-btn"
+  onClick={loadQuestions}
+>
+  Refresh questions
+</button>
 
-        {loading && (
+</div>
+
+
+{/* SEARCH */}
+
+<div
+  style={{
+    marginTop: '20px'
+  }}
+>
+  <label>
+    Search Mains Question Bank
+
+    <input
+      type="search"
+      value={searchText}
+      onChange={
+        event =>
+          setSearchText(
+            event.target.value
+          )
+      }
+      placeholder="Search question, subject, topic or source..."
+    />
+  </label>
+</div>
+
+
+{/* SECTION + QUESTION TYPE */}
+
+<div className="form-two">
+
+  <label>
+    Section
+
+    <select
+      value={bankSection}
+      onChange={
+        event => {
+          const next =
+            event.target.value as
+              | 'all'
+              | SectionType;
+
+          setBankSection(
+            next
+          );
+
+          if (
+            next !== 'gs'
+          ) {
+            setBankGsPaper(
+              'all'
+            );
+          }
+
+          if (
+            next !==
+            'optional'
+          ) {
+            setBankOptionalSubject(
+              'all'
+            );
+          }
+        }
+      }
+    >
+      <option value="all">
+        All Sections
+      </option>
+
+      <option value="gs">
+        General Studies
+      </option>
+
+      <option value="optional">
+        Optional Subjects
+      </option>
+    </select>
+
+  </label>
+
+
+  <label>
+    Question Type
+
+    <select
+      value={
+        bankQuestionType
+      }
+      onChange={
+        event =>
+          setBankQuestionType(
+            event.target
+              .value as
+              | 'all'
+              | QuestionType
+          )
+      }
+    >
+      <option value="all">
+        All Questions
+      </option>
+
+      <option value="practice">
+        Practice Questions
+      </option>
+
+      <option value="pyq">
+        Previous Year Questions
+      </option>
+    </select>
+
+  </label>
+
+</div>
+
+
+{/* GS PAPER */}
+
+{bankSection === 'gs' && (
+
+  <label>
+    GS Paper
+
+    <select
+      value={
+        bankGsPaper
+      }
+      onChange={
+        event =>
+          setBankGsPaper(
+            event.target.value
+          )
+      }
+    >
+      <option value="all">
+        All GS Papers
+      </option>
+
+      <option value="GS-I">
+        GS-I
+      </option>
+
+      <option value="GS-II">
+        GS-II
+      </option>
+
+      <option value="GS-III">
+        GS-III
+      </option>
+
+      <option value="GS-IV">
+        GS-IV
+      </option>
+    </select>
+
+  </label>
+
+)}
+
+
+{/* OPTIONAL SUBJECT */}
+
+{bankSection ===
+  'optional' && (
+
+  <label>
+    Optional Subject
+
+    <select
+      value={
+        bankOptionalSubject
+      }
+      onChange={
+        event =>
+          setBankOptionalSubject(
+            event.target.value
+          )
+      }
+    >
+      <option value="all">
+        All Optional Subjects
+      </option>
+
+      {optionalSubjects.map(
+        item => (
+
+          <option
+            key={item}
+            value={item}
+          >
+            {item}
+          </option>
+
+        )
+      )}
+    </select>
+
+  </label>
+
+)}
+
+
+{/* DIFFICULTY + STATUS */}
+
+<div className="form-two">
+
+  <label>
+    Difficulty
+
+    <select
+      value={
+        bankDifficulty
+      }
+      onChange={
+        event =>
+          setBankDifficulty(
+            event.target
+              .value as
+              | 'all'
+              | Difficulty
+          )
+      }
+    >
+      <option value="all">
+        All Difficulty
+      </option>
+
+      <option value="easy">
+        Easy
+      </option>
+
+      <option value="medium">
+        Medium
+      </option>
+
+      <option value="hard">
+        Hard
+      </option>
+    </select>
+
+  </label>
+
+
+  <label>
+    Status
+
+    <select
+      value={
+        bankStatus
+      }
+      onChange={
+        event =>
+          setBankStatus(
+            event.target
+              .value as
+              | 'all'
+              | QuestionStatus
+          )
+      }
+    >
+      <option value="all">
+        All Status
+      </option>
+
+      <option value="draft">
+        Draft
+      </option>
+
+      <option value="published">
+        Published
+      </option>
+
+      <option value="archived">
+        Archived
+      </option>
+    </select>
+
+  </label>
+
+</div>
+
+
+{/* RESULT COUNT */}
+
+<div
+  style={{
+    display: 'flex',
+    justifyContent:
+      'space-between',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+    marginTop: '12px',
+    marginBottom: '18px'
+  }}
+>
+
+  <p>
+    Showing{' '}
+
+    <strong>
+      {
+        filteredQuestions
+          .length
+      }
+    </strong>
+
+    {' '}of{' '}
+
+    <strong>
+      {
+        questions.length
+      }
+    </strong>
+
+    {' '}questions
+  </p>
+
+
+  <button
+    type="button"
+    className="secondary-btn"
+    onClick={
+      clearBankFilters
+    }
+  >
+    Clear Filters
+  </button>
+
+</div>
+
+
+{!loading &&
+  questions.length > 0 &&
+  filteredQuestions.length ===
+    0 && (
+
+  <div className="callout">
+
+    <strong>
+      No questions match these filters.
+    </strong>
+
+    <p>
+      Try another search or clear the filters.
+    </p>
+
+  </div>
+
+)}
+
+
+{loading && (
           <p>
             Loading Mains questions...
           </p>
