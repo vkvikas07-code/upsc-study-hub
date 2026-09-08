@@ -57,7 +57,24 @@ type QuestionRow = {
 
   pyq_year: number | null;
 
-  source: string | null;
+
+upsc_exam_name:
+  string | null;
+
+upsc_exam_cycle:
+  string | null;
+
+upsc_exam_stage:
+  string | null;
+
+upsc_exam_paper:
+  string | null;
+
+upsc_exam_year:
+  number | null;
+
+
+source: string | null;
 
   source_url: string | null;
 
@@ -82,15 +99,33 @@ const QUESTION_SELECT = `
   topic,
   tags,
   is_pyq,
-  pyq_year,
-  source,
+pyq_year,
+upsc_exam_name,
+upsc_exam_cycle,
+upsc_exam_stage,
+upsc_exam_paper,
+upsc_exam_year,
+source,
   source_url,
   status,
   created_at,
   updated_at
 `;
 
-
+const UPSC_EXAMS = [
+  'Civil Services Examination',
+  'Indian Forest Service Examination',
+  'NDA & Naval Academy',
+  'Combined Defence Services',
+  'CAPF (ACs)',
+  'Engineering Services Examination',
+  'Combined Geo-Scientist Examination',
+  'Indian Economic Service',
+  'Indian Statistical Service',
+  'Combined Medical Services',
+  'CISF AC(EXE) LDCE',
+  'Other UPSC Examination'
+];
 export function QuestionManager() {
   const [
     questions,
@@ -234,7 +269,46 @@ export function QuestionManager() {
     setPyqYear
   ] =
     useState('');
+const [
+  upscExamName,
+  setUpscExamName
+] =
+  useState('');
 
+
+const [
+  customUpscExamName,
+  setCustomUpscExamName
+] =
+  useState('');
+
+
+const [
+  upscExamCycle,
+  setUpscExamCycle
+] =
+  useState('');
+
+
+const [
+  upscExamStage,
+  setUpscExamStage
+] =
+  useState('');
+
+
+const [
+  upscExamPaper,
+  setUpscExamPaper
+] =
+  useState('');
+
+
+const [
+  upscExamYear,
+  setUpscExamYear
+] =
+  useState('');
 
   const [
     source,
