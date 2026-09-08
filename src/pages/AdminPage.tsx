@@ -39,6 +39,13 @@ type ArticleStatus =
   | 'archived';
 
 
+type AdminTab =
+  | 'current'
+  | 'mcq'
+  | 'mains'
+  | 'evaluation';
+
+
 type AdminArticle = {
   id: string;
   title: string;
@@ -100,10 +107,20 @@ export function AdminPage({
     (item: CurrentAffair) => void;
 }) {
   const [
+    adminTab,
+    setAdminTab
+  ] =
+    useState<AdminTab>(
+      'current'
+    );
+
+
+  const [
     email,
     setEmail
   ] =
     useState('');
+
 
   const [
     password,
@@ -111,11 +128,13 @@ export function AdminPage({
   ] =
     useState('');
 
+
   const [
     isAdmin,
     setIsAdmin
   ] =
     useState(false);
+
 
   const [
     checkingAuth,
@@ -123,11 +142,13 @@ export function AdminPage({
   ] =
     useState(true);
 
+
   const [
     articles,
     setArticles
   ] =
     useState<AdminArticle[]>([]);
+
 
   const [
     loadingArticles,
@@ -135,11 +156,13 @@ export function AdminPage({
   ] =
     useState(false);
 
+
   const [
     saving,
     setSaving
   ] =
     useState(false);
+
 
   const [
     message,
@@ -147,11 +170,15 @@ export function AdminPage({
   ] =
     useState('');
 
+
   const [
     editingId,
     setEditingId
   ] =
-    useState<string | null>(null);
+    useState<string | null>(
+      null
+    );
+
 
   const [
     title,
@@ -159,17 +186,20 @@ export function AdminPage({
   ] =
     useState('');
 
+
   const [
     source,
     setSource
   ] =
     useState('PIB');
 
+
   const [
     sourceUrl,
     setSourceUrl
   ] =
     useState('');
+
 
   const [
     subject,
@@ -179,11 +209,13 @@ export function AdminPage({
       'Polity & Governance'
     );
 
+
   const [
     summary,
     setSummary
   ] =
     useState('');
+
 
   const [
     background,
@@ -191,11 +223,13 @@ export function AdminPage({
   ] =
     useState('');
 
+
   const [
     keyFacts,
     setKeyFacts
   ] =
     useState('');
+
 
   const [
     prelimsPoints,
@@ -203,11 +237,13 @@ export function AdminPage({
   ] =
     useState('');
 
+
   const [
     mainsRelevance,
     setMainsRelevance
   ] =
     useState('');
+
 
   const [
     issues,
@@ -215,11 +251,13 @@ export function AdminPage({
   ] =
     useState('');
 
+
   const [
     wayForward,
     setWayForward
   ] =
     useState('');
+
 
   const [
     tagsText,
@@ -229,17 +267,20 @@ export function AdminPage({
       'Prelims, Mains'
     );
 
+
   const [
     prelims,
     setPrelims
   ] =
     useState(true);
 
+
   const [
     mains,
     setMains
   ] =
     useState(true);
+
 
   const [
     status,
@@ -250,26 +291,57 @@ export function AdminPage({
     );
 
 
+  function switchAdminTab(
+    tab:
+      AdminTab
+  ) {
+    setAdminTab(
+      tab
+    );
+
+    window.requestAnimationFrame(
+      () => {
+        const mainArea =
+          document.querySelector(
+            '.main-area'
+          );
+
+        mainArea?.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
+    );
+  }
+
+
   async function verifyAdmin(
-    userId: string
+    userId:
+      string
   ) {
     if (!supabase) {
       setIsAdmin(false);
       return false;
     }
 
+
     const {
       data,
       error
     } =
       await supabase
-        .from('profiles')
-        .select('role')
+        .from(
+          'profiles'
+        )
+        .select(
+          'role'
+        )
         .eq(
           'id',
           userId
         )
         .single();
+
 
     if (
       error ||
@@ -285,15 +357,18 @@ export function AdminPage({
       return false;
     }
 
+
     const allowed =
       data.role ===
         'admin' ||
       data.role ===
         'editor';
 
+
     setIsAdmin(
       allowed
     );
+
 
     return allowed;
   }
@@ -304,9 +379,11 @@ export function AdminPage({
       return;
     }
 
+
     setLoadingArticles(
       true
     );
+
 
     const {
       data,
@@ -327,29 +404,36 @@ export function AdminPage({
           }
         );
 
+
     if (error) {
       console.error(
         'Unable to load articles:',
         error
       );
 
+
       setMessage(
         error.message
       );
+
 
       setLoadingArticles(
         false
       );
 
+
       return;
     }
 
+
     const rows =
-  (data || []) as AdminArticle[];
+      (data || []) as AdminArticle[];
+
 
     setArticles(
       rows
     );
+
 
     setLoadingArticles(
       false
@@ -368,6 +452,7 @@ export function AdminPage({
           return;
         }
 
+
         const {
           data: {
             session
@@ -376,6 +461,7 @@ export function AdminPage({
           await supabase
             .auth
             .getSession();
+
 
         if (
           !session?.user
@@ -391,19 +477,23 @@ export function AdminPage({
           return;
         }
 
+
         const allowed =
           await verifyAdmin(
             session.user.id
           );
 
+
         if (allowed) {
           await loadArticles();
         }
+
 
         setCheckingAuth(
           false
         );
       }
+
 
       checkSession();
     },
@@ -417,6 +507,7 @@ export function AdminPage({
   ) {
     event.preventDefault();
 
+
     if (!supabase) {
       setMessage(
         'Supabase is not configured.'
@@ -424,6 +515,7 @@ export function AdminPage({
 
       return;
     }
+
 
     if (
       !email.trim() ||
@@ -436,9 +528,11 @@ export function AdminPage({
       return;
     }
 
+
     setMessage(
       'Signing in...'
     );
+
 
     const {
       data,
@@ -453,6 +547,7 @@ export function AdminPage({
           password
         });
 
+
     if (
       error ||
       !data.user
@@ -465,28 +560,35 @@ export function AdminPage({
       return;
     }
 
+
     const allowed =
       await verifyAdmin(
         data.user.id
       );
+
 
     if (!allowed) {
       await supabase
         .auth
         .signOut();
 
+
       setMessage(
         'This account does not have Admin or Editor permission.'
       );
 
+
       return;
     }
 
+
     setPassword('');
+
 
     setMessage(
       'Admin login successful.'
     );
+
 
     await loadArticles();
   }
@@ -497,13 +599,16 @@ export function AdminPage({
       return;
     }
 
+
     await supabase
       .auth
       .signOut();
 
+
     setIsAdmin(false);
     setArticles([]);
     setPassword('');
+
 
     setMessage(
       'Logged out.'
@@ -626,15 +731,9 @@ export function AdminPage({
       `Editing: ${article.title}`
     );
 
-    const mainArea =
-      document.querySelector(
-        '.main-area'
-      );
-
-    mainArea?.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    switchAdminTab(
+      'current'
+    );
   }
 
 
@@ -664,6 +763,7 @@ export function AdminPage({
         ? `WAY FORWARD\n${wayForward.trim()}`
         : ''
     ];
+
 
     return sections
       .filter(Boolean)
@@ -729,6 +829,7 @@ export function AdminPage({
   ) {
     event.preventDefault();
 
+
     if (
       !supabase ||
       !isAdmin
@@ -739,6 +840,7 @@ export function AdminPage({
 
       return;
     }
+
 
     if (
       !title.trim() ||
@@ -753,13 +855,18 @@ export function AdminPage({
       return;
     }
 
-    setSaving(true);
+
+    setSaving(
+      true
+    );
+
 
     setMessage(
       editingId
         ? 'Updating article...'
         : 'Saving article...'
     );
+
 
     const {
       data: {
@@ -770,16 +877,20 @@ export function AdminPage({
         .auth
         .getUser();
 
+
     if (!user) {
       setSaving(false);
       setIsAdmin(false);
+
 
       setMessage(
         'Session expired. Sign in again.'
       );
 
+
       return;
     }
+
 
     const tags =
       tagsText
@@ -790,12 +901,14 @@ export function AdminPage({
         )
         .filter(Boolean);
 
+
     const oldArticle =
       articles.find(
         article =>
           article.id ===
           editingId
       );
+
 
     const publishedAt =
       status ===
@@ -805,6 +918,7 @@ export function AdminPage({
           new Date()
             .toISOString()
         : null;
+
 
     const payload = {
       title:
@@ -889,6 +1003,7 @@ export function AdminPage({
           )
           .single();
 
+
       if (
         error ||
         !data
@@ -898,18 +1013,23 @@ export function AdminPage({
           error
         );
 
+
         setSaving(false);
+
 
         setMessage(
           error?.message ||
           'Unable to update article.'
         );
 
+
         return;
       }
 
+
       const updated =
         data as AdminArticle;
+
 
       setArticles(
         current =>
@@ -922,6 +1042,7 @@ export function AdminPage({
           )
       );
 
+
       if (
         updated.status ===
         'published'
@@ -933,13 +1054,16 @@ export function AdminPage({
         );
       }
 
+
       resetForm();
 
       setSaving(false);
 
+
       setMessage(
         'Article updated successfully.'
       );
+
 
       return;
     }
@@ -964,6 +1088,7 @@ export function AdminPage({
         )
         .single();
 
+
     if (
       error ||
       !data
@@ -973,18 +1098,23 @@ export function AdminPage({
         error
       );
 
+
       setSaving(false);
+
 
       setMessage(
         error?.message ||
         'Unable to save article.'
       );
 
+
       return;
     }
 
+
     const created =
       data as AdminArticle;
+
 
     setArticles(
       current => [
@@ -992,6 +1122,7 @@ export function AdminPage({
         ...current
       ]
     );
+
 
     if (
       created.status ===
@@ -1004,9 +1135,11 @@ export function AdminPage({
       );
     }
 
+
     resetForm();
 
     setSaving(false);
+
 
     setMessage(
       created.status ===
@@ -1028,6 +1161,7 @@ export function AdminPage({
       return;
     }
 
+
     const publishedAt =
       nextStatus ===
         'published'
@@ -1036,6 +1170,7 @@ export function AdminPage({
           new Date()
             .toISOString()
         : null;
+
 
     const {
       data,
@@ -1065,6 +1200,7 @@ export function AdminPage({
         )
         .single();
 
+
     if (
       error ||
       !data
@@ -1074,11 +1210,14 @@ export function AdminPage({
         'Unable to change status.'
       );
 
+
       return;
     }
 
+
     const updated =
       data as AdminArticle;
+
 
     setArticles(
       current =>
@@ -1091,6 +1230,7 @@ export function AdminPage({
         )
     );
 
+
     if (
       nextStatus ===
       'published'
@@ -1101,6 +1241,7 @@ export function AdminPage({
         )
       );
     }
+
 
     setMessage(
       `Status changed to ${nextStatus}.`
@@ -1116,14 +1257,17 @@ export function AdminPage({
       return;
     }
 
+
     const confirmed =
       window.confirm(
         `Delete "${article.title}" permanently?`
       );
 
+
     if (!confirmed) {
       return;
     }
+
 
     const {
       error
@@ -1138,13 +1282,16 @@ export function AdminPage({
           article.id
         );
 
+
     if (error) {
       setMessage(
         error.message
       );
 
+
       return;
     }
+
 
     setArticles(
       current =>
@@ -1155,12 +1302,14 @@ export function AdminPage({
         )
     );
 
+
     if (
       editingId ===
       article.id
     ) {
       resetForm();
     }
+
 
     setMessage(
       'Article deleted.'
@@ -1178,6 +1327,7 @@ export function AdminPage({
           title="Admin Studio"
           subtitle="Content management"
         />
+
 
         <section className="panel">
 
@@ -1201,6 +1351,7 @@ export function AdminPage({
           subtitle="Checking secure access"
         />
 
+
         <section className="panel">
 
           <h2>
@@ -1223,6 +1374,7 @@ export function AdminPage({
           subtitle="Secure administrator access"
         />
 
+
         <section className="admin-grid">
 
           <form
@@ -1235,6 +1387,7 @@ export function AdminPage({
             <span className="eyebrow">
               ADMIN LOGIN
             </span>
+
 
             <h2>
               Sign in to manage content
@@ -1290,9 +1443,11 @@ export function AdminPage({
 
 
             {message && (
+
               <p className="form-message">
                 {message}
               </p>
+
             )}
 
           </form>
@@ -1329,8 +1484,9 @@ export function AdminPage({
 
 
         <p>
-          Create structured UPSC Current
-          Affairs and manage existing content.
+          Manage Current Affairs, Prelims MCQs,
+          Mains questions and student evaluations
+          from separate workspaces.
         </p>
 
 
@@ -1371,362 +1527,638 @@ export function AdminPage({
       </section>
 
 
-      <section className="admin-grid">
+      {/* ADMIN WORKSPACE TABS */}
 
-        <form
-          className="panel admin-form"
-          onSubmit={
-            saveArticle
-          }
+      <section
+        className="panel"
+        style={{
+          marginTop:
+            '16px',
+
+          marginBottom:
+            '22px',
+
+          padding:
+            '14px',
+
+          position:
+            'sticky',
+
+          top:
+            '10px',
+
+          zIndex:
+            20,
+
+          background:
+            '#101a30',
+
+          boxShadow:
+            '0 10px 30px rgba(0,0,0,0.18)'
+        }}
+      >
+
+        <div
+          style={{
+            display:
+              'flex',
+
+            gap:
+              '10px',
+
+            flexWrap:
+              'wrap'
+          }}
         >
 
-          <span className="eyebrow">
-
-            {
-              editingId
-                ? 'EDIT CURRENT AFFAIR'
-                : 'NEW CURRENT AFFAIR'
+          <button
+            type="button"
+            className={
+              adminTab ===
+              'current'
+                ? 'filter active'
+                : 'filter'
             }
-
-          </span>
-
-
-          <h2>
-
-            {
-              editingId
-                ? 'Update UPSC analysis'
-                : 'Create UPSC analysis'
+            onClick={() =>
+              switchAdminTab(
+                'current'
+              )
             }
+          >
+            Current Affairs
+          </button>
 
-          </h2>
+
+          <button
+            type="button"
+            className={
+              adminTab ===
+              'mcq'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              switchAdminTab(
+                'mcq'
+              )
+            }
+          >
+            Prelims MCQ
+          </button>
 
 
-          <label>
-            Title
+          <button
+            type="button"
+            className={
+              adminTab ===
+              'mains'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              switchAdminTab(
+                'mains'
+              )
+            }
+          >
+            Mains Questions
+          </button>
 
-            <input
-              value={
-                title
+
+          <button
+            type="button"
+            className={
+              adminTab ===
+              'evaluation'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              switchAdminTab(
+                'evaluation'
+              )
+            }
+          >
+            Mains Evaluation
+          </button>
+
+        </div>
+
+      </section>
+
+
+      {/* CURRENT AFFAIRS TAB */}
+
+      <div
+        style={{
+          display:
+            adminTab ===
+            'current'
+              ? 'block'
+              : 'none'
+        }}
+      >
+
+        <section className="admin-grid">
+
+          <form
+            className="panel admin-form"
+            onSubmit={
+              saveArticle
+            }
+          >
+
+            <span className="eyebrow">
+
+              {
+                editingId
+                  ? 'EDIT CURRENT AFFAIR'
+                  : 'NEW CURRENT AFFAIR'
               }
-              onChange={
-                event =>
-                  setTitle(
-                    event.target.value
-                  )
+
+            </span>
+
+
+            <h2>
+
+              {
+                editingId
+                  ? 'Update UPSC analysis'
+                  : 'Create UPSC analysis'
               }
-              placeholder="Clear current-affairs headline"
-            />
 
-          </label>
+            </h2>
 
-
-          <div className="form-two">
 
             <label>
-              Source
+              Title
 
               <input
                 value={
-                  source
+                  title
                 }
                 onChange={
                   event =>
-                    setSource(
+                    setTitle(
                       event.target.value
                     )
                 }
-                placeholder="PIB / Ministry / RBI"
+                placeholder="Clear current-affairs headline"
+              />
+
+            </label>
+
+
+            <div className="form-two">
+
+              <label>
+                Source
+
+                <input
+                  value={
+                    source
+                  }
+                  onChange={
+                    event =>
+                      setSource(
+                        event.target.value
+                      )
+                  }
+                  placeholder="PIB / Ministry / RBI"
+                />
+
+              </label>
+
+
+              <label>
+                Subject
+
+                <input
+                  value={
+                    subject
+                  }
+                  onChange={
+                    event =>
+                      setSubject(
+                        event.target.value
+                      )
+                  }
+                  placeholder="Polity & Governance"
+                />
+
+              </label>
+
+            </div>
+
+
+            <label>
+              Official Source URL
+
+              <input
+                type="url"
+                value={
+                  sourceUrl
+                }
+                onChange={
+                  event =>
+                    setSourceUrl(
+                      event.target.value
+                    )
+                }
+                placeholder="https://..."
               />
 
             </label>
 
 
             <label>
-              Subject
+              Quick Revision Summary
+
+              <textarea
+                rows={4}
+                value={
+                  summary
+                }
+                onChange={
+                  event =>
+                    setSummary(
+                      event.target.value
+                    )
+                }
+                placeholder="2–4 lines explaining why this matters for UPSC."
+              />
+
+            </label>
+
+
+            <label>
+              Background
+
+              <textarea
+                rows={5}
+                value={
+                  background
+                }
+                onChange={
+                  event =>
+                    setBackground(
+                      event.target.value
+                    )
+                }
+                placeholder="Context and background of the issue."
+              />
+
+            </label>
+
+
+            <label>
+              Key Facts
+
+              <textarea
+                rows={5}
+                value={
+                  keyFacts
+                }
+                onChange={
+                  event =>
+                    setKeyFacts(
+                      event.target.value
+                    )
+                }
+                placeholder="Important facts, institutions, numbers and provisions."
+              />
+
+            </label>
+
+
+            <label>
+              Prelims Points
+
+              <textarea
+                rows={5}
+                value={
+                  prelimsPoints
+                }
+                onChange={
+                  event =>
+                    setPrelimsPoints(
+                      event.target.value
+                    )
+                }
+                placeholder="Facts, organisations, schemes and likely MCQ points."
+              />
+
+            </label>
+
+
+            <label>
+              Mains Relevance
+
+              <textarea
+                rows={5}
+                value={
+                  mainsRelevance
+                }
+                onChange={
+                  event =>
+                    setMainsRelevance(
+                      event.target.value
+                    )
+                }
+                placeholder="GS paper, syllabus linkage and analytical dimensions."
+              />
+
+            </label>
+
+
+            <label>
+              Issues / Challenges
+
+              <textarea
+                rows={5}
+                value={
+                  issues
+                }
+                onChange={
+                  event =>
+                    setIssues(
+                      event.target.value
+                    )
+                }
+                placeholder="Major concerns, gaps or limitations."
+              />
+
+            </label>
+
+
+            <label>
+              Way Forward
+
+              <textarea
+                rows={5}
+                value={
+                  wayForward
+                }
+                onChange={
+                  event =>
+                    setWayForward(
+                      event.target.value
+                    )
+                }
+                placeholder="Balanced solutions, reforms and conclusion points."
+              />
+
+            </label>
+
+
+            <label>
+              Tags
 
               <input
                 value={
-                  subject
+                  tagsText
                 }
                 onChange={
                   event =>
-                    setSubject(
+                    setTagsText(
                       event.target.value
                     )
                 }
-                placeholder="Polity & Governance"
+                placeholder="Environment, GS-III, Energy"
               />
+
+              <small>
+                Separate tags using commas.
+              </small>
 
             </label>
 
-          </div>
+
+            <div className="checkbox-row">
+
+              <label>
+
+                <input
+                  type="checkbox"
+                  checked={
+                    prelims
+                  }
+                  onChange={
+                    event =>
+                      setPrelims(
+                        event.target.checked
+                      )
+                  }
+                />
+
+                Prelims
+
+              </label>
 
 
-          <label>
-            Official Source URL
+              <label>
 
-            <input
-              type="url"
-              value={
-                sourceUrl
-              }
-              onChange={
-                event =>
-                  setSourceUrl(
-                    event.target.value
-                  )
-              }
-              placeholder="https://..."
-            />
+                <input
+                  type="checkbox"
+                  checked={
+                    mains
+                  }
+                  onChange={
+                    event =>
+                      setMains(
+                        event.target.checked
+                      )
+                  }
+                />
 
-          </label>
+                Mains
 
+              </label>
 
-          <label>
-            Quick Revision Summary
-
-            <textarea
-              rows={4}
-              value={
-                summary
-              }
-              onChange={
-                event =>
-                  setSummary(
-                    event.target.value
-                  )
-              }
-              placeholder="2–4 lines explaining why this matters for UPSC."
-            />
-
-          </label>
-
-
-          <label>
-            Background
-
-            <textarea
-              rows={5}
-              value={
-                background
-              }
-              onChange={
-                event =>
-                  setBackground(
-                    event.target.value
-                  )
-              }
-              placeholder="Context and background of the issue."
-            />
-
-          </label>
-
-
-          <label>
-            Key Facts
-
-            <textarea
-              rows={5}
-              value={
-                keyFacts
-              }
-              onChange={
-                event =>
-                  setKeyFacts(
-                    event.target.value
-                  )
-              }
-              placeholder="Important facts, institutions, numbers and provisions."
-            />
-
-          </label>
-
-
-          <label>
-            Prelims Points
-
-            <textarea
-              rows={5}
-              value={
-                prelimsPoints
-              }
-              onChange={
-                event =>
-                  setPrelimsPoints(
-                    event.target.value
-                  )
-              }
-              placeholder="Facts, organisations, schemes and likely MCQ points."
-            />
-
-          </label>
-
-
-          <label>
-            Mains Relevance
-
-            <textarea
-              rows={5}
-              value={
-                mainsRelevance
-              }
-              onChange={
-                event =>
-                  setMainsRelevance(
-                    event.target.value
-                  )
-              }
-              placeholder="GS paper, syllabus linkage and analytical dimensions."
-            />
-
-          </label>
-
-
-          <label>
-            Issues / Challenges
-
-            <textarea
-              rows={5}
-              value={
-                issues
-              }
-              onChange={
-                event =>
-                  setIssues(
-                    event.target.value
-                  )
-              }
-              placeholder="Major concerns, gaps or limitations."
-            />
-
-          </label>
-
-
-          <label>
-            Way Forward
-
-            <textarea
-              rows={5}
-              value={
-                wayForward
-              }
-              onChange={
-                event =>
-                  setWayForward(
-                    event.target.value
-                  )
-              }
-              placeholder="Balanced solutions, reforms and conclusion points."
-            />
-
-          </label>
-
-
-          <label>
-            Tags
-
-            <input
-              value={
-                tagsText
-              }
-              onChange={
-                event =>
-                  setTagsText(
-                    event.target.value
-                  )
-              }
-              placeholder="Environment, GS-III, Energy"
-            />
-
-            <small>
-              Separate tags using commas.
-            </small>
-
-          </label>
-
-
-          <div className="checkbox-row">
-
-            <label>
-
-              <input
-                type="checkbox"
-                checked={
-                  prelims
-                }
-                onChange={
-                  event =>
-                    setPrelims(
-                      event.target.checked
-                    )
-                }
-              />
-
-              Prelims
-
-            </label>
+            </div>
 
 
             <label>
+              Status
 
-              <input
-                type="checkbox"
-                checked={
-                  mains
+              <select
+                value={
+                  status
                 }
                 onChange={
                   event =>
-                    setMains(
-                      event.target.checked
+                    setStatus(
+                      event.target
+                        .value as ArticleStatus
                     )
                 }
-              />
+              >
 
-              Mains
+                <option value="draft">
+                  Draft
+                </option>
+
+                <option value="published">
+                  Published
+                </option>
+
+                <option value="archived">
+                  Archived
+                </option>
+
+              </select>
 
             </label>
 
-          </div>
 
+            <div
+              style={{
+                display:
+                  'flex',
 
-          <label>
-            Status
+                gap:
+                  '12px',
 
-            <select
-              value={
-                status
-              }
-              onChange={
-                event =>
-                  setStatus(
-                    event.target
-                      .value as ArticleStatus
-                  )
-              }
+                flexWrap:
+                  'wrap'
+              }}
             >
 
-              <option value="draft">
-                Draft
-              </option>
+              <button
+                type="submit"
+                className="primary-btn"
+                disabled={
+                  saving
+                }
+              >
 
-              <option value="published">
-                Published
-              </option>
+                {
+                  saving
+                    ? 'Saving...'
+                    : editingId
+                    ? 'Save changes'
+                    : status ===
+                      'published'
+                    ? 'Publish to students'
+                    : 'Save draft'
+                }
 
-              <option value="archived">
-                Archived
-              </option>
+              </button>
 
-            </select>
 
-          </label>
+              {editingId && (
 
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={
+                    resetForm
+                  }
+                >
+                  Cancel edit
+                </button>
+
+              )}
+
+            </div>
+
+
+            {message && (
+
+              <p className="form-message">
+                {message}
+              </p>
+
+            )}
+
+          </form>
+
+
+          <aside className="panel admin-side">
+
+            <span className="eyebrow">
+              UPSC EDITOR CHECKLIST
+            </span>
+
+
+            <h3>
+              Before publishing
+            </h3>
+
+
+            <ol>
+
+              <li>
+                Verify the primary source.
+              </li>
+
+              <li>
+                Keep the quick summary short.
+              </li>
+
+              <li>
+                Add only exam-relevant facts.
+              </li>
+
+              <li>
+                Separate Prelims facts from
+                Mains analysis.
+              </li>
+
+              <li>
+                Mention challenges without
+                exaggeration.
+              </li>
+
+              <li>
+                Finish with a balanced way
+                forward.
+              </li>
+
+              <li>
+                Save as Draft until reviewed.
+              </li>
+
+            </ol>
+
+
+            <div className="callout">
+
+              <strong>
+                Recommended workflow
+              </strong>
+
+
+              <p>
+                Create → Draft → Review → Publish.
+                Students see only Published articles.
+              </p>
+
+            </div>
+
+          </aside>
+
+        </section>
+
+
+        <section
+          className="panel"
+          style={{
+            marginTop:
+              '24px'
+          }}
+        >
 
           <div
             style={{
               display:
                 'flex',
+
+              justifyContent:
+                'space-between',
+
+              alignItems:
+                'center',
 
               gap:
                 '12px',
@@ -1736,383 +2168,287 @@ export function AdminPage({
             }}
           >
 
+            <div>
+
+              <span className="eyebrow">
+                CONTENT MANAGER
+              </span>
+
+
+              <h2>
+                Existing Current Affairs
+              </h2>
+
+            </div>
+
+
             <button
-              type="submit"
-              className="primary-btn"
-              disabled={
-                saving
+              type="button"
+              className="secondary-btn"
+              onClick={
+                loadArticles
               }
             >
-
-              {
-                saving
-                  ? 'Saving...'
-                  : editingId
-                  ? 'Save changes'
-                  : status ===
-                    'published'
-                  ? 'Publish to students'
-                  : 'Save draft'
-              }
-
+              Refresh list
             </button>
-
-
-            {editingId && (
-
-              <button
-                type="button"
-                className="secondary-btn"
-                onClick={
-                  resetForm
-                }
-              >
-                Cancel edit
-              </button>
-
-            )}
 
           </div>
 
 
-          {message && (
+          {loadingArticles && (
 
-            <p className="form-message">
-              {message}
+            <p>
+              Loading articles...
             </p>
 
           )}
 
-        </form>
 
-
-        <aside className="panel admin-side">
-
-          <span className="eyebrow">
-            UPSC EDITOR CHECKLIST
-          </span>
-
-          <h3>
-            Before publishing
-          </h3>
-
-          <ol>
-
-            <li>
-              Verify the primary source.
-            </li>
-
-            <li>
-              Keep the quick summary short.
-            </li>
-
-            <li>
-              Add only exam-relevant facts.
-            </li>
-
-            <li>
-              Separate Prelims facts from Mains analysis.
-            </li>
-
-            <li>
-              Mention challenges without exaggeration.
-            </li>
-
-            <li>
-              Finish with a balanced way forward.
-            </li>
-
-            <li>
-              Save as Draft until reviewed.
-            </li>
-
-          </ol>
-
-
-          <div className="callout">
-
-            <strong>
-              Recommended workflow
-            </strong>
+          {!loadingArticles &&
+            articles.length ===
+              0 && (
 
             <p>
-              Create → Draft → Review → Publish.
-              Students see only Published articles.
+              No Current Affairs found.
             </p>
 
-          </div>
-
-        </aside>
-
-      </section>
+          )}
 
 
-      <section
-        className="panel"
-        style={{
-          marginTop:
-            '24px'
-        }}
-      >
+          <div
+            style={{
+              display:
+                'grid',
 
-        <div
-          style={{
-            display:
-              'flex',
+              gap:
+                '14px',
 
-            justifyContent:
-              'space-between',
-
-            alignItems:
-              'center',
-
-            gap:
-              '12px',
-
-            flexWrap:
-              'wrap'
-          }}
-        >
-
-          <div>
-
-            <span className="eyebrow">
-              CONTENT MANAGER
-            </span>
-
-            <h2>
-              Existing Current Affairs
-            </h2>
-
-          </div>
-
-
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={
-              loadArticles
-            }
+              marginTop:
+                '20px'
+            }}
           >
-            Refresh list
-          </button>
 
-        </div>
+            {articles.map(
+              article => (
 
-
-        {loadingArticles && (
-
-          <p>
-            Loading articles...
-          </p>
-
-        )}
-
-
-        {!loadingArticles &&
-          articles.length ===
-            0 && (
-
-          <p>
-            No Current Affairs found.
-          </p>
-
-        )}
-
-
-        <div
-          style={{
-            display:
-              'grid',
-
-            gap:
-              '14px',
-
-            marginTop:
-              '20px'
-          }}
-        >
-
-          {articles.map(
-            article => (
-
-              <article
-                key={
-                  article.id
-                }
-                style={{
-                  padding:
-                    '18px',
-
-                  border:
-                    '1px solid rgba(255,255,255,0.10)',
-
-                  borderRadius:
-                    '14px'
-                }}
-              >
-
-                <div
+                <article
+                  key={
+                    article.id
+                  }
                   style={{
-                    display:
-                      'flex',
+                    padding:
+                      '18px',
 
-                    justifyContent:
-                      'space-between',
+                    border:
+                      '1px solid rgba(255,255,255,0.10)',
 
-                    gap:
-                      '16px',
-
-                    flexWrap:
-                      'wrap'
+                    borderRadius:
+                      '14px'
                   }}
                 >
-
-                  <div>
-
-                    <span className="eyebrow">
-                      {article.subject}
-                    </span>
-
-                    <h3>
-                      {article.title}
-                    </h3>
-
-                    <p>
-                      Source:{' '}
-                      {article.source}
-                    </p>
-
-                    <p>
-                      Status:{' '}
-
-                      <strong>
-                        {article.status}
-                      </strong>
-                    </p>
-
-                  </div>
-
 
                   <div
                     style={{
                       display:
                         'flex',
 
+                      justifyContent:
+                        'space-between',
+
                       gap:
-                        '8px',
+                        '16px',
 
                       flexWrap:
-                        'wrap',
-
-                      alignItems:
-                        'flex-start'
+                        'wrap'
                     }}
                   >
 
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      onClick={() =>
-                        startEdit(
-                          article
-                        )
-                      }
+                    <div>
+
+                      <span className="eyebrow">
+                        {article.subject}
+                      </span>
+
+
+                      <h3>
+                        {article.title}
+                      </h3>
+
+
+                      <p>
+                        Source:{' '}
+                        {article.source}
+                      </p>
+
+
+                      <p>
+                        Status:{' '}
+
+                        <strong>
+                          {article.status}
+                        </strong>
+                      </p>
+
+                    </div>
+
+
+                    <div
+                      style={{
+                        display:
+                          'flex',
+
+                        gap:
+                          '8px',
+
+                        flexWrap:
+                          'wrap',
+
+                        alignItems:
+                          'flex-start'
+                      }}
                     >
-                      Edit
-                    </button>
-
-
-                    {article.status !==
-                      'published' && (
 
                       <button
                         type="button"
                         className="secondary-btn"
                         onClick={() =>
-                          changeStatus(
-                            article,
-                            'published'
+                          startEdit(
+                            article
                           )
                         }
                       >
-                        Publish
+                        Edit
                       </button>
 
-                    )}
+
+                      {article.status !==
+                        'published' && (
+
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() =>
+                            changeStatus(
+                              article,
+                              'published'
+                            )
+                          }
+                        >
+                          Publish
+                        </button>
+
+                      )}
 
 
-                    {article.status !==
-                      'draft' && (
+                      {article.status !==
+                        'draft' && (
+
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() =>
+                            changeStatus(
+                              article,
+                              'draft'
+                            )
+                          }
+                        >
+                          Move to draft
+                        </button>
+
+                      )}
+
+
+                      {article.status !==
+                        'archived' && (
+
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() =>
+                            changeStatus(
+                              article,
+                              'archived'
+                            )
+                          }
+                        >
+                          Archive
+                        </button>
+
+                      )}
+
 
                       <button
                         type="button"
                         className="secondary-btn"
                         onClick={() =>
-                          changeStatus(
-                            article,
-                            'draft'
+                          deleteArticle(
+                            article
                           )
                         }
                       >
-                        Move to draft
+                        Delete
                       </button>
 
-                    )}
-
-
-                    {article.status !==
-                      'archived' && (
-
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        onClick={() =>
-                          changeStatus(
-                            article,
-                            'archived'
-                          )
-                        }
-                      >
-                        Archive
-                      </button>
-
-                    )}
-
-
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      onClick={() =>
-                        deleteArticle(
-                          article
-                        )
-                      }
-                    >
-                      Delete
-                    </button>
+                    </div>
 
                   </div>
 
-                </div>
+                </article>
 
-              </article>
+              )
+            )}
 
-            )
-          )}
+          </div>
 
-        </div>
+        </section>
 
-      </section>
-
-
-      <QuestionManager />
+      </div>
 
 
-      <MainsQuestionManager />
+      {/* PRELIMS MCQ TAB */}
+
+      <div
+        style={{
+          display:
+            adminTab ===
+            'mcq'
+              ? 'block'
+              : 'none'
+        }}
+      >
+        <QuestionManager />
+      </div>
 
 
-      <MainsEvaluationManager />
+      {/* MAINS QUESTIONS TAB */}
+
+      <div
+        style={{
+          display:
+            adminTab ===
+            'mains'
+              ? 'block'
+              : 'none'
+        }}
+      >
+        <MainsQuestionManager />
+      </div>
+
+
+      {/* MAINS EVALUATION TAB */}
+
+      <div
+        style={{
+          display:
+            adminTab ===
+            'evaluation'
+              ? 'block'
+              : 'none'
+        }}
+      >
+        <MainsEvaluationManager />
+      </div>
 
 
     </div>
