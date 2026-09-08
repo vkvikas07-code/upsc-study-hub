@@ -27,14 +27,21 @@ type SessionSize =
   | 'all';
 
 
+type Difficulty =
+  | 'easy'
+  | 'medium'
+  | 'hard';
+
+
 type LiveQuestion = {
   id: string;
   question: string;
   options: string[];
   correct_index: number;
   explanation: string;
+
   subject: string;
-  difficulty: string;
+  difficulty: Difficulty;
   topic: string | null;
   tags: string[];
 
@@ -95,28 +102,95 @@ const QUESTION_SELECT = `
 `;
 
 
+/*
+ * DETERMINE SOURCE OF QUESTION
+ */
+
+function getQuestionOrigin(
+  item: LiveQuestion
+): QuestionOrigin {
+
+  if (
+    item.state_psc_state
+  ) {
+    return 'state';
+  }
+
+  if (
+    item.upsc_exam_name
+  ) {
+    return 'upsc';
+  }
+
+  return 'cse';
+}
+
+
+/*
+ * RANDOMIZE QUESTION ARRAY
+ */
+
+function shuffleQuestions(
+  items: LiveQuestion[]
+) {
+
+  const shuffled = [
+    ...items
+  ];
+
+  for (
+    let i =
+      shuffled.length - 1;
+    i > 0;
+    i--
+  ) {
+
+    const j =
+      Math.floor(
+        Math.random() *
+        (i + 1)
+      );
+
+    const temp =
+      shuffled[i];
+
+    shuffled[i] =
+      shuffled[j];
+
+    shuffled[j] =
+      temp;
+  }
+
+  return shuffled;
+}
+
+
 export function PracticePage() {
 
   /*
-   * ALL PUBLISHED QUESTIONS
+   * DATABASE QUESTIONS
    */
 
   const [
     allQuestions,
     setAllQuestions
   ] =
-    useState<LiveQuestion[]>([]);
+    useState<
+      LiveQuestion[]
+    >([]);
 
 
   /*
-   * ACTIVE PRACTICE SET
+   * ACTIVE SESSION
    */
 
   const [
     questions,
     setQuestions
   ] =
-    useState<LiveQuestion[]>([]);
+    useState<
+      LiveQuestion[]
+    >([]);
 
 
   const [
@@ -127,7 +201,7 @@ export function PracticePage() {
 
 
   /*
-   * QUIZ STATE
+   * QUIZ
    */
 
   const [
@@ -141,9 +215,9 @@ export function PracticePage() {
     selected,
     setSelected
   ] =
-    useState<number | null>(
-      null
-    );
+    useState<
+      number | null
+    >(null);
 
 
   const [
@@ -157,7 +231,9 @@ export function PracticePage() {
     answers,
     setAnswers
   ] =
-    useState<AnswerRecord[]>([]);
+    useState<
+      AnswerRecord[]
+    >([]);
 
 
   const [
@@ -168,7 +244,7 @@ export function PracticePage() {
 
 
   /*
-   * PAGE STATE
+   * PAGE
    */
 
   const [
@@ -214,7 +290,7 @@ export function PracticePage() {
 
 
   /*
-   * PRACTICE FILTERS
+   * MAIN FILTERS
    */
 
   const [
@@ -234,6 +310,20 @@ export function PracticePage() {
     useState('all');
 
 
+  /*
+   * NEW DIFFICULTY FILTER
+   */
+
+  const [
+    difficultyFilter,
+    setDifficultyFilter
+  ] =
+    useState<
+      'all' |
+      Difficulty
+    >('all');
+
+
   const [
     typeFilter,
     setTypeFilter
@@ -243,6 +333,17 @@ export function PracticePage() {
       'practice' |
       'pyq'
     >('all');
+
+
+  /*
+   * NEW CSE PYQ YEAR FILTER
+   */
+
+  const [
+    csePyqYearFilter,
+    setCsePyqYearFilter
+  ] =
+    useState('all');
 
 
   /*
@@ -320,17 +421,13 @@ export function PracticePage() {
         'Practice database is not configured.'
       );
 
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
 
 
-    setLoading(
-      true
-    );
+    setLoading(true);
 
     setError('');
 
@@ -339,8 +436,7 @@ export function PracticePage() {
 
     const {
       data,
-      error:
-        loadError
+      error: loadError
     } =
       await supabase
         .from(
@@ -373,15 +469,11 @@ export function PracticePage() {
         loadError
       );
 
-
       setError(
         loadError.message
       );
 
-
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
@@ -390,8 +482,7 @@ export function PracticePage() {
     const formatted:
       LiveQuestion[] =
         (
-          data ||
-          []
+          data || []
         ).map(
           item => ({
 
@@ -407,9 +498,7 @@ export function PracticePage() {
               )
                 ? item.options.map(
                     option =>
-                      String(
-                        option
-                      )
+                      String(option)
                   )
                 : [],
 
@@ -423,7 +512,8 @@ export function PracticePage() {
               item.subject,
 
             difficulty:
-              item.difficulty,
+              item.difficulty as
+                Difficulty,
 
             topic:
               item.topic,
@@ -479,6 +569,7 @@ export function PracticePage() {
 
             source_url:
               item.source_url
+
           })
         );
 
@@ -496,27 +587,19 @@ export function PracticePage() {
 
     setIndex(0);
 
-    setSelected(
-      null
-    );
+    setSelected(null);
 
     setScore(0);
 
     setAnswers([]);
 
-    setFinished(
-      false
-    );
+    setFinished(false);
 
-    setAttemptSaved(
-      false
-    );
+    setAttemptSaved(false);
 
     setResultMessage('');
 
-    setLoading(
-      false
-    );
+    setLoading(false);
   }
 
 
@@ -528,85 +611,6 @@ export function PracticePage() {
     },
     []
   );
-
-
-  /*
-   * DETERMINE QUESTION ORIGIN
-   */
-
-  function getOrigin(
-    item:
-      LiveQuestion
-  ):
-    QuestionOrigin {
-
-    if (
-      item.state_psc_state
-    ) {
-
-      return 'state';
-    }
-
-
-    if (
-      item.upsc_exam_name
-    ) {
-
-      return 'upsc';
-    }
-
-
-    return 'cse';
-  }
-
-
-  /*
-   * RANDOMIZE QUESTIONS
-   */
-
-  function shuffleQuestions(
-    items:
-      LiveQuestion[]
-  ) {
-
-    const shuffled =
-      [
-        ...items
-      ];
-
-
-    for (
-      let i =
-        shuffled.length -
-        1;
-
-      i > 0;
-
-      i--
-    ) {
-
-      const j =
-        Math.floor(
-          Math.random() *
-          (
-            i + 1
-          )
-        );
-
-
-      const temp =
-        shuffled[i];
-
-      shuffled[i] =
-        shuffled[j];
-
-      shuffled[j] =
-        temp;
-    }
-
-
-    return shuffled;
-  }
 
 
   /*
@@ -635,6 +639,57 @@ export function PracticePage() {
 
 
   /*
+   * CSE PYQ YEARS
+   */
+
+  const csePyqYears =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            allQuestions
+              .filter(
+                item =>
+                  getQuestionOrigin(
+                    item
+                  ) ===
+                    'cse' &&
+                  item.is_pyq &&
+                  (
+                    subjectFilter ===
+                      'all' ||
+                    item.subject ===
+                      subjectFilter
+                  )
+              )
+              .map(
+                item =>
+                  item.pyq_year
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is number =>
+                    value !==
+                    null
+              )
+          )
+        ).sort(
+          (
+            a,
+            b
+          ) =>
+            b - a
+        ),
+      [
+        allQuestions,
+        subjectFilter
+      ]
+    );
+
+
+  /*
    * UPSC EXAM OPTIONS
    */
 
@@ -653,9 +708,7 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           )
         ).sort(),
@@ -687,9 +740,7 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           )
         ).sort(),
@@ -759,9 +810,7 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           )
         ).sort(),
@@ -797,9 +846,7 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           )
         ).sort(),
@@ -874,7 +921,7 @@ export function PracticePage() {
           item => {
 
             const origin =
-              getOrigin(
+              getQuestionOrigin(
                 item
               );
 
@@ -893,6 +940,13 @@ export function PracticePage() {
                 subjectFilter;
 
 
+            const matchesDifficulty =
+              difficultyFilter ===
+                'all' ||
+              item.difficulty ===
+                difficultyFilter;
+
+
             const matchesType =
               typeFilter ===
                 'all' ||
@@ -909,6 +963,30 @@ export function PracticePage() {
                 !item.is_pyq
               );
 
+
+            /*
+             * CSE PYQ YEAR
+             */
+
+            const matchesCsePyqYear =
+              csePyqYearFilter ===
+                'all' ||
+
+              (
+                origin ===
+                  'cse' &&
+                item.is_pyq &&
+                String(
+                  item.pyq_year ||
+                  ''
+                ) ===
+                  csePyqYearFilter
+              );
+
+
+            /*
+             * OTHER UPSC
+             */
 
             const matchesUpscExam =
               upscExamFilter ===
@@ -933,6 +1011,10 @@ export function PracticePage() {
               ) ===
                 upscYearFilter;
 
+
+            /*
+             * STATE PSC
+             */
 
             const matchesState =
               stateFilter ===
@@ -961,7 +1043,9 @@ export function PracticePage() {
             return (
               matchesOrigin &&
               matchesSubject &&
+              matchesDifficulty &&
               matchesType &&
+              matchesCsePyqYear &&
               matchesUpscExam &&
               matchesUpscCycle &&
               matchesUpscYear &&
@@ -975,7 +1059,9 @@ export function PracticePage() {
         allQuestions,
         originFilter,
         subjectFilter,
+        difficultyFilter,
         typeFilter,
+        csePyqYearFilter,
         upscExamFilter,
         upscCycleFilter,
         upscYearFilter,
@@ -987,7 +1073,7 @@ export function PracticePage() {
 
 
   /*
-   * NUMBER OF QUESTIONS THAT WILL START
+   * SESSION QUESTION COUNT
    */
 
   const sessionQuestionCount =
@@ -1017,6 +1103,27 @@ export function PracticePage() {
     );
 
 
+    /*
+     * REMOVE CSE YEAR
+     * IF LEAVING CSE
+     */
+
+    if (
+      value !==
+      'cse'
+    ) {
+
+      setCsePyqYearFilter(
+        'all'
+      );
+    }
+
+
+    /*
+     * REMOVE UPSC FILTERS
+     * IF LEAVING UPSC
+     */
+
     if (
       value !==
       'upsc'
@@ -1035,6 +1142,11 @@ export function PracticePage() {
       );
     }
 
+
+    /*
+     * REMOVE STATE FILTERS
+     * IF LEAVING STATE
+     */
 
     if (
       value !==
@@ -1057,6 +1169,34 @@ export function PracticePage() {
 
 
   /*
+   * CHANGE QUESTION TYPE
+   */
+
+  function changeTypeFilter(
+    value:
+      'all' |
+      'practice' |
+      'pyq'
+  ) {
+
+    setTypeFilter(
+      value
+    );
+
+
+    if (
+      value !==
+      'pyq'
+    ) {
+
+      setCsePyqYearFilter(
+        'all'
+      );
+    }
+  }
+
+
+  /*
    * RESET FILTERS
    */
 
@@ -1070,7 +1210,15 @@ export function PracticePage() {
       'all'
     );
 
+    setDifficultyFilter(
+      'all'
+    );
+
     setTypeFilter(
+      'all'
+    );
+
+    setCsePyqYearFilter(
       'all'
     );
 
@@ -1149,21 +1297,15 @@ export function PracticePage() {
 
     setIndex(0);
 
-    setSelected(
-      null
-    );
+    setSelected(null);
 
     setScore(0);
 
     setAnswers([]);
 
-    setFinished(
-      false
-    );
+    setFinished(false);
 
-    setAttemptSaved(
-      false
-    );
+    setAttemptSaved(false);
 
     setResultMessage('');
 
@@ -1176,12 +1318,11 @@ export function PracticePage() {
 
 
   /*
-   * ANSWER
+   * ANSWER QUESTION
    */
 
   function answer(
-    option:
-      number
+    option: number
   ) {
 
     if (
@@ -1189,7 +1330,6 @@ export function PracticePage() {
         null ||
       !questions[index]
     ) {
-
       return;
     }
 
@@ -1253,7 +1393,6 @@ export function PracticePage() {
       questions.length ===
         0
     ) {
-
       return;
     }
 
@@ -1280,7 +1419,6 @@ export function PracticePage() {
       setSavingResult(
         false
       );
-
 
       setResultMessage(
         'Result completed. Sign in as a student to save practice history.'
@@ -1319,8 +1457,7 @@ export function PracticePage() {
 
 
     const {
-      error:
-        saveError
+      error: saveError
     } =
       await supabase
         .from(
@@ -1354,11 +1491,9 @@ export function PracticePage() {
         saveError
       );
 
-
       setResultMessage(
         `Result could not be saved: ${saveError.message}`
       );
-
 
       setSavingResult(
         false
@@ -1372,11 +1507,9 @@ export function PracticePage() {
       true
     );
 
-
     setResultMessage(
       'Practice result saved successfully.'
     );
-
 
     setSavingResult(
       false
@@ -1411,43 +1544,34 @@ export function PracticePage() {
         current + 1
     );
 
-
-    setSelected(
-      null
-    );
+    setSelected(null);
   }
 
 
   /*
-   * REPEAT EXACT SAME SET
+   * REPEAT SAME SET
    */
 
   function restart() {
 
     setIndex(0);
 
-    setSelected(
-      null
-    );
+    setSelected(null);
 
     setScore(0);
 
     setAnswers([]);
 
-    setFinished(
-      false
-    );
+    setFinished(false);
 
-    setAttemptSaved(
-      false
-    );
+    setAttemptSaved(false);
 
     setResultMessage('');
   }
 
 
   /*
-   * RETURN TO SETUP
+   * RETURN TO FILTER SCREEN
    */
 
   function changePracticeSet() {
@@ -1460,21 +1584,15 @@ export function PracticePage() {
 
     setIndex(0);
 
-    setSelected(
-      null
-    );
+    setSelected(null);
 
     setScore(0);
 
     setAnswers([]);
 
-    setFinished(
-      false
-    );
+    setFinished(false);
 
-    setAttemptSaved(
-      false
-    );
+    setAttemptSaved(false);
 
     setResultMessage('');
   }
@@ -1605,7 +1723,7 @@ export function PracticePage() {
           </p>
 
 
-          {/* ORIGIN */}
+          {/* QUESTION ORIGIN */}
 
           <label>
             Question Origin
@@ -1646,7 +1764,7 @@ export function PracticePage() {
           </label>
 
 
-          {/* SUBJECT + TYPE */}
+          {/* SUBJECT + DIFFICULTY */}
 
           <div
             className="form-two"
@@ -1660,10 +1778,16 @@ export function PracticePage() {
                   subjectFilter
                 }
                 onChange={
-                  event =>
+                  event => {
+
                     setSubjectFilter(
                       event.target.value
-                    )
+                    );
+
+                    setCsePyqYearFilter(
+                      'all'
+                    );
+                  }
                 }
               >
 
@@ -1695,34 +1819,37 @@ export function PracticePage() {
 
 
             <label>
-              Question Type
+              Difficulty
 
               <select
                 value={
-                  typeFilter
+                  difficultyFilter
                 }
                 onChange={
                   event =>
-                    setTypeFilter(
+                    setDifficultyFilter(
                       event.target
                         .value as
                         | 'all'
-                        | 'practice'
-                        | 'pyq'
+                        | Difficulty
                     )
                 }
               >
 
                 <option value="all">
-                  All Questions
+                  All Difficulty
                 </option>
 
-                <option value="pyq">
-                  Previous Year Questions
+                <option value="easy">
+                  Easy
                 </option>
 
-                <option value="practice">
-                  Practice Questions
+                <option value="medium">
+                  Medium
+                </option>
+
+                <option value="hard">
+                  Hard
                 </option>
 
               </select>
@@ -1730,6 +1857,127 @@ export function PracticePage() {
             </label>
 
           </div>
+
+
+          {/* QUESTION TYPE */}
+
+          <label>
+            Question Type
+
+            <select
+              value={
+                typeFilter
+              }
+              onChange={
+                event =>
+                  changeTypeFilter(
+                    event.target
+                      .value as
+                      | 'all'
+                      | 'practice'
+                      | 'pyq'
+                  )
+              }
+            >
+
+              <option value="all">
+                All Questions
+              </option>
+
+              <option value="pyq">
+                Previous Year Questions
+              </option>
+
+              <option value="practice">
+                Practice Questions
+              </option>
+
+            </select>
+
+          </label>
+
+
+          {/* CSE PYQ YEAR */}
+
+          {originFilter ===
+            'cse' &&
+            typeFilter ===
+              'pyq' && (
+
+            <div
+              style={{
+                marginTop:
+                  '14px',
+
+                padding:
+                  '16px',
+
+                border:
+                  '1px solid rgba(255,255,255,.10)',
+
+                borderRadius:
+                  '14px'
+              }}
+            >
+
+              <span
+                className="eyebrow"
+              >
+                CSE PRELIMS PYQ
+              </span>
+
+
+              <label>
+                PYQ Year
+
+                <select
+                  value={
+                    csePyqYearFilter
+                  }
+                  onChange={
+                    event =>
+                      setCsePyqYearFilter(
+                        event.target.value
+                      )
+                  }
+                >
+
+                  <option value="all">
+                    All CSE PYQ Years
+                  </option>
+
+
+                  {csePyqYears.map(
+                    year => (
+
+                      <option
+                        key={
+                          year
+                        }
+                        value={
+                          String(year)
+                        }
+                      >
+                        {year}
+                      </option>
+
+                    )
+                  )}
+
+                </select>
+
+              </label>
+
+
+              <small>
+                Select a specific UPSC
+                Civil Services Prelims
+                previous-year paper.
+              </small>
+
+            </div>
+
+          )}
 
 
           {/* SESSION SIZE */}
@@ -1808,7 +2056,7 @@ export function PracticePage() {
           </div>
 
 
-          {/* UPSC FILTERS */}
+          {/* OTHER UPSC FILTERS */}
 
           {originFilter ===
             'upsc' && (
@@ -1964,9 +2212,7 @@ export function PracticePage() {
                           year
                         }
                         value={
-                          String(
-                            year
-                          )
+                          String(year)
                         }
                       >
                         {year}
@@ -2145,9 +2391,7 @@ export function PracticePage() {
                           year
                         }
                         value={
-                          String(
-                            year
-                          )
+                          String(year)
                         }
                       >
                         {year}
@@ -2177,8 +2421,7 @@ export function PracticePage() {
 
             <strong>
               {
-                filteredQuestions
-                  .length
+                filteredQuestions.length
               }{' '}
               questions match your
               filters
@@ -2187,11 +2430,13 @@ export function PracticePage() {
 
             <p>
               Your session will contain{' '}
+
               <strong>
                 {
                   sessionQuestionCount
                 }
               </strong>{' '}
+
               question
               {
                 sessionQuestionCount ===
@@ -2210,8 +2455,8 @@ export function PracticePage() {
                 ) && (
 
               <p>
-                The questions will be
-                selected randomly from
+                Questions will be
+                randomly selected from
                 the matching bank.
               </p>
 
@@ -2306,7 +2551,7 @@ export function PracticePage() {
 
 
   /*
-   * RESULT SCREEN
+   * RESULT
    */
 
   if (finished) {
@@ -2356,8 +2601,8 @@ export function PracticePage() {
 
 
           <p>
-            Review the explanations
-            and strengthen the concepts
+            Review explanations and
+            strengthen the concepts
             you missed.
           </p>
 
@@ -2441,7 +2686,7 @@ export function PracticePage() {
 
 
   const origin =
-    getOrigin(
+    getQuestionOrigin(
       q
     );
 
@@ -2510,8 +2755,7 @@ export function PracticePage() {
                 `${
                   (
                     (
-                      index +
-                      1
+                      index + 1
                     ) /
                     questions.length
                   ) *
