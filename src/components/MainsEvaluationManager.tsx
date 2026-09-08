@@ -9,32 +9,19 @@ import {
 } from '../lib/supabase';
 
 
-type AttemptStatus =
-  | 'draft'
-  | 'submitted';
-
-
 type EvaluationStatus =
   | 'pending'
   | 'in_review'
   | 'completed';
 
 
-type StudentAttempt = {
+type AttemptRow = {
   id: string;
-
   user_id: string;
-
   question_id: string;
-
   answer_text: string;
-
   word_count: number;
-
   elapsed_seconds: number;
-
-  status:
-    AttemptStatus;
 
   submission_mode:
     | 'text'
@@ -47,20 +34,65 @@ type StudentAttempt = {
   pdf_file_name:
     string | null;
 
+  evaluation_requested:
+    boolean;
+
   submitted_at:
     string | null;
 
   created_at:
     string;
+
+  updated_at:
+    string;
 };
 
 
-type StudentEvaluation = {
+type QuestionRow = {
+  id: string;
+  question: string;
+
+  section_type:
+    | 'gs'
+    | 'optional';
+
+  gs_paper:
+    string | null;
+
+  optional_subject:
+    string | null;
+
+  optional_paper:
+    string | null;
+
+  subject:
+    string;
+
+  topic:
+    string | null;
+
+  directive:
+    string | null;
+
+  marks:
+    number | null;
+
+  word_limit:
+    number | null;
+};
+
+
+type EvaluationRow = {
   id: string;
 
-  attempt_id: string;
+  attempt_id:
+    string;
 
-  student_id: string;
+  student_id:
+    string;
+
+  evaluator_id:
+    string | null;
 
   status:
     EvaluationStatus;
@@ -100,50 +132,21 @@ type StudentEvaluation = {
 };
 
 
-type QuestionInfo = {
-  id: string;
-
-  question: string;
-
-  section_type:
-    | 'gs'
-    | 'optional';
-
-  gs_paper:
-    string | null;
-
-  optional_subject:
-    string | null;
-
-  optional_paper:
-    string | null;
-
-  subject: string;
-
-  topic:
-    string | null;
-
-  directive:
-    string | null;
-
-  marks:
-    number | null;
-
-  word_limit:
-    number | null;
-};
-
-
 type EvaluationItem = {
   attempt:
-    StudentAttempt;
-
-  evaluation:
-    StudentEvaluation | null;
+    AttemptRow;
 
   question:
-    QuestionInfo | null;
+    QuestionRow | null;
+
+  evaluation:
+    EvaluationRow | null;
 };
+
+
+type StatusFilter =
+  | 'all'
+  | EvaluationStatus;
 
 
 const ATTEMPT_SELECT = `
@@ -153,29 +156,11 @@ const ATTEMPT_SELECT = `
   answer_text,
   word_count,
   elapsed_seconds,
-  status,
   submission_mode,
   pdf_path,
   pdf_file_name,
+  evaluation_requested,
   submitted_at,
-  created_at
-`;
-
-
-const EVALUATION_SELECT = `
-  id,
-  attempt_id,
-  student_id,
-  status,
-  score,
-  max_marks,
-  overall_feedback,
-  strengths,
-  improvements,
-  structure_feedback,
-  content_feedback,
-  presentation_feedback,
-  evaluated_at,
   created_at,
   updated_at
 `;
@@ -196,15 +181,32 @@ const QUESTION_SELECT = `
 `;
 
 
-export function MyMainsEvaluations() {
+const EVALUATION_SELECT = `
+  id,
+  attempt_id,
+  student_id,
+  evaluator_id,
+  status,
+  score,
+  max_marks,
+  overall_feedback,
+  strengths,
+  improvements,
+  structure_feedback,
+  content_feedback,
+  presentation_feedback,
+  evaluated_at,
+  created_at,
+  updated_at
+`;
+
+
+export function MainsEvaluationManager() {
   const [
     items,
     setItems
   ] =
-    useState<EvaluationItem[]>(
-      []
-    );
-
+    useState<EvaluationItem[]>([]);
 
   const [
     loading,
@@ -212,6 +214,11 @@ export function MyMainsEvaluations() {
   ] =
     useState(true);
 
+  const [
+    saving,
+    setSaving
+  ] =
+    useState(false);
 
   const [
     error,
@@ -219,78 +226,84 @@ export function MyMainsEvaluations() {
   ] =
     useState('');
 
-
   const [
     message,
     setMessage
   ] =
     useState('');
 
+  const [
+    statusFilter,
+    setStatusFilter
+  ] =
+    useState<StatusFilter>('all');
 
   const [
-    expandedAttemptId,
-    setExpandedAttemptId
+    selectedAttemptId,
+    setSelectedAttemptId
   ] =
-    useState<string | null>(
-      null
-    );
+    useState<string | null>(null);
+
+  const [
+    score,
+    setScore
+  ] =
+    useState('');
+
+  const [
+    strengths,
+    setStrengths
+  ] =
+    useState('');
+
+  const [
+    improvements,
+    setImprovements
+  ] =
+    useState('');
+
+  const [
+    contentFeedback,
+    setContentFeedback
+  ] =
+    useState('');
+
+  const [
+    structureFeedback,
+    setStructureFeedback
+  ] =
+    useState('');
+
+  const [
+    presentationFeedback,
+    setPresentationFeedback
+  ] =
+    useState('');
+
+  const [
+    overallFeedback,
+    setOverallFeedback
+  ] =
+    useState('');
 
 
-  async function loadEvaluations() {
+  async function loadQueue() {
     if (!supabase) {
       setError(
         'Supabase is not configured.'
       );
 
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
 
-
-    setLoading(
-      true
-    );
-
-    setError(
-      ''
-    );
-
+    setLoading(true);
+    setError('');
 
     const {
-      data: {
-        user
-      }
-    } =
-      await supabase
-        .auth
-        .getUser();
-
-
-    if (!user) {
-      setItems(
-        []
-      );
-
-      setLoading(
-        false
-      );
-
-      setError(
-        'Sign in to view your Mains evaluations.'
-      );
-
-      return;
-    }
-
-
-    const {
-      data:
-        attemptData,
-      error:
-        attemptError
+      data: attemptData,
+      error: attemptError
     } =
       await supabase
         .from(
@@ -300,21 +313,19 @@ export function MyMainsEvaluations() {
           ATTEMPT_SELECT
         )
         .eq(
-          'user_id',
-          user.id
-        )
-        .eq(
           'status',
           'submitted'
+        )
+        .eq(
+          'evaluation_requested',
+          true
         )
         .order(
           'submitted_at',
           {
-            ascending:
-              false
+            ascending: false
           }
         );
-
 
     if (attemptError) {
       console.error(
@@ -326,43 +337,23 @@ export function MyMainsEvaluations() {
         attemptError.message
       );
 
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
 
-
     const attempts =
-      (
-        attemptData ||
-        []
-      ) as StudentAttempt[];
-
+      (attemptData || [])
+        as AttemptRow[];
 
     if (
       attempts.length ===
       0
     ) {
-      setItems(
-        []
-      );
-
-      setLoading(
-        false
-      );
-
+      setItems([]);
+      setLoading(false);
       return;
     }
-
-
-    const attemptIds =
-      attempts.map(
-        attempt =>
-          attempt.id
-      );
-
 
     const questionIds =
       Array.from(
@@ -374,49 +365,15 @@ export function MyMainsEvaluations() {
         )
       );
 
+    const attemptIds =
+      attempts.map(
+        attempt =>
+          attempt.id
+      );
 
     const {
-      data:
-        evaluationData,
-      error:
-        evaluationError
-    } =
-      await supabase
-        .from(
-          'mains_evaluations'
-        )
-        .select(
-          EVALUATION_SELECT
-        )
-        .in(
-          'attempt_id',
-          attemptIds
-        );
-
-
-    if (evaluationError) {
-      console.error(
-        'Unable to load evaluations:',
-        evaluationError
-      );
-
-      setError(
-        evaluationError.message
-      );
-
-      setLoading(
-        false
-      );
-
-      return;
-    }
-
-
-    const {
-      data:
-        questionData,
-      error:
-        questionError
+      data: questionData,
+      error: questionError
     } =
       await supabase
         .from(
@@ -430,10 +387,9 @@ export function MyMainsEvaluations() {
           questionIds
         );
 
-
     if (questionError) {
       console.error(
-        'Unable to load Mains questions:',
+        'Unable to load questions:',
         questionError
       );
 
@@ -441,51 +397,55 @@ export function MyMainsEvaluations() {
         questionError.message
       );
 
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
 
+    const {
+      data: evaluationData,
+      error: evaluationError
+    } =
+      await supabase
+        .from(
+          'mains_evaluations'
+        )
+        .select(
+          EVALUATION_SELECT
+        )
+        .in(
+          'attempt_id',
+          attemptIds
+        );
 
-    const evaluations =
-      (
-        evaluationData ||
-        []
-      ) as StudentEvaluation[];
+    if (evaluationError) {
+      console.error(
+        'Unable to load evaluations:',
+        evaluationError
+      );
 
+      setError(
+        evaluationError.message
+      );
+
+      setLoading(false);
+
+      return;
+    }
 
     const questions =
-      (
-        questionData ||
-        []
-      ) as QuestionInfo[];
+      (questionData || [])
+        as QuestionRow[];
 
-
-    const evaluationMap =
-      new Map<
-        string,
-        StudentEvaluation
-      >();
-
-
-    evaluations.forEach(
-      evaluation => {
-        evaluationMap.set(
-          evaluation.attempt_id,
-          evaluation
-        );
-      }
-    );
-
+    const evaluations =
+      (evaluationData || [])
+        as EvaluationRow[];
 
     const questionMap =
       new Map<
         string,
-        QuestionInfo
+        QuestionRow
       >();
-
 
     questions.forEach(
       question => {
@@ -496,77 +456,151 @@ export function MyMainsEvaluations() {
       }
     );
 
+    const evaluationMap =
+      new Map<
+        string,
+        EvaluationRow
+      >();
 
-    const combined =
+    evaluations.forEach(
+      evaluation => {
+        evaluationMap.set(
+          evaluation.attempt_id,
+          evaluation
+        );
+      }
+    );
+
+    const combined:
+      EvaluationItem[] =
       attempts.map(
         attempt => ({
           attempt,
-
-          evaluation:
-            evaluationMap.get(
-              attempt.id
-            ) ||
-            null,
 
           question:
             questionMap.get(
               attempt.question_id
             ) ||
+            null,
+
+          evaluation:
+            evaluationMap.get(
+              attempt.id
+            ) ||
             null
         })
       );
-
 
     setItems(
       combined
     );
 
-    setLoading(
-      false
-    );
+    setLoading(false);
   }
 
 
   useEffect(
     () => {
-      loadEvaluations();
+      loadQueue();
     },
     []
   );
 
 
-  const completedCount =
+  const filteredItems =
     useMemo(
-      () =>
-        items.filter(
-          item =>
-            item.evaluation
-              ?.status ===
-            'completed'
-        ).length,
+      () => {
+        if (
+          statusFilter ===
+          'all'
+        ) {
+          return items;
+        }
+
+        return items.filter(
+          item => {
+            const status =
+              item.evaluation
+                ?.status ||
+              'pending';
+
+            return (
+              status ===
+              statusFilter
+            );
+          }
+        );
+      },
       [
-        items
+        items,
+        statusFilter
       ]
     );
 
 
-  const pendingCount =
+  const selectedItem =
     useMemo(
-      () =>
-        items.filter(
-          item =>
-            !item.evaluation ||
-            item.evaluation
-              .status ===
-              'pending' ||
-            item.evaluation
-              .status ===
-              'in_review'
-        ).length,
+      () => {
+        if (
+          !selectedAttemptId
+        ) {
+          return null;
+        }
+
+        return (
+          items.find(
+            item =>
+              item.attempt.id ===
+              selectedAttemptId
+          ) ||
+          null
+        );
+      },
       [
-        items
+        items,
+        selectedAttemptId
       ]
     );
+
+
+  function formatTime(
+    totalSeconds:
+      number
+  ) {
+    const hours =
+      Math.floor(
+        totalSeconds /
+        3600
+      );
+
+    const minutes =
+      Math.floor(
+        (
+          totalSeconds %
+          3600
+        ) /
+        60
+      );
+
+    const seconds =
+      totalSeconds %
+      60;
+
+    return [
+      hours,
+      minutes,
+      seconds
+    ]
+      .map(
+        value =>
+          String(value)
+            .padStart(
+              2,
+              '0'
+            )
+      )
+      .join(':');
+  }
 
 
   function formatDate(
@@ -576,7 +610,6 @@ export function MyMainsEvaluations() {
     if (!value) {
       return 'Not available';
     }
-
 
     return new Date(
       value
@@ -602,87 +635,108 @@ export function MyMainsEvaluations() {
   }
 
 
-  function formatTime(
-    totalSeconds:
-      number
-  ) {
-    const hours =
-      Math.floor(
-        totalSeconds /
-        3600
-      );
-
-
-    const minutes =
-      Math.floor(
-        (
-          totalSeconds %
-          3600
-        ) /
-        60
-      );
-
-
-    const seconds =
-      totalSeconds %
-      60;
-
-
-    return [
-      hours,
-      minutes,
-      seconds
-    ]
-      .map(
-        value =>
-          String(
-            value
-          ).padStart(
-            2,
-            '0'
-          )
-      )
-      .join(':');
+  function getItemStatus(
+    item:
+      EvaluationItem
+  ): EvaluationStatus {
+    return (
+      item.evaluation
+        ?.status ||
+      'pending'
+    );
   }
 
 
-  function getStatusLabel(
+  function startReview(
     item:
       EvaluationItem
   ) {
-    const status =
+    setSelectedAttemptId(
+      item.attempt.id
+    );
+
+    setScore(
       item.evaluation
-        ?.status;
+        ?.score !==
+      null &&
+      item.evaluation
+        ?.score !==
+      undefined
+        ? String(
+            item.evaluation
+              .score
+          )
+        : ''
+    );
+
+    setStrengths(
+      item.evaluation
+        ?.strengths ||
+      ''
+    );
+
+    setImprovements(
+      item.evaluation
+        ?.improvements ||
+      ''
+    );
+
+    setContentFeedback(
+      item.evaluation
+        ?.content_feedback ||
+      ''
+    );
+
+    setStructureFeedback(
+      item.evaluation
+        ?.structure_feedback ||
+      ''
+    );
+
+    setPresentationFeedback(
+      item.evaluation
+        ?.presentation_feedback ||
+      ''
+    );
+
+    setOverallFeedback(
+      item.evaluation
+        ?.overall_feedback ||
+      ''
+    );
+
+    setMessage(
+      'Evaluation opened.'
+    );
+  }
 
 
-    if (
-      status ===
-      'completed'
-    ) {
-      return 'Evaluated';
-    }
+  function closeReview() {
+    setSelectedAttemptId(
+      null
+    );
 
-
-    if (
-      status ===
-      'in_review'
-    ) {
-      return 'In Review';
-    }
-
-
-    return 'Pending';
+    setScore('');
+    setStrengths('');
+    setImprovements('');
+    setContentFeedback('');
+    setStructureFeedback('');
+    setPresentationFeedback('');
+    setOverallFeedback('');
+    setMessage('');
   }
 
 
   async function openPdf(
-    path:
-      string
+    item:
+      EvaluationItem
   ) {
-    if (!supabase) {
+    if (
+      !supabase ||
+      !item.attempt.pdf_path
+    ) {
       return;
     }
-
 
     const {
       data,
@@ -694,10 +748,10 @@ export function MyMainsEvaluations() {
           'mains-answer-pdfs'
         )
         .createSignedUrl(
-          path,
+          item.attempt
+            .pdf_path,
           300
         );
-
 
     if (
       error ||
@@ -711,7 +765,6 @@ export function MyMainsEvaluations() {
       return;
     }
 
-
     window.open(
       data.signedUrl,
       '_blank',
@@ -720,769 +773,1187 @@ export function MyMainsEvaluations() {
   }
 
 
+  async function saveEvaluation(
+    nextStatus:
+      EvaluationStatus
+  ) {
+    if (
+      !supabase ||
+      !selectedItem
+    ) {
+      return;
+    }
+
+    const parsedScore =
+      score.trim()
+        ? Number(score)
+        : null;
+
+    const maxMarks =
+      selectedItem
+        .question
+        ?.marks ||
+      selectedItem
+        .evaluation
+        ?.max_marks ||
+      null;
+
+    if (
+      parsedScore !==
+        null &&
+      (
+        Number.isNaN(
+          parsedScore
+        ) ||
+        parsedScore <
+          0
+      )
+    ) {
+      setMessage(
+        'Enter a valid score.'
+      );
+
+      return;
+    }
+
+    if (
+      parsedScore !==
+        null &&
+      maxMarks !==
+        null &&
+      parsedScore >
+        maxMarks
+    ) {
+      setMessage(
+        `Score cannot exceed ${maxMarks}.`
+      );
+
+      return;
+    }
+
+    if (
+      nextStatus ===
+        'completed' &&
+      parsedScore ===
+        null
+    ) {
+      setMessage(
+        'Enter a score before publishing the evaluation.'
+      );
+
+      return;
+    }
+
+    if (
+      nextStatus ===
+        'completed' &&
+      !overallFeedback
+        .trim()
+    ) {
+      setMessage(
+        'Add overall feedback before publishing.'
+      );
+
+      return;
+    }
+
+    setSaving(true);
+
+    setMessage(
+      nextStatus ===
+        'completed'
+        ? 'Publishing evaluation...'
+        : 'Saving evaluation...'
+    );
+
+    const {
+      data: {
+        user
+      }
+    } =
+      await supabase
+        .auth
+        .getUser();
+
+    if (!user) {
+      setSaving(false);
+
+      setMessage(
+        'Admin session expired. Sign in again.'
+      );
+
+      return;
+    }
+
+    const now =
+      new Date()
+        .toISOString();
+
+    const payload = {
+      attempt_id:
+        selectedItem
+          .attempt.id,
+
+      student_id:
+        selectedItem
+          .attempt
+          .user_id,
+
+      evaluator_id:
+        user.id,
+
+      status:
+        nextStatus,
+
+      score:
+        parsedScore,
+
+      max_marks:
+        maxMarks,
+
+      strengths:
+        strengths
+          .trim() ||
+        null,
+
+      improvements:
+        improvements
+          .trim() ||
+        null,
+
+      content_feedback:
+        contentFeedback
+          .trim() ||
+        null,
+
+      structure_feedback:
+        structureFeedback
+          .trim() ||
+        null,
+
+      presentation_feedback:
+        presentationFeedback
+          .trim() ||
+        null,
+
+      overall_feedback:
+        overallFeedback
+          .trim() ||
+        null,
+
+      evaluated_at:
+        nextStatus ===
+        'completed'
+          ? now
+          : null,
+
+      updated_at:
+        now
+    };
+
+    let saved:
+      EvaluationRow |
+      null =
+      null;
+
+
+    if (
+      selectedItem
+        .evaluation
+    ) {
+      const {
+        data,
+        error
+      } =
+        await supabase
+          .from(
+            'mains_evaluations'
+          )
+          .update(
+            payload
+          )
+          .eq(
+            'id',
+            selectedItem
+              .evaluation
+              .id
+          )
+          .select(
+            EVALUATION_SELECT
+          )
+          .single();
+
+      if (
+        error ||
+        !data
+      ) {
+        console.error(
+          'Evaluation update failed:',
+          error
+        );
+
+        setSaving(false);
+
+        setMessage(
+          error?.message ||
+          'Unable to save evaluation.'
+        );
+
+        return;
+      }
+
+      saved =
+        data as EvaluationRow;
+
+    } else {
+
+      const {
+        data,
+        error
+      } =
+        await supabase
+          .from(
+            'mains_evaluations'
+          )
+          .insert({
+            ...payload,
+
+            created_at:
+              now
+          })
+          .select(
+            EVALUATION_SELECT
+          )
+          .single();
+
+      if (
+        error ||
+        !data
+      ) {
+        console.error(
+          'Evaluation creation failed:',
+          error
+        );
+
+        setSaving(false);
+
+        setMessage(
+          error?.message ||
+          'Unable to create evaluation.'
+        );
+
+        return;
+      }
+
+      saved =
+        data as EvaluationRow;
+    }
+
+
+    setItems(
+      current =>
+        current.map(
+          item =>
+            item.attempt.id ===
+            selectedItem
+              .attempt.id
+              ? {
+                  ...item,
+                  evaluation:
+                    saved
+                }
+              : item
+        )
+    );
+
+    setSaving(false);
+
+    setMessage(
+      nextStatus ===
+        'completed'
+        ? 'Evaluation published to student.'
+        : 'Evaluation saved as In Review.'
+    );
+  }
+
+
   return (
     <section
-      className="panel"
       style={{
         marginTop:
-          '22px'
+          '30px'
       }}
     >
 
-      <div
-        style={{
-          display:
-            'flex',
+      <div className="panel">
 
-          justifyContent:
-            'space-between',
-
-          alignItems:
-            'center',
-
-          gap:
-            '12px',
-
-          flexWrap:
-            'wrap'
-        }}
-      >
-
-        <div>
-
-          <span className="eyebrow">
-            MAINS ANSWER WRITING
-          </span>
-
-
-          <h2>
-            My Mains Evaluations
-          </h2>
-
-
-          <p>
-            Review your submitted answers,
-            evaluation status, marks and
-            detailed feedback.
-          </p>
-
-        </div>
-
-
-        <button
-          type="button"
-          className="secondary-btn"
-          onClick={
-            loadEvaluations
-          }
-        >
-          Refresh
-        </button>
-
-      </div>
-
-
-      {!loading && (
         <div
-          className="metrics-grid"
           style={{
-            marginTop:
-              '18px'
+            display:
+              'flex',
+
+            justifyContent:
+              'space-between',
+
+            alignItems:
+              'center',
+
+            gap:
+              '12px',
+
+            flexWrap:
+              'wrap'
           }}
         >
 
-          <article className="metric-card">
+          <div>
 
-            <div>
+            <span className="eyebrow">
+              MAINS EVALUATION
+            </span>
 
-              <span>
-                Submitted
-              </span>
+            <h2>
+              Student Answer Evaluation Queue
+            </h2>
 
-              <strong>
-                {items.length}
-              </strong>
+            <p>
+              Review typed answers and
+              uploaded PDFs, award marks
+              and publish structured
+              feedback.
+            </p>
 
-              <small>
-                Mains answers
-              </small>
-
-            </div>
-
-          </article>
-
-
-          <article className="metric-card">
-
-            <div>
-
-              <span>
-                Evaluated
-              </span>
-
-              <strong>
-                {completedCount}
-              </strong>
-
-              <small>
-                Feedback ready
-              </small>
-
-            </div>
-
-          </article>
+          </div>
 
 
-          <article className="metric-card">
-
-            <div>
-
-              <span>
-                Pending
-              </span>
-
-              <strong>
-                {pendingCount}
-              </strong>
-
-              <small>
-                Awaiting review
-              </small>
-
-            </div>
-
-          </article>
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={
+              loadQueue
+            }
+          >
+            Refresh Queue
+          </button>
 
         </div>
-      )}
 
-
-      {loading && (
-        <p>
-          Loading your Mains
-          evaluations...
-        </p>
-      )}
-
-
-      {error && (
-        <div
-          className="callout"
-          style={{
-            marginTop:
-              '18px'
-          }}
-        >
-
-          <strong>
-            {error}
-          </strong>
-
-        </div>
-      )}
-
-
-      {!loading &&
-        !error &&
-        items.length ===
-          0 && (
 
         <div
-          className="callout"
-          style={{
-            marginTop:
-              '18px'
-          }}
-        >
-
-          <strong>
-            No Mains submissions yet
-          </strong>
-
-
-          <p>
-            Submit a Mains answer from
-            Practice to see its evaluation
-            here.
-          </p>
-
-        </div>
-
-      )}
-
-
-      <div
-        style={{
-          display:
-            'grid',
-
-          gap:
-            '16px',
-
-          marginTop:
-            '20px'
-        }}
-      >
-
-        {items.map(
-          item => {
-
-            const question =
-              item.question;
-
-
-            const evaluation =
-              item.evaluation;
-
-
-            const expanded =
-              expandedAttemptId ===
-              item.attempt.id;
-
-
-            const completed =
-              evaluation?.status ===
-              'completed';
-
-
-            return (
-              <article
-                key={
-                  item.attempt.id
-                }
-                style={{
-                  border:
-                    '1px solid rgba(255,255,255,0.10)',
-
-                  borderRadius:
-                    '16px',
-
-                  padding:
-                    '18px'
-                }}
-              >
-
-                <div
-                  style={{
-                    display:
-                      'flex',
-
-                    justifyContent:
-                      'space-between',
-
-                    gap:
-                      '14px',
-
-                    flexWrap:
-                      'wrap'
-                  }}
-                >
-
-                  <div
-                    style={{
-                      flex:
-                        '1 1 500px'
-                    }}
-                  >
-
-                    <span className="eyebrow">
-
-                      {
-                        question
-                          ?.section_type ===
-                        'optional'
-                          ? `${question.optional_subject} • ${question.optional_paper}`
-                          : question
-                              ?.gs_paper ||
-                            'MAINS'
-                      }
-
-                    </span>
-
-
-                    <h3>
-                      {
-                        question
-                          ?.question ||
-                        'Question unavailable'
-                      }
-                    </h3>
-
-
-                    <div className="tag-row">
-
-                      <span className="tag">
-                        {
-                          getStatusLabel(
-                            item
-                          )
-                        }
-                      </span>
-
-
-                      <span className="tag">
-                        {
-                          item.attempt
-                            .word_count
-                        }{' '}
-                        words
-                      </span>
-
-
-                      <span className="tag">
-                        {
-                          formatTime(
-                            item.attempt
-                              .elapsed_seconds
-                          )
-                        }
-                      </span>
-
-
-                      {question?.marks && (
-                        <span className="tag">
-                          {
-                            question.marks
-                          }{' '}
-                          marks
-                        </span>
-                      )}
-
-
-                      <span className="tag">
-                        {
-                          item.attempt
-                            .submission_mode
-                            .toUpperCase()
-                        }
-                      </span>
-
-                    </div>
-
-
-                    <p>
-                      Submitted:{' '}
-                      {
-                        formatDate(
-                          item.attempt
-                            .submitted_at
-                        )
-                      }
-                    </p>
-
-                  </div>
-
-
-                  {completed && (
-                    <div
-                      style={{
-                        minWidth:
-                          '120px',
-
-                        textAlign:
-                          'center'
-                      }}
-                    >
-
-                      <span className="eyebrow">
-                        SCORE
-                      </span>
-
-
-                      <h2
-                        style={{
-                          fontSize:
-                            '2rem',
-
-                          margin:
-                            '6px 0'
-                        }}
-                      >
-                        {
-                          evaluation
-                            ?.score ??
-                          '—'
-                        }
-                        /
-                        {
-                          evaluation
-                            ?.max_marks ??
-                          question
-                            ?.marks ??
-                          '—'
-                        }
-                      </h2>
-
-                    </div>
-                  )}
-
-                </div>
-
-
-                <div
-                  style={{
-                    display:
-                      'flex',
-
-                    gap:
-                      '10px',
-
-                    flexWrap:
-                      'wrap',
-
-                    marginTop:
-                      '16px'
-                  }}
-                >
-
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() =>
-                      setExpandedAttemptId(
-                        expanded
-                          ? null
-                          : item.attempt.id
-                      )
-                    }
-                  >
-                    {
-                      expanded
-                        ? 'Hide details'
-                        : completed
-                        ? 'View Evaluation'
-                        : 'View Submission'
-                    }
-                  </button>
-
-
-                  {item.attempt
-                    .pdf_path && (
-
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      onClick={() =>
-                        openPdf(
-                          item.attempt
-                            .pdf_path as string
-                        )
-                      }
-                    >
-                      Open PDF
-                    </button>
-
-                  )}
-
-                </div>
-
-
-                {expanded && (
-
-                  <div
-                    style={{
-                      display:
-                        'grid',
-
-                      gap:
-                        '14px',
-
-                      marginTop:
-                        '20px'
-                    }}
-                  >
-
-                    {item.attempt
-                      .answer_text
-                      .trim() && (
-
-                      <div className="callout">
-
-                        <strong>
-                          Your Submitted Answer
-                        </strong>
-
-
-                        <p
-                          style={{
-                            whiteSpace:
-                              'pre-wrap',
-
-                            lineHeight:
-                              1.75
-                          }}
-                        >
-                          {
-                            item.attempt
-                              .answer_text
-                          }
-                        </p>
-
-                      </div>
-
-                    )}
-
-
-                    {!completed && (
-
-                      <div className="callout">
-
-                        <strong>
-                          Evaluation Status:{' '}
-                          {
-                            getStatusLabel(
-                              item
-                            )
-                          }
-                        </strong>
-
-
-                        <p>
-                          Your answer has been
-                          submitted successfully.
-                          Feedback will appear here
-                          once evaluation is
-                          completed.
-                        </p>
-
-                      </div>
-
-                    )}
-
-
-                    {completed &&
-                      evaluation && (
-                      <>
-
-                        <div className="callout">
-
-                          <span className="eyebrow">
-                            SCORE
-                          </span>
-
-
-                          <h2>
-                            {
-                              evaluation
-                                .score ??
-                              '—'
-                            }
-                            /
-                            {
-                              evaluation
-                                .max_marks ??
-                              question
-                                ?.marks ??
-                              '—'
-                            }
-                          </h2>
-
-
-                          <p>
-                            Evaluated:{' '}
-                            {
-                              formatDate(
-                                evaluation
-                                  .evaluated_at
-                              )
-                            }
-                          </p>
-
-                        </div>
-
-
-                        {evaluation
-                          .strengths && (
-
-                          <div className="callout">
-
-                            <span className="eyebrow">
-                              STRENGTHS
-                            </span>
-
-                            <p
-                              style={{
-                                whiteSpace:
-                                  'pre-wrap'
-                              }}
-                            >
-                              {
-                                evaluation
-                                  .strengths
-                              }
-                            </p>
-
-                          </div>
-
-                        )}
-
-
-                        {evaluation
-                          .improvements && (
-
-                          <div className="callout">
-
-                            <span className="eyebrow">
-                              AREAS TO IMPROVE
-                            </span>
-
-                            <p
-                              style={{
-                                whiteSpace:
-                                  'pre-wrap'
-                              }}
-                            >
-                              {
-                                evaluation
-                                  .improvements
-                              }
-                            </p>
-
-                          </div>
-
-                        )}
-
-
-                        {evaluation
-                          .content_feedback && (
-
-                          <div className="callout">
-
-                            <span className="eyebrow">
-                              CONTENT FEEDBACK
-                            </span>
-
-                            <p
-                              style={{
-                                whiteSpace:
-                                  'pre-wrap'
-                              }}
-                            >
-                              {
-                                evaluation
-                                  .content_feedback
-                              }
-                            </p>
-
-                          </div>
-
-                        )}
-
-
-                        {evaluation
-                          .structure_feedback && (
-
-                          <div className="callout">
-
-                            <span className="eyebrow">
-                              STRUCTURE FEEDBACK
-                            </span>
-
-                            <p
-                              style={{
-                                whiteSpace:
-                                  'pre-wrap'
-                              }}
-                            >
-                              {
-                                evaluation
-                                  .structure_feedback
-                              }
-                            </p>
-
-                          </div>
-
-                        )}
-
-
-                        {evaluation
-                          .presentation_feedback && (
-
-                          <div className="callout">
-
-                            <span className="eyebrow">
-                              PRESENTATION FEEDBACK
-                            </span>
-
-                            <p
-                              style={{
-                                whiteSpace:
-                                  'pre-wrap'
-                              }}
-                            >
-                              {
-                                evaluation
-                                  .presentation_feedback
-                              }
-                            </p>
-
-                          </div>
-
-                        )}
-
-
-                        {evaluation
-                          .overall_feedback && (
-
-                          <div
-                            className="callout"
-                            style={{
-                              border:
-                                '1px solid rgba(45,212,191,0.35)',
-
-                              background:
-                                'rgba(20,184,166,0.07)'
-                            }}
-                          >
-
-                            <span className="eyebrow">
-                              OVERALL FEEDBACK
-                            </span>
-
-                            <p
-                              style={{
-                                whiteSpace:
-                                  'pre-wrap',
-
-                                lineHeight:
-                                  1.7
-                              }}
-                            >
-                              {
-                                evaluation
-                                  .overall_feedback
-                              }
-                            </p>
-
-                          </div>
-
-                        )}
-
-                      </>
-                    )}
-
-                  </div>
-
-                )}
-
-              </article>
-            );
-          }
-        )}
-
-      </div>
-
-
-      {message && (
-        <p
-          className="form-message"
+          className="filter-row"
           style={{
             marginTop:
               '16px'
           }}
         >
-          {message}
-        </p>
+
+          <button
+            type="button"
+            className={
+              statusFilter ===
+              'all'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setStatusFilter(
+                'all'
+              )
+            }
+          >
+            All
+          </button>
+
+
+          <button
+            type="button"
+            className={
+              statusFilter ===
+              'pending'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setStatusFilter(
+                'pending'
+              )
+            }
+          >
+            Pending
+          </button>
+
+
+          <button
+            type="button"
+            className={
+              statusFilter ===
+              'in_review'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setStatusFilter(
+                'in_review'
+              )
+            }
+          >
+            In Review
+          </button>
+
+
+          <button
+            type="button"
+            className={
+              statusFilter ===
+              'completed'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setStatusFilter(
+                'completed'
+              )
+            }
+          >
+            Completed
+          </button>
+
+        </div>
+
+
+        {loading && (
+          <p>
+            Loading submitted answers...
+          </p>
+        )}
+
+
+        {error && (
+          <div className="callout">
+
+            <strong>
+              Unable to load evaluations
+            </strong>
+
+            <p>
+              {error}
+            </p>
+
+          </div>
+        )}
+
+
+        {!loading &&
+          !error &&
+          filteredItems.length ===
+            0 && (
+
+          <div
+            className="callout"
+            style={{
+              marginTop:
+                '16px'
+            }}
+          >
+
+            <strong>
+              No submissions found
+            </strong>
+
+            <p>
+              Student answers submitted
+              for evaluation will appear
+              here.
+            </p>
+
+          </div>
+
+        )}
+
+
+        <div
+          style={{
+            display:
+              'grid',
+
+            gap:
+              '14px',
+
+            marginTop:
+              '18px'
+          }}
+        >
+
+          {filteredItems.map(
+            item => {
+
+              const status =
+                getItemStatus(
+                  item
+                );
+
+              const question =
+                item.question;
+
+
+              return (
+                <article
+                  key={
+                    item.attempt.id
+                  }
+                  style={{
+                    border:
+                      '1px solid rgba(255,255,255,0.10)',
+
+                    borderRadius:
+                      '16px',
+
+                    padding:
+                      '18px'
+                  }}
+                >
+
+                  <div
+                    style={{
+                      display:
+                        'flex',
+
+                      justifyContent:
+                        'space-between',
+
+                      gap:
+                        '16px',
+
+                      flexWrap:
+                        'wrap'
+                    }}
+                  >
+
+                    <div
+                      style={{
+                        flex:
+                          '1 1 500px'
+                      }}
+                    >
+
+                      <span className="eyebrow">
+
+                        {
+                          question
+                            ?.section_type ===
+                          'optional'
+                            ? `${question.optional_subject} • ${question.optional_paper}`
+                            : question?.gs_paper ||
+                              'MAINS'
+                        }
+
+                      </span>
+
+
+                      <h3>
+                        {
+                          question
+                            ?.question ||
+                          'Question unavailable'
+                        }
+                      </h3>
+
+
+                      <p>
+                        <strong>
+                          Student:
+                        </strong>{' '}
+
+                        {
+                          item.attempt
+                            .user_id
+                            .slice(
+                              0,
+                              8
+                            )
+                        }
+                        …
+                      </p>
+
+
+                      <p>
+                        <strong>
+                          Submitted:
+                        </strong>{' '}
+
+                        {
+                          formatDate(
+                            item.attempt
+                              .submitted_at
+                          )
+                        }
+                      </p>
+
+
+                      <div className="tag-row">
+
+                        <span className="tag">
+                          {
+                            item.attempt
+                              .submission_mode
+                          }
+                        </span>
+
+
+                        <span className="tag">
+                          {
+                            item.attempt
+                              .word_count
+                          }{' '}
+                          words
+                        </span>
+
+
+                        <span className="tag">
+                          {
+                            formatTime(
+                              item.attempt
+                                .elapsed_seconds
+                            )
+                          }
+                        </span>
+
+
+                        {question?.marks && (
+                          <span className="tag">
+                            {
+                              question.marks
+                            }{' '}
+                            marks
+                          </span>
+                        )}
+
+
+                        <span className="tag">
+                          {
+                            status ===
+                            'in_review'
+                              ? 'In Review'
+                              : status ===
+                                'completed'
+                              ? 'Completed'
+                              : 'Pending'
+                          }
+                        </span>
+
+                      </div>
+
+                    </div>
+
+
+                    <div
+                      style={{
+                        display:
+                          'flex',
+
+                        gap:
+                          '8px',
+
+                        flexWrap:
+                          'wrap',
+
+                        alignItems:
+                          'flex-start'
+                      }}
+                    >
+
+                      {item.attempt
+                        .pdf_path && (
+
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() =>
+                            openPdf(
+                              item
+                            )
+                          }
+                        >
+                          Open PDF
+                        </button>
+
+                      )}
+
+
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        onClick={() =>
+                          startReview(
+                            item
+                          )
+                        }
+                      >
+                        {
+                          status ===
+                          'completed'
+                            ? 'View / Edit Evaluation'
+                            : 'Evaluate Answer'
+                        }
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                </article>
+              );
+            }
+          )}
+
+        </div>
+
+      </div>
+
+
+      {selectedItem && (
+
+        <div
+          className="panel admin-form"
+          style={{
+            marginTop:
+              '22px'
+          }}
+        >
+
+          <span className="eyebrow">
+            EVALUATOR WORKSPACE
+          </span>
+
+
+          <h2>
+            Evaluate Mains Answer
+          </h2>
+
+
+          {selectedItem.question && (
+
+            <div
+              className="callout"
+              style={{
+                marginBottom:
+                  '18px'
+              }}
+            >
+
+              <strong>
+                {
+                  selectedItem
+                    .question
+                    .question
+                }
+              </strong>
+
+
+              <p>
+                {
+                  selectedItem
+                    .question
+                    .directive ||
+                  'Answer Writing'
+                }
+                {' • '}
+
+                {
+                  selectedItem
+                    .question
+                    .marks ||
+                  '—'
+                }
+                {' marks • '}
+
+                {
+                  selectedItem
+                    .question
+                    .word_limit ||
+                  '—'
+                }
+                {' words'}
+              </p>
+
+            </div>
+
+          )}
+
+
+          <div
+            style={{
+              display:
+                'grid',
+
+              gridTemplateColumns:
+                'repeat(3, minmax(0, 1fr))',
+
+              gap:
+                '10px',
+
+              marginBottom:
+                '18px'
+            }}
+          >
+
+            <div className="callout">
+
+              <strong>
+                Words
+              </strong>
+
+              <p>
+                {
+                  selectedItem
+                    .attempt
+                    .word_count
+                }
+              </p>
+
+            </div>
+
+
+            <div className="callout">
+
+              <strong>
+                Time Taken
+              </strong>
+
+              <p>
+                {
+                  formatTime(
+                    selectedItem
+                      .attempt
+                      .elapsed_seconds
+                  )
+                }
+              </p>
+
+            </div>
+
+
+            <div className="callout">
+
+              <strong>
+                Mode
+              </strong>
+
+              <p>
+                {
+                  selectedItem
+                    .attempt
+                    .submission_mode
+                    .toUpperCase()
+                }
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {selectedItem
+            .attempt
+            .answer_text
+            .trim() && (
+
+            <div
+              className="callout"
+              style={{
+                marginBottom:
+                  '18px'
+              }}
+            >
+
+              <strong>
+                Student Typed Answer
+              </strong>
+
+
+              <p
+                style={{
+                  whiteSpace:
+                    'pre-wrap',
+
+                  lineHeight:
+                    1.75
+                }}
+              >
+                {
+                  selectedItem
+                    .attempt
+                    .answer_text
+                }
+              </p>
+
+            </div>
+
+          )}
+
+
+          {selectedItem
+            .attempt
+            .pdf_path && (
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() =>
+                openPdf(
+                  selectedItem
+                )
+              }
+              style={{
+                marginBottom:
+                  '18px'
+              }}
+            >
+              Open Student PDF
+            </button>
+
+          )}
+
+
+          <label>
+
+            Score
+
+            <input
+              type="number"
+              min="0"
+              max={
+                selectedItem
+                  .question
+                  ?.marks ||
+                undefined
+              }
+              step="0.5"
+              value={
+                score
+              }
+              onChange={
+                event =>
+                  setScore(
+                    event.target.value
+                  )
+              }
+              placeholder={
+                selectedItem
+                  .question
+                  ?.marks
+                  ? `Score out of ${selectedItem.question.marks}`
+                  : 'Enter score'
+              }
+            />
+
+          </label>
+
+
+          <label>
+
+            Strengths
+
+            <textarea
+              rows={4}
+              value={
+                strengths
+              }
+              onChange={
+                event =>
+                  setStrengths(
+                    event.target.value
+                  )
+              }
+              placeholder="What did the student do well?"
+            />
+
+          </label>
+
+
+          <label>
+
+            Areas for Improvement
+
+            <textarea
+              rows={4}
+              value={
+                improvements
+              }
+              onChange={
+                event =>
+                  setImprovements(
+                    event.target.value
+                  )
+              }
+              placeholder="What should the student improve?"
+            />
+
+          </label>
+
+
+          <label>
+
+            Content Feedback
+
+            <textarea
+              rows={5}
+              value={
+                contentFeedback
+              }
+              onChange={
+                event =>
+                  setContentFeedback(
+                    event.target.value
+                  )
+              }
+              placeholder="Accuracy, relevance, examples and analysis..."
+            />
+
+          </label>
+
+
+          <label>
+
+            Structure Feedback
+
+            <textarea
+              rows={5}
+              value={
+                structureFeedback
+              }
+              onChange={
+                event =>
+                  setStructureFeedback(
+                    event.target.value
+                  )
+              }
+              placeholder="Introduction, body organisation, headings, flow and conclusion..."
+            />
+
+          </label>
+
+
+          <label>
+
+            Presentation Feedback
+
+            <textarea
+              rows={4}
+              value={
+                presentationFeedback
+              }
+              onChange={
+                event =>
+                  setPresentationFeedback(
+                    event.target.value
+                  )
+              }
+              placeholder="Readability, diagrams, spacing and highlighting..."
+            />
+
+          </label>
+
+
+          <label>
+
+            Overall Feedback
+
+            <textarea
+              rows={6}
+              value={
+                overallFeedback
+              }
+              onChange={
+                event =>
+                  setOverallFeedback(
+                    event.target.value
+                  )
+              }
+              placeholder="Give the student an overall assessment and clear next steps."
+            />
+
+          </label>
+
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              flexWrap:
+                'wrap',
+
+              marginTop:
+                '16px'
+            }}
+          >
+
+            <button
+              type="button"
+              className="secondary-btn"
+              disabled={
+                saving
+              }
+              onClick={() =>
+                saveEvaluation(
+                  'in_review'
+                )
+              }
+            >
+              {
+                saving
+                  ? 'Saving...'
+                  : 'Save Evaluation'
+              }
+            </button>
+
+
+            <button
+              type="button"
+              className="primary-btn"
+              disabled={
+                saving
+              }
+              onClick={() =>
+                saveEvaluation(
+                  'completed'
+                )
+              }
+            >
+              Publish Evaluation
+            </button>
+
+
+            <button
+              type="button"
+              className="secondary-btn"
+              disabled={
+                saving
+              }
+              onClick={
+                closeReview
+              }
+            >
+              Close
+            </button>
+
+          </div>
+
+
+          {message && (
+
+            <p className="form-message">
+              {message}
+            </p>
+
+          )}
+
+        </div>
+
       )}
 
     </section>
