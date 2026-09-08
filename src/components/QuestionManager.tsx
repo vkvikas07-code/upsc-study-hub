@@ -136,11 +136,139 @@ export function QuestionManager() {
   const [status, setStatus] =
     useState<QuestionStatus>('draft');
 
+  const [
+  searchText,
+  setSearchText
+] =
+  useState('');
+
+
+const [
+  bankSubject,
+  setBankSubject
+] =
+  useState('all');
+
+
+const [
+  bankStatus,
+  setBankStatus
+] =
+  useState<
+    'all' |
+    QuestionStatus
+  >('all');
+
+
+const [
+  bankDifficulty,
+  setBankDifficulty
+] =
+  useState<
+    'all' |
+    Difficulty
+  >('all');
+
+
+const [
+  bankType,
+  setBankType
+] =
+  useState<
+    'all' |
+    'practice' |
+    'pyq'
+  >('all');
+  
   async function loadQuestions() {
     if (!supabase) {
       setMessage(
         'Supabase is not configured.'
       );
+      const filteredQuestions =
+  questions.filter(
+    item => {
+      const search =
+        searchText
+          .trim()
+          .toLowerCase();
+
+
+      const matchesSearch =
+        !search ||
+        item.question
+          .toLowerCase()
+          .includes(
+            search
+          ) ||
+        item.subject
+          .toLowerCase()
+          .includes(
+            search
+          ) ||
+        (
+          item.topic ||
+          ''
+        )
+          .toLowerCase()
+          .includes(
+            search
+          ) ||
+        (
+          item.source ||
+          ''
+        )
+          .toLowerCase()
+          .includes(
+            search
+          );
+
+
+      const matchesSubject =
+        bankSubject ===
+          'all' ||
+        item.subject ===
+          bankSubject;
+
+
+      const matchesStatus =
+        bankStatus ===
+          'all' ||
+        item.status ===
+          bankStatus;
+
+
+      const matchesDifficulty =
+        bankDifficulty ===
+          'all' ||
+        item.difficulty ===
+          bankDifficulty;
+
+
+      const matchesType =
+        bankType ===
+          'all' ||
+        (
+          bankType ===
+            'pyq' &&
+          item.is_pyq
+        ) ||
+        (
+          bankType ===
+            'practice' &&
+          !item.is_pyq
+        );
+
+
+      return (
+        matchesSearch &&
+        matchesSubject &&
+        matchesStatus &&
+        matchesDifficulty &&
+        matchesType
+      );
+    }
+  );
       return;
     }
 
@@ -1202,7 +1330,7 @@ export function QuestionManager() {
             marginTop: '18px'
           }}
         >
-          {questions.map(
+         {filteredQuestions.map(
             item => (
               <article
                 key={item.id}
