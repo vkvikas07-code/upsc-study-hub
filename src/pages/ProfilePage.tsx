@@ -3,6 +3,10 @@ import {
 } from '../components/TopBar';
 
 import {
+  MyPrelimsHistory
+} from '../components/MyPrelimsHistory';
+
+import {
   MyMainsEvaluations
 } from '../components/MyMainsEvaluations';
 
@@ -116,6 +120,9 @@ export function ProfilePage({
       </section>
 
 
+      <MyPrelimsHistory />
+
+
       <MyMainsEvaluations />
 
 
@@ -142,6 +149,7 @@ export function ProfilePage({
             type="button"
           >
             Bookmarks
+
             <span>
               ›
             </span>
@@ -152,6 +160,7 @@ export function ProfilePage({
             type="button"
           >
             My notes
+
             <span>
               ›
             </span>
@@ -162,6 +171,7 @@ export function ProfilePage({
             type="button"
           >
             Test history
+
             <span>
               ›
             </span>
@@ -172,6 +182,7 @@ export function ProfilePage({
             type="button"
           >
             Download for offline
+
             <span>
               ›
             </span>
@@ -185,6 +196,7 @@ export function ProfilePage({
             }
           >
             Admin Studio
+
             <span>
               ›
             </span>
