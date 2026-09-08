@@ -234,6 +234,65 @@ export function MainsQuestionManager() {
 
   const [status, setStatus] =
     useState<QuestionStatus>('draft');
+  const [
+  searchText,
+  setSearchText
+] =
+  useState('');
+
+
+const [
+  bankSection,
+  setBankSection
+] =
+  useState<
+    'all' |
+    SectionType
+  >('all');
+
+
+const [
+  bankQuestionType,
+  setBankQuestionType
+] =
+  useState<
+    'all' |
+    QuestionType
+  >('all');
+
+
+const [
+  bankStatus,
+  setBankStatus
+] =
+  useState<
+    'all' |
+    QuestionStatus
+  >('all');
+
+
+const [
+  bankDifficulty,
+  setBankDifficulty
+] =
+  useState<
+    'all' |
+    Difficulty
+  >('all');
+
+
+const [
+  bankGsPaper,
+  setBankGsPaper
+] =
+  useState('all');
+
+
+const [
+  bankOptionalSubject,
+  setBankOptionalSubject
+] =
+  useState('all');
 
   async function loadQuestions() {
     if (!supabase) {
