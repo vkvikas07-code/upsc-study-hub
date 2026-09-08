@@ -32,29 +32,17 @@ type ExamStage =
 
 type QuestionRow = {
   id: string;
-
   question: string;
-
   options: string[];
-
   correct_index: number;
-
   explanation: string;
-
   subject: string;
-
   difficulty: Difficulty;
-
   exam_stage: ExamStage;
-
   paper: string | null;
-
   topic: string | null;
-
   tags: string[];
-
   is_pyq: boolean;
-
   pyq_year: number | null;
 
   upsc_exam_name:
@@ -159,9 +147,9 @@ export function QuestionManager() {
     editingId,
     setEditingId
   ] =
-    useState<
-      string | null
-    >(null);
+    useState<string | null>(
+      null
+    );
 
 
   const [
@@ -368,9 +356,7 @@ export function QuestionManager() {
     bankSubject,
     setBankSubject
   ] =
-    useState(
-      'all'
-    );
+    useState('all');
 
 
   const [
@@ -402,6 +388,31 @@ export function QuestionManager() {
       'practice' |
       'pyq'
     >('all');
+
+
+  /*
+   * NEW UPSC EXAM FILTERS
+   */
+
+  const [
+    bankUpscExam,
+    setBankUpscExam
+  ] =
+    useState('all');
+
+
+  const [
+    bankUpscCycle,
+    setBankUpscCycle
+  ] =
+    useState('all');
+
+
+  const [
+    bankUpscYear,
+    setBankUpscYear
+  ] =
+    useState('all');
 
 
   /*
@@ -525,11 +536,8 @@ export function QuestionManager() {
     setQuestion('');
 
     setOptionA('');
-
     setOptionB('');
-
     setOptionC('');
-
     setOptionD('');
 
     setCorrectIndex(
@@ -777,10 +785,9 @@ export function QuestionManager() {
 
 
     const mainArea =
-      document
-        .querySelector(
-          '.main-area'
-        );
+      document.querySelector(
+        '.main-area'
+      );
 
 
     mainArea?.scrollTo({
@@ -1005,10 +1012,6 @@ export function QuestionManager() {
           : null,
 
 
-      /*
-       * OTHER UPSC EXAM DATA
-       */
-
       upsc_exam_name:
         upscExamName ===
           'Other UPSC Examination'
@@ -1073,7 +1076,7 @@ export function QuestionManager() {
 
 
     /*
-     * UPDATE EXISTING
+     * UPDATE EXISTING QUESTION
      */
 
     if (editingId) {
@@ -1109,11 +1112,9 @@ export function QuestionManager() {
           error
         );
 
-
         setSaving(
           false
         );
-
 
         setMessage(
           error?.message ||
@@ -1178,7 +1179,7 @@ export function QuestionManager() {
 
 
     /*
-     * CREATE NEW
+     * CREATE QUESTION
      */
 
     const {
@@ -1190,6 +1191,7 @@ export function QuestionManager() {
           'questions'
         )
         .insert({
+
           ...payload,
 
           created_by:
@@ -1211,11 +1213,9 @@ export function QuestionManager() {
         error
       );
 
-
       setSaving(
         false
       );
-
 
       setMessage(
         error?.message ||
@@ -1379,7 +1379,7 @@ export function QuestionManager() {
 
 
   /*
-   * DELETE
+   * DELETE QUESTION
    */
 
   async function deleteQuestion(
@@ -1453,7 +1453,7 @@ export function QuestionManager() {
 
 
   /*
-   * SUBJECT LIST
+   * DYNAMIC SUBJECT FILTER LIST
    */
 
   const subjects =
@@ -1478,7 +1478,74 @@ export function QuestionManager() {
 
 
   /*
-   * QUESTION BANK FILTER
+   * DYNAMIC UPSC EXAM FILTER LIST
+   */
+
+  const upscExamOptions =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            questions
+              .map(
+                item =>
+                  item.upsc_exam_name
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is string =>
+                    Boolean(
+                      value
+                    )
+              )
+          )
+        ).sort(),
+      [
+        questions
+      ]
+    );
+
+
+  /*
+   * DYNAMIC UPSC YEAR FILTER LIST
+   */
+
+  const upscYearOptions =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            questions
+              .map(
+                item =>
+                  item.upsc_exam_year
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is number =>
+                    value !==
+                    null
+              )
+          )
+        ).sort(
+          (
+            a,
+            b
+          ) =>
+            b - a
+        ),
+      [
+        questions
+      ]
+    );
+
+
+  /*
+   * QUESTION BANK FILTERING
    */
 
   const filteredQuestions =
@@ -1539,6 +1606,24 @@ export function QuestionManager() {
                 ) ||
 
               (
+                item.upsc_exam_cycle ||
+                ''
+              )
+                .toLowerCase()
+                .includes(
+                  search
+                ) ||
+
+              (
+                item.upsc_exam_stage ||
+                ''
+              )
+                .toLowerCase()
+                .includes(
+                  search
+                ) ||
+
+              (
                 item.upsc_exam_paper ||
                 ''
               )
@@ -1550,9 +1635,10 @@ export function QuestionManager() {
               String(
                 item.upsc_exam_year ||
                 ''
-              ).includes(
-                search
-              );
+              )
+                .includes(
+                  search
+                );
 
 
             const matchesSubject =
@@ -1593,12 +1679,39 @@ export function QuestionManager() {
               );
 
 
+            const matchesUpscExam =
+              bankUpscExam ===
+                'all' ||
+              item.upsc_exam_name ===
+                bankUpscExam;
+
+
+            const matchesUpscCycle =
+              bankUpscCycle ===
+                'all' ||
+              item.upsc_exam_cycle ===
+                bankUpscCycle;
+
+
+            const matchesUpscYear =
+              bankUpscYear ===
+                'all' ||
+              String(
+                item.upsc_exam_year ||
+                ''
+              ) ===
+                bankUpscYear;
+
+
             return (
               matchesSearch &&
               matchesSubject &&
               matchesStatus &&
               matchesDifficulty &&
-              matchesType
+              matchesType &&
+              matchesUpscExam &&
+              matchesUpscCycle &&
+              matchesUpscYear
             );
           }
         ),
@@ -1608,10 +1721,17 @@ export function QuestionManager() {
         bankSubject,
         bankStatus,
         bankDifficulty,
-        bankType
+        bankType,
+        bankUpscExam,
+        bankUpscCycle,
+        bankUpscYear
       ]
     );
 
+
+  /*
+   * CLEAR ALL FILTERS
+   */
 
   function clearFilters() {
 
@@ -1630,6 +1750,18 @@ export function QuestionManager() {
     );
 
     setBankType(
+      'all'
+    );
+
+    setBankUpscExam(
+      'all'
+    );
+
+    setBankUpscCycle(
+      'all'
+    );
+
+    setBankUpscYear(
       'all'
     );
   }
@@ -2587,7 +2719,7 @@ export function QuestionManager() {
         </div>
 
 
-        {/* FILTERS */}
+        {/* GENERAL FILTERS */}
 
         <div
           className="form-two"
@@ -2612,9 +2744,7 @@ export function QuestionManager() {
               }
             >
 
-              <option
-                value="all"
-              >
+              <option value="all">
                 All Subjects
               </option>
 
@@ -2659,27 +2789,19 @@ export function QuestionManager() {
               }
             >
 
-              <option
-                value="all"
-              >
+              <option value="all">
                 All Status
               </option>
 
-              <option
-                value="draft"
-              >
+              <option value="draft">
                 Draft
               </option>
 
-              <option
-                value="published"
-              >
+              <option value="published">
                 Published
               </option>
 
-              <option
-                value="archived"
-              >
+              <option value="archived">
                 Archived
               </option>
 
@@ -2712,27 +2834,19 @@ export function QuestionManager() {
               }
             >
 
-              <option
-                value="all"
-              >
+              <option value="all">
                 All Difficulty
               </option>
 
-              <option
-                value="easy"
-              >
+              <option value="easy">
                 Easy
               </option>
 
-              <option
-                value="medium"
-              >
+              <option value="medium">
                 Medium
               </option>
 
-              <option
-                value="hard"
-              >
+              <option value="hard">
                 Hard
               </option>
 
@@ -2760,21 +2874,15 @@ export function QuestionManager() {
               }
             >
 
-              <option
-                value="all"
-              >
+              <option value="all">
                 All Questions
               </option>
 
-              <option
-                value="practice"
-              >
+              <option value="practice">
                 Practice
               </option>
 
-              <option
-                value="pyq"
-              >
+              <option value="pyq">
                 Previous Year Questions
               </option>
 
@@ -2784,6 +2892,173 @@ export function QuestionManager() {
 
         </div>
 
+
+        {/* UPSC EXAM FILTERS */}
+
+        <div
+          style={{
+            marginTop:
+              '18px',
+
+            padding:
+              '16px',
+
+            border:
+              '1px solid rgba(255,255,255,.10)',
+
+            borderRadius:
+              '14px'
+          }}
+        >
+
+          <span
+            className="eyebrow"
+          >
+            UPSC EXAM FILTER
+          </span>
+
+
+          <div
+            className="form-two"
+            style={{
+              marginTop:
+                '10px'
+            }}
+          >
+
+            <label>
+              Referenced Examination
+
+              <select
+                value={
+                  bankUpscExam
+                }
+                onChange={
+                  event => {
+
+                    setBankUpscExam(
+                      event.target.value
+                    );
+
+                    setBankUpscCycle(
+                      'all'
+                    );
+
+                    setBankUpscYear(
+                      'all'
+                    );
+                  }
+                }
+              >
+
+                <option value="all">
+                  All UPSC Exams
+                </option>
+
+
+                {upscExamOptions.map(
+                  exam => (
+
+                    <option
+                      key={
+                        exam
+                      }
+                      value={
+                        exam
+                      }
+                    >
+                      {exam}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+
+            <label>
+              Exam Cycle
+
+              <select
+                value={
+                  bankUpscCycle
+                }
+                onChange={
+                  event =>
+                    setBankUpscCycle(
+                      event.target.value
+                    )
+                }
+              >
+
+                <option value="all">
+                  All Cycles
+                </option>
+
+                <option value="I">
+                  I
+                </option>
+
+                <option value="II">
+                  II
+                </option>
+
+              </select>
+
+            </label>
+
+          </div>
+
+
+          <label>
+            Examination Year
+
+            <select
+              value={
+                bankUpscYear
+              }
+              onChange={
+                event =>
+                  setBankUpscYear(
+                    event.target.value
+                  )
+              }
+            >
+
+              <option value="all">
+                All Years
+              </option>
+
+
+              {upscYearOptions.map(
+                year => (
+
+                  <option
+                    key={
+                      year
+                    }
+                    value={
+                      String(
+                        year
+                      )
+                    }
+                  >
+                    {year}
+                  </option>
+
+                )
+              )}
+
+            </select>
+
+          </label>
+
+        </div>
+
+
+        {/* RESULT COUNT */}
 
         <div
           style={{
@@ -2803,7 +3078,7 @@ export function QuestionManager() {
               'wrap',
 
             marginTop:
-              '10px'
+              '14px'
           }}
         >
 
@@ -2877,7 +3152,6 @@ export function QuestionManager() {
               No questions match these filters.
             </strong>
 
-
             <p>
               Clear the filters or try another search.
             </p>
@@ -2886,6 +3160,8 @@ export function QuestionManager() {
 
         )}
 
+
+        {/* QUESTIONS */}
 
         <div
           style={{
@@ -3018,8 +3294,6 @@ export function QuestionManager() {
                       )}
 
 
-                      {/* OTHER UPSC EXAM BADGES */}
-
                       {item.upsc_exam_name && (
 
                         <span
@@ -3039,6 +3313,7 @@ export function QuestionManager() {
                           className="tag"
                         >
                           Cycle{' '}
+
                           {
                             item.upsc_exam_cycle
                           }
