@@ -3,6 +3,10 @@ import {
 } from '../components/TopBar';
 
 import {
+  StudyOverview
+} from '../components/StudyOverview';
+
+import {
   MyPrelimsHistory
 } from '../components/MyPrelimsHistory';
 
@@ -47,77 +51,7 @@ export function ProfilePage({
       </section>
 
 
-      <section
-        className="metrics-grid"
-        style={{
-          marginTop:
-            '18px'
-        }}
-      >
-
-        <article className="metric-card">
-
-          <div>
-
-            <span>
-              Syllabus
-            </span>
-
-            <strong>
-              38%
-            </strong>
-
-            <small>
-              Tracked by topic
-            </small>
-
-          </div>
-
-        </article>
-
-
-        <article className="metric-card">
-
-          <div>
-
-            <span>
-              Questions
-            </span>
-
-            <strong>
-              240
-            </strong>
-
-            <small>
-              Practice attempts
-            </small>
-
-          </div>
-
-        </article>
-
-
-        <article className="metric-card">
-
-          <div>
-
-            <span>
-              Bookmarks
-            </span>
-
-            <strong>
-              18
-            </strong>
-
-            <small>
-              Saved for revision
-            </small>
-
-          </div>
-
-        </article>
-
-      </section>
+      <StudyOverview />
 
 
       <MyPrelimsHistory />
