@@ -1,49 +1,73 @@
-import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
 
-import { supabase } from '../lib/supabase';
+import type {
+  FormEvent
+} from 'react';
+
+import {
+  supabase
+} from '../lib/supabase';
+
 
 type QuestionStatus =
   | 'draft'
   | 'published'
   | 'archived';
 
+
 type Difficulty =
   | 'easy'
   | 'medium'
   | 'hard';
 
+
 type ExamStage =
   | 'prelims'
   | 'mains';
 
+
 type QuestionRow = {
   id: string;
+
   question: string;
+
   options: string[];
+
   correct_index: number;
+
   explanation: string;
 
   subject: string;
+
   difficulty: Difficulty;
 
   exam_stage: ExamStage;
+
   paper: string | null;
+
   topic: string | null;
 
   tags: string[];
 
   is_pyq: boolean;
+
   pyq_year: number | null;
 
   source: string | null;
+
   source_url: string | null;
 
   status: QuestionStatus;
 
   created_at: string;
+
   updated_at: string;
 };
+
 
 const QUESTION_SELECT = `
   id,
@@ -66,222 +90,258 @@ const QUESTION_SELECT = `
   updated_at
 `;
 
+
 export function QuestionManager() {
-  const [questions, setQuestions] =
+  const [
+    questions,
+    setQuestions
+  ] =
     useState<QuestionRow[]>([]);
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [editingId, setEditingId] =
-    useState<string | null>(null);
-
-  const [message, setMessage] =
-    useState('');
-
-  const [question, setQuestion] =
-    useState('');
-
-  const [optionA, setOptionA] =
-    useState('');
-
-  const [optionB, setOptionB] =
-    useState('');
-
-  const [optionC, setOptionC] =
-    useState('');
-
-  const [optionD, setOptionD] =
-    useState('');
-
-  const [correctIndex, setCorrectIndex] =
-    useState(0);
-
-  const [explanation, setExplanation] =
-    useState('');
-
-  const [subject, setSubject] =
-    useState('Polity');
-
-  const [topic, setTopic] =
-    useState('');
-
-  const [paper, setPaper] =
-    useState('GS-I');
-
-  const [difficulty, setDifficulty] =
-    useState<Difficulty>('medium');
-
-  const [examStage, setExamStage] =
-    useState<ExamStage>('prelims');
-
-  const [tagsText, setTagsText] =
-    useState('');
-
-  const [isPyq, setIsPyq] =
-    useState(false);
-
-  const [pyqYear, setPyqYear] =
-    useState('');
-
-  const [source, setSource] =
-    useState('');
-
-  const [sourceUrl, setSourceUrl] =
-    useState('');
-
-  const [status, setStatus] =
-    useState<QuestionStatus>('draft');
 
   const [
-  searchText,
-  setSearchText
-] =
-  useState('');
+    loading,
+    setLoading
+  ] =
+    useState(false);
 
 
-const [
-  bankSubject,
-  setBankSubject
-] =
-  useState('all');
+  const [
+    saving,
+    setSaving
+  ] =
+    useState(false);
 
 
-const [
-  bankStatus,
-  setBankStatus
-] =
-  useState<
-    'all' |
-    QuestionStatus
-  >('all');
+  const [
+    editingId,
+    setEditingId
+  ] =
+    useState<string | null>(null);
 
 
-const [
-  bankDifficulty,
-  setBankDifficulty
-] =
-  useState<
-    'all' |
-    Difficulty
-  >('all');
+  const [
+    message,
+    setMessage
+  ] =
+    useState('');
 
 
-const [
-  bankType,
-  setBankType
-] =
-  useState<
-    'all' |
-    'practice' |
-    'pyq'
-  >('all');
-  
+  const [
+    question,
+    setQuestion
+  ] =
+    useState('');
+
+
+  const [
+    optionA,
+    setOptionA
+  ] =
+    useState('');
+
+
+  const [
+    optionB,
+    setOptionB
+  ] =
+    useState('');
+
+
+  const [
+    optionC,
+    setOptionC
+  ] =
+    useState('');
+
+
+  const [
+    optionD,
+    setOptionD
+  ] =
+    useState('');
+
+
+  const [
+    correctIndex,
+    setCorrectIndex
+  ] =
+    useState(0);
+
+
+  const [
+    explanation,
+    setExplanation
+  ] =
+    useState('');
+
+
+  const [
+    subject,
+    setSubject
+  ] =
+    useState('Polity');
+
+
+  const [
+    topic,
+    setTopic
+  ] =
+    useState('');
+
+
+  const [
+    paper,
+    setPaper
+  ] =
+    useState('GS-I');
+
+
+  const [
+    difficulty,
+    setDifficulty
+  ] =
+    useState<Difficulty>(
+      'medium'
+    );
+
+
+  const [
+    examStage,
+    setExamStage
+  ] =
+    useState<ExamStage>(
+      'prelims'
+    );
+
+
+  const [
+    tagsText,
+    setTagsText
+  ] =
+    useState('');
+
+
+  const [
+    isPyq,
+    setIsPyq
+  ] =
+    useState(false);
+
+
+  const [
+    pyqYear,
+    setPyqYear
+  ] =
+    useState('');
+
+
+  const [
+    source,
+    setSource
+  ] =
+    useState('');
+
+
+  const [
+    sourceUrl,
+    setSourceUrl
+  ] =
+    useState('');
+
+
+  const [
+    status,
+    setStatus
+  ] =
+    useState<QuestionStatus>(
+      'draft'
+    );
+
+
+  /*
+   * QUESTION BANK FILTERS
+   */
+
+  const [
+    searchText,
+    setSearchText
+  ] =
+    useState('');
+
+
+  const [
+    bankSubject,
+    setBankSubject
+  ] =
+    useState('all');
+
+
+  const [
+    bankStatus,
+    setBankStatus
+  ] =
+    useState<
+      'all' |
+      QuestionStatus
+    >('all');
+
+
+  const [
+    bankDifficulty,
+    setBankDifficulty
+  ] =
+    useState<
+      'all' |
+      Difficulty
+    >('all');
+
+
+  const [
+    bankType,
+    setBankType
+  ] =
+    useState<
+      'all' |
+      'practice' |
+      'pyq'
+    >('all');
+
+
   async function loadQuestions() {
     if (!supabase) {
       setMessage(
         'Supabase is not configured.'
       );
-      const filteredQuestions =
-  questions.filter(
-    item => {
-      const search =
-        searchText
-          .trim()
-          .toLowerCase();
 
-
-      const matchesSearch =
-        !search ||
-        item.question
-          .toLowerCase()
-          .includes(
-            search
-          ) ||
-        item.subject
-          .toLowerCase()
-          .includes(
-            search
-          ) ||
-        (
-          item.topic ||
-          ''
-        )
-          .toLowerCase()
-          .includes(
-            search
-          ) ||
-        (
-          item.source ||
-          ''
-        )
-          .toLowerCase()
-          .includes(
-            search
-          );
-
-
-      const matchesSubject =
-        bankSubject ===
-          'all' ||
-        item.subject ===
-          bankSubject;
-
-
-      const matchesStatus =
-        bankStatus ===
-          'all' ||
-        item.status ===
-          bankStatus;
-
-
-      const matchesDifficulty =
-        bankDifficulty ===
-          'all' ||
-        item.difficulty ===
-          bankDifficulty;
-
-
-      const matchesType =
-        bankType ===
-          'all' ||
-        (
-          bankType ===
-            'pyq' &&
-          item.is_pyq
-        ) ||
-        (
-          bankType ===
-            'practice' &&
-          !item.is_pyq
-        );
-
-
-      return (
-        matchesSearch &&
-        matchesSubject &&
-        matchesStatus &&
-        matchesDifficulty &&
-        matchesType
-      );
-    }
-  );
       return;
     }
 
+
     setLoading(true);
 
-    const { data, error } =
+    setMessage('');
+
+
+    const {
+      data,
+      error
+    } =
       await supabase
-        .from('questions')
-        .select(QUESTION_SELECT)
+        .from(
+          'questions'
+        )
+        .select(
+          QUESTION_SELECT
+        )
         .order(
           'created_at',
-          { ascending: false }
+          {
+            ascending:
+              false
+          }
         );
+
 
     if (error) {
       console.error(
@@ -289,32 +349,63 @@ const [
         error
       );
 
-      setMessage(error.message);
+
+      setMessage(
+        error.message
+      );
+
+
       setLoading(false);
 
       return;
     }
 
-    const formatted: QuestionRow[] =
-      (data || []).map(item => ({
-        ...item,
 
-        options:
-          Array.isArray(item.options)
-            ? item.options
-            : [],
+    const rows =
+      (data || []) as unknown as QuestionRow[];
 
-        tags:
-          item.tags || []
-      })) as QuestionRow[];
 
-    setQuestions(formatted);
+    const formatted =
+      rows.map(
+        (
+          item:
+            QuestionRow
+        ) => ({
+          ...item,
+
+          options:
+            Array.isArray(
+              item.options
+            )
+              ? item.options
+              : [],
+
+          tags:
+            Array.isArray(
+              item.tags
+            )
+              ? item.tags
+              : []
+        })
+      );
+
+
+    setQuestions(
+      formatted
+    );
+
+
     setLoading(false);
   }
 
-  useEffect(() => {
-    loadQuestions();
-  }, []);
+
+  useEffect(
+    () => {
+      loadQuestions();
+    },
+    []
+  );
+
 
   function resetForm() {
     setEditingId(null);
@@ -330,130 +421,185 @@ const [
 
     setExplanation('');
 
-    setSubject('Polity');
-    setTopic('');
-    setPaper('GS-I');
+    setSubject(
+      'Polity'
+    );
 
-    setDifficulty('medium');
-    setExamStage('prelims');
+    setTopic('');
+
+    setPaper(
+      'GS-I'
+    );
+
+    setDifficulty(
+      'medium'
+    );
+
+    setExamStage(
+      'prelims'
+    );
 
     setTagsText('');
 
     setIsPyq(false);
+
     setPyqYear('');
 
     setSource('');
+
     setSourceUrl('');
 
-    setStatus('draft');
+    setStatus(
+      'draft'
+    );
   }
 
-  function startEdit(
-    item: QuestionRow
-  ) {
-    setEditingId(item.id);
 
-    setQuestion(item.question);
+  function startEdit(
+    item:
+      QuestionRow
+  ) {
+    setEditingId(
+      item.id
+    );
+
+
+    setQuestion(
+      item.question
+    );
+
 
     setOptionA(
-      item.options[0] || ''
+      item.options[0] ||
+      ''
     );
+
 
     setOptionB(
-      item.options[1] || ''
+      item.options[1] ||
+      ''
     );
+
 
     setOptionC(
-      item.options[2] || ''
+      item.options[2] ||
+      ''
     );
 
+
     setOptionD(
-      item.options[3] || ''
+      item.options[3] ||
+      ''
     );
+
 
     setCorrectIndex(
       item.correct_index
     );
 
+
     setExplanation(
       item.explanation
     );
+
 
     setSubject(
       item.subject
     );
 
+
     setTopic(
-      item.topic || ''
+      item.topic ||
+      ''
     );
 
+
     setPaper(
-      item.paper || ''
+      item.paper ||
+      ''
     );
+
 
     setDifficulty(
       item.difficulty
     );
 
+
     setExamStage(
       item.exam_stage
     );
+
 
     setTagsText(
       (item.tags || [])
         .join(', ')
     );
 
+
     setIsPyq(
       item.is_pyq
     );
 
+
     setPyqYear(
       item.pyq_year
-        ? String(item.pyq_year)
+        ? String(
+            item.pyq_year
+          )
         : ''
     );
 
+
     setSource(
-      item.source || ''
+      item.source ||
+      ''
     );
 
+
     setSourceUrl(
-      item.source_url || ''
+      item.source_url ||
+      ''
     );
+
 
     setStatus(
       item.status
     );
 
+
     setMessage(
       'Editing selected question.'
     );
+
 
     const mainArea =
       document.querySelector(
         '.main-area'
       );
 
-    if (mainArea) {
-      mainArea.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    }
+
+    mainArea?.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   }
 
+
   async function saveQuestion(
-    e: FormEvent
+    event:
+      FormEvent
   ) {
-    e.preventDefault();
+    event.preventDefault();
+
 
     if (!supabase) {
       setMessage(
         'Supabase is not configured.'
       );
+
       return;
     }
+
 
     const options = [
       optionA.trim(),
@@ -462,37 +608,51 @@ const [
       optionD.trim()
     ];
 
+
     if (!question.trim()) {
       setMessage(
         'Enter the question.'
       );
+
       return;
     }
 
+
     if (
       options.some(
-        option => !option
+        option =>
+          !option
       )
     ) {
       setMessage(
         'All four options are required.'
       );
+
       return;
     }
 
-    if (!explanation.trim()) {
+
+    if (
+      !explanation.trim()
+    ) {
       setMessage(
         'Add an explanation.'
       );
+
       return;
     }
 
-    if (!subject.trim()) {
+
+    if (
+      !subject.trim()
+    ) {
       setMessage(
         'Subject is required.'
       );
+
       return;
     }
+
 
     if (
       isPyq &&
@@ -501,10 +661,13 @@ const [
       setMessage(
         'Enter the PYQ year.'
       );
+
       return;
     }
 
+
     setSaving(true);
+
 
     setMessage(
       editingId
@@ -512,10 +675,16 @@ const [
         : 'Saving question...'
     );
 
+
     const {
-      data: { user }
+      data: {
+        user
+      }
     } =
-      await supabase.auth.getUser();
+      await supabase
+        .auth
+        .getUser();
+
 
     if (!user) {
       setSaving(false);
@@ -527,13 +696,16 @@ const [
       return;
     }
 
+
     const tags =
       tagsText
         .split(',')
         .map(
-          tag => tag.trim()
+          tag =>
+            tag.trim()
         )
         .filter(Boolean);
+
 
     const payload = {
       question:
@@ -571,7 +743,9 @@ const [
       pyq_year:
         isPyq &&
         pyqYear.trim()
-          ? Number(pyqYear)
+          ? Number(
+              pyqYear
+            )
           : null,
 
       source:
@@ -585,14 +759,23 @@ const [
       status,
 
       updated_at:
-        new Date().toISOString()
+        new Date()
+          .toISOString()
     };
 
+
     if (editingId) {
-      const { data, error } =
+      const {
+        data,
+        error
+      } =
         await supabase
-          .from('questions')
-          .update(payload)
+          .from(
+            'questions'
+          )
+          .update(
+            payload
+          )
           .eq(
             'id',
             editingId
@@ -601,6 +784,7 @@ const [
             QUESTION_SELECT
           )
           .single();
+
 
       if (
         error ||
@@ -611,29 +795,43 @@ const [
           error
         );
 
+
         setSaving(false);
+
 
         setMessage(
           error?.message ||
-            'Question update failed.'
+          'Question update failed.'
         );
+
 
         return;
       }
 
-      const updated: QuestionRow = {
-        ...data,
+
+      const rawUpdated =
+        data as unknown as QuestionRow;
+
+
+      const updated:
+        QuestionRow = {
+        ...rawUpdated,
 
         options:
           Array.isArray(
-            data.options
+            rawUpdated.options
           )
-            ? data.options
+            ? rawUpdated.options
             : [],
 
         tags:
-          data.tags || []
-      } as QuestionRow;
+          Array.isArray(
+            rawUpdated.tags
+          )
+            ? rawUpdated.tags
+            : []
+      };
+
 
       setQuestions(
         current =>
@@ -646,19 +844,29 @@ const [
           )
       );
 
+
       setSaving(false);
+
       resetForm();
+
 
       setMessage(
         'Question updated successfully.'
       );
 
+
       return;
     }
 
-    const { data, error } =
+
+    const {
+      data,
+      error
+    } =
       await supabase
-        .from('questions')
+        .from(
+          'questions'
+        )
         .insert({
           ...payload,
 
@@ -670,6 +878,7 @@ const [
         )
         .single();
 
+
     if (
       error ||
       !data
@@ -679,29 +888,43 @@ const [
         error
       );
 
+
       setSaving(false);
+
 
       setMessage(
         error?.message ||
-          'Unable to save question.'
+        'Unable to save question.'
       );
+
 
       return;
     }
 
-    const created: QuestionRow = {
-      ...data,
+
+    const rawCreated =
+      data as unknown as QuestionRow;
+
+
+    const created:
+      QuestionRow = {
+      ...rawCreated,
 
       options:
         Array.isArray(
-          data.options
+          rawCreated.options
         )
-          ? data.options
+          ? rawCreated.options
           : [],
 
       tags:
-        data.tags || []
-    } as QuestionRow;
+        Array.isArray(
+          rawCreated.tags
+        )
+          ? rawCreated.tags
+          : []
+    };
+
 
     setQuestions(
       current => [
@@ -710,8 +933,11 @@ const [
       ]
     );
 
+
     setSaving(false);
+
     resetForm();
+
 
     setMessage(
       created.status ===
@@ -721,23 +947,34 @@ const [
     );
   }
 
+
   async function changeStatus(
-    item: QuestionRow,
-    nextStatus: QuestionStatus
+    item:
+      QuestionRow,
+
+    nextStatus:
+      QuestionStatus
   ) {
     if (!supabase) {
       return;
     }
 
-    const { data, error } =
+
+    const {
+      data,
+      error
+    } =
       await supabase
-        .from('questions')
+        .from(
+          'questions'
+        )
         .update({
           status:
             nextStatus,
 
           updated_at:
-            new Date().toISOString()
+            new Date()
+              .toISOString()
         })
         .eq(
           'id',
@@ -748,31 +985,43 @@ const [
         )
         .single();
 
+
     if (
       error ||
       !data
     ) {
       setMessage(
         error?.message ||
-          'Unable to change question status.'
+        'Unable to change question status.'
       );
 
       return;
     }
 
-    const updated: QuestionRow = {
-      ...data,
+
+    const rawUpdated =
+      data as unknown as QuestionRow;
+
+
+    const updated:
+      QuestionRow = {
+      ...rawUpdated,
 
       options:
         Array.isArray(
-          data.options
+          rawUpdated.options
         )
-          ? data.options
+          ? rawUpdated.options
           : [],
 
       tags:
-        data.tags || []
-    } as QuestionRow;
+        Array.isArray(
+          rawUpdated.tags
+        )
+          ? rawUpdated.tags
+          : []
+    };
+
 
     setQuestions(
       current =>
@@ -785,35 +1034,46 @@ const [
         )
     );
 
+
     setMessage(
       `Question changed to ${nextStatus}.`
     );
   }
 
+
   async function deleteQuestion(
-    item: QuestionRow
+    item:
+      QuestionRow
   ) {
     if (!supabase) {
       return;
     }
+
 
     const confirmed =
       window.confirm(
         'Delete this question permanently?'
       );
 
+
     if (!confirmed) {
       return;
     }
 
-    const { error } =
+
+    const {
+      error
+    } =
       await supabase
-        .from('questions')
+        .from(
+          'questions'
+        )
         .delete()
         .eq(
           'id',
           item.id
         );
+
 
     if (error) {
       setMessage(
@@ -822,6 +1082,7 @@ const [
 
       return;
     }
+
 
     setQuestions(
       current =>
@@ -832,6 +1093,7 @@ const [
         )
     );
 
+
     if (
       editingId ===
       item.id
@@ -839,121 +1101,297 @@ const [
       resetForm();
     }
 
+
     setMessage(
       'Question deleted.'
     );
   }
 
+
+  const subjects =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            questions
+              .map(
+                item =>
+                  item.subject
+              )
+              .filter(Boolean)
+          )
+        )
+          .sort(),
+      [
+        questions
+      ]
+    );
+
+
+  const filteredQuestions =
+    useMemo(
+      () =>
+        questions.filter(
+          (
+            item:
+              QuestionRow
+          ) => {
+            const search =
+              searchText
+                .trim()
+                .toLowerCase();
+
+
+            const matchesSearch =
+              !search ||
+              item.question
+                .toLowerCase()
+                .includes(
+                  search
+                ) ||
+              item.subject
+                .toLowerCase()
+                .includes(
+                  search
+                ) ||
+              (
+                item.topic ||
+                ''
+              )
+                .toLowerCase()
+                .includes(
+                  search
+                ) ||
+              (
+                item.source ||
+                ''
+              )
+                .toLowerCase()
+                .includes(
+                  search
+                );
+
+
+            const matchesSubject =
+              bankSubject ===
+                'all' ||
+              item.subject ===
+                bankSubject;
+
+
+            const matchesStatus =
+              bankStatus ===
+                'all' ||
+              item.status ===
+                bankStatus;
+
+
+            const matchesDifficulty =
+              bankDifficulty ===
+                'all' ||
+              item.difficulty ===
+                bankDifficulty;
+
+
+            const matchesType =
+              bankType ===
+                'all' ||
+              (
+                bankType ===
+                  'pyq' &&
+                item.is_pyq
+              ) ||
+              (
+                bankType ===
+                  'practice' &&
+                !item.is_pyq
+              );
+
+
+            return (
+              matchesSearch &&
+              matchesSubject &&
+              matchesStatus &&
+              matchesDifficulty &&
+              matchesType
+            );
+          }
+        ),
+      [
+        questions,
+        searchText,
+        bankSubject,
+        bankStatus,
+        bankDifficulty,
+        bankType
+      ]
+    );
+
+
+  function clearFilters() {
+    setSearchText('');
+
+    setBankSubject(
+      'all'
+    );
+
+    setBankStatus(
+      'all'
+    );
+
+    setBankDifficulty(
+      'all'
+    );
+
+    setBankType(
+      'all'
+    );
+  }
+
+
   return (
     <section
       style={{
-        marginTop: '30px'
+        marginTop:
+          '30px'
       }}
     >
+
+      {/* CREATE / EDIT MCQ */}
+
       <div
         className="panel admin-form"
       >
+
         <span className="eyebrow">
           MCQ QUESTION MANAGER
         </span>
 
+
         <h2>
-          {editingId
-            ? 'Edit MCQ'
-            : 'Create MCQ'}
+          {
+            editingId
+              ? 'Edit MCQ'
+              : 'Create MCQ'
+          }
         </h2>
+
 
         <form
           onSubmit={
             saveQuestion
           }
         >
+
           <label>
             Question
 
             <textarea
-              value={question}
+              value={
+                question
+              }
               onChange={
-                e =>
+                event =>
                   setQuestion(
-                    e.target.value
+                    event.target.value
                   )
               }
               rows={4}
               placeholder="Enter UPSC-style MCQ question"
             />
+
           </label>
+
 
           <label>
             Option A
 
             <input
-              value={optionA}
+              value={
+                optionA
+              }
               onChange={
-                e =>
+                event =>
                   setOptionA(
-                    e.target.value
+                    event.target.value
                   )
               }
             />
+
           </label>
+
 
           <label>
             Option B
 
             <input
-              value={optionB}
+              value={
+                optionB
+              }
               onChange={
-                e =>
+                event =>
                   setOptionB(
-                    e.target.value
+                    event.target.value
                   )
               }
             />
+
           </label>
+
 
           <label>
             Option C
 
             <input
-              value={optionC}
+              value={
+                optionC
+              }
               onChange={
-                e =>
+                event =>
                   setOptionC(
-                    e.target.value
+                    event.target.value
                   )
               }
             />
+
           </label>
+
 
           <label>
             Option D
 
             <input
-              value={optionD}
+              value={
+                optionD
+              }
               onChange={
-                e =>
+                event =>
                   setOptionD(
-                    e.target.value
+                    event.target.value
                   )
               }
             />
+
           </label>
 
+
           <label>
-            Correct answer
+            Correct Answer
 
             <select
-              value={correctIndex}
+              value={
+                correctIndex
+              }
               onChange={
-                e =>
+                event =>
                   setCorrectIndex(
                     Number(
-                      e.target.value
+                      event.target.value
                     )
                   )
               }
             >
+
               <option value={0}>
                 A
               </option>
@@ -969,38 +1407,49 @@ const [
               <option value={3}>
                 D
               </option>
+
             </select>
+
           </label>
+
 
           <label>
             Explanation
 
             <textarea
-              value={explanation}
+              value={
+                explanation
+              }
               onChange={
-                e =>
+                event =>
                   setExplanation(
-                    e.target.value
+                    event.target.value
                   )
               }
               rows={5}
               placeholder="Explain why the correct answer is correct."
             />
+
           </label>
 
+
           <div className="form-two">
+
             <label>
               Subject
 
               <select
-                value={subject}
+                value={
+                  subject
+                }
                 onChange={
-                  e =>
+                  event =>
                     setSubject(
-                      e.target.value
+                      event.target.value
                     )
                 }
               >
+
                 <option>
                   Polity
                 </option>
@@ -1028,22 +1477,28 @@ const [
                 <option>
                   Current Affairs
                 </option>
+
               </select>
+
             </label>
+
 
             <label>
               Difficulty
 
               <select
-                value={difficulty}
+                value={
+                  difficulty
+                }
                 onChange={
-                  e =>
+                  event =>
                     setDifficulty(
-                      e.target
+                      event.target
                         .value as Difficulty
                     )
                 }
               >
+
                 <option value="easy">
                   Easy
                 </option>
@@ -1055,24 +1510,32 @@ const [
                 <option value="hard">
                   Hard
                 </option>
+
               </select>
+
             </label>
+
           </div>
 
+
           <div className="form-two">
+
             <label>
-              Exam stage
+              Exam Stage
 
               <select
-                value={examStage}
+                value={
+                  examStage
+                }
                 onChange={
-                  e =>
+                  event =>
                     setExamStage(
-                      e.target
+                      event.target
                         .value as ExamStage
                     )
                 }
               >
+
                 <option value="prelims">
                   Prelims
                 </option>
@@ -1080,49 +1543,63 @@ const [
                 <option value="mains">
                   Mains
                 </option>
+
               </select>
+
             </label>
+
 
             <label>
               Paper
 
               <input
-                value={paper}
+                value={
+                  paper
+                }
                 onChange={
-                  e =>
+                  event =>
                     setPaper(
-                      e.target.value
+                      event.target.value
                     )
                 }
                 placeholder="GS-I / GS-II / GS-III"
               />
+
             </label>
+
           </div>
+
 
           <label>
             Topic
 
             <input
-              value={topic}
+              value={
+                topic
+              }
               onChange={
-                e =>
+                event =>
                   setTopic(
-                    e.target.value
+                    event.target.value
                   )
               }
               placeholder="Fundamental Rights / Monsoon / Inflation..."
             />
+
           </label>
+
 
           <label>
             Tags
 
             <input
-              value={tagsText}
+              value={
+                tagsText
+              }
               onChange={
-                e =>
+                event =>
                   setTagsText(
-                    e.target.value
+                    event.target.value
                   )
               }
               placeholder="Constitution, Article 21, Prelims"
@@ -1131,59 +1608,75 @@ const [
             <small>
               Separate tags using commas.
             </small>
+
           </label>
+
 
           <label>
             Source
 
             <input
-              value={source}
+              value={
+                source
+              }
               onChange={
-                e =>
+                event =>
                   setSource(
-                    e.target.value
+                    event.target.value
                   )
               }
               placeholder="NCERT / Laxmikanth / PIB / UPSC"
             />
+
           </label>
+
 
           <label>
             Source URL
 
             <input
               type="url"
-              value={sourceUrl}
+              value={
+                sourceUrl
+              }
               onChange={
-                e =>
+                event =>
                   setSourceUrl(
-                    e.target.value
+                    event.target.value
                   )
               }
               placeholder="https://..."
             />
+
           </label>
 
-          <div
-            className="checkbox-row"
-          >
+
+          <div className="checkbox-row">
+
             <label>
+
               <input
                 type="checkbox"
-                checked={isPyq}
+                checked={
+                  isPyq
+                }
                 onChange={
-                  e =>
+                  event =>
                     setIsPyq(
-                      e.target.checked
+                      event.target.checked
                     )
                 }
               />
 
               Previous Year Question
+
             </label>
+
           </div>
 
+
           {isPyq && (
+
             <label>
               PYQ Year
 
@@ -1191,31 +1684,39 @@ const [
                 type="number"
                 min="1979"
                 max="2100"
-                value={pyqYear}
+                value={
+                  pyqYear
+                }
                 onChange={
-                  e =>
+                  event =>
                     setPyqYear(
-                      e.target.value
+                      event.target.value
                     )
                 }
                 placeholder="2025"
               />
+
             </label>
+
           )}
+
 
           <label>
             Status
 
             <select
-              value={status}
+              value={
+                status
+              }
               onChange={
-                e =>
+                event =>
                   setStatus(
-                    e.target
+                    event.target
                       .value as QuestionStatus
                   )
               }
             >
+
               <option value="draft">
                 Draft
               </option>
@@ -1227,182 +1728,598 @@ const [
               <option value="archived">
                 Archived
               </option>
+
             </select>
+
           </label>
+
 
           <div
             style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap',
-              marginTop: '16px'
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              flexWrap:
+                'wrap',
+
+              marginTop:
+                '16px'
             }}
           >
+
             <button
               className="primary-btn"
               type="submit"
-              disabled={saving}
+              disabled={
+                saving
+              }
             >
-              {saving
-                ? 'Saving...'
-                : editingId
-                ? 'Save changes'
-                : status ===
+              {
+                saving
+                  ? 'Saving...'
+                  : editingId
+                  ? 'Save changes'
+                  : status ===
                     'published'
-                ? 'Publish question'
-                : 'Save draft'}
+                  ? 'Publish question'
+                  : 'Save draft'
+              }
             </button>
 
+
             {editingId && (
+
               <button
                 type="button"
+                className="secondary-btn"
                 onClick={
                   resetForm
                 }
               >
                 Cancel edit
               </button>
+
             )}
+
           </div>
 
+
           {message && (
+
             <p className="form-message">
               {message}
             </p>
+
           )}
+
         </form>
+
       </div>
 
+
+      {/* QUESTION BANK */}
+
       <div
-        className="panel"
+        className="panel admin-form"
         style={{
-          marginTop: '22px'
+          marginTop:
+            '22px'
         }}
       >
+
         <div
           style={{
-            display: 'flex',
+            display:
+              'flex',
+
             justifyContent:
               'space-between',
+
             alignItems:
               'center',
-            gap: '12px',
-            flexWrap: 'wrap'
+
+            gap:
+              '12px',
+
+            flexWrap:
+              'wrap'
           }}
         >
+
           <div>
+
             <span className="eyebrow">
               QUESTION BANK
             </span>
 
+
             <h2>
               Existing MCQs
             </h2>
+
           </div>
+
 
           <button
             type="button"
+            className="secondary-btn"
             onClick={
               loadQuestions
             }
           >
             Refresh questions
           </button>
+
         </div>
 
-        {loading && (
-          <p>
-            Loading questions...
-          </p>
-        )}
 
-        {!loading &&
-          questions.length === 0 && (
-            <p>
-              No MCQs created yet.
-            </p>
-          )}
+        {/* SEARCH */}
 
         <div
           style={{
-            display: 'grid',
-            gap: '14px',
-            marginTop: '18px'
+            marginTop:
+              '18px'
           }}
         >
-         {filteredQuestions.map(
-            item => (
+
+          <label>
+            Search Question Bank
+
+            <input
+              type="search"
+              value={
+                searchText
+              }
+              onChange={
+                event =>
+                  setSearchText(
+                    event.target.value
+                  )
+              }
+              placeholder="Search question, subject, topic or source..."
+            />
+
+          </label>
+
+        </div>
+
+
+        {/* FILTERS */}
+
+        <div
+          className="form-two"
+          style={{
+            marginTop:
+              '10px'
+          }}
+        >
+
+          <label>
+            Subject
+
+            <select
+              value={
+                bankSubject
+              }
+              onChange={
+                event =>
+                  setBankSubject(
+                    event.target.value
+                  )
+              }
+            >
+
+              <option value="all">
+                All Subjects
+              </option>
+
+
+              {subjects.map(
+                item => (
+
+                  <option
+                    key={
+                      item
+                    }
+                    value={
+                      item
+                    }
+                  >
+                    {item}
+                  </option>
+
+                )
+              )}
+
+            </select>
+
+          </label>
+
+
+          <label>
+            Status
+
+            <select
+              value={
+                bankStatus
+              }
+              onChange={
+                event =>
+                  setBankStatus(
+                    event.target
+                      .value as
+                      'all' |
+                      QuestionStatus
+                  )
+              }
+            >
+
+              <option value="all">
+                All Status
+              </option>
+
+              <option value="draft">
+                Draft
+              </option>
+
+              <option value="published">
+                Published
+              </option>
+
+              <option value="archived">
+                Archived
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+
+        <div className="form-two">
+
+          <label>
+            Difficulty
+
+            <select
+              value={
+                bankDifficulty
+              }
+              onChange={
+                event =>
+                  setBankDifficulty(
+                    event.target
+                      .value as
+                      'all' |
+                      Difficulty
+                  )
+              }
+            >
+
+              <option value="all">
+                All Difficulty
+              </option>
+
+              <option value="easy">
+                Easy
+              </option>
+
+              <option value="medium">
+                Medium
+              </option>
+
+              <option value="hard">
+                Hard
+              </option>
+
+            </select>
+
+          </label>
+
+
+          <label>
+            Question Type
+
+            <select
+              value={
+                bankType
+              }
+              onChange={
+                event =>
+                  setBankType(
+                    event.target
+                      .value as
+                      'all' |
+                      'practice' |
+                      'pyq'
+                  )
+              }
+            >
+
+              <option value="all">
+                All Questions
+              </option>
+
+              <option value="practice">
+                Practice
+              </option>
+
+              <option value="pyq">
+                Previous Year Questions
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+
+        <div
+          style={{
+            display:
+              'flex',
+
+            justifyContent:
+              'space-between',
+
+            alignItems:
+              'center',
+
+            gap:
+              '12px',
+
+            flexWrap:
+              'wrap',
+
+            marginTop:
+              '10px'
+          }}
+        >
+
+          <p>
+            Showing{' '}
+            <strong>
+              {
+                filteredQuestions.length
+              }
+            </strong>{' '}
+            of{' '}
+            <strong>
+              {
+                questions.length
+              }
+            </strong>{' '}
+            questions
+          </p>
+
+
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={
+              clearFilters
+            }
+          >
+            Clear Filters
+          </button>
+
+        </div>
+
+
+        {loading && (
+
+          <p>
+            Loading questions...
+          </p>
+
+        )}
+
+
+        {!loading &&
+          questions.length ===
+            0 && (
+
+          <p>
+            No MCQs created yet.
+          </p>
+
+        )}
+
+
+        {!loading &&
+          questions.length >
+            0 &&
+          filteredQuestions.length ===
+            0 && (
+
+          <div className="callout">
+
+            <strong>
+              No questions match these filters.
+            </strong>
+
+
+            <p>
+              Clear the filters or try another search.
+            </p>
+
+          </div>
+
+        )}
+
+
+        <div
+          style={{
+            display:
+              'grid',
+
+            gap:
+              '14px',
+
+            marginTop:
+              '18px'
+          }}
+        >
+
+          {filteredQuestions.map(
+            (
+              item:
+                QuestionRow
+            ) => (
+
               <article
-                key={item.id}
+                key={
+                  item.id
+                }
                 style={{
                   border:
                     '1px solid rgba(255,255,255,.10)',
+
                   borderRadius:
                     '14px',
-                  padding: '18px'
+
+                  padding:
+                    '18px'
                 }}
               >
+
                 <div
                   style={{
-                    display: 'flex',
+                    display:
+                      'flex',
+
                     justifyContent:
                       'space-between',
-                    gap: '18px',
-                    flexWrap: 'wrap'
+
+                    gap:
+                      '18px',
+
+                    flexWrap:
+                      'wrap'
                   }}
                 >
+
                   <div
                     style={{
-                      flex: '1 1 500px'
+                      flex:
+                        '1 1 500px'
                     }}
                   >
+
                     <span className="eyebrow">
-                      {item.subject}
+                      {
+                        item.subject
+                      }
+
                       {' • '}
-                      {item.difficulty}
+
+                      {
+                        item.difficulty
+                      }
                     </span>
 
+
                     <h3>
-                      {item.question}
+                      {
+                        item.question
+                      }
                     </h3>
+
+
+                    <div className="tag-row">
+
+                      <span className="tag">
+                        {
+                          item.status
+                        }
+                      </span>
+
+
+                      <span className="tag">
+                        {
+                          item.exam_stage
+                        }
+                      </span>
+
+
+                      {item.topic && (
+
+                        <span className="tag">
+                          {
+                            item.topic
+                          }
+                        </span>
+
+                      )}
+
+
+                      {item.is_pyq && (
+
+                        <span className="tag">
+                          PYQ{' '}
+                          {
+                            item.pyq_year ||
+                            ''
+                          }
+                        </span>
+
+                      )}
+
+                    </div>
+
 
                     <p>
                       Correct answer:{' '}
+
                       <strong>
-                        {String.fromCharCode(
-                          65 +
+                        {
+                          String.fromCharCode(
+                            65 +
                             item.correct_index
-                        )}
+                          )
+                        }
                       </strong>
                     </p>
 
-                    <p>
-                      Status:{' '}
-                      <strong>
-                        {item.status}
-                      </strong>
-                    </p>
 
-                    {item.is_pyq && (
+                    {item.source && (
+
                       <p>
-                        PYQ:{' '}
-                        {item.pyq_year ||
-                          'Year not set'}
+                        Source:{' '}
+                        {
+                          item.source
+                        }
                       </p>
+
                     )}
+
                   </div>
+
 
                   <div
                     style={{
-                      display: 'flex',
-                      gap: '8px',
-                      flexWrap: 'wrap',
+                      display:
+                        'flex',
+
+                      gap:
+                        '8px',
+
+                      flexWrap:
+                        'wrap',
+
                       alignItems:
                         'flex-start'
                     }}
                   >
+
                     <button
                       type="button"
+                      className="secondary-btn"
                       onClick={() =>
                         startEdit(
                           item
@@ -1412,10 +2329,13 @@ const [
                       Edit
                     </button>
 
+
                     {item.status !==
                       'published' && (
+
                       <button
                         type="button"
+                        className="secondary-btn"
                         onClick={() =>
                           changeStatus(
                             item,
@@ -1425,12 +2345,16 @@ const [
                       >
                         Publish
                       </button>
+
                     )}
+
 
                     {item.status !==
                       'draft' && (
+
                       <button
                         type="button"
+                        className="secondary-btn"
                         onClick={() =>
                           changeStatus(
                             item,
@@ -1440,12 +2364,16 @@ const [
                       >
                         Draft
                       </button>
+
                     )}
+
 
                     {item.status !==
                       'archived' && (
+
                       <button
                         type="button"
+                        className="secondary-btn"
                         onClick={() =>
                           changeStatus(
                             item,
@@ -1455,10 +2383,13 @@ const [
                       >
                         Archive
                       </button>
+
                     )}
+
 
                     <button
                       type="button"
+                      className="secondary-btn"
                       onClick={() =>
                         deleteQuestion(
                           item
@@ -1467,13 +2398,20 @@ const [
                     >
                       Delete
                     </button>
+
                   </div>
+
                 </div>
+
               </article>
+
             )
           )}
+
         </div>
+
       </div>
+
     </section>
   );
 }
