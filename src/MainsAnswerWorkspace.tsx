@@ -4,1014 +4,713 @@ import {
   useState
 } from 'react';
 
-import { TopBar } from './components/TopBar';
-import { supabase } from './lib/supabase';
+import type {
+  CSSProperties
+} from 'react';
 
-export type MainsWorkspaceQuestion = {
-  id: string;
-  question: string;
+import {
+  TopBar
+} from '../components/TopBar';
 
-  section_type:
-    | 'gs'
-    | 'optional';
+import {
+  supabase
+} from '../lib/supabase';
 
-  gs_paper:
-    string | null;
+import {
+  MainsAnswerWorkspace
+} from '../MainsAnswerWorkspace';
 
-  optional_subject:
-    string | null;
+import type {
+  MainsWorkspaceQuestion
+} from '../MainsAnswerWorkspace';
 
-  optional_paper:
-    string | null;
 
-  subject: string;
+type QuestionType =
+  | 'practice'
+  | 'pyq';
 
-  topic:
-    string | null;
+type MainSectionFilter =
+  | 'all'
+  | 'gs'
+  | 'optional';
 
-  syllabus_link:
-    string | null;
+type TypeFilter =
+  | 'all'
+  | 'practice'
+  | 'pyq';
 
-  directive:
-    string | null;
 
-  marks:
-    number | null;
+type MainsQuestion =
+  MainsWorkspaceQuestion & {
+    question_type:
+      QuestionType;
 
-  word_limit:
-    number | null;
+    pyq_year:
+      number | null;
 
-  answer_framework:
-    string | null;
+    tags:
+      string[];
 
-  key_points:
-    string | null;
+    difficulty:
+      string;
 
-  introduction_hint:
-    string | null;
+    created_at:
+      string;
+  };
 
-  conclusion_hint:
-    string | null;
 
-  source:
-    string | null;
+const controlStyle:
+  CSSProperties = {
+    width:
+      '100%',
 
-  source_url:
-    string | null;
-};
+    minHeight:
+      '48px',
 
-type SubmissionMode =
-  | 'text'
-  | 'pdf'
-  | 'both';
+    padding:
+      '0 14px',
 
-const MAX_PDF_SIZE =
-  10 * 1024 * 1024;
+    borderRadius:
+      '12px',
 
-export function MainsAnswerWorkspace({
-  question,
-  onBack
-}: {
-  question: MainsWorkspaceQuestion;
-  onBack: () => void;
-}) {
+    border:
+      '1px solid rgba(255,255,255,0.12)',
+
+    background:
+      '#0e1525',
+
+    color:
+      '#f8fafc',
+
+    fontSize:
+      '0.92rem',
+
+    outline:
+      'none',
+
+    colorScheme:
+      'dark'
+  };
+
+
+const labelStyle:
+  CSSProperties = {
+    display:
+      'grid',
+
+    gap:
+      '7px',
+
+    marginBottom:
+      '14px',
+
+    color:
+      '#cbd5e1',
+
+    fontSize:
+      '0.82rem',
+
+    fontWeight:
+      700
+  };
+
+
+const optionStyle:
+  CSSProperties = {
+    background:
+      '#0e1525',
+
+    color:
+      '#f8fafc'
+  };
+
+
+const outlineButtonStyle:
+  CSSProperties = {
+    minHeight:
+      '44px',
+
+    padding:
+      '0 16px',
+
+    borderRadius:
+      '12px',
+
+    border:
+      '1px solid rgba(45,212,191,0.55)',
+
+    background:
+      'rgba(20,184,166,0.04)',
+
+    color:
+      '#5eead4',
+
+    fontWeight:
+      750
+  };
+
+
+export function MainsPracticePage() {
+  const [
+    questions,
+    setQuestions
+  ] =
+    useState<MainsQuestion[]>(
+      []
+    );
+
+  const [
+    selectedQuestion,
+    setSelectedQuestion
+  ] =
+    useState<MainsQuestion | null>(
+      null
+    );
+
   const [
     loading,
     setLoading
-  ] = useState(true);
-
-  const [
-    saving,
-    setSaving
-  ] = useState(false);
-
-  const [
-    uploading,
-    setUploading
-  ] = useState(false);
-
-  const [
-    userId,
-    setUserId
-  ] =
-    useState<string | null>(
-      null
-    );
-
-  const [
-    attemptId,
-    setAttemptId
-  ] =
-    useState<string | null>(
-      null
-    );
-
-  const [
-    answerText,
-    setAnswerText
-  ] =
-    useState('');
-
-  const [
-    elapsedSeconds,
-    setElapsedSeconds
-  ] =
-    useState(0);
-
-  const [
-    timerRunning,
-    setTimerRunning
   ] =
     useState(true);
 
   const [
-    pdfFile,
-    setPdfFile
-  ] =
-    useState<File | null>(
-      null
-    );
-
-  const [
-    pdfPath,
-    setPdfPath
-  ] =
-    useState<string | null>(
-      null
-    );
-
-  const [
-    pdfFileName,
-    setPdfFileName
-  ] =
-    useState<string | null>(
-      null
-    );
-
-  const [
-    submitted,
-    setSubmitted
-  ] =
-    useState(false);
-
-  const [
-    message,
-    setMessage
+    error,
+    setError
   ] =
     useState('');
 
   const [
-    showGuidance,
-    setShowGuidance
+    sectionFilter,
+    setSectionFilter
   ] =
-    useState(false);
-
-  const wordCount =
-    useMemo(() => {
-      const clean =
-        answerText.trim();
-
-      if (!clean) {
-        return 0;
-      }
-
-      return clean
-        .split(/\s+/)
-        .filter(Boolean)
-        .length;
-    }, [answerText]);
-
-  const wordLimit =
-    question.word_limit ||
-    0;
-
-  const overWordLimit =
-    wordLimit > 0 &&
-    wordCount > wordLimit;
-
-  function formatTime(
-    totalSeconds: number
-  ) {
-    const hours =
-      Math.floor(
-        totalSeconds /
-          3600
-      );
-
-    const minutes =
-      Math.floor(
-        (
-          totalSeconds %
-          3600
-        ) /
-          60
-      );
-
-    const seconds =
-      totalSeconds %
-      60;
-
-    return [
-      hours,
-      minutes,
-      seconds
-    ]
-      .map(
-        item =>
-          String(item)
-            .padStart(
-              2,
-              '0'
-            )
-      )
-      .join(':');
-  }
-
-  function getSubmissionMode(
-    hasPdf:
-      boolean
-  ): SubmissionMode {
-    const hasText =
-      answerText
-        .trim()
-        .length >
-      0;
-
-    if (
-      hasText &&
-      hasPdf
-    ) {
-      return 'both';
-    }
-
-    if (hasPdf) {
-      return 'pdf';
-    }
-
-    return 'text';
-  }
-
-  useEffect(() => {
-    async function initialise() {
-      if (!supabase) {
-        setMessage(
-          'Supabase is not configured.'
-        );
-
-        setLoading(false);
-        return;
-      }
-
-      const {
-        data: {
-          user
-        }
-      } =
-        await supabase
-          .auth
-          .getUser();
-
-      if (!user) {
-        setMessage(
-          'Please sign in before starting a Mains answer.'
-        );
-
-        setLoading(false);
-        return;
-      }
-
-      setUserId(
-        user.id
-      );
-
-      const {
-        data,
-        error
-      } =
-        await supabase
-          .from(
-            'mains_attempts'
-          )
-          .select(`
-            id,
-            answer_text,
-            word_count,
-            elapsed_seconds,
-            status,
-            pdf_path,
-            pdf_file_name,
-            evaluation_requested
-          `)
-          .eq(
-            'user_id',
-            user.id
-          )
-          .eq(
-            'question_id',
-            question.id
-          )
-          .eq(
-            'status',
-            'draft'
-          )
-          .maybeSingle();
-
-      if (error) {
-        console.error(
-          'Unable to load Mains draft:',
-          error
-        );
-
-        setMessage(
-          error.message
-        );
-
-        setLoading(false);
-        return;
-      }
-
-      if (data) {
-        setAttemptId(
-          data.id
-        );
-
-        setAnswerText(
-          data.answer_text ||
-            ''
-        );
-
-        setElapsedSeconds(
-          data.elapsed_seconds ||
-            0
-        );
-
-        setPdfPath(
-          data.pdf_path ||
-            null
-        );
-
-        setPdfFileName(
-          data.pdf_file_name ||
-            null
-        );
-
-        setMessage(
-          'Your saved draft has been restored.'
-        );
-      }
-
-      setLoading(false);
-    }
-
-    initialise();
-  }, [question.id]);
-
-  useEffect(() => {
-    if (
-      loading ||
-      submitted ||
-      !userId ||
-      !timerRunning
-    ) {
-      return;
-    }
-
-    const timer =
-      window.setInterval(
-        () => {
-          setElapsedSeconds(
-            current =>
-              current +
-              1
-          );
-        },
-        1000
-      );
-
-    return () => {
-      window.clearInterval(
-        timer
-      );
-    };
-  }, [
-    loading,
-    submitted,
-    userId,
-    timerRunning
-  ]);
-
-  async function ensureDraft() {
-    if (
-      !supabase ||
-      !userId
-    ) {
-      throw new Error(
-        'Please sign in first.'
-      );
-    }
-
-    if (attemptId) {
-      return attemptId;
-    }
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from(
-          'mains_attempts'
-        )
-        .insert({
-          user_id:
-            userId,
-
-          question_id:
-            question.id,
-
-          answer_text:
-            answerText,
-
-          word_count:
-            wordCount,
-
-          elapsed_seconds:
-            elapsedSeconds,
-
-          status:
-            'draft',
-
-          submission_mode:
-            getSubmissionMode(
-              Boolean(
-                pdfFile ||
-                pdfPath
-              )
-            ),
-
-          updated_at:
-            new Date()
-              .toISOString()
-        })
-        .select('id')
-        .single();
-
-    if (
-      error ||
-      !data
-    ) {
-      throw new Error(
-        error?.message ||
-          'Unable to create answer draft.'
-      );
-    }
-
-    setAttemptId(
-      data.id
+    useState<MainSectionFilter>(
+      'all'
     );
 
-    return data.id;
-  }
+  const [
+    gsFilter,
+    setGsFilter
+  ] =
+    useState('all');
 
-  async function uploadSelectedPdf(
-    currentAttemptId:
-      string
-  ) {
-    if (
-      !supabase ||
-      !userId
-    ) {
-      throw new Error(
-        'Please sign in first.'
-      );
-    }
-
-    if (!pdfFile) {
-      return {
-        path:
-          pdfPath,
-
-        fileName:
-          pdfFileName
-      };
-    }
-
-    if (
-      pdfFile.type !==
-      'application/pdf'
-    ) {
-      throw new Error(
-        'Only PDF files are allowed.'
-      );
-    }
-
-    if (
-      pdfFile.size >
-      MAX_PDF_SIZE
-    ) {
-      throw new Error(
-        'PDF must be smaller than 10 MB.'
-      );
-    }
-
-    setUploading(true);
-
-    const filePath =
-      `${userId}/${currentAttemptId}/answer.pdf`;
-
-    const {
-      error
-    } =
-      await supabase
-        .storage
-        .from(
-          'mains-answer-pdfs'
-        )
-        .upload(
-          filePath,
-          pdfFile,
-          {
-            upsert:
-              true,
-
-            contentType:
-              'application/pdf'
-          }
-        );
-
-    setUploading(false);
-
-    if (error) {
-      throw new Error(
-        error.message
-      );
-    }
-
-    setPdfPath(
-      filePath
+  const [
+    typeFilter,
+    setTypeFilter
+  ] =
+    useState<TypeFilter>(
+      'all'
     );
 
-    setPdfFileName(
-      pdfFile.name
-    );
+  const [
+    optionalSubjectFilter,
+    setOptionalSubjectFilter
+  ] =
+    useState('all');
 
-    setPdfFile(
+  const [
+    optionalPaperFilter,
+    setOptionalPaperFilter
+  ] =
+    useState('all');
+
+  const [
+    marksFilter,
+    setMarksFilter
+  ] =
+    useState('all');
+
+  const [
+    yearFilter,
+    setYearFilter
+  ] =
+    useState('all');
+
+  const [
+    searchText,
+    setSearchText
+  ] =
+    useState('');
+
+  const [
+    expandedId,
+    setExpandedId
+  ] =
+    useState<string | null>(
       null
     );
 
-    return {
-      path:
-        filePath,
 
-      fileName:
-        pdfFile.name
-    };
-  }
-
-  async function saveDraft() {
-    if (
-      !supabase ||
-      !userId
-    ) {
-      setMessage(
-        'Please sign in before saving.'
+  async function loadQuestions() {
+    if (!supabase) {
+      setError(
+        'Mains question database is not configured.'
       );
 
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      setMessage(
-        'Saving draft...'
-      );
-
-      const currentAttemptId =
-        await ensureDraft();
-
-      const uploaded =
-        await uploadSelectedPdf(
-          currentAttemptId
-        );
-
-      const finalPdfPath =
-        uploaded.path;
-
-      const finalFileName =
-        uploaded.fileName;
-
-      const {
-        error
-      } =
-        await supabase
-          .from(
-            'mains_attempts'
-          )
-          .update({
-            answer_text:
-              answerText,
-
-            word_count:
-              wordCount,
-
-            elapsed_seconds:
-              elapsedSeconds,
-
-            submission_mode:
-              getSubmissionMode(
-                Boolean(
-                  finalPdfPath
-                )
-              ),
-
-            pdf_path:
-              finalPdfPath,
-
-            pdf_file_name:
-              finalFileName,
-
-            updated_at:
-              new Date()
-                .toISOString()
-          })
-          .eq(
-            'id',
-            currentAttemptId
-          );
-
-      if (error) {
-        throw new Error(
-          error.message
-        );
-      }
-
-      setMessage(
-        'Draft saved successfully.'
-      );
-    } catch (error) {
-      const text =
-        error instanceof
-        Error
-          ? error.message
-          : 'Unable to save draft.';
-
-      setMessage(
-        text
-      );
-    } finally {
-      setSaving(false);
-      setUploading(false);
-    }
-  }
-
-  async function submitAnswer() {
-    if (
-      !supabase ||
-      !userId
-    ) {
-      setMessage(
-        'Please sign in before submitting.'
-      );
-
-      return;
-    }
-
-    if (
-      !answerText.trim() &&
-      !pdfFile &&
-      !pdfPath
-    ) {
-      setMessage(
-        'Write an answer or upload a PDF before submitting.'
-      );
-
-      return;
-    }
-
-    const confirmed =
-      window.confirm(
-        'Submit this answer for evaluation? You will not be able to edit this submitted attempt.'
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      setTimerRunning(
+      setLoading(
         false
       );
 
-      setMessage(
-        'Submitting answer...'
-      );
-
-      const currentAttemptId =
-        await ensureDraft();
-
-      const uploaded =
-        await uploadSelectedPdf(
-          currentAttemptId
-        );
-
-      const finalPdfPath =
-        uploaded.path;
-
-      const finalFileName =
-        uploaded.fileName;
-
-      const submittedAt =
-        new Date()
-          .toISOString();
-
-      const {
-        error
-      } =
-        await supabase
-          .from(
-            'mains_attempts'
-          )
-          .update({
-            answer_text:
-              answerText,
-
-            word_count:
-              wordCount,
-
-            elapsed_seconds:
-              elapsedSeconds,
-
-            submission_mode:
-              getSubmissionMode(
-                Boolean(
-                  finalPdfPath
-                )
-              ),
-
-            pdf_path:
-              finalPdfPath,
-
-            pdf_file_name:
-              finalFileName,
-
-            status:
-              'submitted',
-
-            evaluation_requested:
-              true,
-
-            submitted_at:
-              submittedAt,
-
-            updated_at:
-              submittedAt
-          })
-          .eq(
-            'id',
-            currentAttemptId
-          );
-
-      if (error) {
-        throw new Error(
-          error.message
-        );
-      }
-
-      setSubmitted(
-        true
-      );
-
-      setShowGuidance(
-        true
-      );
-
-      setMessage(
-        'Answer submitted successfully. Evaluation status: Pending.'
-      );
-    } catch (error) {
-      setTimerRunning(
-        true
-      );
-
-      const text =
-        error instanceof
-        Error
-          ? error.message
-          : 'Unable to submit answer.';
-
-      setMessage(
-        text
-      );
-    } finally {
-      setSaving(false);
-      setUploading(false);
-    }
-  }
-
-  async function openSavedPdf() {
-    if (
-      !supabase ||
-      !pdfPath
-    ) {
       return;
     }
+
+    setLoading(
+      true
+    );
+
+    setError(
+      ''
+    );
 
     const {
       data,
-      error
+      error:
+        loadError
     } =
       await supabase
-        .storage
         .from(
-          'mains-answer-pdfs'
+          'mains_questions'
         )
-        .createSignedUrl(
-          pdfPath,
-          60
-        );
-
-    if (
-      error ||
-      !data
-    ) {
-      setMessage(
-        error?.message ||
-          'Unable to open PDF.'
-      );
-
-      return;
-    }
-
-    window.open(
-      data.signedUrl,
-      '_blank',
-      'noopener,noreferrer'
-    );
-  }
-
-  async function removePdf() {
-    if (
-      submitted
-    ) {
-      return;
-    }
-
-    if (
-      !supabase
-    ) {
-      return;
-    }
-
-    if (
-      pdfFile &&
-      !pdfPath
-    ) {
-      setPdfFile(
-        null
-      );
-
-      setPdfFileName(
-        null
-      );
-
-      return;
-    }
-
-    if (!pdfPath) {
-      return;
-    }
-
-    const confirmed =
-      window.confirm(
-        'Remove the uploaded PDF from this draft?'
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    const {
-      error
-    } =
-      await supabase
-        .storage
-        .from(
-          'mains-answer-pdfs'
-        )
-        .remove([
-          pdfPath
-        ]);
-
-    if (error) {
-      setMessage(
-        error.message
-      );
-
-      return;
-    }
-
-    if (attemptId) {
-      await supabase
-        .from(
-          'mains_attempts'
-        )
-        .update({
-          pdf_path:
-            null,
-
-          pdf_file_name:
-            null,
-
-          submission_mode:
-            answerText
-              .trim()
-              ? 'text'
-              : 'text',
-
-          updated_at:
-            new Date()
-              .toISOString()
-        })
+        .select(`
+          id,
+          question,
+          question_type,
+          section_type,
+          gs_paper,
+          optional_subject,
+          optional_paper,
+          subject,
+          topic,
+          syllabus_link,
+          directive,
+          marks,
+          word_limit,
+          pyq_year,
+          answer_framework,
+          key_points,
+          introduction_hint,
+          conclusion_hint,
+          source,
+          source_url,
+          tags,
+          difficulty,
+          created_at
+        `)
         .eq(
-          'id',
-          attemptId
+          'status',
+          'published'
+        )
+        .order(
+          'created_at',
+          {
+            ascending:
+              false
+          }
         );
+
+
+    if (loadError) {
+      console.error(
+        'Unable to load Mains questions:',
+        loadError
+      );
+
+      setError(
+        loadError.message
+      );
+
+      setLoading(
+        false
+      );
+
+      return;
     }
 
-    setPdfPath(
-      null
+
+    const formatted =
+      (
+        data ||
+        []
+      ).map(
+        item => ({
+          ...item,
+
+          tags:
+            item.tags ||
+            []
+        })
+      ) as MainsQuestion[];
+
+
+    setQuestions(
+      formatted
     );
 
-    setPdfFileName(
-      null
-    );
-
-    setPdfFile(
-      null
-    );
-
-    setMessage(
-      'PDF removed.'
+    setLoading(
+      false
     );
   }
+
+
+  useEffect(
+    () => {
+      loadQuestions();
+    },
+    []
+  );
+
+
+  const optionalSubjects =
+    useMemo(
+      () => {
+        return Array.from(
+          new Set(
+            questions
+              .filter(
+                item =>
+                  item.section_type ===
+                  'optional'
+              )
+              .map(
+                item =>
+                  item.optional_subject
+              )
+              .filter(
+                Boolean
+              ) as string[]
+          )
+        ).sort();
+      },
+      [
+        questions
+      ]
+    );
+
+
+  const years =
+    useMemo(
+      () => {
+        return Array.from(
+          new Set(
+            questions
+              .filter(
+                item =>
+                  item.pyq_year !==
+                  null
+              )
+              .map(
+                item =>
+                  item.pyq_year as number
+              )
+          )
+        ).sort(
+          (
+            a,
+            b
+          ) =>
+            b -
+            a
+        );
+      },
+      [
+        questions
+      ]
+    );
+
+
+  const filteredQuestions =
+    useMemo(
+      () => {
+        const search =
+          searchText
+            .trim()
+            .toLowerCase();
+
+
+        return questions.filter(
+          item => {
+
+            if (
+              sectionFilter !==
+                'all' &&
+              item.section_type !==
+                sectionFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              item.section_type ===
+                'gs' &&
+              gsFilter !==
+                'all' &&
+              item.gs_paper !==
+                gsFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              typeFilter !==
+                'all' &&
+              item.question_type !==
+                typeFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              item.section_type ===
+                'optional' &&
+              optionalSubjectFilter !==
+                'all' &&
+              item.optional_subject !==
+                optionalSubjectFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              item.section_type ===
+                'optional' &&
+              optionalPaperFilter !==
+                'all' &&
+              item.optional_paper !==
+                optionalPaperFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              marksFilter !==
+                'all' &&
+              String(
+                item.marks
+              ) !==
+                marksFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              yearFilter !==
+                'all' &&
+              String(
+                item.pyq_year
+              ) !==
+                yearFilter
+            ) {
+              return false;
+            }
+
+
+            if (search) {
+              const searchable =
+                [
+                  item.question,
+                  item.subject,
+                  item.topic,
+                  item.directive,
+                  item.gs_paper,
+                  item.optional_subject,
+                  item.optional_paper,
+                  ...(
+                    item.tags ||
+                    []
+                  )
+                ]
+                  .filter(
+                    Boolean
+                  )
+                  .join(
+                    ' '
+                  )
+                  .toLowerCase();
+
+
+              if (
+                !searchable.includes(
+                  search
+                )
+              ) {
+                return false;
+              }
+            }
+
+
+            return true;
+          }
+        );
+      },
+      [
+        questions,
+        sectionFilter,
+        gsFilter,
+        typeFilter,
+        optionalSubjectFilter,
+        optionalPaperFilter,
+        marksFilter,
+        yearFilter,
+        searchText
+      ]
+    );
+
+
+  function clearFilters() {
+    setSectionFilter(
+      'all'
+    );
+
+    setGsFilter(
+      'all'
+    );
+
+    setTypeFilter(
+      'all'
+    );
+
+    setOptionalSubjectFilter(
+      'all'
+    );
+
+    setOptionalPaperFilter(
+      'all'
+    );
+
+    setMarksFilter(
+      'all'
+    );
+
+    setYearFilter(
+      'all'
+    );
+
+    setSearchText(
+      ''
+    );
+  }
+
+
+  function startWriting(
+    question:
+      MainsQuestion
+  ) {
+    setSelectedQuestion(
+      question
+    );
+
+    const mainArea =
+      document.querySelector(
+        '.main-area'
+      );
+
+
+    if (mainArea) {
+      mainArea.scrollTo({
+        top:
+          0,
+
+        behavior:
+          'smooth'
+      });
+    }
+  }
+
+
+  function closeWorkspace() {
+    setSelectedQuestion(
+      null
+    );
+
+    const mainArea =
+      document.querySelector(
+        '.main-area'
+      );
+
+
+    if (mainArea) {
+      mainArea.scrollTo({
+        top:
+          0,
+
+        behavior:
+          'smooth'
+      });
+    }
+  }
+
+
+  /*
+    When a student selects a question,
+    show the dedicated answer-writing
+    workspace instead of the question bank.
+  */
+  if (selectedQuestion) {
+    return (
+      <MainsAnswerWorkspace
+        question={
+          selectedQuestion
+        }
+        onBack={
+          closeWorkspace
+        }
+      />
+    );
+  }
+
 
   if (loading) {
     return (
-      <div className="page-wrap">
+      <div className="page-wrap mains-practice-page">
 
         <TopBar
-          title="Answer Writing"
-          subtitle="Loading your workspace"
+          title="Mains Practice"
+          subtitle="Answer writing, PYQs and optional subjects"
         />
 
         <section className="panel">
-
           <h2>
-            Preparing answer workspace...
+            Loading Mains questions...
           </h2>
-
         </section>
 
       </div>
     );
   }
 
-  if (!userId) {
+
+  if (error) {
     return (
-      <div className="page-wrap">
+      <div className="page-wrap mains-practice-page">
 
         <TopBar
-          title="Answer Writing"
-          subtitle="Secure student workspace"
+          title="Mains Practice"
+          subtitle="Answer writing, PYQs and optional subjects"
         />
 
         <section className="panel">
 
-          <span className="eyebrow">
-            SIGN IN REQUIRED
-          </span>
-
           <h2>
-            Sign in to write and save answers
+            Unable to load Mains questions
           </h2>
 
           <p>
-            Student authentication is required
-            so drafts, PDFs and evaluations remain
-            private to each user.
+            {error}
           </p>
 
           <button
+            className="primary-btn"
             type="button"
-            className="secondary-btn"
             onClick={
-              onBack
+              loadQuestions
             }
           >
-            Back to questions
+            Try again
           </button>
 
         </section>
@@ -1020,687 +719,936 @@ export function MainsAnswerWorkspace({
     );
   }
 
+
   return (
-    <div className="page-wrap">
+    <div className="page-wrap mains-practice-page">
 
       <TopBar
-        title="Mains Answer Writing"
-        subtitle="Write, save, submit and improve"
+        title="Mains Practice"
+        subtitle="GS-I to GS-IV, PYQs, practice questions and optionals"
       />
 
-      <button
-        type="button"
-        className="secondary-btn"
-        onClick={
-          onBack
-        }
-        style={{
-          marginBottom:
-            '16px'
-        }}
-      >
-        ← Back to question bank
-      </button>
 
       <section
         className="panel"
         style={{
           marginBottom:
-            '18px'
-        }}
-      >
-        <span className="eyebrow">
-          {question.section_type ===
-          'gs'
-            ? question.gs_paper
-            : `${question.optional_subject} • ${question.optional_paper}`}
-        </span>
-
-        <h2
-          style={{
-            lineHeight:
-              1.45
-          }}
-        >
-          {question.question}
-        </h2>
-
-        <div className="tag-row">
-
-          {question.directive && (
-            <span className="tag">
-              {question.directive}
-            </span>
-          )}
-
-          {question.marks && (
-            <span className="tag">
-              {question.marks} Marks
-            </span>
-          )}
-
-          {question.word_limit && (
-            <span className="tag">
-              {question.word_limit} Words
-            </span>
-          )}
-
-          <span className="tag">
-            {question.subject}
-          </span>
-
-          {question.topic && (
-            <span className="tag">
-              {question.topic}
-            </span>
-          )}
-
-        </div>
-      </section>
-
-      <section
-        className="panel"
-        style={{
-          marginBottom:
-            '18px'
-        }}
-      >
-        <div
-          style={{
-            display:
-              'grid',
-            gridTemplateColumns:
-              'repeat(3, minmax(0, 1fr))',
-            gap:
-              '10px'
-          }}
-        >
-
-          <div
-            style={{
-              background:
-                '#0e1525',
-              borderRadius:
-                '14px',
-              padding:
-                '14px'
-            }}
-          >
-            <span className="eyebrow">
-              TIMER
-            </span>
-
-            <h3>
-              {formatTime(
-                elapsedSeconds
-              )}
-            </h3>
-          </div>
-
-          <div
-            style={{
-              background:
-                '#0e1525',
-              borderRadius:
-                '14px',
-              padding:
-                '14px'
-            }}
-          >
-            <span className="eyebrow">
-              WORDS
-            </span>
-
-            <h3
-              style={{
-                color:
-                  overWordLimit
-                    ? '#f97360'
-                    : '#f8fafc'
-              }}
-            >
-              {wordCount}
-              {wordLimit
-                ? ` / ${wordLimit}`
-                : ''}
-            </h3>
-          </div>
-
-          <div
-            style={{
-              background:
-                '#0e1525',
-              borderRadius:
-                '14px',
-              padding:
-                '14px'
-            }}
-          >
-            <span className="eyebrow">
-              STATUS
-            </span>
-
-            <h3>
-              {submitted
-                ? 'Submitted'
-                : attemptId
-                ? 'Draft'
-                : 'New'}
-            </h3>
-          </div>
-
-        </div>
-
-        {!submitted && (
-          <div
-            style={{
-              display:
-                'flex',
-              gap:
-                '8px',
-              flexWrap:
-                'wrap',
-              marginTop:
-                '12px'
-            }}
-          >
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={() =>
-                setTimerRunning(
-                  current =>
-                    !current
-                )
-              }
-            >
-              {timerRunning
-                ? 'Pause timer'
-                : 'Resume timer'}
-            </button>
-          </div>
-        )}
-
-      </section>
-
-      <section
-        className="panel"
-        style={{
-          marginBottom:
-            '18px'
+            '22px'
         }}
       >
 
         <span className="eyebrow">
-          WRITE YOUR ANSWER
+          MAINS QUESTION BANK
         </span>
 
         <h2>
-          Type answer
-        </h2>
-
-        <textarea
-          value={
-            answerText
-          }
-          disabled={
-            submitted
-          }
-          onChange={
-            e =>
-              setAnswerText(
-                e.target.value
-              )
-          }
-          rows={18}
-          placeholder="Write your UPSC Mains answer here..."
-          style={{
-            width:
-              '100%',
-            marginTop:
-              '12px',
-            resize:
-              'vertical',
-            minHeight:
-              '360px',
-            padding:
-              '16px',
-            borderRadius:
-              '14px',
-            border:
-              '1px solid rgba(255,255,255,0.12)',
-            background:
-              '#0e1525',
-            color:
-              '#f8fafc',
-            lineHeight:
-              1.7,
-            outline:
-              'none'
-          }}
-        />
-
-        {overWordLimit && (
-          <p
-            style={{
-              color:
-                '#f97360'
-            }}
-          >
-            You are above the suggested
-            {` ${wordLimit}-word `}
-            limit.
-          </p>
-        )}
-
-      </section>
-
-      <section
-        className="panel"
-        style={{
-          marginBottom:
-            '18px'
-        }}
-      >
-
-        <span className="eyebrow">
-          HANDWRITTEN ANSWER
-        </span>
-
-        <h2>
-          Upload PDF
+          Find the right question to practise
         </h2>
 
         <p>
-          You can upload a scanned handwritten
-          answer or a typed PDF. Maximum size:
-          10 MB.
+          Filter questions by General Studies
+          paper, Optional Subject, PYQ,
+          marks and year.
         </p>
 
-        {!submitted && (
+
+        <label
+          style={
+            labelStyle
+          }
+        >
+          Search
+
           <input
-            type="file"
-            accept="application/pdf,.pdf"
-            onChange={
-              e => {
-                const file =
-                  e.target
-                    .files?.[0] ||
-                  null;
-
-                if (!file) {
-                  return;
-                }
-
-                if (
-                  file.type !==
-                  'application/pdf'
-                ) {
-                  setMessage(
-                    'Please choose a PDF file.'
-                  );
-
-                  return;
-                }
-
-                if (
-                  file.size >
-                  MAX_PDF_SIZE
-                ) {
-                  setMessage(
-                    'PDF must be smaller than 10 MB.'
-                  );
-
-                  return;
-                }
-
-                setPdfFile(
-                  file
-                );
-
-                setPdfFileName(
-                  file.name
-                );
-
-                setMessage(
-                  'PDF selected. Save draft or submit to upload it.'
-                );
-              }
+            style={
+              controlStyle
             }
-            style={{
-              width:
-                '100%',
-              padding:
-                '14px',
-              background:
-                '#0e1525',
-              color:
-                '#f8fafc',
-              border:
-                '1px solid rgba(255,255,255,0.12)',
-              borderRadius:
-                '12px'
-            }}
+            value={
+              searchText
+            }
+            onChange={
+              e =>
+                setSearchText(
+                  e.target.value
+                )
+            }
+            placeholder="Search topic, subject, directive or keyword..."
           />
-        )}
 
-        {pdfFileName && (
-          <div
-            style={{
-              marginTop:
-                '14px',
-              padding:
-                '14px',
-              background:
-                'rgba(20,184,166,0.08)',
-              border:
-                '1px solid rgba(45,212,191,0.24)',
-              borderRadius:
-                '12px'
-            }}
-          >
+        </label>
 
-            <strong>
-              PDF:
-            </strong>{' '}
-            {pdfFileName}
 
-            <div
-              style={{
-                display:
-                  'flex',
-                gap:
-                  '8px',
-                flexWrap:
-                  'wrap',
-                marginTop:
-                  '10px'
-              }}
-            >
-
-              {pdfPath && (
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={
-                    openSavedPdf
-                  }
-                >
-                  Open PDF
-                </button>
-              )}
-
-              {!submitted && (
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={
-                    removePdf
-                  }
-                >
-                  Remove PDF
-                </button>
-              )}
-
-            </div>
-
-          </div>
-        )}
-
-      </section>
-
-      {!submitted && (
-        <section
-          className="panel"
+        <div
+          className="form-two"
           style={{
-            marginBottom:
-              '18px'
+            marginTop:
+              '14px'
           }}
         >
+
+          <label
+            style={
+              labelStyle
+            }
+          >
+            Section
+
+            <select
+              style={
+                controlStyle
+              }
+              value={
+                sectionFilter
+              }
+              onChange={
+                e =>
+                  setSectionFilter(
+                    e.target
+                      .value as MainSectionFilter
+                  )
+              }
+            >
+
+              <option
+                style={
+                  optionStyle
+                }
+                value="all"
+              >
+                All Sections
+              </option>
+
+              <option
+                style={
+                  optionStyle
+                }
+                value="gs"
+              >
+                General Studies
+              </option>
+
+              <option
+                style={
+                  optionStyle
+                }
+                value="optional"
+              >
+                Optional Subject
+              </option>
+
+            </select>
+
+          </label>
+
+
+          <label
+            style={
+              labelStyle
+            }
+          >
+            Question Type
+
+            <select
+              style={
+                controlStyle
+              }
+              value={
+                typeFilter
+              }
+              onChange={
+                e =>
+                  setTypeFilter(
+                    e.target
+                      .value as TypeFilter
+                  )
+              }
+            >
+
+              <option
+                style={
+                  optionStyle
+                }
+                value="all"
+              >
+                All Question Types
+              </option>
+
+              <option
+                style={
+                  optionStyle
+                }
+                value="practice"
+              >
+                Practice Question
+              </option>
+
+              <option
+                style={
+                  optionStyle
+                }
+                value="pyq"
+              >
+                Previous Year Question
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+
+        <div className="form-two">
+
+          <label
+            style={
+              labelStyle
+            }
+          >
+            GS Paper
+
+            <select
+              style={
+                controlStyle
+              }
+              value={
+                gsFilter
+              }
+              onChange={
+                e =>
+                  setGsFilter(
+                    e.target.value
+                  )
+              }
+            >
+
+              <option value="all">
+                All GS Papers
+              </option>
+
+              <option value="GS-I">
+                GS-I
+              </option>
+
+              <option value="GS-II">
+                GS-II
+              </option>
+
+              <option value="GS-III">
+                GS-III
+              </option>
+
+              <option value="GS-IV">
+                GS-IV
+              </option>
+
+            </select>
+
+          </label>
+
+
+          <label
+            style={
+              labelStyle
+            }
+          >
+            Marks
+
+            <select
+              style={
+                controlStyle
+              }
+              value={
+                marksFilter
+              }
+              onChange={
+                e =>
+                  setMarksFilter(
+                    e.target.value
+                  )
+              }
+            >
+
+              <option value="all">
+                All Marks
+              </option>
+
+              <option value="10">
+                10 Marks
+              </option>
+
+              <option value="15">
+                15 Marks
+              </option>
+
+              <option value="20">
+                20 Marks
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+
+        <div className="form-two">
+
+          <label
+            style={
+              labelStyle
+            }
+          >
+            Optional Subject
+
+            <select
+              style={
+                controlStyle
+              }
+              value={
+                optionalSubjectFilter
+              }
+              onChange={
+                e =>
+                  setOptionalSubjectFilter(
+                    e.target.value
+                  )
+              }
+            >
+
+              <option value="all">
+                All Optional Subjects
+              </option>
+
+              {optionalSubjects.map(
+                item => (
+                  <option
+                    key={
+                      item
+                    }
+                    value={
+                      item
+                    }
+                  >
+                    {item}
+                  </option>
+                )
+              )}
+
+            </select>
+
+          </label>
+
+
+          <label
+            style={
+              labelStyle
+            }
+          >
+            Optional Paper
+
+            <select
+              style={
+                controlStyle
+              }
+              value={
+                optionalPaperFilter
+              }
+              onChange={
+                e =>
+                  setOptionalPaperFilter(
+                    e.target.value
+                  )
+              }
+            >
+
+              <option value="all">
+                Both Papers
+              </option>
+
+              <option value="Paper-I">
+                Paper-I
+              </option>
+
+              <option value="Paper-II">
+                Paper-II
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+
+        <div className="form-two">
+
+          <label
+            style={
+              labelStyle
+            }
+          >
+            PYQ Year
+
+            <select
+              style={
+                controlStyle
+              }
+              value={
+                yearFilter
+              }
+              onChange={
+                e =>
+                  setYearFilter(
+                    e.target.value
+                  )
+              }
+            >
+
+              <option value="all">
+                All Years
+              </option>
+
+              {years.map(
+                year => (
+                  <option
+                    key={
+                      year
+                    }
+                    value={
+                      year
+                    }
+                  >
+                    {year}
+                  </option>
+                )
+              )}
+
+            </select>
+
+          </label>
+
 
           <div
             style={{
               display:
                 'flex',
-              gap:
-                '12px',
-              flexWrap:
-                'wrap'
+
+              alignItems:
+                'flex-end',
+
+              marginBottom:
+                '14px'
             }}
           >
 
             <button
               type="button"
-              className="secondary-btn"
-              disabled={
-                saving ||
-                uploading
+              style={
+                outlineButtonStyle
               }
               onClick={
-                saveDraft
+                clearFilters
               }
             >
-              {saving
-                ? 'Saving...'
-                : 'Save Draft'}
-            </button>
-
-            <button
-              type="button"
-              className="primary-btn"
-              disabled={
-                saving ||
-                uploading
-              }
-              onClick={
-                submitAnswer
-              }
-            >
-              {uploading
-                ? 'Uploading PDF...'
-                : saving
-                ? 'Submitting...'
-                : 'Submit for Evaluation'}
+              Clear filters
             </button>
 
           </div>
 
-          <p>
-            Save Draft lets you return later.
-            Submit for Evaluation locks this attempt
-            and sends it to the evaluation queue.
-          </p>
+        </div>
 
-        </section>
-      )}
+      </section>
 
-      {message && (
-        <section
-          className="panel"
+
+      <section
+        style={{
+          display:
+            'grid',
+
+          gap:
+            '18px'
+        }}
+      >
+
+        <div
           style={{
-            marginBottom:
-              '18px'
-          }}
-        >
-          <strong>
-            {message}
-          </strong>
-        </section>
-      )}
+            display:
+              'flex',
 
-      {submitted && (
-        <section
-          className="panel"
-          style={{
-            marginBottom:
-              '18px',
-            border:
-              '1px solid rgba(45,212,191,0.30)',
-            background:
-              'rgba(20,184,166,0.07)'
-          }}
-        >
+            justifyContent:
+              'space-between',
 
-          <span className="eyebrow">
-            EVALUATION STATUS
-          </span>
+            alignItems:
+              'center',
 
-          <h2>
-            Pending
-          </h2>
+            gap:
+              '12px',
 
-          <p>
-            Your answer has been submitted
-            successfully and is waiting for
-            evaluation.
-          </p>
-
-        </section>
-      )}
-
-      {submitted && (
-        <section
-          className="panel"
-          style={{
-            marginBottom:
-              '18px'
+            flexWrap:
+              'wrap'
           }}
         >
 
-          <span className="eyebrow">
-            POST-ATTEMPT REVIEW
-          </span>
+          <div>
 
-          <h2>
-            Compare with answer guidance
-          </h2>
+            <span className="eyebrow">
+              RESULTS
+            </span>
+
+            <h2>
+              {
+                filteredQuestions.length
+              }{' '}
+              {
+                filteredQuestions.length ===
+                1
+                  ? 'question'
+                  : 'questions'
+              }
+            </h2>
+
+          </div>
+
 
           <button
             type="button"
-            className="secondary-btn"
-            onClick={() =>
-              setShowGuidance(
-                current =>
-                  !current
-              )
+            style={
+              outlineButtonStyle
+            }
+            onClick={
+              loadQuestions
             }
           >
-            {showGuidance
-              ? 'Hide guidance'
-              : 'Show guidance'}
+            Refresh questions
           </button>
 
-          {showGuidance && (
-            <div
-              style={{
-                display:
-                  'grid',
-                gap:
-                  '14px',
-                marginTop:
-                  '18px'
-              }}
-            >
+        </div>
 
-              {question.syllabus_link && (
-                <div className="panel">
 
-                  <span className="eyebrow">
-                    SYLLABUS LINKAGE
-                  </span>
+        {filteredQuestions.length ===
+          0 && (
 
+          <div className="panel">
+
+            <h3>
+              No published Mains questions found
+            </h3>
+
+            <p>
+              Draft questions remain hidden
+              until they are published by the
+              administrator.
+            </p>
+
+          </div>
+
+        )}
+
+
+        {filteredQuestions.map(
+          item => {
+
+            const expanded =
+              expandedId ===
+              item.id;
+
+
+            return (
+              <article
+                key={
+                  item.id
+                }
+                className="panel"
+                style={{
+                  padding:
+                    '22px'
+                }}
+              >
+
+                <div
+                  style={{
+                    display:
+                      'flex',
+
+                    justifyContent:
+                      'space-between',
+
+                    gap:
+                      '16px',
+
+                    flexWrap:
+                      'wrap'
+                  }}
+                >
+
+                  <div>
+
+                    <span className="eyebrow">
+                      {
+                        item.section_type ===
+                        'gs'
+                          ? item.gs_paper
+                          : `${item.optional_subject} • ${item.optional_paper}`
+                      }
+                    </span>
+
+
+                    <div
+                      className="tag-row"
+                      style={{
+                        marginTop:
+                          '10px'
+                      }}
+                    >
+
+                      <span className="tag">
+                        {
+                          item.question_type ===
+                          'pyq'
+                            ? `PYQ ${item.pyq_year || ''}`
+                            : 'Practice'
+                        }
+                      </span>
+
+
+                      {item.marks && (
+                        <span className="tag">
+                          {item.marks} marks
+                        </span>
+                      )}
+
+
+                      {item.word_limit && (
+                        <span className="tag">
+                          {item.word_limit} words
+                        </span>
+                      )}
+
+
+                      <span className="tag">
+                        {item.difficulty}
+                      </span>
+
+                    </div>
+
+                  </div>
+
+
+                  {item.directive && (
+                    <strong
+                      style={{
+                        color:
+                          '#5eead4'
+                      }}
+                    >
+                      {item.directive}
+                    </strong>
+                  )}
+
+                </div>
+
+
+                <h2
+                  style={{
+                    marginTop:
+                      '18px',
+
+                    lineHeight:
+                      1.4
+                  }}
+                >
+                  {item.question}
+                </h2>
+
+
+                <p>
+                  <strong>
+                    Subject:
+                  </strong>{' '}
+                  {item.subject}
+                </p>
+
+
+                {item.topic && (
                   <p>
-                    {question.syllabus_link}
+                    <strong>
+                      Topic:
+                    </strong>{' '}
+                    {item.topic}
                   </p>
+                )}
 
-                </div>
-              )}
 
-              {question.introduction_hint && (
-                <div className="panel">
+                {item.tags.length >
+                  0 && (
 
-                  <span className="eyebrow">
-                    INTRODUCTION HINT
-                  </span>
-
-                  <p
+                  <div
+                    className="tag-row"
                     style={{
-                      whiteSpace:
-                        'pre-wrap'
+                      marginTop:
+                        '12px'
                     }}
                   >
-                    {question.introduction_hint}
-                  </p>
+
+                    {item.tags.map(
+                      tag => (
+                        <span
+                          className="tag"
+                          key={
+                            tag
+                          }
+                        >
+                          {tag}
+                        </span>
+                      )
+                    )}
+
+                  </div>
+
+                )}
+
+
+                <div
+                  style={{
+                    display:
+                      'flex',
+
+                    gap:
+                      '10px',
+
+                    flexWrap:
+                      'wrap',
+
+                    marginTop:
+                      '18px'
+                  }}
+                >
+
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    onClick={() =>
+                      startWriting(
+                        item
+                      )
+                    }
+                  >
+                    Start Answer Writing
+                  </button>
+
+
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() =>
+                      setExpandedId(
+                        expanded
+                          ? null
+                          : item.id
+                      )
+                    }
+                  >
+                    {
+                      expanded
+                        ? 'Hide answer guidance'
+                        : 'View answer guidance'
+                    }
+                  </button>
 
                 </div>
-              )}
 
-              {question.answer_framework && (
-                <div className="panel">
 
-                  <span className="eyebrow">
-                    ANSWER FRAMEWORK
-                  </span>
+                {expanded && (
 
-                  <p
+                  <div
                     style={{
-                      whiteSpace:
-                        'pre-wrap',
-                      lineHeight:
-                        1.75
+                      display:
+                        'grid',
+
+                      gap:
+                        '14px',
+
+                      marginTop:
+                        '22px'
                     }}
                   >
-                    {question.answer_framework}
-                  </p>
 
-                </div>
-              )}
+                    {item.syllabus_link && (
 
-              {question.key_points && (
-                <div className="panel">
+                      <section
+                        className="panel"
+                        style={{
+                          background:
+                            'rgba(20,184,166,0.06)'
+                        }}
+                      >
 
-                  <span className="eyebrow">
-                    KEY POINTS
-                  </span>
+                        <span className="eyebrow">
+                          UPSC SYLLABUS LINKAGE
+                        </span>
 
-                  <p
-                    style={{
-                      whiteSpace:
-                        'pre-wrap',
-                      lineHeight:
-                        1.75
-                    }}
-                  >
-                    {question.key_points}
-                  </p>
+                        <p>
+                          {item.syllabus_link}
+                        </p>
 
-                </div>
-              )}
+                      </section>
 
-              {question.conclusion_hint && (
-                <div className="panel">
+                    )}
 
-                  <span className="eyebrow">
-                    CONCLUSION HINT
-                  </span>
 
-                  <p
-                    style={{
-                      whiteSpace:
-                        'pre-wrap'
-                    }}
-                  >
-                    {question.conclusion_hint}
-                  </p>
+                    {item.introduction_hint && (
 
-                </div>
-              )}
+                      <section className="panel">
 
-            </div>
-          )}
+                        <span className="eyebrow">
+                          INTRODUCTION HINT
+                        </span>
 
-        </section>
-      )}
+                        <p
+                          style={{
+                            whiteSpace:
+                              'pre-wrap'
+                          }}
+                        >
+                          {
+                            item.introduction_hint
+                          }
+                        </p>
+
+                      </section>
+
+                    )}
+
+
+                    {item.answer_framework && (
+
+                      <section className="panel">
+
+                        <span className="eyebrow">
+                          ANSWER FRAMEWORK
+                        </span>
+
+                        <p
+                          style={{
+                            whiteSpace:
+                              'pre-wrap',
+
+                            lineHeight:
+                              1.75
+                          }}
+                        >
+                          {
+                            item.answer_framework
+                          }
+                        </p>
+
+                      </section>
+
+                    )}
+
+
+                    {item.key_points && (
+
+                      <section className="panel">
+
+                        <span className="eyebrow">
+                          KEY POINTS
+                        </span>
+
+                        <p
+                          style={{
+                            whiteSpace:
+                              'pre-wrap',
+
+                            lineHeight:
+                              1.75
+                          }}
+                        >
+                          {item.key_points}
+                        </p>
+
+                      </section>
+
+                    )}
+
+
+                    {item.conclusion_hint && (
+
+                      <section className="panel">
+
+                        <span className="eyebrow">
+                          CONCLUSION HINT
+                        </span>
+
+                        <p
+                          style={{
+                            whiteSpace:
+                              'pre-wrap'
+                          }}
+                        >
+                          {
+                            item.conclusion_hint
+                          }
+                        </p>
+
+                      </section>
+
+                    )}
+
+
+                    {(
+                      item.source ||
+                      item.source_url
+                    ) && (
+
+                      <section className="panel">
+
+                        <span className="eyebrow">
+                          SOURCE
+                        </span>
+
+                        {item.source && (
+                          <p>
+                            {item.source}
+                          </p>
+                        )}
+
+
+                        {item.source_url && (
+                          <a
+                            href={
+                              item.source_url
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            className="primary-btn"
+                            style={{
+                              display:
+                                'inline-flex',
+
+                              textDecoration:
+                                'none'
+                            }}
+                          >
+                            Open official source ↗
+                          </a>
+                        )}
+
+                      </section>
+
+                    )}
+
+                  </div>
+
+                )}
+
+              </article>
+            );
+          }
+        )}
+
+      </section>
 
     </div>
   );
