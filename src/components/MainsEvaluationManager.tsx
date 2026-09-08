@@ -237,7 +237,34 @@ export function MainsEvaluationManager() {
     setStatusFilter
   ] =
     useState<StatusFilter>('all');
+const [
+  searchText,
+  setSearchText
+] =
+  useState('');
 
+
+const [
+  sectionFilter,
+  setSectionFilter
+] =
+  useState<
+    'all' |
+    'gs' |
+    'optional'
+  >('all');
+
+
+const [
+  submissionModeFilter,
+  setSubmissionModeFilter
+] =
+  useState<
+    'all' |
+    'text' |
+    'pdf' |
+    'both'
+  >('all');
   const [
     selectedAttemptId,
     setSelectedAttemptId
