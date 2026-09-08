@@ -19,76 +19,50 @@ type QuestionOrigin =
   | 'state';
 
 
+type SessionSize =
+  | '10'
+  | '20'
+  | '50'
+  | '100'
+  | 'all';
+
+
 type LiveQuestion = {
   id: string;
-
   question: string;
-
   options: string[];
-
   correct_index: number;
-
   explanation: string;
-
   subject: string;
-
   difficulty: string;
-
   topic: string | null;
-
   tags: string[];
 
   is_pyq: boolean;
-
   pyq_year: number | null;
 
-  /*
-   * OTHER UPSC EXAM
-   */
-
   upsc_exam_name: string | null;
-
   upsc_exam_cycle: string | null;
-
   upsc_exam_stage: string | null;
-
   upsc_exam_paper: string | null;
-
   upsc_exam_year: number | null;
 
-  /*
-   * STATE PSC
-   */
-
   state_psc_state: string | null;
-
   state_psc_name: string | null;
-
   state_psc_exam_name: string | null;
-
   state_psc_year: number | null;
-
   state_psc_stage: string | null;
-
   state_psc_paper: string | null;
 
-  /*
-   * SOURCE
-   */
-
   source: string | null;
-
   source_url: string | null;
 };
 
 
 type AnswerRecord = {
   question_id: string;
-
   selected_index: number;
-
   correct_index: number;
-
   is_correct: boolean;
 };
 
@@ -131,9 +105,7 @@ export function PracticePage() {
     allQuestions,
     setAllQuestions
   ] =
-    useState<
-      LiveQuestion[]
-    >([]);
+    useState<LiveQuestion[]>([]);
 
 
   /*
@@ -144,9 +116,7 @@ export function PracticePage() {
     questions,
     setQuestions
   ] =
-    useState<
-      LiveQuestion[]
-    >([]);
+    useState<LiveQuestion[]>([]);
 
 
   const [
@@ -171,9 +141,9 @@ export function PracticePage() {
     selected,
     setSelected
   ] =
-    useState<
-      number | null
-    >(null);
+    useState<number | null>(
+      null
+    );
 
 
   const [
@@ -187,9 +157,7 @@ export function PracticePage() {
     answers,
     setAnswers
   ] =
-    useState<
-      AnswerRecord[]
-    >([]);
+    useState<AnswerRecord[]>([]);
 
 
   const [
@@ -275,6 +243,19 @@ export function PracticePage() {
       'practice' |
       'pyq'
     >('all');
+
+
+  /*
+   * SESSION SIZE
+   */
+
+  const [
+    sessionSize,
+    setSessionSize
+  ] =
+    useState<SessionSize>(
+      '10'
+    );
 
 
   /*
@@ -550,7 +531,7 @@ export function PracticePage() {
 
 
   /*
-   * QUESTION ORIGIN
+   * DETERMINE QUESTION ORIGIN
    */
 
   function getOrigin(
@@ -580,7 +561,56 @@ export function PracticePage() {
 
 
   /*
-   * DYNAMIC SUBJECTS
+   * RANDOMIZE QUESTIONS
+   */
+
+  function shuffleQuestions(
+    items:
+      LiveQuestion[]
+  ) {
+
+    const shuffled =
+      [
+        ...items
+      ];
+
+
+    for (
+      let i =
+        shuffled.length -
+        1;
+
+      i > 0;
+
+      i--
+    ) {
+
+      const j =
+        Math.floor(
+          Math.random() *
+          (
+            i + 1
+          )
+        );
+
+
+      const temp =
+        shuffled[i];
+
+      shuffled[i] =
+        shuffled[j];
+
+      shuffled[j] =
+        temp;
+    }
+
+
+    return shuffled;
+  }
+
+
+  /*
+   * SUBJECT OPTIONS
    */
 
   const subjects =
@@ -957,7 +987,23 @@ export function PracticePage() {
 
 
   /*
-   * CHANGE ORIGIN FILTER
+   * NUMBER OF QUESTIONS THAT WILL START
+   */
+
+  const sessionQuestionCount =
+    sessionSize ===
+      'all'
+      ? filteredQuestions.length
+      : Math.min(
+          Number(
+            sessionSize
+          ),
+          filteredQuestions.length
+        );
+
+
+  /*
+   * CHANGE ORIGIN
    */
 
   function changeOriginFilter(
@@ -1011,7 +1057,7 @@ export function PracticePage() {
 
 
   /*
-   * RESET PRACTICE FILTERS
+   * RESET FILTERS
    */
 
   function resetFilters() {
@@ -1026,6 +1072,10 @@ export function PracticePage() {
 
     setTypeFilter(
       'all'
+    );
+
+    setSessionSize(
+      '10'
     );
 
     setUpscExamFilter(
@@ -1075,8 +1125,26 @@ export function PracticePage() {
     }
 
 
+    const randomized =
+      shuffleQuestions(
+        filteredQuestions
+      );
+
+
+    const selectedSet =
+      sessionSize ===
+        'all'
+        ? randomized
+        : randomized.slice(
+            0,
+            Number(
+              sessionSize
+            )
+          );
+
+
     setQuestions(
-      filteredQuestions
+      selectedSet
     );
 
     setIndex(0);
@@ -1174,7 +1242,7 @@ export function PracticePage() {
 
 
   /*
-   * SAVE PRACTICE ATTEMPT
+   * SAVE RESULT
    */
 
   async function savePracticeAttempt() {
@@ -1317,7 +1385,7 @@ export function PracticePage() {
 
 
   /*
-   * NEXT
+   * NEXT QUESTION
    */
 
   async function next() {
@@ -1351,7 +1419,7 @@ export function PracticePage() {
 
 
   /*
-   * SAME SET AGAIN
+   * REPEAT EXACT SAME SET
    */
 
   function restart() {
@@ -1379,7 +1447,7 @@ export function PracticePage() {
 
 
   /*
-   * RETURN TO FILTER SCREEN
+   * RETURN TO SETUP
    */
 
   function changePracticeSet() {
@@ -1494,7 +1562,7 @@ export function PracticePage() {
 
 
   /*
-   * PRACTICE SETUP SCREEN
+   * PRACTICE SETUP
    */
 
   if (
@@ -1557,27 +1625,19 @@ export function PracticePage() {
               }
             >
 
-              <option
-                value="all"
-              >
+              <option value="all">
                 All Prelims Questions
               </option>
 
-              <option
-                value="cse"
-              >
+              <option value="cse">
                 CSE / General Practice
               </option>
 
-              <option
-                value="upsc"
-              >
+              <option value="upsc">
                 Other UPSC Examinations
               </option>
 
-              <option
-                value="state"
-              >
+              <option value="state">
                 State PSC Examinations
               </option>
 
@@ -1586,7 +1646,7 @@ export function PracticePage() {
           </label>
 
 
-          {/* GENERAL FILTERS */}
+          {/* SUBJECT + TYPE */}
 
           <div
             className="form-two"
@@ -1607,9 +1667,7 @@ export function PracticePage() {
                 }
               >
 
-                <option
-                  value="all"
-                >
+                <option value="all">
                   All Subjects
                 </option>
 
@@ -1655,27 +1713,97 @@ export function PracticePage() {
                 }
               >
 
-                <option
-                  value="all"
-                >
+                <option value="all">
                   All Questions
                 </option>
 
-                <option
-                  value="pyq"
-                >
+                <option value="pyq">
                   Previous Year Questions
                 </option>
 
-                <option
-                  value="practice"
-                >
+                <option value="practice">
                   Practice Questions
                 </option>
 
               </select>
 
             </label>
+
+          </div>
+
+
+          {/* SESSION SIZE */}
+
+          <div
+            style={{
+              marginTop:
+                '14px',
+
+              padding:
+                '16px',
+
+              border:
+                '1px solid rgba(255,255,255,.10)',
+
+              borderRadius:
+                '14px'
+            }}
+          >
+
+            <span
+              className="eyebrow"
+            >
+              PRACTICE SESSION
+            </span>
+
+
+            <label>
+              Number of Questions
+
+              <select
+                value={
+                  sessionSize
+                }
+                onChange={
+                  event =>
+                    setSessionSize(
+                      event.target
+                        .value as
+                        SessionSize
+                    )
+                }
+              >
+
+                <option value="10">
+                  10 Questions
+                </option>
+
+                <option value="20">
+                  20 Questions
+                </option>
+
+                <option value="50">
+                  50 Questions
+                </option>
+
+                <option value="100">
+                  100 Questions
+                </option>
+
+                <option value="all">
+                  All Available Questions
+                </option>
+
+              </select>
+
+            </label>
+
+
+            <small>
+              Questions are randomly
+              selected from the matching
+              question bank.
+            </small>
 
           </div>
 
@@ -1737,9 +1865,7 @@ export function PracticePage() {
                     }
                   >
 
-                    <option
-                      value="all"
-                    >
+                    <option value="all">
                       All UPSC Exams
                     </option>
 
@@ -1781,9 +1907,7 @@ export function PracticePage() {
                     }
                   >
 
-                    <option
-                      value="all"
-                    >
+                    <option value="all">
                       All Cycles
                     </option>
 
@@ -1827,9 +1951,7 @@ export function PracticePage() {
                   }
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All Years
                   </option>
 
@@ -1920,9 +2042,7 @@ export function PracticePage() {
                   }
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All States
                   </option>
 
@@ -1970,9 +2090,7 @@ export function PracticePage() {
                   }
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All Examinations
                   </option>
 
@@ -2014,9 +2132,7 @@ export function PracticePage() {
                   }
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All Years
                   </option>
 
@@ -2049,7 +2165,7 @@ export function PracticePage() {
           )}
 
 
-          {/* AVAILABLE COUNT */}
+          {/* QUESTION COUNT */}
 
           <div
             className="callout"
@@ -2064,16 +2180,42 @@ export function PracticePage() {
                 filteredQuestions
                   .length
               }{' '}
-              questions available
+              questions match your
+              filters
             </strong>
 
 
             <p>
-              Your practice session
-              will use the questions
-              matching the selected
-              filters.
+              Your session will contain{' '}
+              <strong>
+                {
+                  sessionQuestionCount
+                }
+              </strong>{' '}
+              question
+              {
+                sessionQuestionCount ===
+                  1
+                  ? ''
+                  : 's'
+              }.
             </p>
+
+
+            {sessionSize !==
+              'all' &&
+              filteredQuestions.length >
+                Number(
+                  sessionSize
+                ) && (
+
+              <p>
+                The questions will be
+                selected randomly from
+                the matching bank.
+              </p>
+
+            )}
 
           </div>
 
@@ -2164,7 +2306,7 @@ export function PracticePage() {
 
 
   /*
-   * FINISHED RESULT
+   * RESULT SCREEN
    */
 
   if (finished) {
@@ -2381,7 +2523,7 @@ export function PracticePage() {
         </div>
 
 
-        {/* QUESTION META */}
+        {/* META */}
 
         <div
           className="tag-row"
@@ -2449,8 +2591,6 @@ export function PracticePage() {
           )}
 
 
-          {/* UPSC META */}
-
           {q.upsc_exam_name && (
 
             <span
@@ -2490,8 +2630,6 @@ export function PracticePage() {
 
           )}
 
-
-          {/* STATE META */}
 
           {q.state_psc_state && (
 
@@ -2636,7 +2774,7 @@ export function PracticePage() {
             </p>
 
 
-            {/* UPSC SOURCE DETAIL */}
+            {/* UPSC REFERENCE */}
 
             {q.upsc_exam_name && (
 
@@ -2687,7 +2825,7 @@ export function PracticePage() {
             )}
 
 
-            {/* STATE SOURCE DETAIL */}
+            {/* STATE PSC REFERENCE */}
 
             {q.state_psc_state && (
 
@@ -2720,6 +2858,7 @@ export function PracticePage() {
 
                   <p>
                     Examination:{' '}
+
                     <strong>
                       {
                         q.state_psc_exam_name
@@ -2754,8 +2893,6 @@ export function PracticePage() {
 
             )}
 
-
-            {/* SOURCE */}
 
             {q.source && (
 
