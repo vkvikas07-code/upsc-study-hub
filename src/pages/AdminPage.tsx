@@ -27,6 +27,9 @@ import {
   AdminWorkspaceStats
 } from '../components/AdminWorkspaceStats';
 
+import {
+  PendingEvaluationBadge
+} from '../components/PendingEvaluationBadge';
 import type {
   CurrentAffair
 } from '../types';
@@ -1632,22 +1635,35 @@ export function AdminPage({
           </button>
 
 
-          <button
-            type="button"
-            className={
-              adminTab ===
-              'evaluation'
-                ? 'filter active'
-                : 'filter'
-            }
-            onClick={() =>
-              switchAdminTab(
-                'evaluation'
-              )
-            }
-          >
-            Mains Evaluation
-          </button>
+         <button
+  type="button"
+  className={
+    adminTab ===
+    'evaluation'
+      ? 'filter active'
+      : 'filter'
+  }
+  onClick={() =>
+    switchAdminTab(
+      'evaluation'
+    )
+  }
+  style={{
+    display:
+      'inline-flex',
+
+    alignItems:
+      'center',
+
+    gap:
+      '4px'
+  }}
+>
+  Mains Evaluation
+
+  <PendingEvaluationBadge />
+
+</button>
 
         </div>
 
