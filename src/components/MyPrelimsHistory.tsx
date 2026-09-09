@@ -106,6 +106,10 @@ const ATTEMPT_SELECT = `
 `;
 
 
+/*
+ * SAFE NUMBER
+ */
+
 function safeNumber(
   value:
     number |
@@ -125,6 +129,10 @@ function safeNumber(
 }
 
 
+/*
+ * ROUND NUMBER
+ */
+
 function roundNumber(
   value: number,
   decimals = 2
@@ -143,6 +151,10 @@ function roundNumber(
 }
 
 
+/*
+ * FORMAT DURATION
+ */
+
 function formatDuration(
   totalSeconds:
     number | null
@@ -156,11 +168,13 @@ function formatDuration(
     return '—';
   }
 
+
   const hours =
     Math.floor(
       totalSeconds /
       3600
     );
+
 
   const minutes =
     Math.floor(
@@ -170,6 +184,7 @@ function formatDuration(
       ) /
       60
     );
+
 
   const seconds =
     totalSeconds %
@@ -199,6 +214,10 @@ function formatDuration(
 }
 
 
+/*
+ * ATTEMPT MODE
+ */
+
 function getMode(
   attempt:
     PracticeAttempt
@@ -214,6 +233,13 @@ function getMode(
 }
 
 
+/*
+ * ATTEMPTED QUESTION COUNT
+ *
+ * Supports both new attempts
+ * and old practice-history rows.
+ */
+
 function getAttemptedCount(
   attempt:
     PracticeAttempt
@@ -225,37 +251,40 @@ function getAttemptedCount(
         .attempted_questions
     );
 
+
   if (stored > 0) {
+
     return stored;
   }
 
 
   const calculated =
     safeNumber(
-      attempt.correct_answers
+      attempt
+        .correct_answers
     ) +
     safeNumber(
-      attempt.incorrect_answers
+      attempt
+        .incorrect_answers
     );
 
 
   if (calculated > 0) {
+
     return calculated;
   }
 
 
-  /*
-   * Compatibility for old
-   * practice-history rows.
-   */
-
   if (
-    getMode(attempt) ===
+    getMode(
+      attempt
+    ) ===
       'practice'
   ) {
 
     return safeNumber(
-      attempt.total_questions
+      attempt
+        .total_questions
     );
   }
 
@@ -264,12 +293,17 @@ function getAttemptedCount(
 }
 
 
+/*
+ * QUESTION SOURCE LABEL
+ */
+
 function originLabel(
   config:
     PracticeConfig | null
 ) {
 
   if (!config) {
+
     return '';
   }
 
@@ -288,13 +322,17 @@ function originLabel(
       'upsc'
   ) {
 
-    return (
+    if (
       config.upsc_exam &&
       config.upsc_exam !==
         'all'
-        ? config.upsc_exam
-        : 'Other UPSC'
-    );
+    ) {
+
+      return config.upsc_exam;
+    }
+
+
+    return 'Other UPSC';
   }
 
 
@@ -312,6 +350,7 @@ function originLabel(
       return config.state;
     }
 
+
     return 'State PSC';
   }
 
@@ -321,6 +360,10 @@ function originLabel(
 
 
 export function MyPrelimsHistory() {
+
+  /*
+   * STATE
+   */
 
   const [
     attempts,
@@ -454,6 +497,7 @@ export function MyPrelimsHistory() {
       ) as PracticeAttempt[]
     );
 
+
     setLoading(false);
   }
 
@@ -469,7 +513,7 @@ export function MyPrelimsHistory() {
 
 
   /*
-   * SPLIT MODES
+   * PRACTICE ATTEMPTS
    */
 
   const practiceAttempts =
@@ -487,6 +531,10 @@ export function MyPrelimsHistory() {
       ]
     );
 
+
+  /*
+   * EXAM ATTEMPTS
+   */
 
   const examAttempts =
     useMemo(
@@ -528,7 +576,7 @@ export function MyPrelimsHistory() {
 
 
   /*
-   * TOTAL QUESTIONS ATTEMPTED
+   * TOTAL ATTEMPTED QUESTIONS
    */
 
   const totalAttemptedQuestions =
@@ -640,7 +688,7 @@ export function MyPrelimsHistory() {
 
 
   /*
-   * BEST CSE EXAM %
+   * BEST EXAM SCORE
    */
 
   const bestExamScore =
@@ -675,11 +723,12 @@ export function MyPrelimsHistory() {
 
 
   /*
-   * DATE
+   * FORMAT DATE
    */
 
   function formatDate(
-    value: string
+    value:
+      string
   ) {
 
     return new Date(
@@ -707,7 +756,7 @@ export function MyPrelimsHistory() {
 
 
   /*
-   * PRACTICE LABEL
+   * PERFORMANCE LABEL
    */
 
   function performanceLabel(
@@ -716,7 +765,8 @@ export function MyPrelimsHistory() {
   ) {
 
     if (
-      scorePercent >= 80
+      scorePercent >=
+      80
     ) {
 
       return 'Strong';
@@ -724,7 +774,8 @@ export function MyPrelimsHistory() {
 
 
     if (
-      scorePercent >= 60
+      scorePercent >=
+      60
     ) {
 
       return 'Good';
@@ -732,7 +783,8 @@ export function MyPrelimsHistory() {
 
 
     if (
-      scorePercent >= 40
+      scorePercent >=
+      40
     ) {
 
       return 'Needs Revision';
@@ -748,7 +800,8 @@ export function MyPrelimsHistory() {
     <section
       className="panel"
       style={{
-        marginTop: '22px'
+        marginTop:
+          '22px'
       }}
     >
 
@@ -756,12 +809,20 @@ export function MyPrelimsHistory() {
 
       <div
         style={{
-          display: 'flex',
+          display:
+            'flex',
+
           justifyContent:
             'space-between',
-          alignItems: 'center',
-          gap: '12px',
-          flexWrap: 'wrap'
+
+          alignItems:
+            'center',
+
+          gap:
+            '12px',
+
+          flexWrap:
+            'wrap'
         }}
       >
 
@@ -800,16 +861,19 @@ export function MyPrelimsHistory() {
       </div>
 
 
-      {/* SUMMARY */}
+      {/* SUMMARY CARDS */}
 
       {!loading && (
 
         <div
           className="metrics-grid"
           style={{
-            marginTop: '18px'
+            marginTop:
+              '18px'
           }}
         >
+
+          {/* ATTEMPTS */}
 
           <article
             className="metric-card"
@@ -836,6 +900,8 @@ export function MyPrelimsHistory() {
           </article>
 
 
+          {/* QUESTIONS */}
+
           <article
             className="metric-card"
           >
@@ -860,6 +926,8 @@ export function MyPrelimsHistory() {
 
           </article>
 
+
+          {/* PRACTICE AVERAGE */}
 
           <article
             className="metric-card"
@@ -888,6 +956,8 @@ export function MyPrelimsHistory() {
           </article>
 
 
+          {/* EXAM AVERAGE */}
+
           <article
             className="metric-card"
           >
@@ -914,6 +984,8 @@ export function MyPrelimsHistory() {
 
           </article>
 
+
+          {/* BEST EXAM */}
 
           <article
             className="metric-card"
@@ -944,18 +1016,24 @@ export function MyPrelimsHistory() {
       )}
 
 
-      {/* MODE FILTER */}
+      {/* HISTORY MODE FILTER */}
 
       {!loading &&
         attempts.length > 0 && (
 
         <div
           style={{
-            marginTop: '20px',
-            padding: '16px',
+            marginTop:
+              '20px',
+
+            padding:
+              '16px',
+
             border:
               '1px solid rgba(255,255,255,.10)',
-            borderRadius: '14px'
+
+            borderRadius:
+              '14px'
           }}
         >
 
@@ -966,45 +1044,22 @@ export function MyPrelimsHistory() {
           </span>
 
 
-         <div
-  className="history-filter-control"
->
-  <label
-    htmlFor="prelims-history-session-type"
-  >
-    Session Type
-  </label>
+          <div
+            className="history-filter-control"
+          >
 
-  <select
-    id="prelims-history-session-type"
-    value={
-      modeFilter
-    }
-    onChange={
-      event =>
-        setModeFilter(
-          event.target
-            .value as
-            | 'all'
-            | AttemptMode
-        )
-    }
-  >
+            <label
+              htmlFor="prelims-history-session-type"
+            >
+              Session Type
+            </label>
 
-    <option value="all">
-      All Sessions
-    </option>
 
-    <option value="practice">
-      Practice Mode
-    </option>
-
-    <option value="exam">
-      CSE Exam Mode
-    </option>
-
-  </select>
-</div>
+            <select
+              id="prelims-history-session-type"
+              value={
+                modeFilter
+              }
               onChange={
                 event =>
                   setModeFilter(
@@ -1016,21 +1071,29 @@ export function MyPrelimsHistory() {
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Sessions
               </option>
 
-              <option value="practice">
+
+              <option
+                value="practice"
+              >
                 Practice Mode
               </option>
 
-              <option value="exam">
+
+              <option
+                value="exam"
+              >
                 CSE Exam Mode
               </option>
 
             </select>
 
-          </label>
+          </div>
 
         </div>
 
@@ -1056,7 +1119,8 @@ export function MyPrelimsHistory() {
         <div
           className="callout"
           style={{
-            marginTop: '18px'
+            marginTop:
+              '18px'
           }}
         >
 
@@ -1069,22 +1133,25 @@ export function MyPrelimsHistory() {
       )}
 
 
-      {/* EMPTY */}
+      {/* NO HISTORY */}
 
       {!loading &&
         !error &&
-        attempts.length === 0 && (
+        attempts.length ===
+          0 && (
 
         <div
           className="callout"
           style={{
-            marginTop: '18px'
+            marginTop:
+              '18px'
           }}
         >
 
           <strong>
             No Prelims attempts yet
           </strong>
+
 
           <p>
             Complete a Practice Mode
@@ -1098,6 +1165,8 @@ export function MyPrelimsHistory() {
       )}
 
 
+      {/* NO RESULT AFTER FILTER */}
+
       {!loading &&
         !error &&
         attempts.length > 0 &&
@@ -1107,13 +1176,15 @@ export function MyPrelimsHistory() {
         <div
           className="callout"
           style={{
-            marginTop: '18px'
+            marginTop:
+              '18px'
           }}
         >
 
           <strong>
             No sessions found
           </strong>
+
 
           <p>
             There are no attempts
@@ -1130,9 +1201,14 @@ export function MyPrelimsHistory() {
 
       <div
         style={{
-          display: 'grid',
-          gap: '14px',
-          marginTop: '20px'
+          display:
+            'grid',
+
+          gap:
+            '14px',
+
+          marginTop:
+            '20px'
         }}
       >
 
@@ -1143,6 +1219,7 @@ export function MyPrelimsHistory() {
               getMode(
                 attempt
               );
+
 
             const scorePercent =
               roundNumber(
@@ -1221,25 +1298,35 @@ export function MyPrelimsHistory() {
                 style={{
                   border:
                     '1px solid rgba(255,255,255,0.10)',
+
                   borderRadius:
                     '16px',
-                  padding: '18px'
+
+                  padding:
+                    '18px'
                 }}
               >
 
                 <div
                   style={{
-                    display: 'flex',
+                    display:
+                      'flex',
+
                     justifyContent:
                       'space-between',
-                    gap: '16px',
+
+                    gap:
+                      '16px',
+
                     alignItems:
                       'flex-start',
-                    flexWrap: 'wrap'
+
+                    flexWrap:
+                      'wrap'
                   }}
                 >
 
-                  {/* LEFT */}
+                  {/* LEFT SIDE */}
 
                   <div
                     style={{
@@ -1247,6 +1334,8 @@ export function MyPrelimsHistory() {
                         '1 1 520px'
                     }}
                   >
+
+                    {/* TAGS */}
 
                     <div
                       className="tag-row"
@@ -1372,7 +1461,7 @@ export function MyPrelimsHistory() {
                     </div>
 
 
-                    {/* PRACTICE */}
+                    {/* PRACTICE MODE */}
 
                     {mode ===
                       'practice' && (
@@ -1433,7 +1522,10 @@ export function MyPrelimsHistory() {
 
 
                           {attempt
-                            .duration_seconds && (
+                            .duration_seconds &&
+                            attempt
+                              .duration_seconds >
+                              0 && (
 
                             <span
                               className="tag"
@@ -1455,7 +1547,7 @@ export function MyPrelimsHistory() {
                     )}
 
 
-                    {/* EXAM */}
+                    {/* EXAM MODE */}
 
                     {mode ===
                       'exam' && (
@@ -1572,8 +1664,12 @@ export function MyPrelimsHistory() {
                               }
                             </strong>
 
+
                             {attempt
-                              .time_limit_seconds
+                              .time_limit_seconds &&
+                              attempt
+                                .time_limit_seconds >
+                                0
                               ? (
                                 <>
                                   {' '}of{' '}
@@ -1598,6 +1694,8 @@ export function MyPrelimsHistory() {
                     )}
 
 
+                    {/* DATE */}
+
                     <p>
                       {
                         formatDate(
@@ -1616,6 +1714,7 @@ export function MyPrelimsHistory() {
                     style={{
                       textAlign:
                         'center',
+
                       minWidth:
                         '120px'
                     }}
@@ -1637,6 +1736,7 @@ export function MyPrelimsHistory() {
                       style={{
                         fontSize:
                           '2rem',
+
                         margin:
                           '6px 0'
                       }}
@@ -1656,7 +1756,8 @@ export function MyPrelimsHistory() {
                             marks,
                             2
                           )
-                        }/
+                        }
+                        /
                         {
                           roundNumber(
                             maxMarks,
@@ -1672,6 +1773,7 @@ export function MyPrelimsHistory() {
                 </div>
 
               </article>
+
             );
           }
         )}
