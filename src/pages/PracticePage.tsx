@@ -9,6 +9,10 @@ import {
 } from '../components/TopBar';
 
 import {
+  PrelimsBookmarkButton
+} from '../components/PrelimsBookmarkButton';
+
+import {
   supabase
 } from '../lib/supabase';
 
@@ -18,11 +22,9 @@ type QuestionOrigin =
   | 'upsc'
   | 'state';
 
-
 type SessionMode =
   | 'practice'
   | 'exam';
-
 
 type SessionSize =
   | '10'
@@ -30,7 +32,6 @@ type SessionSize =
   | '50'
   | '100'
   | 'all';
-
 
 type Difficulty =
   | 'easy'
@@ -84,7 +85,6 @@ type ExamResult = {
   correct: number;
   incorrect: number;
   unanswered: number;
-
   markedForReview: number;
 
   positiveMarks: number;
@@ -129,21 +129,14 @@ const QUESTION_SELECT = `
 
 /*
  * CSE PRELIMS PATTERN
- *
- * 100 questions
- * 200 marks
- * 120 minutes
  */
 
-const CSE_MARKS_PER_QUESTION =
-  2;
+const CSE_MARKS_PER_QUESTION = 2;
 
 const CSE_NEGATIVE_MARK =
-  CSE_MARKS_PER_QUESTION /
-  3;
+  CSE_MARKS_PER_QUESTION / 3;
 
-const CSE_SECONDS_PER_QUESTION =
-  72;
+const CSE_SECONDS_PER_QUESTION = 72;
 
 
 /*
@@ -154,15 +147,11 @@ function getQuestionOrigin(
   item: LiveQuestion
 ): QuestionOrigin {
 
-  if (
-    item.state_psc_state
-  ) {
+  if (item.state_psc_state) {
     return 'state';
   }
 
-  if (
-    item.upsc_exam_name
-  ) {
+  if (item.upsc_exam_name) {
     return 'upsc';
   }
 
@@ -178,13 +167,10 @@ function shuffleQuestions(
   items: LiveQuestion[]
 ) {
 
-  const shuffled = [
-    ...items
-  ];
+  const shuffled = [...items];
 
   for (
-    let i =
-      shuffled.length - 1;
+    let i = shuffled.length - 1;
     i > 0;
     i--
   ) {
@@ -195,14 +181,13 @@ function shuffleQuestions(
         (i + 1)
       );
 
-    const temporary =
-      shuffled[i];
-
-    shuffled[i] =
-      shuffled[j];
-
-    shuffled[j] =
-      temporary;
+    [
+      shuffled[i],
+      shuffled[j]
+    ] = [
+      shuffled[j],
+      shuffled[i]
+    ];
   }
 
   return shuffled;
@@ -210,7 +195,7 @@ function shuffleQuestions(
 
 
 /*
- * TIME DISPLAY
+ * FORMAT TIME
  */
 
 function formatTime(
@@ -225,8 +210,7 @@ function formatTime(
 
   const hours =
     Math.floor(
-      safeSeconds /
-      3600
+      safeSeconds / 3600
     );
 
   const minutes =
@@ -234,18 +218,14 @@ function formatTime(
       (
         safeSeconds %
         3600
-      ) /
-      60
+      ) / 60
     );
 
   const remainingSeconds =
-    safeSeconds %
-    60;
+    safeSeconds % 60;
 
 
-  if (
-    hours > 0
-  ) {
+  if (hours > 0) {
 
     return (
       `${hours}:` +
@@ -263,7 +243,7 @@ function formatTime(
 
 
 /*
- * ROUND NUMBER
+ * ROUND
  */
 
 function roundNumber(
@@ -294,30 +274,24 @@ export function PracticePage() {
     allQuestions,
     setAllQuestions
   ] =
-    useState<
-      LiveQuestion[]
-    >([]);
+    useState<LiveQuestion[]>([]);
 
 
   /*
-   * ACTIVE QUESTIONS
+   * ACTIVE SESSION
    */
 
   const [
     questions,
     setQuestions
   ] =
-    useState<
-      LiveQuestion[]
-    >([]);
-
+    useState<LiveQuestion[]>([]);
 
   const [
     practiceStarted,
     setPracticeStarted
   ] =
     useState(false);
-
 
   const [
     sessionMode,
@@ -329,7 +303,7 @@ export function PracticePage() {
 
 
   /*
-   * PRACTICE SESSION
+   * PRACTICE STATE
    */
 
   const [
@@ -338,15 +312,13 @@ export function PracticePage() {
   ] =
     useState(0);
 
-
   const [
     selected,
     setSelected
   ] =
-    useState<
-      number | null
-    >(null);
-
+    useState<number | null>(
+      null
+    );
 
   const [
     score,
@@ -354,15 +326,11 @@ export function PracticePage() {
   ] =
     useState(0);
 
-
   const [
     answers,
     setAnswers
   ] =
-    useState<
-      AnswerRecord[]
-    >([]);
-
+    useState<AnswerRecord[]>([]);
 
   const [
     finished,
@@ -380,37 +348,24 @@ export function PracticePage() {
     setExamSelections
   ] =
     useState<
-      Record<
-        string,
-        number
-      >
+      Record<string, number>
     >({});
-
-
-  /*
-   * MARK FOR REVIEW
-   */
 
   const [
     markedForReview,
     setMarkedForReview
   ] =
     useState<
-      Record<
-        string,
-        boolean
-      >
+      Record<string, boolean>
     >({});
-
 
   const [
     timeLeft,
     setTimeLeft
   ] =
-    useState<
-      number | null
-    >(null);
-
+    useState<number | null>(
+      null
+    );
 
   const [
     timeLimitSeconds,
@@ -418,28 +373,31 @@ export function PracticePage() {
   ] =
     useState(0);
 
-
   const [
     sessionStartedAt,
     setSessionStartedAt
   ] =
-    useState<
-      number | null
-    >(null);
-
+    useState<number | null>(
+      null
+    );
 
   const [
     examResult,
     setExamResult
   ] =
-    useState<
-      ExamResult | null
-    >(null);
-
+    useState<ExamResult | null>(
+      null
+    );
 
   const [
     showExamReview,
     setShowExamReview
+  ] =
+    useState(false);
+
+  const [
+    examSubmitting,
+    setExamSubmitting
   ] =
     useState(false);
 
@@ -454,13 +412,11 @@ export function PracticePage() {
   ] =
     useState(true);
 
-
   const [
     error,
     setError
   ] =
     useState('');
-
 
   const [
     setupMessage,
@@ -468,20 +424,17 @@ export function PracticePage() {
   ] =
     useState('');
 
-
   const [
     savingResult,
     setSavingResult
   ] =
     useState(false);
 
-
   const [
     resultMessage,
     setResultMessage
   ] =
     useState('');
-
 
   const [
     attemptSaved,
@@ -503,13 +456,11 @@ export function PracticePage() {
       QuestionOrigin
     >('all');
 
-
   const [
     searchText,
     setSearchText
   ] =
     useState('');
-
 
   const [
     subjectFilter,
@@ -517,13 +468,11 @@ export function PracticePage() {
   ] =
     useState('all');
 
-
   const [
     topicFilter,
     setTopicFilter
   ] =
     useState('all');
-
 
   const [
     difficultyFilter,
@@ -533,7 +482,6 @@ export function PracticePage() {
       'all' |
       Difficulty
     >('all');
-
 
   const [
     typeFilter,
@@ -545,13 +493,11 @@ export function PracticePage() {
       'pyq'
     >('all');
 
-
   const [
     csePyqYearFilter,
     setCsePyqYearFilter
   ] =
     useState('all');
-
 
   const [
     sessionSize,
@@ -572,13 +518,11 @@ export function PracticePage() {
   ] =
     useState('all');
 
-
   const [
     upscCycleFilter,
     setUpscCycleFilter
   ] =
     useState('all');
-
 
   const [
     upscYearFilter,
@@ -597,13 +541,11 @@ export function PracticePage() {
   ] =
     useState('all');
 
-
   const [
     stateExamFilter,
     setStateExamFilter
   ] =
     useState('all');
-
 
   const [
     stateYearFilter,
@@ -613,30 +555,186 @@ export function PracticePage() {
 
 
   /*
-   * LOAD QUESTIONS
+   * BOOKMARK / REVISION FILTER
    */
 
-  async function loadQuestions() {
+  const [
+    bookmarkedOnly,
+    setBookmarkedOnly
+  ] =
+    useState(false);
 
-    if (
-      !supabase
-    ) {
+  const [
+    bookmarkedQuestionIds,
+    setBookmarkedQuestionIds
+  ] =
+    useState<string[]>([]);
 
-      setError(
-        'Practice database is not configured.'
-      );
+  const [
+    bookmarkSignedIn,
+    setBookmarkSignedIn
+  ] =
+    useState(false);
 
-      setLoading(
-        false
-      );
+
+  /*
+   * RESET ACTIVE SESSION
+   */
+
+  function resetActiveSession() {
+
+    setQuestions([]);
+
+    setPracticeStarted(false);
+
+    setIndex(0);
+
+    setSelected(null);
+
+    setScore(0);
+
+    setAnswers([]);
+
+    setFinished(false);
+
+    setExamSelections({});
+
+    setMarkedForReview({});
+
+    setTimeLeft(null);
+
+    setTimeLimitSeconds(0);
+
+    setSessionStartedAt(null);
+
+    setExamResult(null);
+
+    setShowExamReview(false);
+
+    setExamSubmitting(false);
+
+    setAttemptSaved(false);
+
+    setResultMessage('');
+  }
+
+
+  /*
+   * LOAD BOOKMARKS
+   */
+
+  async function loadBookmarkedQuestionIds() {
+
+    if (!supabase) {
+
+      setBookmarkedQuestionIds([]);
+
+      setBookmarkSignedIn(false);
 
       return;
     }
 
 
-    setLoading(
-      true
+    const {
+      data: {
+        user
+      }
+    } =
+      await supabase
+        .auth
+        .getUser();
+
+
+    if (!user) {
+
+      setBookmarkedQuestionIds([]);
+
+      setBookmarkSignedIn(false);
+
+      setBookmarkedOnly(false);
+
+      return;
+    }
+
+
+    setBookmarkSignedIn(true);
+
+
+    const {
+      data,
+      error:
+        bookmarkError
+    } =
+      await supabase
+        .from(
+          'bookmarks'
+        )
+        .select(
+          'content_id'
+        )
+        .eq(
+          'user_id',
+          user.id
+        )
+        .eq(
+          'content_type',
+          'prelims_question'
+        );
+
+
+    if (bookmarkError) {
+
+      console.error(
+        'Unable to load saved Prelims questions:',
+        bookmarkError
+      );
+
+      setBookmarkedQuestionIds([]);
+
+      return;
+    }
+
+
+    const ids =
+      (
+        data || []
+      )
+        .map(
+          item =>
+            String(
+              item.content_id
+            )
+        )
+        .filter(Boolean);
+
+
+    setBookmarkedQuestionIds(
+      Array.from(
+        new Set(ids)
+      )
     );
+  }
+
+
+  /*
+   * LOAD QUESTIONS
+   */
+
+  async function loadQuestions() {
+
+    if (!supabase) {
+
+      setError(
+        'Practice database is not configured.'
+      );
+
+      setLoading(false);
+
+      return;
+    }
+
+
+    setLoading(true);
 
     setError('');
 
@@ -672,9 +770,7 @@ export function PracticePage() {
         );
 
 
-    if (
-      loadError
-    ) {
+    if (loadError) {
 
       console.error(
         'Unable to load questions:',
@@ -685,9 +781,7 @@ export function PracticePage() {
         loadError.message
       );
 
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
@@ -712,9 +806,7 @@ export function PracticePage() {
               )
                 ? item.options.map(
                     option =>
-                      String(
-                        option
-                      )
+                      String(option)
                   )
                 : [],
 
@@ -740,9 +832,7 @@ export function PracticePage() {
               )
                 ? item.tags.map(
                     tag =>
-                      String(
-                        tag
-                      )
+                      String(tag)
                   )
                 : [],
 
@@ -790,7 +880,6 @@ export function PracticePage() {
 
             source_url:
               item.source_url
-
           })
         );
 
@@ -799,11 +888,14 @@ export function PracticePage() {
       formatted
     );
 
+
+    await loadBookmarkedQuestionIds();
+
+
     resetActiveSession();
 
-    setLoading(
-      false
-    );
+
+    setLoading(false);
   }
 
 
@@ -852,8 +944,7 @@ export function PracticePage() {
 
 
                 if (
-                  current <=
-                  1
+                  current <= 1
                 ) {
 
                   return 0;
@@ -886,7 +977,7 @@ export function PracticePage() {
 
 
   /*
-   * AUTO SUBMIT
+   * AUTO SUBMIT EXAM
    */
 
   useEffect(
@@ -897,11 +988,12 @@ export function PracticePage() {
         sessionMode ===
           'exam' &&
         !finished &&
+        !examSubmitting &&
         timeLeft ===
           0
       ) {
 
-        submitExam(
+        void submitExam(
           true
         );
       }
@@ -911,67 +1003,10 @@ export function PracticePage() {
       timeLeft,
       practiceStarted,
       sessionMode,
-      finished
+      finished,
+      examSubmitting
     ]
   );
-
-
-  /*
-   * RESET ACTIVE SESSION
-   */
-
-  function resetActiveSession() {
-
-    setQuestions([]);
-
-    setPracticeStarted(
-      false
-    );
-
-    setIndex(0);
-
-    setSelected(
-      null
-    );
-
-    setScore(0);
-
-    setAnswers([]);
-
-    setFinished(
-      false
-    );
-
-    setExamSelections({});
-
-    setMarkedForReview({});
-
-    setTimeLeft(
-      null
-    );
-
-    setTimeLimitSeconds(
-      0
-    );
-
-    setSessionStartedAt(
-      null
-    );
-
-    setExamResult(
-      null
-    );
-
-    setShowExamReview(
-      false
-    );
-
-    setAttemptSaved(
-      false
-    );
-
-    setResultMessage('');
-  }
 
 
   /*
@@ -988,9 +1023,7 @@ export function PracticePage() {
                 item =>
                   item.subject
               )
-              .filter(
-                Boolean
-              )
+              .filter(Boolean)
           )
         ).sort(),
       [
@@ -1025,9 +1058,7 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           )
         ).sort(),
@@ -1077,8 +1108,7 @@ export function PracticePage() {
                   value
                 ):
                   value is number =>
-                    value !==
-                    null
+                    value !== null
               )
           )
         ).sort(
@@ -1097,7 +1127,7 @@ export function PracticePage() {
 
 
   /*
-   * OTHER UPSC EXAMS
+   * OTHER UPSC OPTIONS
    */
 
   const upscExams =
@@ -1115,9 +1145,7 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           )
         ).sort(),
@@ -1149,9 +1177,7 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           )
         ).sort(),
@@ -1184,8 +1210,7 @@ export function PracticePage() {
                   value
                 ):
                   value is number =>
-                    value !==
-                    null
+                    value !== null
               )
           )
         ).sort(
@@ -1203,7 +1228,7 @@ export function PracticePage() {
 
 
   /*
-   * STATES
+   * STATE OPTIONS
    */
 
   const states =
@@ -1221,9 +1246,7 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           )
         ).sort(),
@@ -1232,10 +1255,6 @@ export function PracticePage() {
       ]
     );
 
-
-  /*
-   * STATE EXAMS
-   */
 
   const stateExams =
     useMemo(
@@ -1259,9 +1278,7 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           )
         ).sort(),
@@ -1271,10 +1288,6 @@ export function PracticePage() {
       ]
     );
 
-
-  /*
-   * STATE YEARS
-   */
 
   const stateYears =
     useMemo(
@@ -1306,8 +1319,7 @@ export function PracticePage() {
                   value
                 ):
                   value is number =>
-                    value !==
-                    null
+                    value !== null
               )
           )
         ).sort(
@@ -1390,10 +1402,9 @@ export function PracticePage() {
 
             const matchesSearch =
               !search ||
-              searchableText
-                .includes(
-                  search
-                );
+              searchableText.includes(
+                search
+              );
 
 
             const matchesOrigin =
@@ -1427,13 +1438,11 @@ export function PracticePage() {
             const matchesType =
               typeFilter ===
                 'all' ||
-
               (
                 typeFilter ===
                   'pyq' &&
                 item.is_pyq
               ) ||
-
               (
                 typeFilter ===
                   'practice' &&
@@ -1444,7 +1453,6 @@ export function PracticePage() {
             const matchesCsePyqYear =
               csePyqYearFilter ===
                 'all' ||
-
               (
                 origin ===
                   'cse' &&
@@ -1505,6 +1513,13 @@ export function PracticePage() {
                 stateYearFilter;
 
 
+            const matchesBookmarked =
+              !bookmarkedOnly ||
+              bookmarkedQuestionIds.includes(
+                item.id
+              );
+
+
             return (
               matchesSearch &&
               matchesOrigin &&
@@ -1518,7 +1533,8 @@ export function PracticePage() {
               matchesUpscYear &&
               matchesState &&
               matchesStateExam &&
-              matchesStateYear
+              matchesStateYear &&
+              matchesBookmarked
             );
           }
         ),
@@ -1536,13 +1552,15 @@ export function PracticePage() {
         upscYearFilter,
         stateFilter,
         stateExamFilter,
-        stateYearFilter
+        stateYearFilter,
+        bookmarkedOnly,
+        bookmarkedQuestionIds
       ]
     );
 
 
   /*
-   * SESSION QUESTION COUNT
+   * SESSION COUNT
    */
 
   const sessionQuestionCount =
@@ -1562,8 +1580,7 @@ export function PracticePage() {
    */
 
   function changeSessionMode(
-    mode:
-      SessionMode
+    mode: SessionMode
   ) {
 
     setSessionMode(
@@ -1744,6 +1761,10 @@ export function PracticePage() {
       'all'
     );
 
+    setBookmarkedOnly(
+      false
+    );
+
     setSetupMessage('');
   }
 
@@ -1801,11 +1822,13 @@ export function PracticePage() {
       search:
         searchText,
 
+      bookmarked_only:
+        bookmarkedOnly,
+
       cse_pattern:
         sessionMode ===
           'exam'
           ? {
-
               marks_per_question:
                 CSE_MARKS_PER_QUESTION,
 
@@ -1814,7 +1837,6 @@ export function PracticePage() {
 
               seconds_per_question:
                 CSE_SECONDS_PER_QUESTION
-
             }
           : null
     };
@@ -1833,7 +1855,9 @@ export function PracticePage() {
     ) {
 
       setSetupMessage(
-        'No published questions match these filters.'
+        bookmarkedOnly
+          ? 'No saved questions match the selected filters.'
+          : 'No published questions match these filters.'
       );
 
       return;
@@ -1879,33 +1903,25 @@ export function PracticePage() {
 
     setIndex(0);
 
-    setSelected(
-      null
-    );
+    setSelected(null);
 
     setScore(0);
 
     setAnswers([]);
 
-    setFinished(
-      false
-    );
+    setFinished(false);
 
     setExamSelections({});
 
     setMarkedForReview({});
 
-    setExamResult(
-      null
-    );
+    setExamResult(null);
 
-    setShowExamReview(
-      false
-    );
+    setShowExamReview(false);
 
-    setAttemptSaved(
-      false
-    );
+    setExamSubmitting(false);
+
+    setAttemptSaved(false);
 
     setResultMessage('');
 
@@ -1925,6 +1941,7 @@ export function PracticePage() {
         selectedSet.length *
         CSE_SECONDS_PER_QUESTION;
 
+
       setTimeLimitSeconds(
         limit
       );
@@ -1935,13 +1952,9 @@ export function PracticePage() {
 
     } else {
 
-      setTimeLimitSeconds(
-        0
-      );
+      setTimeLimitSeconds(0);
 
-      setTimeLeft(
-        null
-      );
+      setTimeLeft(null);
     }
 
 
@@ -1952,12 +1965,11 @@ export function PracticePage() {
 
 
   /*
-   * PRACTICE MODE ANSWER
+   * PRACTICE ANSWER
    */
 
   function answerPracticeQuestion(
-    option:
-      number
+    option: number
   ) {
 
     if (
@@ -1985,9 +1997,7 @@ export function PracticePage() {
     );
 
 
-    if (
-      isCorrect
-    ) {
+    if (isCorrect) {
 
       setScore(
         current =>
@@ -2024,18 +2034,14 @@ export function PracticePage() {
    */
 
   function answerExamQuestion(
-    option:
-      number
+    option: number
   ) {
 
     const currentQuestion =
       questions[index];
 
 
-    if (
-      !currentQuestion
-    ) {
-
+    if (!currentQuestion) {
       return;
     }
 
@@ -2061,10 +2067,7 @@ export function PracticePage() {
       questions[index];
 
 
-    if (
-      !currentQuestion
-    ) {
-
+    if (!currentQuestion) {
       return;
     }
 
@@ -2089,7 +2092,7 @@ export function PracticePage() {
 
 
   /*
-   * TOGGLE MARK FOR REVIEW
+   * MARK FOR REVIEW
    */
 
   function toggleMarkForReview() {
@@ -2098,46 +2101,33 @@ export function PracticePage() {
       questions[index];
 
 
-    if (
-      !currentQuestion
-    ) {
-
+    if (!currentQuestion) {
       return;
     }
 
 
     setMarkedForReview(
-      current => {
+      current => ({
+        ...current,
 
-        const currentlyMarked =
-          Boolean(
+        [currentQuestion.id]:
+          !Boolean(
             current[
               currentQuestion.id
             ]
-          );
-
-
-        return {
-          ...current,
-
-          [currentQuestion.id]:
-            !currentlyMarked
-        };
-      }
+          )
+      })
     );
   }
 
 
   /*
-   * SESSION DURATION
+   * DURATION
    */
 
   function getDurationSeconds() {
 
-    if (
-      !sessionStartedAt
-    ) {
-
+    if (!sessionStartedAt) {
       return 0;
     }
 
@@ -2157,37 +2147,22 @@ export function PracticePage() {
 
 
   /*
-   * SAVE RESULT
+   * SAVE ATTEMPT
    */
 
   async function saveAttempt(
-    mode:
-      SessionMode,
-
-    records:
-      AnswerRecord[],
-
-    correct:
-      number,
-
-    incorrect:
-      number,
-
-    unanswered:
-      number,
-
+    mode: SessionMode,
+    records: AnswerRecord[],
+    correct: number,
+    incorrect: number,
+    unanswered: number,
     marksObtained:
       number | null,
-
     maxMarks:
       number | null,
-
     negativeMarks:
       number | null,
-
-    durationSeconds:
-      number,
-
+    durationSeconds: number,
     limitSeconds:
       number | null
   ) {
@@ -2203,9 +2178,7 @@ export function PracticePage() {
     }
 
 
-    setSavingResult(
-      true
-    );
+    setSavingResult(true);
 
     setResultMessage('');
 
@@ -2220,13 +2193,9 @@ export function PracticePage() {
         .getUser();
 
 
-    if (
-      !user
-    ) {
+    if (!user) {
 
-      setSavingResult(
-        false
-      );
+      setSavingResult(false);
 
       setResultMessage(
         'Result completed. Sign in as a student to save practice history.'
@@ -2262,12 +2231,10 @@ export function PracticePage() {
     const percentage =
       mode ===
         'exam' &&
-      maxMarks &&
-      maxMarks >
-        0 &&
+      maxMarks !== null &&
+      maxMarks > 0 &&
       marksObtained !==
         null
-
         ? roundNumber(
             (
               marksObtained /
@@ -2275,7 +2242,6 @@ export function PracticePage() {
             ) *
             100
           )
-
         : roundNumber(
             (
               correct /
@@ -2344,9 +2310,7 @@ export function PracticePage() {
         });
 
 
-    if (
-      saveError
-    ) {
+    if (saveError) {
 
       console.error(
         'Unable to save practice result:',
@@ -2357,17 +2321,13 @@ export function PracticePage() {
         `Result could not be saved: ${saveError.message}`
       );
 
-      setSavingResult(
-        false
-      );
+      setSavingResult(false);
 
       return;
     }
 
 
-    setAttemptSaved(
-      true
-    );
+    setAttemptSaved(true);
 
 
     setResultMessage(
@@ -2378,14 +2338,12 @@ export function PracticePage() {
     );
 
 
-    setSavingResult(
-      false
-    );
+    setSavingResult(false);
   }
 
 
   /*
-   * FINISH PRACTICE
+   * FINISH PRACTICE MODE
    */
 
   async function finishPracticeMode() {
@@ -2413,35 +2371,21 @@ export function PracticePage() {
       );
 
 
-    setScore(
-      correct
-    );
+    setScore(correct);
 
-    setFinished(
-      true
-    );
+    setFinished(true);
 
 
     await saveAttempt(
-
       'practice',
-
       answers,
-
       correct,
-
       incorrect,
-
       unanswered,
-
       null,
-
       null,
-
       null,
-
       getDurationSeconds(),
-
       null
     );
   }
@@ -2455,8 +2399,7 @@ export function PracticePage() {
 
     if (
       index ===
-      questions.length -
-        1
+      questions.length - 1
     ) {
 
       await finishPracticeMode();
@@ -2471,9 +2414,7 @@ export function PracticePage() {
     );
 
 
-    setSelected(
-      null
-    );
+    setSelected(null);
   }
 
 
@@ -2482,12 +2423,12 @@ export function PracticePage() {
    */
 
   async function submitExam(
-    automatic =
-      false
+    automatic = false
   ) {
 
     if (
       finished ||
+      examSubmitting ||
       questions.length ===
         0
     ) {
@@ -2496,9 +2437,7 @@ export function PracticePage() {
     }
 
 
-    if (
-      !automatic
-    ) {
+    if (!automatic) {
 
       const unansweredCount =
         questions.filter(
@@ -2531,13 +2470,13 @@ export function PracticePage() {
         );
 
 
-      if (
-        !confirmed
-      ) {
-
+      if (!confirmed) {
         return;
       }
     }
+
+
+    setExamSubmitting(true);
 
 
     const records:
@@ -2573,7 +2512,6 @@ export function PracticePage() {
                 hasAnswer &&
                 chosen ===
                   item.correct_index
-
             };
           }
         );
@@ -2642,7 +2580,6 @@ export function PracticePage() {
     const duration =
       Math.min(
         timeLimitSeconds,
-
         getDurationSeconds()
       );
 
@@ -2695,50 +2632,30 @@ export function PracticePage() {
       };
 
 
-    setScore(
-      correct
-    );
+    setScore(correct);
 
-    setAnswers(
-      records
-    );
+    setAnswers(records);
 
-    setExamResult(
-      result
-    );
+    setExamResult(result);
 
-    setFinished(
-      true
-    );
+    setFinished(true);
 
 
     await saveAttempt(
-
       'exam',
-
       records,
-
       correct,
-
       incorrect,
-
       unanswered,
-
       result.marksObtained,
-
       result.maxMarks,
-
       result.negativeMarks,
-
       result.timeUsedSeconds,
-
       result.timeLimitSeconds
     );
 
 
-    if (
-      automatic
-    ) {
+    if (automatic) {
 
       setResultMessage(
         'Time expired. Your exam was submitted automatically.'
@@ -2755,33 +2672,25 @@ export function PracticePage() {
 
     setIndex(0);
 
-    setSelected(
-      null
-    );
+    setSelected(null);
 
     setScore(0);
 
     setAnswers([]);
 
-    setFinished(
-      false
-    );
+    setFinished(false);
 
     setExamSelections({});
 
     setMarkedForReview({});
 
-    setExamResult(
-      null
-    );
+    setExamResult(null);
 
-    setShowExamReview(
-      false
-    );
+    setShowExamReview(false);
 
-    setAttemptSaved(
-      false
-    );
+    setExamSubmitting(false);
+
+    setAttemptSaved(false);
 
     setResultMessage('');
 
@@ -2810,20 +2719,22 @@ export function PracticePage() {
 
     } else {
 
-      setTimeLeft(
-        null
-      );
+      setTimeLimitSeconds(0);
+
+      setTimeLeft(null);
     }
   }
 
 
   /*
-   * RETURN TO SETUP
+   * CHANGE PRACTICE SET
    */
 
   function changePracticeSet() {
 
     resetActiveSession();
+
+    void loadBookmarkedQuestionIds();
   }
 
 
@@ -2831,9 +2742,7 @@ export function PracticePage() {
    * LOADING
    */
 
-  if (
-    loading
-  ) {
+  if (loading) {
 
     return (
 
@@ -2866,9 +2775,7 @@ export function PracticePage() {
    * ERROR
    */
 
-  if (
-    error
-  ) {
+  if (error) {
 
     return (
 
@@ -2916,9 +2823,7 @@ export function PracticePage() {
    * SETUP SCREEN
    */
 
-  if (
-    !practiceStarted
-  ) {
+  if (!practiceStarted) {
 
     return (
 
@@ -2996,7 +2901,6 @@ export function PracticePage() {
                   Practice Mode
                 </option>
 
-
                 <option
                   value="exam"
                 >
@@ -3020,11 +2924,10 @@ export function PracticePage() {
                     Practice Mode
                   </strong>
 
-
                   <p>
-                    See the correct answer
-                    and explanation after
-                    every question.
+                    See the correct
+                    answer and explanation
+                    after every question.
                   </p>
 
                 </div>
@@ -3040,26 +2943,22 @@ export function PracticePage() {
                     CSE Exam Simulation
                   </strong>
 
-
                   <p>
                     Correct: +2 marks
                   </p>
-
 
                   <p>
                     Wrong: -0.6667 marks
                   </p>
 
-
                   <p>
                     Unanswered: 0 marks
                   </p>
 
-
                   <p>
-                    Mark questions for
-                    review and return to
-                    them before submission.
+                    Answers and
+                    explanations remain
+                    hidden until submission.
                   </p>
 
                 </div>
@@ -3069,7 +2968,7 @@ export function PracticePage() {
           </div>
 
 
-          {/* ORIGIN */}
+          {/* QUESTION ORIGIN */}
 
           <label>
             Question Origin
@@ -3089,30 +2988,19 @@ export function PracticePage() {
               }
             >
 
-              <option
-                value="all"
-              >
+              <option value="all">
                 All Prelims Questions
               </option>
 
-
-              <option
-                value="cse"
-              >
+              <option value="cse">
                 CSE / General Practice
               </option>
 
-
-              <option
-                value="upsc"
-              >
+              <option value="upsc">
                 Other UPSC Examinations
               </option>
 
-
-              <option
-                value="state"
-              >
+              <option value="state">
                 State PSC Examinations
               </option>
 
@@ -3141,9 +3029,9 @@ export function PracticePage() {
             />
 
             <small>
-              Search question, topic,
-              examination, year, tag
-              or source.
+              Search by question,
+              topic, tag, examination,
+              year or source.
             </small>
 
           </label>
@@ -3180,12 +3068,9 @@ export function PracticePage() {
                 }
               >
 
-                <option
-                  value="all"
-                >
+                <option value="all">
                   All Subjects
                 </option>
-
 
                 {subjects.map(
                   item => (
@@ -3230,12 +3115,9 @@ export function PracticePage() {
                 }
               >
 
-                <option
-                  value="all"
-                >
+                <option value="all">
                   All Topics
                 </option>
-
 
                 {topics.map(
                   topic => (
@@ -3261,7 +3143,7 @@ export function PracticePage() {
           </div>
 
 
-          {/* DIFFICULTY + TYPE */}
+          {/* DIFFICULTY + QUESTION TYPE */}
 
           <div
             className="form-two"
@@ -3344,7 +3226,109 @@ export function PracticePage() {
           </div>
 
 
-          {/* CSE PYQ */}
+          {/* REVISION FILTER */}
+
+          <div
+            style={{
+              marginTop:
+                '14px',
+
+              padding:
+                '16px',
+
+              border:
+                '1px solid rgba(255,255,255,.10)',
+
+              borderRadius:
+                '14px'
+            }}
+          >
+
+            <span
+              className="eyebrow"
+            >
+              REVISION QUESTIONS
+            </span>
+
+
+            <label>
+              Revision Set
+
+              <select
+                value={
+                  bookmarkedOnly
+                    ? 'saved'
+                    : 'all'
+                }
+                onChange={
+                  event => {
+
+                    const nextValue =
+                      event.target.value;
+
+
+                    setBookmarkedOnly(
+                      nextValue ===
+                        'saved'
+                    );
+
+
+                    setSetupMessage('');
+                  }
+                }
+              >
+
+                <option value="all">
+                  All Questions
+                </option>
+
+
+                <option
+                  value="saved"
+                  disabled={
+                    !bookmarkSignedIn
+                  }
+                >
+                  ★ Saved for Revision Only
+                </option>
+
+              </select>
+
+            </label>
+
+
+            {bookmarkSignedIn
+              ? (
+
+                <small>
+                  {
+                    bookmarkedQuestionIds
+                      .length
+                  }{' '}
+                  Prelims question
+                  {
+                    bookmarkedQuestionIds
+                      .length === 1
+                      ? ''
+                      : 's'
+                  }{' '}
+                  saved for revision.
+                </small>
+
+              )
+              : (
+
+                <small>
+                  Sign in to use
+                  Saved for Revision.
+                </small>
+
+              )}
+
+          </div>
+
+
+          {/* CSE PYQ FILTER */}
 
           {originFilter ===
             'cse' &&
@@ -3389,9 +3373,7 @@ export function PracticePage() {
                   }
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All CSE PYQ Years
                   </option>
 
@@ -3404,9 +3386,7 @@ export function PracticePage() {
                           year
                         }
                         value={
-                          String(
-                            year
-                          )
+                          String(year)
                         }
                       >
                         {year}
@@ -3495,7 +3475,7 @@ export function PracticePage() {
               'exam' && (
 
               <p>
-                Exam time:{' '}
+                Exam Time:{' '}
 
                 <strong>
                   {
@@ -3512,7 +3492,7 @@ export function PracticePage() {
           </div>
 
 
-          {/* OTHER UPSC */}
+          {/* OTHER UPSC FILTERS */}
 
           {originFilter ===
             'upsc' && (
@@ -3569,9 +3549,7 @@ export function PracticePage() {
                     }
                   >
 
-                    <option
-                      value="all"
-                    >
+                    <option value="all">
                       All UPSC Exams
                     </option>
 
@@ -3613,9 +3591,7 @@ export function PracticePage() {
                     }
                   >
 
-                    <option
-                      value="all"
-                    >
+                    <option value="all">
                       All Cycles
                     </option>
 
@@ -3659,9 +3635,7 @@ export function PracticePage() {
                   }
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All Years
                   </option>
 
@@ -3674,9 +3648,7 @@ export function PracticePage() {
                           year
                         }
                         value={
-                          String(
-                            year
-                          )
+                          String(year)
                         }
                       >
                         {year}
@@ -3694,7 +3666,7 @@ export function PracticePage() {
           )}
 
 
-          {/* STATE PSC */}
+          {/* STATE PSC FILTERS */}
 
           {originFilter ===
             'state' && (
@@ -3752,9 +3724,7 @@ export function PracticePage() {
                   }
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All States
                   </option>
 
@@ -3802,9 +3772,7 @@ export function PracticePage() {
                   }
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All Examinations
                   </option>
 
@@ -3846,9 +3814,7 @@ export function PracticePage() {
                   }
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All Years
                   </option>
 
@@ -3861,9 +3827,7 @@ export function PracticePage() {
                           year
                         }
                         value={
-                          String(
-                            year
-                          )
+                          String(year)
                         }
                       >
                         {year}
@@ -3881,7 +3845,7 @@ export function PracticePage() {
           )}
 
 
-          {/* COUNT */}
+          {/* MATCH COUNT */}
 
           <div
             className="callout"
@@ -3908,6 +3872,17 @@ export function PracticePage() {
                 }
               </strong>
             </p>
+
+
+            {bookmarkedOnly && (
+
+              <p>
+                Revision mode is using
+                only your saved
+                questions.
+              </p>
+
+            )}
 
 
             {sessionMode ===
@@ -4030,9 +4005,7 @@ export function PracticePage() {
    * RESULT SCREEN
    */
 
-  if (
-    finished
-  ) {
+  if (finished) {
 
     /*
      * EXAM RESULT
@@ -4294,11 +4267,13 @@ export function PracticePage() {
                   )
                 }
               >
+
                 {
                   showExamReview
                     ? 'Hide Answer Review'
                     : 'Review Answers'
                 }
+
               </button>
 
 
@@ -4325,6 +4300,8 @@ export function PracticePage() {
 
           </section>
 
+
+          {/* EXAM ANSWER REVIEW */}
 
           {showExamReview && (
 
@@ -4365,10 +4342,9 @@ export function PracticePage() {
                   ) => {
 
                     const record =
-                      examResult
-                        .answers[
-                          questionIndex
-                        ];
+                      examResult.answers[
+                        questionIndex
+                      ];
 
 
                     const selectedIndex =
@@ -4446,24 +4422,29 @@ export function PracticePage() {
 
 
                         <p>
-                          Your answer:{' '}
+                          Your Answer:{' '}
 
                           <strong>
                             {
                               selectedIndex ===
                                 null
                                 ? 'Not Answered'
-                                : String.fromCharCode(
+                                : `${String.fromCharCode(
                                     65 +
                                     selectedIndex
-                                  )
+                                  )}. ${
+                                    question.options[
+                                      selectedIndex
+                                    ] ||
+                                    ''
+                                  }`
                             }
                           </strong>
                         </p>
 
 
                         <p>
-                          Correct answer:{' '}
+                          Correct Answer:{' '}
 
                           <strong>
                             {
@@ -4471,6 +4452,13 @@ export function PracticePage() {
                                 65 +
                                 question.correct_index
                               )
+                            }.
+                            {' '}
+                            {
+                              question.options[
+                                question.correct_index
+                              ] ||
+                              ''
                             }
                           </strong>
                         </p>
@@ -4510,6 +4498,24 @@ export function PracticePage() {
 
                         </div>
 
+
+                        {/* SAVE EXAM QUESTION */}
+
+                        <div
+                          style={{
+                            marginTop:
+                              '14px'
+                          }}
+                        >
+
+                          <PrelimsBookmarkButton
+                            questionId={
+                              question.id
+                            }
+                          />
+
+                        </div>
+
                       </article>
 
                     );
@@ -4532,8 +4538,7 @@ export function PracticePage() {
      */
 
     const percentage =
-      questions.length >
-        0
+      questions.length > 0
         ? Math.round(
             (
               score /
@@ -4657,10 +4662,7 @@ export function PracticePage() {
     questions[index];
 
 
-  if (
-    !q
-  ) {
-
+  if (!q) {
     return null;
   }
 
@@ -4672,7 +4674,7 @@ export function PracticePage() {
 
 
   /*
-   * EXAM MODE
+   * CSE EXAM MODE
    */
 
   if (
@@ -4835,13 +4837,20 @@ export function PracticePage() {
             <button
               type="button"
               className="secondary-btn"
+              disabled={
+                examSubmitting
+              }
               onClick={() =>
                 submitExam(
                   false
                 )
               }
             >
-              Submit Exam
+              {
+                examSubmitting
+                  ? 'Submitting...'
+                  : 'Submit Exam'
+              }
             </button>
 
           </div>
@@ -4849,7 +4858,7 @@ export function PracticePage() {
         </section>
 
 
-        {/* PALETTE */}
+        {/* QUESTION PALETTE */}
 
         <section
           className="panel"
@@ -4865,8 +4874,6 @@ export function PracticePage() {
             QUESTION PALETTE
           </span>
 
-
-          {/* LEGEND */}
 
           <div
             style={{
@@ -4973,10 +4980,8 @@ export function PracticePage() {
                 let background =
                   'rgba(255,255,255,.035)';
 
-
                 let border =
                   '1px solid rgba(255,255,255,.12)';
-
 
                 let color =
                   '#94a3b8';
@@ -5069,22 +5074,6 @@ export function PracticePage() {
                           ? '0 0 0 2px #f8fafc'
                           : 'none'
                     }}
-                    title={
-                      hasAnswer &&
-                      isMarked
-
-                        ? 'Answered and Marked for Review'
-
-                        : isMarked
-
-                        ? 'Marked for Review'
-
-                        : hasAnswer
-
-                        ? 'Answered'
-
-                        : 'Not Answered'
-                    }
                   >
                     {
                       paletteIndex +
@@ -5105,14 +5094,14 @@ export function PracticePage() {
                 0
             }}
           >
-            White outline shows your
+            White outline shows the
             current question.
           </p>
 
         </section>
 
 
-        {/* QUESTION */}
+        {/* EXAM QUESTION */}
 
         <section
           className="quiz-card"
@@ -5332,8 +5321,7 @@ export function PracticePage() {
                   current =>
                     Math.max(
                       0,
-                      current -
-                        1
+                      current - 1
                     )
                 )
               }
@@ -5389,17 +5377,18 @@ export function PracticePage() {
                   'pointer'
               }}
             >
+
               {
                 currentMarked
                   ? '★ Remove Review Mark'
                   : '☆ Mark for Review'
               }
+
             </button>
 
 
             {index <
-              questions.length -
-                1
+              questions.length - 1
               ? (
 
                 <button
@@ -5411,9 +5400,7 @@ export function PracticePage() {
                         Math.min(
                           questions.length -
                             1,
-
-                          current +
-                            1
+                          current + 1
                         )
                     )
                   }
@@ -5427,13 +5414,20 @@ export function PracticePage() {
                 <button
                   type="button"
                   className="primary-btn"
+                  disabled={
+                    examSubmitting
+                  }
                   onClick={() =>
                     submitExam(
                       false
                     )
                   }
                 >
-                  Submit Exam
+                  {
+                    examSubmitting
+                      ? 'Submitting...'
+                      : 'Submit Exam'
+                  }
                 </button>
 
               )}
@@ -5526,6 +5520,8 @@ export function PracticePage() {
 
         </div>
 
+
+        {/* QUESTION META */}
 
         <div
           className="tag-row"
@@ -5679,6 +5675,8 @@ export function PracticePage() {
         </h2>
 
 
+        {/* OPTIONS */}
+
         <div
           className="option-list"
         >
@@ -5692,19 +5690,13 @@ export function PracticePage() {
               const state =
                 selected ===
                   null
-
                   ? ''
-
                   : optionIndex ===
                     q.correct_index
-
                   ? 'correct'
-
                   : selected ===
                     optionIndex
-
                   ? 'wrong'
-
                   : 'muted';
 
 
@@ -5745,8 +5737,9 @@ export function PracticePage() {
         </div>
 
 
-        {selected !==
-          null && (
+        {/* EXPLANATION */}
+
+        {selected !== null && (
 
           <div
             className="explanation"
@@ -5813,7 +5806,7 @@ export function PracticePage() {
             )}
 
 
-            {/* STATE REFERENCE */}
+            {/* STATE PSC REFERENCE */}
 
             {q.state_psc_state && (
 
@@ -5882,6 +5875,8 @@ export function PracticePage() {
             )}
 
 
+            {/* SOURCE */}
+
             {q.source && (
 
               <p>
@@ -5913,31 +5908,42 @@ export function PracticePage() {
             )}
 
 
+            {/* SAVE FOR REVISION */}
+
             <div
               style={{
                 marginTop:
+                  '16px',
+
+                marginBottom:
                   '16px'
               }}
             >
 
-              <button
-                className="primary-btn"
-                onClick={
-                  nextPracticeQuestion
+              <PrelimsBookmarkButton
+                questionId={
+                  q.id
                 }
-              >
-
-                {
-                  index ===
-                  questions.length -
-                    1
-                    ? 'See result'
-                    : 'Next question'
-                }
-
-              </button>
+              />
 
             </div>
+
+
+            <button
+              className="primary-btn"
+              onClick={
+                nextPracticeQuestion
+              }
+            >
+
+              {
+                index ===
+                  questions.length - 1
+                  ? 'See Result'
+                  : 'Next Question'
+              }
+
+            </button>
 
           </div>
 
