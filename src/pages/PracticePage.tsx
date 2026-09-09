@@ -18,9 +18,11 @@ type QuestionOrigin =
   | 'upsc'
   | 'state';
 
+
 type SessionMode =
   | 'practice'
   | 'exam';
+
 
 type SessionSize =
   | '10'
@@ -28,6 +30,7 @@ type SessionSize =
   | '50'
   | '100'
   | 'all';
+
 
 type Difficulty =
   | 'easy'
@@ -82,6 +85,8 @@ type ExamResult = {
   incorrect: number;
   unanswered: number;
 
+  markedForReview: number;
+
   positiveMarks: number;
   negativeMarks: number;
   marksObtained: number;
@@ -125,18 +130,20 @@ const QUESTION_SELECT = `
 /*
  * CSE PRELIMS PATTERN
  *
- * 100 questions = 200 marks
+ * 100 questions
+ * 200 marks
  * 120 minutes
- * Correct = +2
- * Wrong = -1/3 of question marks
  */
 
-const CSE_MARKS_PER_QUESTION = 2;
+const CSE_MARKS_PER_QUESTION =
+  2;
 
 const CSE_NEGATIVE_MARK =
-  CSE_MARKS_PER_QUESTION / 3;
+  CSE_MARKS_PER_QUESTION /
+  3;
 
-const CSE_SECONDS_PER_QUESTION = 72;
+const CSE_SECONDS_PER_QUESTION =
+  72;
 
 
 /*
@@ -147,11 +154,15 @@ function getQuestionOrigin(
   item: LiveQuestion
 ): QuestionOrigin {
 
-  if (item.state_psc_state) {
+  if (
+    item.state_psc_state
+  ) {
     return 'state';
   }
 
-  if (item.upsc_exam_name) {
+  if (
+    item.upsc_exam_name
+  ) {
     return 'upsc';
   }
 
@@ -184,14 +195,14 @@ function shuffleQuestions(
         (i + 1)
       );
 
-    const temp =
+    const temporary =
       shuffled[i];
 
     shuffled[i] =
       shuffled[j];
 
     shuffled[j] =
-      temp;
+      temporary;
   }
 
   return shuffled;
@@ -231,7 +242,10 @@ function formatTime(
     safeSeconds %
     60;
 
-  if (hours > 0) {
+
+  if (
+    hours > 0
+  ) {
 
     return (
       `${hours}:` +
@@ -239,6 +253,7 @@ function formatTime(
       `${String(remainingSeconds).padStart(2, '0')}`
     );
   }
+
 
   return (
     `${minutes}:` +
@@ -248,7 +263,7 @@ function formatTime(
 
 
 /*
- * ROUND
+ * ROUND NUMBER
  */
 
 function roundNumber(
@@ -272,31 +287,37 @@ function roundNumber(
 export function PracticePage() {
 
   /*
-   * DATABASE
+   * DATABASE QUESTIONS
    */
 
   const [
     allQuestions,
     setAllQuestions
   ] =
-    useState<LiveQuestion[]>([]);
+    useState<
+      LiveQuestion[]
+    >([]);
 
 
   /*
-   * ACTIVE SESSION
+   * ACTIVE QUESTIONS
    */
 
   const [
     questions,
     setQuestions
   ] =
-    useState<LiveQuestion[]>([]);
+    useState<
+      LiveQuestion[]
+    >([]);
+
 
   const [
     practiceStarted,
     setPracticeStarted
   ] =
     useState(false);
+
 
   const [
     sessionMode,
@@ -308,7 +329,7 @@ export function PracticePage() {
 
 
   /*
-   * QUIZ
+   * PRACTICE SESSION
    */
 
   const [
@@ -317,13 +338,15 @@ export function PracticePage() {
   ] =
     useState(0);
 
+
   const [
     selected,
     setSelected
   ] =
-    useState<number | null>(
-      null
-    );
+    useState<
+      number | null
+    >(null);
+
 
   const [
     score,
@@ -331,11 +354,15 @@ export function PracticePage() {
   ] =
     useState(0);
 
+
   const [
     answers,
     setAnswers
   ] =
-    useState<AnswerRecord[]>([]);
+    useState<
+      AnswerRecord[]
+    >([]);
+
 
   const [
     finished,
@@ -353,16 +380,37 @@ export function PracticePage() {
     setExamSelections
   ] =
     useState<
-      Record<string, number>
+      Record<
+        string,
+        number
+      >
     >({});
+
+
+  /*
+   * MARK FOR REVIEW
+   */
+
+  const [
+    markedForReview,
+    setMarkedForReview
+  ] =
+    useState<
+      Record<
+        string,
+        boolean
+      >
+    >({});
+
 
   const [
     timeLeft,
     setTimeLeft
   ] =
-    useState<number | null>(
-      null
-    );
+    useState<
+      number | null
+    >(null);
+
 
   const [
     timeLimitSeconds,
@@ -370,21 +418,24 @@ export function PracticePage() {
   ] =
     useState(0);
 
+
   const [
     sessionStartedAt,
     setSessionStartedAt
   ] =
-    useState<number | null>(
-      null
-    );
+    useState<
+      number | null
+    >(null);
+
 
   const [
     examResult,
     setExamResult
   ] =
-    useState<ExamResult | null>(
-      null
-    );
+    useState<
+      ExamResult | null
+    >(null);
+
 
   const [
     showExamReview,
@@ -394,7 +445,7 @@ export function PracticePage() {
 
 
   /*
-   * PAGE
+   * PAGE STATE
    */
 
   const [
@@ -403,11 +454,13 @@ export function PracticePage() {
   ] =
     useState(true);
 
+
   const [
     error,
     setError
   ] =
     useState('');
+
 
   const [
     setupMessage,
@@ -415,17 +468,20 @@ export function PracticePage() {
   ] =
     useState('');
 
+
   const [
     savingResult,
     setSavingResult
   ] =
     useState(false);
 
+
   const [
     resultMessage,
     setResultMessage
   ] =
     useState('');
+
 
   const [
     attemptSaved,
@@ -447,11 +503,13 @@ export function PracticePage() {
       QuestionOrigin
     >('all');
 
+
   const [
     searchText,
     setSearchText
   ] =
     useState('');
+
 
   const [
     subjectFilter,
@@ -459,11 +517,13 @@ export function PracticePage() {
   ] =
     useState('all');
 
+
   const [
     topicFilter,
     setTopicFilter
   ] =
     useState('all');
+
 
   const [
     difficultyFilter,
@@ -473,6 +533,7 @@ export function PracticePage() {
       'all' |
       Difficulty
     >('all');
+
 
   const [
     typeFilter,
@@ -484,11 +545,13 @@ export function PracticePage() {
       'pyq'
     >('all');
 
+
   const [
     csePyqYearFilter,
     setCsePyqYearFilter
   ] =
     useState('all');
+
 
   const [
     sessionSize,
@@ -509,11 +572,13 @@ export function PracticePage() {
   ] =
     useState('all');
 
+
   const [
     upscCycleFilter,
     setUpscCycleFilter
   ] =
     useState('all');
+
 
   const [
     upscYearFilter,
@@ -532,11 +597,13 @@ export function PracticePage() {
   ] =
     useState('all');
 
+
   const [
     stateExamFilter,
     setStateExamFilter
   ] =
     useState('all');
+
 
   const [
     stateYearFilter,
@@ -551,29 +618,40 @@ export function PracticePage() {
 
   async function loadQuestions() {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       setError(
         'Practice database is not configured.'
       );
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
       return;
     }
 
-    setLoading(true);
+
+    setLoading(
+      true
+    );
 
     setError('');
 
     setSetupMessage('');
 
+
     const {
       data,
-      error: loadError
+      error:
+        loadError
     } =
       await supabase
-        .from('questions')
+        .from(
+          'questions'
+        )
         .select(
           QUESTION_SELECT
         )
@@ -588,11 +666,15 @@ export function PracticePage() {
         .order(
           'created_at',
           {
-            ascending: false
+            ascending:
+              false
           }
         );
 
-    if (loadError) {
+
+    if (
+      loadError
+    ) {
 
       console.error(
         'Unable to load questions:',
@@ -603,10 +685,13 @@ export function PracticePage() {
         loadError.message
       );
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
       return;
     }
+
 
     const formatted:
       LiveQuestion[] =
@@ -627,7 +712,9 @@ export function PracticePage() {
               )
                 ? item.options.map(
                     option =>
-                      String(option)
+                      String(
+                        option
+                      )
                   )
                 : [],
 
@@ -653,7 +740,9 @@ export function PracticePage() {
               )
                 ? item.tags.map(
                     tag =>
-                      String(tag)
+                      String(
+                        tag
+                      )
                   )
                 : [],
 
@@ -701,8 +790,10 @@ export function PracticePage() {
 
             source_url:
               item.source_url
+
           })
         );
+
 
     setAllQuestions(
       formatted
@@ -710,13 +801,17 @@ export function PracticePage() {
 
     resetActiveSession();
 
-    setLoading(false);
+    setLoading(
+      false
+    );
   }
 
 
   useEffect(
     () => {
+
       loadQuestions();
+
     },
     []
   );
@@ -735,8 +830,10 @@ export function PracticePage() {
           'exam' ||
         finished
       ) {
+
         return;
       }
+
 
       const timer =
         window.setInterval(
@@ -746,16 +843,22 @@ export function PracticePage() {
               current => {
 
                 if (
-                  current === null
+                  current ===
+                  null
                 ) {
+
                   return null;
                 }
 
+
                 if (
-                  current <= 1
+                  current <=
+                  1
                 ) {
+
                   return 0;
                 }
+
 
                 return (
                   current - 1
@@ -766,6 +869,7 @@ export function PracticePage() {
           },
           1000
         );
+
 
       return () =>
         window.clearInterval(
@@ -782,7 +886,7 @@ export function PracticePage() {
 
 
   /*
-   * AUTOMATIC SUBMISSION
+   * AUTO SUBMIT
    */
 
   useEffect(
@@ -793,10 +897,13 @@ export function PracticePage() {
         sessionMode ===
           'exam' &&
         !finished &&
-        timeLeft === 0
+        timeLeft ===
+          0
       ) {
 
-        submitExam(true);
+        submitExam(
+          true
+        );
       }
 
     },
@@ -810,45 +917,65 @@ export function PracticePage() {
 
 
   /*
-   * RESET ACTIVE SESSION ONLY
+   * RESET ACTIVE SESSION
    */
 
   function resetActiveSession() {
 
     setQuestions([]);
 
-    setPracticeStarted(false);
+    setPracticeStarted(
+      false
+    );
 
     setIndex(0);
 
-    setSelected(null);
+    setSelected(
+      null
+    );
 
     setScore(0);
 
     setAnswers([]);
 
-    setFinished(false);
+    setFinished(
+      false
+    );
 
     setExamSelections({});
 
-    setTimeLeft(null);
+    setMarkedForReview({});
 
-    setTimeLimitSeconds(0);
+    setTimeLeft(
+      null
+    );
 
-    setSessionStartedAt(null);
+    setTimeLimitSeconds(
+      0
+    );
 
-    setExamResult(null);
+    setSessionStartedAt(
+      null
+    );
 
-    setShowExamReview(false);
+    setExamResult(
+      null
+    );
 
-    setAttemptSaved(false);
+    setShowExamReview(
+      false
+    );
+
+    setAttemptSaved(
+      false
+    );
 
     setResultMessage('');
   }
 
 
   /*
-   * SUBJECTS
+   * SUBJECT OPTIONS
    */
 
   const subjects =
@@ -861,7 +988,9 @@ export function PracticePage() {
                 item =>
                   item.subject
               )
-              .filter(Boolean)
+              .filter(
+                Boolean
+              )
           )
         ).sort(),
       [
@@ -871,7 +1000,7 @@ export function PracticePage() {
 
 
   /*
-   * TOPICS
+   * TOPIC OPTIONS
    */
 
   const topics =
@@ -896,7 +1025,9 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(value)
+                    Boolean(
+                      value
+                    )
               )
           )
         ).sort(),
@@ -946,11 +1077,15 @@ export function PracticePage() {
                   value
                 ):
                   value is number =>
-                    value !== null
+                    value !==
+                    null
               )
           )
         ).sort(
-          (a, b) =>
+          (
+            a,
+            b
+          ) =>
             b - a
         ),
       [
@@ -962,7 +1097,7 @@ export function PracticePage() {
 
 
   /*
-   * UPSC OPTIONS
+   * OTHER UPSC EXAMS
    */
 
   const upscExams =
@@ -980,7 +1115,9 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(value)
+                    Boolean(
+                      value
+                    )
               )
           )
         ).sort(),
@@ -1012,7 +1149,9 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(value)
+                    Boolean(
+                      value
+                    )
               )
           )
         ).sort(),
@@ -1045,11 +1184,15 @@ export function PracticePage() {
                   value
                 ):
                   value is number =>
-                    value !== null
+                    value !==
+                    null
               )
           )
         ).sort(
-          (a, b) =>
+          (
+            a,
+            b
+          ) =>
             b - a
         ),
       [
@@ -1060,7 +1203,7 @@ export function PracticePage() {
 
 
   /*
-   * STATE OPTIONS
+   * STATES
    */
 
   const states =
@@ -1078,7 +1221,9 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(value)
+                    Boolean(
+                      value
+                    )
               )
           )
         ).sort(),
@@ -1087,6 +1232,10 @@ export function PracticePage() {
       ]
     );
 
+
+  /*
+   * STATE EXAMS
+   */
 
   const stateExams =
     useMemo(
@@ -1110,7 +1259,9 @@ export function PracticePage() {
                   value
                 ):
                   value is string =>
-                    Boolean(value)
+                    Boolean(
+                      value
+                    )
               )
           )
         ).sort(),
@@ -1120,6 +1271,10 @@ export function PracticePage() {
       ]
     );
 
+
+  /*
+   * STATE YEARS
+   */
 
   const stateYears =
     useMemo(
@@ -1151,11 +1306,15 @@ export function PracticePage() {
                   value
                 ):
                   value is number =>
-                    value !== null
+                    value !==
+                    null
               )
           )
         ).sort(
-          (a, b) =>
+          (
+            a,
+            b
+          ) =>
             b - a
         ),
       [
@@ -1181,10 +1340,12 @@ export function PracticePage() {
                 item
               );
 
+
             const search =
               searchText
                 .trim()
                 .toLowerCase();
+
 
             const searchableText =
               [
@@ -1198,6 +1359,7 @@ export function PracticePage() {
                 item.upsc_exam_cycle || '',
                 item.upsc_exam_stage || '',
                 item.upsc_exam_paper || '',
+
                 item.upsc_exam_year
                   ? String(
                       item.upsc_exam_year
@@ -1209,6 +1371,7 @@ export function PracticePage() {
                 item.state_psc_exam_name || '',
                 item.state_psc_stage || '',
                 item.state_psc_paper || '',
+
                 item.state_psc_year
                   ? String(
                       item.state_psc_year
@@ -1224,11 +1387,14 @@ export function PracticePage() {
                 .join(' ')
                 .toLowerCase();
 
+
             const matchesSearch =
               !search ||
-              searchableText.includes(
-                search
-              );
+              searchableText
+                .includes(
+                  search
+                );
+
 
             const matchesOrigin =
               originFilter ===
@@ -1236,11 +1402,13 @@ export function PracticePage() {
               origin ===
                 originFilter;
 
+
             const matchesSubject =
               subjectFilter ===
                 'all' ||
               item.subject ===
                 subjectFilter;
+
 
             const matchesTopic =
               topicFilter ===
@@ -1248,38 +1416,46 @@ export function PracticePage() {
               item.topic ===
                 topicFilter;
 
+
             const matchesDifficulty =
               difficultyFilter ===
                 'all' ||
               item.difficulty ===
                 difficultyFilter;
 
+
             const matchesType =
               typeFilter ===
                 'all' ||
+
               (
                 typeFilter ===
                   'pyq' &&
                 item.is_pyq
               ) ||
+
               (
                 typeFilter ===
                   'practice' &&
                 !item.is_pyq
               );
 
+
             const matchesCsePyqYear =
               csePyqYearFilter ===
                 'all' ||
+
               (
                 origin ===
                   'cse' &&
                 item.is_pyq &&
                 String(
-                  item.pyq_year || ''
+                  item.pyq_year ||
+                  ''
                 ) ===
                   csePyqYearFilter
               );
+
 
             const matchesUpscExam =
               upscExamFilter ===
@@ -1287,11 +1463,13 @@ export function PracticePage() {
               item.upsc_exam_name ===
                 upscExamFilter;
 
+
             const matchesUpscCycle =
               upscCycleFilter ===
                 'all' ||
               item.upsc_exam_cycle ===
                 upscCycleFilter;
+
 
             const matchesUpscYear =
               upscYearFilter ===
@@ -1302,17 +1480,20 @@ export function PracticePage() {
               ) ===
                 upscYearFilter;
 
+
             const matchesState =
               stateFilter ===
                 'all' ||
               item.state_psc_state ===
                 stateFilter;
 
+
             const matchesStateExam =
               stateExamFilter ===
                 'all' ||
               item.state_psc_exam_name ===
                 stateExamFilter;
+
 
             const matchesStateYear =
               stateYearFilter ===
@@ -1322,6 +1503,7 @@ export function PracticePage() {
                 ''
               ) ===
                 stateYearFilter;
+
 
             return (
               matchesSearch &&
@@ -1359,32 +1541,40 @@ export function PracticePage() {
     );
 
 
+  /*
+   * SESSION QUESTION COUNT
+   */
+
   const sessionQuestionCount =
     sessionSize ===
       'all'
       ? filteredQuestions.length
       : Math.min(
-          Number(sessionSize),
+          Number(
+            sessionSize
+          ),
           filteredQuestions.length
         );
 
 
   /*
-   * CHANGE MODE
+   * CHANGE SESSION MODE
    */
 
   function changeSessionMode(
-    mode: SessionMode
+    mode:
+      SessionMode
   ) {
 
-    setSessionMode(mode);
+    setSessionMode(
+      mode
+    );
 
-    /*
-     * CSE Exam Mode must only
-     * use CSE questions.
-     */
 
-    if (mode === 'exam') {
+    if (
+      mode ===
+      'exam'
+    ) {
 
       changeOriginFilter(
         'cse'
@@ -1394,7 +1584,7 @@ export function PracticePage() {
 
 
   /*
-   * CHANGE ORIGIN
+   * CHANGE QUESTION ORIGIN
    */
 
   function changeOriginFilter(
@@ -1403,15 +1593,14 @@ export function PracticePage() {
       QuestionOrigin
   ) {
 
-    setOriginFilter(value);
+    setOriginFilter(
+      value
+    );
 
-    /*
-     * Leaving CSE automatically
-     * returns to Practice Mode.
-     */
 
     if (
-      value !== 'cse'
+      value !==
+      'cse'
     ) {
 
       setSessionMode(
@@ -1423,8 +1612,10 @@ export function PracticePage() {
       );
     }
 
+
     if (
-      value !== 'upsc'
+      value !==
+      'upsc'
     ) {
 
       setUpscExamFilter(
@@ -1440,8 +1631,10 @@ export function PracticePage() {
       );
     }
 
+
     if (
-      value !== 'state'
+      value !==
+      'state'
     ) {
 
       setStateFilter(
@@ -1460,7 +1653,7 @@ export function PracticePage() {
 
 
   /*
-   * CHANGE TYPE
+   * CHANGE QUESTION TYPE
    */
 
   function changeTypeFilter(
@@ -1470,10 +1663,14 @@ export function PracticePage() {
       'pyq'
   ) {
 
-    setTypeFilter(value);
+    setTypeFilter(
+      value
+    );
+
 
     if (
-      value !== 'pyq'
+      value !==
+      'pyq'
     ) {
 
       setCsePyqYearFilter(
@@ -1608,6 +1805,7 @@ export function PracticePage() {
         sessionMode ===
           'exam'
           ? {
+
               marks_per_question:
                 CSE_MARKS_PER_QUESTION,
 
@@ -1616,6 +1814,7 @@ export function PracticePage() {
 
               seconds_per_question:
                 CSE_SECONDS_PER_QUESTION
+
             }
           : null
     };
@@ -1629,7 +1828,8 @@ export function PracticePage() {
   function startPractice() {
 
     if (
-      filteredQuestions.length === 0
+      filteredQuestions.length ===
+      0
     ) {
 
       setSetupMessage(
@@ -1638,6 +1838,7 @@ export function PracticePage() {
 
       return;
     }
+
 
     if (
       sessionMode ===
@@ -1653,10 +1854,12 @@ export function PracticePage() {
       return;
     }
 
+
     const randomized =
       shuffleQuestions(
         filteredQuestions
       );
+
 
     const selectedSet =
       sessionSize ===
@@ -1669,8 +1872,6 @@ export function PracticePage() {
             )
           );
 
-    const now =
-      Date.now();
 
     setQuestions(
       selectedSet
@@ -1678,33 +1879,46 @@ export function PracticePage() {
 
     setIndex(0);
 
-    setSelected(null);
+    setSelected(
+      null
+    );
 
     setScore(0);
 
     setAnswers([]);
 
-    setFinished(false);
+    setFinished(
+      false
+    );
 
     setExamSelections({});
 
-    setExamResult(null);
+    setMarkedForReview({});
 
-    setShowExamReview(false);
+    setExamResult(
+      null
+    );
 
-    setAttemptSaved(false);
+    setShowExamReview(
+      false
+    );
+
+    setAttemptSaved(
+      false
+    );
 
     setResultMessage('');
 
     setSetupMessage('');
 
     setSessionStartedAt(
-      now
+      Date.now()
     );
+
 
     if (
       sessionMode ===
-        'exam'
+      'exam'
     ) {
 
       const limit =
@@ -1721,10 +1935,15 @@ export function PracticePage() {
 
     } else {
 
-      setTimeLimitSeconds(0);
+      setTimeLimitSeconds(
+        0
+      );
 
-      setTimeLeft(null);
+      setTimeLeft(
+        null
+      );
     }
+
 
     setPracticeStarted(
       true
@@ -1737,26 +1956,38 @@ export function PracticePage() {
    */
 
   function answerPracticeQuestion(
-    option: number
+    option:
+      number
   ) {
 
     if (
-      selected !== null ||
+      selected !==
+        null ||
       !questions[index]
     ) {
+
       return;
     }
+
 
     const currentQuestion =
       questions[index];
 
+
     const isCorrect =
       option ===
-      currentQuestion.correct_index;
+      currentQuestion
+        .correct_index;
 
-    setSelected(option);
 
-    if (isCorrect) {
+    setSelected(
+      option
+    );
+
+
+    if (
+      isCorrect
+    ) {
 
       setScore(
         current =>
@@ -1764,9 +1995,11 @@ export function PracticePage() {
       );
     }
 
+
     setAnswers(
       current => [
         ...current,
+
         {
           question_id:
             currentQuestion.id,
@@ -1775,7 +2008,8 @@ export function PracticePage() {
             option,
 
           correct_index:
-            currentQuestion.correct_index,
+            currentQuestion
+              .correct_index,
 
           is_correct:
             isCorrect
@@ -1786,23 +2020,30 @@ export function PracticePage() {
 
 
   /*
-   * EXAM MODE ANSWER
+   * EXAM ANSWER
    */
 
   function answerExamQuestion(
-    option: number
+    option:
+      number
   ) {
 
     const currentQuestion =
       questions[index];
 
-    if (!currentQuestion) {
+
+    if (
+      !currentQuestion
+    ) {
+
       return;
     }
+
 
     setExamSelections(
       current => ({
         ...current,
+
         [currentQuestion.id]:
           option
       })
@@ -1819,9 +2060,14 @@ export function PracticePage() {
     const currentQuestion =
       questions[index];
 
-    if (!currentQuestion) {
+
+    if (
+      !currentQuestion
+    ) {
+
       return;
     }
+
 
     setExamSelections(
       current => {
@@ -1830,11 +2076,53 @@ export function PracticePage() {
           ...current
         };
 
+
         delete copy[
           currentQuestion.id
         ];
 
+
         return copy;
+      }
+    );
+  }
+
+
+  /*
+   * TOGGLE MARK FOR REVIEW
+   */
+
+  function toggleMarkForReview() {
+
+    const currentQuestion =
+      questions[index];
+
+
+    if (
+      !currentQuestion
+    ) {
+
+      return;
+    }
+
+
+    setMarkedForReview(
+      current => {
+
+        const currentlyMarked =
+          Boolean(
+            current[
+              currentQuestion.id
+            ]
+          );
+
+
+        return {
+          ...current,
+
+          [currentQuestion.id]:
+            !currentlyMarked
+        };
       }
     );
   }
@@ -1846,12 +2134,17 @@ export function PracticePage() {
 
   function getDurationSeconds() {
 
-    if (!sessionStartedAt) {
+    if (
+      !sessionStartedAt
+    ) {
+
       return 0;
     }
 
+
     return Math.max(
       0,
+
       Math.floor(
         (
           Date.now() -
@@ -1864,23 +2157,37 @@ export function PracticePage() {
 
 
   /*
-   * SAVE ATTEMPT
+   * SAVE RESULT
    */
 
   async function saveAttempt(
-    mode: SessionMode,
-    records: AnswerRecord[],
-    correct: number,
-    incorrect: number,
-    unanswered: number,
+    mode:
+      SessionMode,
+
+    records:
+      AnswerRecord[],
+
+    correct:
+      number,
+
+    incorrect:
+      number,
+
+    unanswered:
+      number,
+
     marksObtained:
       number | null,
+
     maxMarks:
       number | null,
+
     negativeMarks:
       number | null,
+
     durationSeconds:
       number,
+
     limitSeconds:
       number | null
   ) {
@@ -1888,25 +2195,38 @@ export function PracticePage() {
     if (
       !supabase ||
       attemptSaved ||
-      questions.length === 0
+      questions.length ===
+        0
     ) {
+
       return;
     }
 
-    setSavingResult(true);
+
+    setSavingResult(
+      true
+    );
 
     setResultMessage('');
+
 
     const {
       data: {
         user
       }
     } =
-      await supabase.auth.getUser();
+      await supabase
+        .auth
+        .getUser();
 
-    if (!user) {
 
-      setSavingResult(false);
+    if (
+      !user
+    ) {
+
+      setSavingResult(
+        false
+      );
 
       setResultMessage(
         'Result completed. Sign in as a student to save practice history.'
@@ -1914,6 +2234,7 @@ export function PracticePage() {
 
       return;
     }
+
 
     const subjectsInSession =
       Array.from(
@@ -1925,21 +2246,28 @@ export function PracticePage() {
         )
       );
 
+
     const sessionSubject =
       subjectsInSession.length ===
         1
         ? subjectsInSession[0]
         : 'Mixed';
 
+
     const attempted =
       correct +
       incorrect;
 
+
     const percentage =
-      mode === 'exam' &&
+      mode ===
+        'exam' &&
       maxMarks &&
-      maxMarks > 0 &&
-      marksObtained !== null
+      maxMarks >
+        0 &&
+      marksObtained !==
+        null
+
         ? roundNumber(
             (
               marksObtained /
@@ -1947,6 +2275,7 @@ export function PracticePage() {
             ) *
             100
           )
+
         : roundNumber(
             (
               correct /
@@ -1955,8 +2284,10 @@ export function PracticePage() {
             100
           );
 
+
     const {
-      error: saveError
+      error:
+        saveError
     } =
       await supabase
         .from(
@@ -2012,7 +2343,10 @@ export function PracticePage() {
             buildPracticeConfig()
         });
 
-    if (saveError) {
+
+    if (
+      saveError
+    ) {
 
       console.error(
         'Unable to save practice result:',
@@ -2023,25 +2357,35 @@ export function PracticePage() {
         `Result could not be saved: ${saveError.message}`
       );
 
-      setSavingResult(false);
+      setSavingResult(
+        false
+      );
 
       return;
     }
 
-    setAttemptSaved(true);
+
+    setAttemptSaved(
+      true
+    );
+
 
     setResultMessage(
-      mode === 'exam'
+      mode ===
+        'exam'
         ? 'Exam result saved successfully.'
         : 'Practice result saved successfully.'
     );
 
-    setSavingResult(false);
+
+    setSavingResult(
+      false
+    );
   }
 
 
   /*
-   * FINISH PRACTICE MODE
+   * FINISH PRACTICE
    */
 
   async function finishPracticeMode() {
@@ -2052,33 +2396,52 @@ export function PracticePage() {
           item.is_correct
       ).length;
 
+
     const incorrect =
       answers.filter(
         item =>
           !item.is_correct
       ).length;
 
+
     const unanswered =
       Math.max(
         0,
+
         questions.length -
         answers.length
       );
 
-    setScore(correct);
 
-    setFinished(true);
+    setScore(
+      correct
+    );
+
+    setFinished(
+      true
+    );
+
 
     await saveAttempt(
+
       'practice',
+
       answers,
+
       correct,
+
       incorrect,
+
       unanswered,
+
       null,
+
       null,
+
       null,
+
       getDurationSeconds(),
+
       null
     );
   }
@@ -2092,7 +2455,8 @@ export function PracticePage() {
 
     if (
       index ===
-      questions.length - 1
+      questions.length -
+        1
     ) {
 
       await finishPracticeMode();
@@ -2100,12 +2464,16 @@ export function PracticePage() {
       return;
     }
 
+
     setIndex(
       current =>
         current + 1
     );
 
-    setSelected(null);
+
+    setSelected(
+      null
+    );
   }
 
 
@@ -2114,27 +2482,63 @@ export function PracticePage() {
    */
 
   async function submitExam(
-    automatic = false
+    automatic =
+      false
   ) {
 
     if (
       finished ||
-      questions.length === 0
+      questions.length ===
+        0
     ) {
+
       return;
     }
 
-    if (!automatic) {
+
+    if (
+      !automatic
+    ) {
+
+      const unansweredCount =
+        questions.filter(
+          item =>
+            typeof
+              examSelections[
+                item.id
+              ] !==
+            'number'
+        ).length;
+
+
+      const reviewCount =
+        questions.filter(
+          item =>
+            Boolean(
+              markedForReview[
+                item.id
+              ]
+            )
+        ).length;
+
 
       const confirmed =
         window.confirm(
-          'Submit your exam now? You will not be able to change answers after submission.'
+          `Submit your exam now?\n\n` +
+          `Unanswered: ${unansweredCount}\n` +
+          `Marked for Review: ${reviewCount}\n\n` +
+          `You will not be able to change answers after submission.`
         );
 
-      if (!confirmed) {
+
+      if (
+        !confirmed
+      ) {
+
         return;
       }
     }
+
 
     const records:
       AnswerRecord[] =
@@ -2146,9 +2550,11 @@ export function PracticePage() {
                 item.id
               ];
 
+
             const hasAnswer =
               typeof chosen ===
               'number';
+
 
             return {
 
@@ -2167,9 +2573,11 @@ export function PracticePage() {
                 hasAnswer &&
                 chosen ===
                   item.correct_index
+
             };
           }
         );
+
 
     const attempted =
       records.filter(
@@ -2178,11 +2586,13 @@ export function PracticePage() {
           null
       ).length;
 
+
     const correct =
       records.filter(
         item =>
           item.is_correct
       ).length;
+
 
     const incorrect =
       records.filter(
@@ -2192,31 +2602,50 @@ export function PracticePage() {
           !item.is_correct
       ).length;
 
+
     const unanswered =
       questions.length -
       attempted;
+
+
+    const reviewCount =
+      questions.filter(
+        item =>
+          Boolean(
+            markedForReview[
+              item.id
+            ]
+          )
+      ).length;
+
 
     const positiveMarks =
       correct *
       CSE_MARKS_PER_QUESTION;
 
+
     const negativeMarks =
       incorrect *
       CSE_NEGATIVE_MARK;
+
 
     const marksObtained =
       positiveMarks -
       negativeMarks;
 
+
     const maxMarks =
       questions.length *
       CSE_MARKS_PER_QUESTION;
 
+
     const duration =
       Math.min(
         timeLimitSeconds,
+
         getDurationSeconds()
       );
+
 
     const result:
       ExamResult = {
@@ -2228,6 +2657,9 @@ export function PracticePage() {
         incorrect,
 
         unanswered,
+
+        markedForReview:
+          reviewCount,
 
         positiveMarks:
           roundNumber(
@@ -2262,43 +2694,56 @@ export function PracticePage() {
           records
       };
 
-    /*
-     * Stop timer immediately
-     */
 
-    setTimeLeft(
-      automatic
-        ? 0
-        : timeLeft
+    setScore(
+      correct
     );
 
-    setScore(correct);
+    setAnswers(
+      records
+    );
 
-    setAnswers(records);
+    setExamResult(
+      result
+    );
 
-    setExamResult(result);
+    setFinished(
+      true
+    );
 
-    setFinished(true);
 
-    if (automatic) {
+    await saveAttempt(
+
+      'exam',
+
+      records,
+
+      correct,
+
+      incorrect,
+
+      unanswered,
+
+      result.marksObtained,
+
+      result.maxMarks,
+
+      result.negativeMarks,
+
+      result.timeUsedSeconds,
+
+      result.timeLimitSeconds
+    );
+
+
+    if (
+      automatic
+    ) {
 
       setResultMessage(
         'Time expired. Your exam was submitted automatically.'
       );
     }
-
-    await saveAttempt(
-      'exam',
-      records,
-      correct,
-      incorrect,
-      unanswered,
-      result.marksObtained,
-      result.maxMarks,
-      result.negativeMarks,
-      result.timeUsedSeconds,
-      result.timeLimitSeconds
-    );
   }
 
 
@@ -2310,21 +2755,33 @@ export function PracticePage() {
 
     setIndex(0);
 
-    setSelected(null);
+    setSelected(
+      null
+    );
 
     setScore(0);
 
     setAnswers([]);
 
-    setFinished(false);
+    setFinished(
+      false
+    );
 
     setExamSelections({});
 
-    setExamResult(null);
+    setMarkedForReview({});
 
-    setShowExamReview(false);
+    setExamResult(
+      null
+    );
 
-    setAttemptSaved(false);
+    setShowExamReview(
+      false
+    );
+
+    setAttemptSaved(
+      false
+    );
 
     setResultMessage('');
 
@@ -2332,14 +2789,16 @@ export function PracticePage() {
       Date.now()
     );
 
+
     if (
       sessionMode ===
-        'exam'
+      'exam'
     ) {
 
       const limit =
         questions.length *
         CSE_SECONDS_PER_QUESTION;
+
 
       setTimeLimitSeconds(
         limit
@@ -2351,13 +2810,15 @@ export function PracticePage() {
 
     } else {
 
-      setTimeLeft(null);
+      setTimeLeft(
+        null
+      );
     }
   }
 
 
   /*
-   * CHANGE PRACTICE SET
+   * RETURN TO SETUP
    */
 
   function changePracticeSet() {
@@ -2370,18 +2831,25 @@ export function PracticePage() {
    * LOADING
    */
 
-  if (loading) {
+  if (
+    loading
+  ) {
 
     return (
 
-      <div className="page-wrap">
+      <div
+        className="page-wrap"
+      >
 
         <TopBar
           title="Prelims Practice"
           subtitle="UPSC and State PSC question bank"
         />
 
-        <section className="panel">
+
+        <section
+          className="panel"
+        >
 
           <h2>
             Loading MCQs...
@@ -2398,26 +2866,35 @@ export function PracticePage() {
    * ERROR
    */
 
-  if (error) {
+  if (
+    error
+  ) {
 
     return (
 
-      <div className="page-wrap">
+      <div
+        className="page-wrap"
+      >
 
         <TopBar
           title="Prelims Practice"
           subtitle="UPSC and State PSC question bank"
         />
 
-        <section className="panel">
+
+        <section
+          className="panel"
+        >
 
           <h2>
             Unable to load questions
           </h2>
 
+
           <p>
             {error}
           </p>
+
 
           <button
             className="primary-btn"
@@ -2439,24 +2916,32 @@ export function PracticePage() {
    * SETUP SCREEN
    */
 
-  if (!practiceStarted) {
+  if (
+    !practiceStarted
+  ) {
 
     return (
 
-      <div className="page-wrap">
+      <div
+        className="page-wrap"
+      >
 
         <TopBar
           title="Prelims Practice"
           subtitle="Build your question set"
         />
 
+
         <section
           className="panel admin-form"
         >
 
-          <span className="eyebrow">
+          <span
+            className="eyebrow"
+          >
             PRELIMS QUESTION BANK
           </span>
+
 
           <h2>
             Build Your Practice Set
@@ -2467,17 +2952,26 @@ export function PracticePage() {
 
           <div
             style={{
-              marginTop: '16px',
-              padding: '16px',
+              marginTop:
+                '16px',
+
+              padding:
+                '16px',
+
               border:
                 '1px solid rgba(255,255,255,.10)',
-              borderRadius: '14px'
+
+              borderRadius:
+                '14px'
             }}
           >
 
-            <span className="eyebrow">
+            <span
+              className="eyebrow"
+            >
               SESSION MODE
             </span>
+
 
             <label>
               Mode
@@ -2496,11 +2990,16 @@ export function PracticePage() {
                 }
               >
 
-                <option value="practice">
+                <option
+                  value="practice"
+                >
                   Practice Mode
                 </option>
 
-                <option value="exam">
+
+                <option
+                  value="exam"
+                >
                   CSE Exam Mode
                 </option>
 
@@ -2510,53 +3009,62 @@ export function PracticePage() {
 
 
             {sessionMode ===
-              'practice' ? (
+              'practice'
+              ? (
 
-              <div className="callout">
+                <div
+                  className="callout"
+                >
 
-                <strong>
-                  Practice Mode
-                </strong>
+                  <strong>
+                    Practice Mode
+                  </strong>
 
-                <p>
-                  See the correct answer
-                  and explanation after
-                  every question.
-                </p>
 
-              </div>
+                  <p>
+                    See the correct answer
+                    and explanation after
+                    every question.
+                  </p>
 
-            ) : (
+                </div>
 
-              <div className="callout">
+              )
+              : (
 
-                <strong>
-                  CSE Exam Simulation
-                </strong>
+                <div
+                  className="callout"
+                >
 
-                <p>
-                  +2 for correct,
-                  -0.6667 for wrong,
-                  no penalty for
-                  unanswered questions.
-                </p>
+                  <strong>
+                    CSE Exam Simulation
+                  </strong>
 
-                <p>
-                  Time is scaled from
-                  the 100-question,
-                  120-minute CSE
-                  Prelims pattern.
-                </p>
 
-                <p>
-                  Answers and explanations
-                  remain hidden until
-                  submission.
-                </p>
+                  <p>
+                    Correct: +2 marks
+                  </p>
 
-              </div>
 
-            )}
+                  <p>
+                    Wrong: -0.6667 marks
+                  </p>
+
+
+                  <p>
+                    Unanswered: 0 marks
+                  </p>
+
+
+                  <p>
+                    Mark questions for
+                    review and return to
+                    them before submission.
+                  </p>
+
+                </div>
+
+              )}
 
           </div>
 
@@ -2581,19 +3089,30 @@ export function PracticePage() {
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Prelims Questions
               </option>
 
-              <option value="cse">
+
+              <option
+                value="cse"
+              >
                 CSE / General Practice
               </option>
 
-              <option value="upsc">
+
+              <option
+                value="upsc"
+              >
                 Other UPSC Examinations
               </option>
 
-              <option value="state">
+
+              <option
+                value="state"
+              >
                 State PSC Examinations
               </option>
 
@@ -2623,7 +3142,7 @@ export function PracticePage() {
 
             <small>
               Search question, topic,
-              tag, examination, year
+              examination, year, tag
               or source.
             </small>
 
@@ -2632,7 +3151,9 @@ export function PracticePage() {
 
           {/* SUBJECT + TOPIC */}
 
-          <div className="form-two">
+          <div
+            className="form-two"
+          >
 
             <label>
               Subject
@@ -2659,16 +3180,23 @@ export function PracticePage() {
                 }
               >
 
-                <option value="all">
+                <option
+                  value="all"
+                >
                   All Subjects
                 </option>
+
 
                 {subjects.map(
                   item => (
 
                     <option
-                      key={item}
-                      value={item}
+                      key={
+                        item
+                      }
+                      value={
+                        item
+                      }
                     >
                       {item}
                     </option>
@@ -2702,16 +3230,23 @@ export function PracticePage() {
                 }
               >
 
-                <option value="all">
+                <option
+                  value="all"
+                >
                   All Topics
                 </option>
+
 
                 {topics.map(
                   topic => (
 
                     <option
-                      key={topic}
-                      value={topic}
+                      key={
+                        topic
+                      }
+                      value={
+                        topic
+                      }
                     >
                       {topic}
                     </option>
@@ -2728,7 +3263,9 @@ export function PracticePage() {
 
           {/* DIFFICULTY + TYPE */}
 
-          <div className="form-two">
+          <div
+            className="form-two"
+          >
 
             <label>
               Difficulty
@@ -2816,17 +3353,26 @@ export function PracticePage() {
 
             <div
               style={{
-                marginTop: '14px',
-                padding: '16px',
+                marginTop:
+                  '14px',
+
+                padding:
+                  '16px',
+
                 border:
                   '1px solid rgba(255,255,255,.10)',
-                borderRadius: '14px'
+
+                borderRadius:
+                  '14px'
               }}
             >
 
-              <span className="eyebrow">
+              <span
+                className="eyebrow"
+              >
                 CSE PRELIMS PYQ
               </span>
+
 
               <label>
                 PYQ Year
@@ -2843,17 +3389,24 @@ export function PracticePage() {
                   }
                 >
 
-                  <option value="all">
+                  <option
+                    value="all"
+                  >
                     All CSE PYQ Years
                   </option>
+
 
                   {csePyqYears.map(
                     year => (
 
                       <option
-                        key={year}
+                        key={
+                          year
+                        }
                         value={
-                          String(year)
+                          String(
+                            year
+                          )
                         }
                       >
                         {year}
@@ -2875,17 +3428,26 @@ export function PracticePage() {
 
           <div
             style={{
-              marginTop: '14px',
-              padding: '16px',
+              marginTop:
+                '14px',
+
+              padding:
+                '16px',
+
               border:
                 '1px solid rgba(255,255,255,.10)',
-              borderRadius: '14px'
+
+              borderRadius:
+                '14px'
             }}
           >
 
-            <span className="eyebrow">
+            <span
+              className="eyebrow"
+            >
               SESSION SIZE
             </span>
+
 
             <label>
               Number of Questions
@@ -2928,11 +3490,13 @@ export function PracticePage() {
 
             </label>
 
+
             {sessionMode ===
               'exam' && (
 
               <p>
-                Estimated exam time:{' '}
+                Exam time:{' '}
+
                 <strong>
                   {
                     formatTime(
@@ -2955,19 +3519,30 @@ export function PracticePage() {
 
             <div
               style={{
-                marginTop: '18px',
-                padding: '16px',
+                marginTop:
+                  '18px',
+
+                padding:
+                  '16px',
+
                 border:
                   '1px solid rgba(255,255,255,.10)',
-                borderRadius: '14px'
+
+                borderRadius:
+                  '14px'
               }}
             >
 
-              <span className="eyebrow">
+              <span
+                className="eyebrow"
+              >
                 OTHER UPSC EXAMS
               </span>
 
-              <div className="form-two">
+
+              <div
+                className="form-two"
+              >
 
                 <label>
                   Examination
@@ -2994,16 +3569,23 @@ export function PracticePage() {
                     }
                   >
 
-                    <option value="all">
+                    <option
+                      value="all"
+                    >
                       All UPSC Exams
                     </option>
+
 
                     {upscExams.map(
                       exam => (
 
                         <option
-                          key={exam}
-                          value={exam}
+                          key={
+                            exam
+                          }
+                          value={
+                            exam
+                          }
                         >
                           {exam}
                         </option>
@@ -3031,16 +3613,23 @@ export function PracticePage() {
                     }
                   >
 
-                    <option value="all">
+                    <option
+                      value="all"
+                    >
                       All Cycles
                     </option>
+
 
                     {upscCycles.map(
                       cycle => (
 
                         <option
-                          key={cycle}
-                          value={cycle}
+                          key={
+                            cycle
+                          }
+                          value={
+                            cycle
+                          }
                         >
                           {cycle}
                         </option>
@@ -3070,17 +3659,24 @@ export function PracticePage() {
                   }
                 >
 
-                  <option value="all">
+                  <option
+                    value="all"
+                  >
                     All Years
                   </option>
+
 
                   {upscYears.map(
                     year => (
 
                       <option
-                        key={year}
+                        key={
+                          year
+                        }
                         value={
-                          String(year)
+                          String(
+                            year
+                          )
                         }
                       >
                         {year}
@@ -3105,17 +3701,26 @@ export function PracticePage() {
 
             <div
               style={{
-                marginTop: '18px',
-                padding: '16px',
+                marginTop:
+                  '18px',
+
+                padding:
+                  '16px',
+
                 border:
                   '1px solid rgba(255,255,255,.10)',
-                borderRadius: '14px'
+
+                borderRadius:
+                  '14px'
               }}
             >
 
-              <span className="eyebrow">
+              <span
+                className="eyebrow"
+              >
                 STATE PSC
               </span>
+
 
               <h3>
                 Choose State Examination
@@ -3147,16 +3752,23 @@ export function PracticePage() {
                   }
                 >
 
-                  <option value="all">
+                  <option
+                    value="all"
+                  >
                     All States
                   </option>
+
 
                   {states.map(
                     state => (
 
                       <option
-                        key={state}
-                        value={state}
+                        key={
+                          state
+                        }
+                        value={
+                          state
+                        }
                       >
                         {state}
                       </option>
@@ -3190,16 +3802,23 @@ export function PracticePage() {
                   }
                 >
 
-                  <option value="all">
+                  <option
+                    value="all"
+                  >
                     All Examinations
                   </option>
+
 
                   {stateExams.map(
                     exam => (
 
                       <option
-                        key={exam}
-                        value={exam}
+                        key={
+                          exam
+                        }
+                        value={
+                          exam
+                        }
                       >
                         {exam}
                       </option>
@@ -3227,17 +3846,24 @@ export function PracticePage() {
                   }
                 >
 
-                  <option value="all">
+                  <option
+                    value="all"
+                  >
                     All Years
                   </option>
+
 
                   {stateYears.map(
                     year => (
 
                       <option
-                        key={year}
+                        key={
+                          year
+                        }
                         value={
-                          String(year)
+                          String(
+                            year
+                          )
                         }
                       >
                         {year}
@@ -3260,7 +3886,8 @@ export function PracticePage() {
           <div
             className="callout"
             style={{
-              marginTop: '18px'
+              marginTop:
+                '18px'
             }}
           >
 
@@ -3268,11 +3895,12 @@ export function PracticePage() {
               {
                 filteredQuestions.length
               }{' '}
-              questions match your filters
+              questions match
             </strong>
 
+
             <p>
-              Session questions:{' '}
+              Session Questions:{' '}
 
               <strong>
                 {
@@ -3281,12 +3909,15 @@ export function PracticePage() {
               </strong>
             </p>
 
+
             {sessionMode ===
               'exam' && (
 
               <>
+
                 <p>
-                  Maximum marks:{' '}
+                  Maximum Marks:{' '}
+
                   <strong>
                     {
                       sessionQuestionCount *
@@ -3295,8 +3926,10 @@ export function PracticePage() {
                   </strong>
                 </p>
 
+
                 <p>
-                  Time limit:{' '}
+                  Time Limit:{' '}
+
                   <strong>
                     {
                       formatTime(
@@ -3306,6 +3939,7 @@ export function PracticePage() {
                     }
                   </strong>
                 </p>
+
               </>
 
             )}
@@ -3315,7 +3949,9 @@ export function PracticePage() {
 
           {setupMessage && (
 
-            <p className="form-message">
+            <p
+              className="form-message"
+            >
               {setupMessage}
             </p>
 
@@ -3324,31 +3960,41 @@ export function PracticePage() {
 
           <div
             style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap',
-              marginTop: '18px'
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              flexWrap:
+                'wrap',
+
+              marginTop:
+                '18px'
             }}
           >
 
             <button
               type="button"
               className="primary-btn"
-              onClick={
-                startPractice
-              }
               disabled={
                 filteredQuestions.length ===
                 0
               }
+              onClick={
+                startPractice
+              }
             >
+
               {
                 sessionMode ===
                   'exam'
                   ? 'Start Exam'
                   : 'Start Practice'
               }
+
             </button>
+
 
             <button
               type="button"
@@ -3359,6 +4005,7 @@ export function PracticePage() {
             >
               Reset Filters
             </button>
+
 
             <button
               type="button"
@@ -3383,7 +4030,9 @@ export function PracticePage() {
    * RESULT SCREEN
    */
 
-  if (finished) {
+  if (
+    finished
+  ) {
 
     /*
      * EXAM RESULT
@@ -3395,8 +4044,9 @@ export function PracticePage() {
       examResult
     ) {
 
-      const markPercentage =
-        examResult.maxMarks > 0
+      const percentage =
+        examResult.maxMarks >
+          0
           ? roundNumber(
               (
                 examResult.marksObtained /
@@ -3406,9 +4056,12 @@ export function PracticePage() {
             )
           : 0;
 
+
       return (
 
-        <div className="page-wrap">
+        <div
+          className="page-wrap"
+        >
 
           <TopBar
             title="CSE Exam Result"
@@ -3416,11 +4069,16 @@ export function PracticePage() {
           />
 
 
-          <section className="result-card">
+          <section
+            className="result-card"
+          >
 
-            <span className="result-icon">
+            <span
+              className="result-icon"
+            >
               🎯
             </span>
+
 
             <h2>
               {
@@ -3432,95 +4090,146 @@ export function PracticePage() {
               }
             </h2>
 
+
             <h3>
-              {markPercentage}%
+              {percentage}%
             </h3>
+
 
             <p>
               CSE-style negative
-              marking has been applied.
+              marking applied.
             </p>
 
 
             <div
               style={{
-                display: 'grid',
+                display:
+                  'grid',
+
                 gridTemplateColumns:
-                  'repeat(auto-fit,minmax(130px,1fr))',
-                gap: '10px',
-                marginTop: '18px',
-                textAlign: 'left'
+                  'repeat(auto-fit,minmax(125px,1fr))',
+
+                gap:
+                  '10px',
+
+                marginTop:
+                  '18px',
+
+                textAlign:
+                  'left'
               }}
             >
 
-              <div className="callout">
+              <div
+                className="callout"
+              >
                 <strong>
                   {
                     questions.length
                   }
                 </strong>
+
                 <p>
                   Questions
                 </p>
               </div>
 
-              <div className="callout">
+
+              <div
+                className="callout"
+              >
                 <strong>
                   {
                     examResult.attempted
                   }
                 </strong>
+
                 <p>
                   Attempted
                 </p>
               </div>
 
-              <div className="callout">
+
+              <div
+                className="callout"
+              >
                 <strong>
                   {
                     examResult.correct
                   }
                 </strong>
+
                 <p>
                   Correct
                 </p>
               </div>
 
-              <div className="callout">
+
+              <div
+                className="callout"
+              >
                 <strong>
                   {
                     examResult.incorrect
                   }
                 </strong>
+
                 <p>
                   Incorrect
                 </p>
               </div>
 
-              <div className="callout">
+
+              <div
+                className="callout"
+              >
                 <strong>
                   {
                     examResult.unanswered
                   }
                 </strong>
+
                 <p>
                   Unanswered
                 </p>
               </div>
 
-              <div className="callout">
+
+              <div
+                className="callout"
+              >
+                <strong>
+                  {
+                    examResult.markedForReview
+                  }
+                </strong>
+
+                <p>
+                  Marked Review
+                </p>
+              </div>
+
+
+              <div
+                className="callout"
+              >
                 <strong>
                   -
                   {
                     examResult.negativeMarks
                   }
                 </strong>
+
                 <p>
                   Negative Marks
                 </p>
               </div>
 
-              <div className="callout">
+
+              <div
+                className="callout"
+              >
                 <strong>
                   {
                     formatTime(
@@ -3528,6 +4237,7 @@ export function PracticePage() {
                     )
                   }
                 </strong>
+
                 <p>
                   Time Used
                 </p>
@@ -3539,14 +4249,17 @@ export function PracticePage() {
             {savingResult && (
 
               <p>
-                Saving exam result...
+                Saving result...
               </p>
 
             )}
 
+
             {resultMessage && (
 
-              <p className="form-message">
+              <p
+                className="form-message"
+              >
                 {resultMessage}
               </p>
 
@@ -3555,11 +4268,20 @@ export function PracticePage() {
 
             <div
               style={{
-                display: 'flex',
-                gap: '10px',
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-                marginTop: '18px'
+                display:
+                  'flex',
+
+                gap:
+                  '10px',
+
+                flexWrap:
+                  'wrap',
+
+                justifyContent:
+                  'center',
+
+                marginTop:
+                  '18px'
               }}
             >
 
@@ -3579,6 +4301,7 @@ export function PracticePage() {
                 }
               </button>
 
+
               <button
                 className="secondary-btn"
                 onClick={
@@ -3587,6 +4310,7 @@ export function PracticePage() {
               >
                 Attempt Same Set Again
               </button>
+
 
               <button
                 className="secondary-btn"
@@ -3607,13 +4331,17 @@ export function PracticePage() {
             <section
               className="panel"
               style={{
-                marginTop: '18px'
+                marginTop:
+                  '18px'
               }}
             >
 
-              <span className="eyebrow">
+              <span
+                className="eyebrow"
+              >
                 ANSWER REVIEW
               </span>
+
 
               <h2>
                 Review Your Exam
@@ -3622,8 +4350,11 @@ export function PracticePage() {
 
               <div
                 style={{
-                  display: 'grid',
-                  gap: '16px'
+                  display:
+                    'grid',
+
+                  gap:
+                    '16px'
                 }}
               >
 
@@ -3634,13 +4365,25 @@ export function PracticePage() {
                   ) => {
 
                     const record =
-                      examResult.answers[
-                        questionIndex
-                      ];
+                      examResult
+                        .answers[
+                          questionIndex
+                        ];
+
 
                     const selectedIndex =
-                      record?.selected_index ??
+                      record
+                        ?.selected_index ??
                       null;
+
+
+                    const wasMarked =
+                      Boolean(
+                        markedForReview[
+                          question.id
+                        ]
+                      );
+
 
                     return (
 
@@ -3649,26 +4392,58 @@ export function PracticePage() {
                           question.id
                         }
                         style={{
-                          padding: '16px',
+                          padding:
+                            '16px',
+
                           border:
                             '1px solid rgba(255,255,255,.10)',
-                          borderRadius: '14px'
+
+                          borderRadius:
+                            '14px'
                         }}
                       >
 
-                        <strong>
-                          Question{' '}
-                          {
-                            questionIndex +
-                            1
-                          }
-                        </strong>
+                        <div
+                          className="tag-row"
+                        >
+
+                          <span
+                            className="tag"
+                          >
+                            Question{' '}
+                            {
+                              questionIndex +
+                              1
+                            }
+                          </span>
+
+
+                          {wasMarked && (
+
+                            <span
+                              className="tag"
+                              style={{
+                                color:
+                                  '#fbbf24',
+
+                                border:
+                                  '1px solid rgba(251,191,36,.45)'
+                              }}
+                            >
+                              Marked for Review
+                            </span>
+
+                          )}
+
+                        </div>
+
 
                         <h3>
                           {
                             question.question
                           }
                         </h3>
+
 
                         <p>
                           Your answer:{' '}
@@ -3686,6 +4461,7 @@ export function PracticePage() {
                           </strong>
                         </p>
 
+
                         <p>
                           Correct answer:{' '}
 
@@ -3699,6 +4475,7 @@ export function PracticePage() {
                           </strong>
                         </p>
 
+
                         <p>
                           Status:{' '}
 
@@ -3707,18 +4484,23 @@ export function PracticePage() {
                               selectedIndex ===
                                 null
                                 ? 'Unanswered'
-                                : record?.is_correct
+                                : record
+                                    ?.is_correct
                                 ? 'Correct'
                                 : 'Incorrect'
                             }
                           </strong>
                         </p>
 
-                        <div className="explanation">
+
+                        <div
+                          className="explanation"
+                        >
 
                           <strong>
                             Explanation
                           </strong>
+
 
                           <p>
                             {
@@ -3729,6 +4511,7 @@ export function PracticePage() {
                         </div>
 
                       </article>
+
                     );
                   }
                 )}
@@ -3749,7 +4532,8 @@ export function PracticePage() {
      */
 
     const percentage =
-      questions.length > 0
+      questions.length >
+        0
         ? Math.round(
             (
               score /
@@ -3759,35 +4543,47 @@ export function PracticePage() {
           )
         : 0;
 
+
     return (
 
-      <div className="page-wrap">
+      <div
+        className="page-wrap"
+      >
 
         <TopBar
           title="Prelims Practice"
           subtitle="Your practice result"
         />
 
-        <section className="result-card">
 
-          <span className="result-icon">
+        <section
+          className="result-card"
+        >
+
+          <span
+            className="result-icon"
+          >
             🎯
           </span>
+
 
           <h2>
             {score}/
             {questions.length}
           </h2>
 
+
           <h3>
             {percentage}%
           </h3>
+
 
           <p>
             Review explanations and
             strengthen the concepts
             you missed.
           </p>
+
 
           {savingResult && (
 
@@ -3797,20 +4593,31 @@ export function PracticePage() {
 
           )}
 
+
           {resultMessage && (
 
-            <p className="form-message">
+            <p
+              className="form-message"
+            >
               {resultMessage}
             </p>
 
           )}
 
+
           <div
             style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap',
-              justifyContent: 'center'
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              flexWrap:
+                'wrap',
+
+              justifyContent:
+                'center'
             }}
           >
 
@@ -3822,6 +4629,7 @@ export function PracticePage() {
             >
               Practice Same Set Again
             </button>
+
 
             <button
               className="secondary-btn"
@@ -3842,22 +4650,29 @@ export function PracticePage() {
 
 
   /*
-   * ACTIVE QUESTION
+   * CURRENT QUESTION
    */
 
   const q =
     questions[index];
 
-  if (!q) {
+
+  if (
+    !q
+  ) {
+
     return null;
   }
 
+
   const origin =
-    getQuestionOrigin(q);
+    getQuestionOrigin(
+      q
+    );
 
 
   /*
-   * EXAM MODE SCREEN
+   * EXAM MODE
    */
 
   if (
@@ -3870,14 +4685,47 @@ export function PracticePage() {
         q.id
       ];
 
+
+    const currentMarked =
+      Boolean(
+        markedForReview[
+          q.id
+        ]
+      );
+
+
     const answeredCount =
-      Object.keys(
-        examSelections
+      questions.filter(
+        item =>
+          typeof
+            examSelections[
+              item.id
+            ] ===
+          'number'
       ).length;
+
+
+    const reviewCount =
+      questions.filter(
+        item =>
+          Boolean(
+            markedForReview[
+              item.id
+            ]
+          )
+      ).length;
+
+
+    const unansweredCount =
+      questions.length -
+      answeredCount;
+
 
     return (
 
-      <div className="page-wrap">
+      <div
+        className="page-wrap"
+      >
 
         <TopBar
           title="CSE Exam Mode"
@@ -3890,35 +4738,49 @@ export function PracticePage() {
         <section
           className="panel"
           style={{
-            marginBottom: '14px'
+            marginBottom:
+              '14px'
           }}
         >
 
           <div
             style={{
-              display: 'flex',
+              display:
+                'flex',
+
               justifyContent:
                 'space-between',
-              alignItems: 'center',
-              gap: '12px',
-              flexWrap: 'wrap'
+
+              alignItems:
+                'center',
+
+              gap:
+                '14px',
+
+              flexWrap:
+                'wrap'
             }}
           >
 
             <div>
 
-              <span className="eyebrow">
+              <span
+                className="eyebrow"
+              >
                 TIME REMAINING
               </span>
 
+
               <h2
                 style={{
-                  marginBottom: 0
+                  marginBottom:
+                    0
                 }}
               >
                 {
                   formatTime(
-                    timeLeft || 0
+                    timeLeft ??
+                    0
                   )
                 }
               </h2>
@@ -3926,26 +4788,57 @@ export function PracticePage() {
             </div>
 
 
-            <div>
+            <div
+              style={{
+                display:
+                  'flex',
 
-              <strong>
-                Answered:{' '}
-                {
-                  answeredCount
-                }
-                /
-                {
-                  questions.length
-                }
-              </strong>
+                gap:
+                  '8px',
+
+                flexWrap:
+                  'wrap'
+              }}
+            >
+
+              <span
+                className="tag"
+                style={{
+                  color:
+                    '#5eead4'
+                }}
+              >
+                Answered {answeredCount}
+              </span>
+
+
+              <span
+                className="tag"
+                style={{
+                  color:
+                    '#fbbf24'
+                }}
+              >
+                Review {reviewCount}
+              </span>
+
+
+              <span
+                className="tag"
+              >
+                Unanswered {unansweredCount}
+              </span>
 
             </div>
 
 
             <button
+              type="button"
               className="secondary-btn"
               onClick={() =>
-                submitExam(false)
+                submitExam(
+                  false
+                )
               }
             >
               Submit Exam
@@ -3956,25 +4849,97 @@ export function PracticePage() {
         </section>
 
 
-        {/* QUESTION PALETTE */}
+        {/* PALETTE */}
 
         <section
           className="panel"
           style={{
-            marginBottom: '14px'
+            marginBottom:
+              '14px'
           }}
         >
 
-          <span className="eyebrow">
+          <span
+            className="eyebrow"
+          >
             QUESTION PALETTE
           </span>
 
+
+          {/* LEGEND */}
+
           <div
             style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-              marginTop: '10px'
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              flexWrap:
+                'wrap',
+
+              margin:
+                '12px 0'
+            }}
+          >
+
+            <span
+              className="tag"
+              style={{
+                color:
+                  '#94a3b8'
+              }}
+            >
+              ● Not Answered
+            </span>
+
+
+            <span
+              className="tag"
+              style={{
+                color:
+                  '#5eead4'
+              }}
+            >
+              ● Answered
+            </span>
+
+
+            <span
+              className="tag"
+              style={{
+                color:
+                  '#fbbf24'
+              }}
+            >
+              ● Review
+            </span>
+
+
+            <span
+              className="tag"
+              style={{
+                color:
+                  '#c4b5fd'
+              }}
+            >
+              ● Answered + Review
+            </span>
+
+          </div>
+
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              flexWrap:
+                'wrap',
+
+              gap:
+                '8px'
             }}
           >
 
@@ -3991,9 +4956,79 @@ export function PracticePage() {
                     ] ===
                   'number';
 
+
+                const isMarked =
+                  Boolean(
+                    markedForReview[
+                      item.id
+                    ]
+                  );
+
+
                 const isCurrent =
                   paletteIndex ===
                   index;
+
+
+                let background =
+                  'rgba(255,255,255,.035)';
+
+
+                let border =
+                  '1px solid rgba(255,255,255,.12)';
+
+
+                let color =
+                  '#94a3b8';
+
+
+                if (
+                  hasAnswer &&
+                  !isMarked
+                ) {
+
+                  background =
+                    'rgba(20,184,166,.18)';
+
+                  border =
+                    '1px solid rgba(45,212,191,.55)';
+
+                  color =
+                    '#5eead4';
+                }
+
+
+                if (
+                  !hasAnswer &&
+                  isMarked
+                ) {
+
+                  background =
+                    'rgba(251,191,36,.15)';
+
+                  border =
+                    '1px solid rgba(251,191,36,.55)';
+
+                  color =
+                    '#fbbf24';
+                }
+
+
+                if (
+                  hasAnswer &&
+                  isMarked
+                ) {
+
+                  background =
+                    'rgba(139,92,246,.20)';
+
+                  border =
+                    '1px solid rgba(167,139,250,.70)';
+
+                  color =
+                    '#ddd6fe';
+                }
+
 
                 return (
 
@@ -4002,28 +5037,53 @@ export function PracticePage() {
                       item.id
                     }
                     type="button"
-                    className="secondary-btn"
                     onClick={() =>
                       setIndex(
                         paletteIndex
                       )
                     }
                     style={{
-                      minWidth: '44px',
-                      padding: '8px',
-                      opacity:
-                        hasAnswer
-                          ? 1
-                          : 0.6,
-                      outline:
+                      minWidth:
+                        '44px',
+
+                      minHeight:
+                        '42px',
+
+                      border,
+
+                      borderRadius:
+                        '10px',
+
+                      background,
+
+                      color,
+
+                      fontWeight:
+                        800,
+
+                      cursor:
+                        'pointer',
+
+                      boxShadow:
                         isCurrent
-                          ? '2px solid currentColor'
+                          ? '0 0 0 2px #f8fafc'
                           : 'none'
                     }}
                     title={
-                      hasAnswer
+                      hasAnswer &&
+                      isMarked
+
+                        ? 'Answered and Marked for Review'
+
+                        : isMarked
+
+                        ? 'Marked for Review'
+
+                        : hasAnswer
+
                         ? 'Answered'
-                        : 'Not answered'
+
+                        : 'Not Answered'
                     }
                   >
                     {
@@ -4031,26 +5091,36 @@ export function PracticePage() {
                       1
                     }
                   </button>
+
                 );
               }
             )}
 
           </div>
 
-          <small>
-            Brighter numbers are answered.
-            Outlined number is the current
-            question.
-          </small>
+
+          <p
+            style={{
+              marginBottom:
+                0
+            }}
+          >
+            White outline shows your
+            current question.
+          </p>
 
         </section>
 
 
         {/* QUESTION */}
 
-        <section className="quiz-card">
+        <section
+          className="quiz-card"
+        >
 
-          <div className="quiz-meta">
+          <div
+            className="quiz-meta"
+          >
 
             <div>
 
@@ -4058,12 +5128,16 @@ export function PracticePage() {
                 {q.subject}
               </span>
 
+
               {q.topic && (
 
                 <small
                   style={{
-                    display: 'block',
-                    marginTop: '4px'
+                    display:
+                      'block',
+
+                    marginTop:
+                      '4px'
                   }}
                 >
                   {q.topic}
@@ -4072,6 +5146,7 @@ export function PracticePage() {
               )}
 
             </div>
+
 
             <strong>
               Question{' '}
@@ -4082,7 +5157,9 @@ export function PracticePage() {
           </div>
 
 
-          <div className="progress-track">
+          <div
+            className="progress-track"
+          >
 
             <span
               style={{
@@ -4105,25 +5182,53 @@ export function PracticePage() {
           <div
             className="tag-row"
             style={{
-              marginBottom: '12px'
+              marginTop:
+                '14px'
             }}
           >
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               {q.difficulty}
             </span>
 
-            <span className="tag">
+
+            <span
+              className="tag"
+            >
               CSE Exam
             </span>
 
+
             {q.is_pyq && (
 
-              <span className="tag">
+              <span
+                className="tag"
+              >
                 PYQ{' '}
                 {
-                  q.pyq_year || ''
+                  q.pyq_year ||
+                  ''
                 }
+              </span>
+
+            )}
+
+
+            {currentMarked && (
+
+              <span
+                className="tag"
+                style={{
+                  color:
+                    '#fbbf24',
+
+                  border:
+                    '1px solid rgba(251,191,36,.55)'
+                }}
+              >
+                ★ Marked for Review
               </span>
 
             )}
@@ -4136,7 +5241,9 @@ export function PracticePage() {
           </h2>
 
 
-          <div className="option-list">
+          <div
+            className="option-list"
+          >
 
             {q.options.map(
               (
@@ -4147,6 +5254,7 @@ export function PracticePage() {
                 const isChosen =
                   chosen ===
                   optionIndex;
+
 
                 return (
 
@@ -4163,7 +5271,12 @@ export function PracticePage() {
                     style={{
                       border:
                         isChosen
-                          ? '2px solid currentColor'
+                          ? '2px solid #2dd4bf'
+                          : undefined,
+
+                      background:
+                        isChosen
+                          ? 'rgba(20,184,166,.12)'
                           : undefined
                     }}
                   >
@@ -4177,9 +5290,11 @@ export function PracticePage() {
                       }
                     </span>
 
+
                     {option}
 
                   </button>
+
                 );
               }
             )}
@@ -4187,12 +5302,21 @@ export function PracticePage() {
           </div>
 
 
+          {/* EXAM CONTROLS */}
+
           <div
             style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap',
-              marginTop: '18px'
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              flexWrap:
+                'wrap',
+
+              marginTop:
+                '18px'
             }}
           >
 
@@ -4200,14 +5324,16 @@ export function PracticePage() {
               type="button"
               className="secondary-btn"
               disabled={
-                index === 0
+                index ===
+                0
               }
               onClick={() =>
                 setIndex(
                   current =>
                     Math.max(
                       0,
-                      current - 1
+                      current -
+                        1
                     )
                 )
               }
@@ -4219,52 +5345,98 @@ export function PracticePage() {
             <button
               type="button"
               className="secondary-btn"
-              onClick={
-                clearExamResponse
-              }
               disabled={
                 typeof chosen !==
                 'number'
+              }
+              onClick={
+                clearExamResponse
               }
             >
               Clear Response
             </button>
 
 
+            <button
+              type="button"
+              onClick={
+                toggleMarkForReview
+              }
+              style={{
+                border:
+                  currentMarked
+                    ? '1px solid rgba(251,191,36,.70)'
+                    : '1px solid rgba(251,191,36,.40)',
+
+                borderRadius:
+                  '12px',
+
+                background:
+                  currentMarked
+                    ? 'rgba(251,191,36,.18)'
+                    : 'transparent',
+
+                color:
+                  '#fbbf24',
+
+                padding:
+                  '10px 14px',
+
+                fontWeight:
+                  750,
+
+                cursor:
+                  'pointer'
+              }}
+            >
+              {
+                currentMarked
+                  ? '★ Remove Review Mark'
+                  : '☆ Mark for Review'
+              }
+            </button>
+
+
             {index <
               questions.length -
-                1 ? (
+                1
+              ? (
 
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={() =>
-                  setIndex(
-                    current =>
-                      Math.min(
-                        questions.length -
-                          1,
-                        current + 1
-                      )
-                  )
-                }
-              >
-                Save & Next
-              </button>
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={() =>
+                    setIndex(
+                      current =>
+                        Math.min(
+                          questions.length -
+                            1,
 
-            ) : (
+                          current +
+                            1
+                        )
+                    )
+                  }
+                >
+                  Save & Next
+                </button>
 
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={() =>
-                  submitExam(false)
-                }
-              >
-                Submit Exam
-              </button>
+              )
+              : (
 
-            )}
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={() =>
+                    submitExam(
+                      false
+                    )
+                  }
+                >
+                  Submit Exam
+                </button>
+
+              )}
 
           </div>
 
@@ -4276,21 +5448,28 @@ export function PracticePage() {
 
 
   /*
-   * PRACTICE MODE SCREEN
+   * PRACTICE MODE
    */
 
   return (
 
-    <div className="page-wrap">
+    <div
+      className="page-wrap"
+    >
 
       <TopBar
         title="Prelims Practice"
         subtitle="Learn from every answer"
       />
 
-      <section className="quiz-card">
 
-        <div className="quiz-meta">
+      <section
+        className="quiz-card"
+      >
+
+        <div
+          className="quiz-meta"
+        >
 
           <div>
 
@@ -4298,12 +5477,16 @@ export function PracticePage() {
               {q.subject}
             </span>
 
+
             {q.topic && (
 
               <small
                 style={{
-                  display: 'block',
-                  marginTop: '4px'
+                  display:
+                    'block',
+
+                  marginTop:
+                    '4px'
                 }}
               >
                 {q.topic}
@@ -4313,6 +5496,7 @@ export function PracticePage() {
 
           </div>
 
+
           <strong>
             {index + 1}/
             {questions.length}
@@ -4321,7 +5505,9 @@ export function PracticePage() {
         </div>
 
 
-        <div className="progress-track">
+        <div
+          className="progress-track"
+        >
 
           <span
             style={{
@@ -4344,55 +5530,74 @@ export function PracticePage() {
         <div
           className="tag-row"
           style={{
-            marginBottom: '12px'
+            marginTop:
+              '14px'
           }}
         >
 
-          <span className="tag">
+          <span
+            className="tag"
+          >
             {q.difficulty}
           </span>
+
 
           {origin ===
             'cse' && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               CSE / General
             </span>
 
           )}
 
+
           {origin ===
             'upsc' && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               UPSC Value Add
             </span>
 
           )}
 
+
           {origin ===
             'state' && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               State PSC
             </span>
 
           )}
 
+
           {q.is_pyq && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               PYQ{' '}
               {
-                q.pyq_year || ''
+                q.pyq_year ||
+                ''
               }
             </span>
 
           )}
 
+
           {q.upsc_exam_name && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               {
                 q.upsc_exam_name
               }
@@ -4400,9 +5605,12 @@ export function PracticePage() {
 
           )}
 
+
           {q.upsc_exam_cycle && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               Cycle{' '}
               {
                 q.upsc_exam_cycle
@@ -4411,9 +5619,12 @@ export function PracticePage() {
 
           )}
 
+
           {q.upsc_exam_year && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               {
                 q.upsc_exam_year
               }
@@ -4421,9 +5632,12 @@ export function PracticePage() {
 
           )}
 
+
           {q.state_psc_state && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               {
                 q.state_psc_state
               }
@@ -4431,9 +5645,12 @@ export function PracticePage() {
 
           )}
 
+
           {q.state_psc_exam_name && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               {
                 q.state_psc_exam_name
               }
@@ -4441,9 +5658,12 @@ export function PracticePage() {
 
           )}
 
+
           {q.state_psc_year && (
 
-            <span className="tag">
+            <span
+              className="tag"
+            >
               {
                 q.state_psc_year
               }
@@ -4459,7 +5679,9 @@ export function PracticePage() {
         </h2>
 
 
-        <div className="option-list">
+        <div
+          className="option-list"
+        >
 
           {q.options.map(
             (
@@ -4468,15 +5690,23 @@ export function PracticePage() {
             ) => {
 
               const state =
-                selected === null
+                selected ===
+                  null
+
                   ? ''
+
                   : optionIndex ===
                     q.correct_index
+
                   ? 'correct'
+
                   : selected ===
                     optionIndex
+
                   ? 'wrong'
+
                   : 'muted';
+
 
               return (
 
@@ -4503,9 +5733,11 @@ export function PracticePage() {
                     }
                   </span>
 
+
                   {option}
 
                 </button>
+
               );
             }
           )}
@@ -4513,30 +5745,38 @@ export function PracticePage() {
         </div>
 
 
-        {selected !== null && (
+        {selected !==
+          null && (
 
-          <div className="explanation">
+          <div
+            className="explanation"
+          >
 
             <strong>
               Explanation
             </strong>
+
 
             <p>
               {q.explanation}
             </p>
 
 
+            {/* UPSC REFERENCE */}
+
             {q.upsc_exam_name && (
 
               <div
                 style={{
-                  marginTop: '12px'
+                  marginTop:
+                    '12px'
                 }}
               >
 
                 <strong>
                   UPSC Examination Reference
                 </strong>
+
 
                 <p>
                   {
@@ -4573,17 +5813,21 @@ export function PracticePage() {
             )}
 
 
+            {/* STATE REFERENCE */}
+
             {q.state_psc_state && (
 
               <div
                 style={{
-                  marginTop: '12px'
+                  marginTop:
+                    '12px'
                 }}
               >
 
                 <strong>
                   State PSC Reference
                 </strong>
+
 
                 <p>
                   {
@@ -4596,6 +5840,7 @@ export function PracticePage() {
                       : ''
                   }
                 </p>
+
 
                 {q.state_psc_exam_name && (
 
@@ -4610,6 +5855,7 @@ export function PracticePage() {
                   </p>
 
                 )}
+
 
                 <p>
                   {
@@ -4651,6 +5897,7 @@ export function PracticePage() {
             {q.source_url && (
 
               <p>
+
                 <a
                   href={
                     q.source_url
@@ -4660,6 +5907,7 @@ export function PracticePage() {
                 >
                   Open source reference
                 </a>
+
               </p>
 
             )}
@@ -4667,7 +5915,8 @@ export function PracticePage() {
 
             <div
               style={{
-                marginTop: '16px'
+                marginTop:
+                  '16px'
               }}
             >
 
@@ -4677,12 +5926,15 @@ export function PracticePage() {
                   nextPracticeQuestion
                 }
               >
+
                 {
                   index ===
-                  questions.length - 1
+                  questions.length -
+                    1
                     ? 'See result'
                     : 'Next question'
                 }
+
               </button>
 
             </div>
