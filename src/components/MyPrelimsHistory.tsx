@@ -966,13 +966,45 @@ export function MyPrelimsHistory() {
           </span>
 
 
-          <label>
-            Session Type
+         <div
+  className="history-filter-control"
+>
+  <label
+    htmlFor="prelims-history-session-type"
+  >
+    Session Type
+  </label>
 
-            <select
-              value={
-                modeFilter
-              }
+  <select
+    id="prelims-history-session-type"
+    value={
+      modeFilter
+    }
+    onChange={
+      event =>
+        setModeFilter(
+          event.target
+            .value as
+            | 'all'
+            | AttemptMode
+        )
+    }
+  >
+
+    <option value="all">
+      All Sessions
+    </option>
+
+    <option value="practice">
+      Practice Mode
+    </option>
+
+    <option value="exam">
+      CSE Exam Mode
+    </option>
+
+  </select>
+</div>
               onChange={
                 event =>
                   setModeFilter(
