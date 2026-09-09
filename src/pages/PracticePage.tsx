@@ -18,6 +18,9 @@ type QuestionOrigin =
   | 'upsc'
   | 'state';
 
+type SessionMode =
+  | 'practice'
+  | 'exam';
 
 type SessionSize =
   | '10'
@@ -25,7 +28,6 @@ type SessionSize =
   | '50'
   | '100'
   | 'all';
-
 
 type Difficulty =
   | 'easy'
@@ -68,9 +70,27 @@ type LiveQuestion = {
 
 type AnswerRecord = {
   question_id: string;
-  selected_index: number;
+  selected_index: number | null;
   correct_index: number;
   is_correct: boolean;
+};
+
+
+type ExamResult = {
+  attempted: number;
+  correct: number;
+  incorrect: number;
+  unanswered: number;
+
+  positiveMarks: number;
+  negativeMarks: number;
+  marksObtained: number;
+  maxMarks: number;
+
+  timeUsedSeconds: number;
+  timeLimitSeconds: number;
+
+  answers: AnswerRecord[];
 };
 
 
@@ -103,6 +123,23 @@ const QUESTION_SELECT = `
 
 
 /*
+ * CSE PRELIMS PATTERN
+ *
+ * 100 questions = 200 marks
+ * 120 minutes
+ * Correct = +2
+ * Wrong = -1/3 of question marks
+ */
+
+const CSE_MARKS_PER_QUESTION = 2;
+
+const CSE_NEGATIVE_MARK =
+  CSE_MARKS_PER_QUESTION / 3;
+
+const CSE_SECONDS_PER_QUESTION = 72;
+
+
+/*
  * QUESTION ORIGIN
  */
 
@@ -110,15 +147,11 @@ function getQuestionOrigin(
   item: LiveQuestion
 ): QuestionOrigin {
 
-  if (
-    item.state_psc_state
-  ) {
+  if (item.state_psc_state) {
     return 'state';
   }
 
-  if (
-    item.upsc_exam_name
-  ) {
+  if (item.upsc_exam_name) {
     return 'upsc';
   }
 
@@ -127,7 +160,7 @@ function getQuestionOrigin(
 
 
 /*
- * RANDOMIZE
+ * RANDOMIZE QUESTIONS
  */
 
 function shuffleQuestions(
@@ -165,6 +198,77 @@ function shuffleQuestions(
 }
 
 
+/*
+ * TIME DISPLAY
+ */
+
+function formatTime(
+  seconds: number
+) {
+
+  const safeSeconds =
+    Math.max(
+      0,
+      seconds
+    );
+
+  const hours =
+    Math.floor(
+      safeSeconds /
+      3600
+    );
+
+  const minutes =
+    Math.floor(
+      (
+        safeSeconds %
+        3600
+      ) /
+      60
+    );
+
+  const remainingSeconds =
+    safeSeconds %
+    60;
+
+  if (hours > 0) {
+
+    return (
+      `${hours}:` +
+      `${String(minutes).padStart(2, '0')}:` +
+      `${String(remainingSeconds).padStart(2, '0')}`
+    );
+  }
+
+  return (
+    `${minutes}:` +
+    `${String(remainingSeconds).padStart(2, '0')}`
+  );
+}
+
+
+/*
+ * ROUND
+ */
+
+function roundNumber(
+  value: number,
+  decimals = 2
+) {
+
+  const multiplier =
+    10 ** decimals;
+
+  return (
+    Math.round(
+      value *
+      multiplier
+    ) /
+    multiplier
+  );
+}
+
+
 export function PracticePage() {
 
   /*
@@ -188,12 +292,19 @@ export function PracticePage() {
   ] =
     useState<LiveQuestion[]>([]);
 
-
   const [
     practiceStarted,
     setPracticeStarted
   ] =
     useState(false);
+
+  const [
+    sessionMode,
+    setSessionMode
+  ] =
+    useState<SessionMode>(
+      'practice'
+    );
 
 
   /*
@@ -206,7 +317,6 @@ export function PracticePage() {
   ] =
     useState(0);
 
-
   const [
     selected,
     setSelected
@@ -215,20 +325,17 @@ export function PracticePage() {
       null
     );
 
-
   const [
     score,
     setScore
   ] =
     useState(0);
 
-
   const [
     answers,
     setAnswers
   ] =
     useState<AnswerRecord[]>([]);
-
 
   const [
     finished,
@@ -238,7 +345,56 @@ export function PracticePage() {
 
 
   /*
-   * PAGE STATE
+   * EXAM MODE
+   */
+
+  const [
+    examSelections,
+    setExamSelections
+  ] =
+    useState<
+      Record<string, number>
+    >({});
+
+  const [
+    timeLeft,
+    setTimeLeft
+  ] =
+    useState<number | null>(
+      null
+    );
+
+  const [
+    timeLimitSeconds,
+    setTimeLimitSeconds
+  ] =
+    useState(0);
+
+  const [
+    sessionStartedAt,
+    setSessionStartedAt
+  ] =
+    useState<number | null>(
+      null
+    );
+
+  const [
+    examResult,
+    setExamResult
+  ] =
+    useState<ExamResult | null>(
+      null
+    );
+
+  const [
+    showExamReview,
+    setShowExamReview
+  ] =
+    useState(false);
+
+
+  /*
+   * PAGE
    */
 
   const [
@@ -247,13 +403,11 @@ export function PracticePage() {
   ] =
     useState(true);
 
-
   const [
     error,
     setError
   ] =
     useState('');
-
 
   const [
     setupMessage,
@@ -261,20 +415,17 @@ export function PracticePage() {
   ] =
     useState('');
 
-
   const [
     savingResult,
     setSavingResult
   ] =
     useState(false);
 
-
   const [
     resultMessage,
     setResultMessage
   ] =
     useState('');
-
 
   const [
     attemptSaved,
@@ -296,17 +447,11 @@ export function PracticePage() {
       QuestionOrigin
     >('all');
 
-
-  /*
-   * NEW KEYWORD SEARCH
-   */
-
   const [
     searchText,
     setSearchText
   ] =
     useState('');
-
 
   const [
     subjectFilter,
@@ -314,17 +459,11 @@ export function PracticePage() {
   ] =
     useState('all');
 
-
-  /*
-   * NEW TOPIC FILTER
-   */
-
   const [
     topicFilter,
     setTopicFilter
   ] =
     useState('all');
-
 
   const [
     difficultyFilter,
@@ -334,7 +473,6 @@ export function PracticePage() {
       'all' |
       Difficulty
     >('all');
-
 
   const [
     typeFilter,
@@ -346,21 +484,11 @@ export function PracticePage() {
       'pyq'
     >('all');
 
-
-  /*
-   * CSE PYQ YEAR
-   */
-
   const [
     csePyqYearFilter,
     setCsePyqYearFilter
   ] =
     useState('all');
-
-
-  /*
-   * SESSION SIZE
-   */
 
   const [
     sessionSize,
@@ -372,7 +500,7 @@ export function PracticePage() {
 
 
   /*
-   * OTHER UPSC
+   * OTHER UPSC FILTERS
    */
 
   const [
@@ -381,13 +509,11 @@ export function PracticePage() {
   ] =
     useState('all');
 
-
   const [
     upscCycleFilter,
     setUpscCycleFilter
   ] =
     useState('all');
-
 
   const [
     upscYearFilter,
@@ -397,7 +523,7 @@ export function PracticePage() {
 
 
   /*
-   * STATE PSC
+   * STATE PSC FILTERS
    */
 
   const [
@@ -406,13 +532,11 @@ export function PracticePage() {
   ] =
     useState('all');
 
-
   const [
     stateExamFilter,
     setStateExamFilter
   ] =
     useState('all');
-
 
   const [
     stateYearFilter,
@@ -438,22 +562,18 @@ export function PracticePage() {
       return;
     }
 
-
     setLoading(true);
 
     setError('');
 
     setSetupMessage('');
 
-
     const {
       data,
       error: loadError
     } =
       await supabase
-        .from(
-          'questions'
-        )
+        .from('questions')
         .select(
           QUESTION_SELECT
         )
@@ -472,7 +592,6 @@ export function PracticePage() {
           }
         );
 
-
     if (loadError) {
 
       console.error(
@@ -488,7 +607,6 @@ export function PracticePage() {
 
       return;
     }
-
 
     const formatted:
       LiveQuestion[] =
@@ -583,20 +701,123 @@ export function PracticePage() {
 
             source_url:
               item.source_url
-
           })
         );
-
 
     setAllQuestions(
       formatted
     );
 
+    resetActiveSession();
+
+    setLoading(false);
+  }
+
+
+  useEffect(
+    () => {
+      loadQuestions();
+    },
+    []
+  );
+
+
+  /*
+   * EXAM TIMER
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        !practiceStarted ||
+        sessionMode !==
+          'exam' ||
+        finished
+      ) {
+        return;
+      }
+
+      const timer =
+        window.setInterval(
+          () => {
+
+            setTimeLeft(
+              current => {
+
+                if (
+                  current === null
+                ) {
+                  return null;
+                }
+
+                if (
+                  current <= 1
+                ) {
+                  return 0;
+                }
+
+                return (
+                  current - 1
+                );
+              }
+            );
+
+          },
+          1000
+        );
+
+      return () =>
+        window.clearInterval(
+          timer
+        );
+
+    },
+    [
+      practiceStarted,
+      sessionMode,
+      finished
+    ]
+  );
+
+
+  /*
+   * AUTOMATIC SUBMISSION
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        practiceStarted &&
+        sessionMode ===
+          'exam' &&
+        !finished &&
+        timeLeft === 0
+      ) {
+
+        submitExam(true);
+      }
+
+    },
+    [
+      timeLeft,
+      practiceStarted,
+      sessionMode,
+      finished
+    ]
+  );
+
+
+  /*
+   * RESET ACTIVE SESSION ONLY
+   */
+
+  function resetActiveSession() {
+
     setQuestions([]);
 
-    setPracticeStarted(
-      false
-    );
+    setPracticeStarted(false);
 
     setIndex(0);
 
@@ -608,22 +829,22 @@ export function PracticePage() {
 
     setFinished(false);
 
+    setExamSelections({});
+
+    setTimeLeft(null);
+
+    setTimeLimitSeconds(0);
+
+    setSessionStartedAt(null);
+
+    setExamResult(null);
+
+    setShowExamReview(false);
+
     setAttemptSaved(false);
 
     setResultMessage('');
-
-    setLoading(false);
   }
-
-
-  useEffect(
-    () => {
-
-      loadQuestions();
-
-    },
-    []
-  );
 
 
   /*
@@ -640,9 +861,7 @@ export function PracticePage() {
                 item =>
                   item.subject
               )
-              .filter(
-                Boolean
-              )
+              .filter(Boolean)
           )
         ).sort(),
       [
@@ -653,9 +872,6 @@ export function PracticePage() {
 
   /*
    * TOPICS
-   *
-   * Topic list changes according
-   * to selected subject.
    */
 
   const topics =
@@ -730,15 +946,11 @@ export function PracticePage() {
                   value
                 ):
                   value is number =>
-                    value !==
-                    null
+                    value !== null
               )
           )
         ).sort(
-          (
-            a,
-            b
-          ) =>
+          (a, b) =>
             b - a
         ),
       [
@@ -750,7 +962,7 @@ export function PracticePage() {
 
 
   /*
-   * UPSC EXAMS
+   * UPSC OPTIONS
    */
 
   const upscExams =
@@ -833,15 +1045,11 @@ export function PracticePage() {
                   value
                 ):
                   value is number =>
-                    value !==
-                    null
+                    value !== null
               )
           )
         ).sort(
-          (
-            a,
-            b
-          ) =>
+          (a, b) =>
             b - a
         ),
       [
@@ -852,7 +1060,7 @@ export function PracticePage() {
 
 
   /*
-   * STATES
+   * STATE OPTIONS
    */
 
   const states =
@@ -879,10 +1087,6 @@ export function PracticePage() {
       ]
     );
 
-
-  /*
-   * STATE EXAMS
-   */
 
   const stateExams =
     useMemo(
@@ -917,10 +1121,6 @@ export function PracticePage() {
     );
 
 
-  /*
-   * STATE YEARS
-   */
-
   const stateYears =
     useMemo(
       () =>
@@ -951,15 +1151,11 @@ export function PracticePage() {
                   value
                 ):
                   value is number =>
-                    value !==
-                    null
+                    value !== null
               )
           )
         ).sort(
-          (
-            a,
-            b
-          ) =>
+          (a, b) =>
             b - a
         ),
       [
@@ -985,16 +1181,10 @@ export function PracticePage() {
                 item
               );
 
-
-            /*
-             * KEYWORD SEARCH
-             */
-
             const search =
               searchText
                 .trim()
                 .toLowerCase();
-
 
             const searchableText =
               [
@@ -1003,6 +1193,7 @@ export function PracticePage() {
                 item.topic || '',
                 item.tags.join(' '),
                 item.source || '',
+
                 item.upsc_exam_name || '',
                 item.upsc_exam_cycle || '',
                 item.upsc_exam_stage || '',
@@ -1012,6 +1203,7 @@ export function PracticePage() {
                       item.upsc_exam_year
                     )
                   : '',
+
                 item.state_psc_state || '',
                 item.state_psc_name || '',
                 item.state_psc_exam_name || '',
@@ -1022,6 +1214,7 @@ export function PracticePage() {
                       item.state_psc_year
                     )
                   : '',
+
                 item.pyq_year
                   ? String(
                       item.pyq_year
@@ -1031,13 +1224,11 @@ export function PracticePage() {
                 .join(' ')
                 .toLowerCase();
 
-
             const matchesSearch =
               !search ||
               searchableText.includes(
                 search
               );
-
 
             const matchesOrigin =
               originFilter ===
@@ -1045,13 +1236,11 @@ export function PracticePage() {
               origin ===
                 originFilter;
 
-
             const matchesSubject =
               subjectFilter ===
                 'all' ||
               item.subject ===
                 subjectFilter;
-
 
             const matchesTopic =
               topicFilter ===
@@ -1059,54 +1248,38 @@ export function PracticePage() {
               item.topic ===
                 topicFilter;
 
-
             const matchesDifficulty =
               difficultyFilter ===
                 'all' ||
               item.difficulty ===
                 difficultyFilter;
 
-
             const matchesType =
               typeFilter ===
                 'all' ||
-
               (
                 typeFilter ===
                   'pyq' &&
                 item.is_pyq
               ) ||
-
               (
                 typeFilter ===
                   'practice' &&
                 !item.is_pyq
               );
 
-
-            /*
-             * CSE PYQ YEAR
-             */
-
             const matchesCsePyqYear =
               csePyqYearFilter ===
                 'all' ||
-
               (
                 origin ===
                   'cse' &&
                 item.is_pyq &&
                 String(
-                  item.pyq_year ||
-                  ''
+                  item.pyq_year || ''
                 ) ===
                   csePyqYearFilter
               );
-
-
-            /*
-             * OTHER UPSC
-             */
 
             const matchesUpscExam =
               upscExamFilter ===
@@ -1114,13 +1287,11 @@ export function PracticePage() {
               item.upsc_exam_name ===
                 upscExamFilter;
 
-
             const matchesUpscCycle =
               upscCycleFilter ===
                 'all' ||
               item.upsc_exam_cycle ===
                 upscCycleFilter;
-
 
             const matchesUpscYear =
               upscYearFilter ===
@@ -1131,24 +1302,17 @@ export function PracticePage() {
               ) ===
                 upscYearFilter;
 
-
-            /*
-             * STATE PSC
-             */
-
             const matchesState =
               stateFilter ===
                 'all' ||
               item.state_psc_state ===
                 stateFilter;
 
-
             const matchesStateExam =
               stateExamFilter ===
                 'all' ||
               item.state_psc_exam_name ===
                 stateExamFilter;
-
 
             const matchesStateYear =
               stateYearFilter ===
@@ -1158,7 +1322,6 @@ export function PracticePage() {
                 ''
               ) ===
                 stateYearFilter;
-
 
             return (
               matchesSearch &&
@@ -1196,20 +1359,38 @@ export function PracticePage() {
     );
 
 
-  /*
-   * SESSION COUNT
-   */
-
   const sessionQuestionCount =
     sessionSize ===
       'all'
       ? filteredQuestions.length
       : Math.min(
-          Number(
-            sessionSize
-          ),
+          Number(sessionSize),
           filteredQuestions.length
         );
+
+
+  /*
+   * CHANGE MODE
+   */
+
+  function changeSessionMode(
+    mode: SessionMode
+  ) {
+
+    setSessionMode(mode);
+
+    /*
+     * CSE Exam Mode must only
+     * use CSE questions.
+     */
+
+    if (mode === 'exam') {
+
+      changeOriginFilter(
+        'cse'
+      );
+    }
+  }
 
 
   /*
@@ -1222,25 +1403,28 @@ export function PracticePage() {
       QuestionOrigin
   ) {
 
-    setOriginFilter(
-      value
-    );
+    setOriginFilter(value);
 
+    /*
+     * Leaving CSE automatically
+     * returns to Practice Mode.
+     */
 
     if (
-      value !==
-      'cse'
+      value !== 'cse'
     ) {
+
+      setSessionMode(
+        'practice'
+      );
 
       setCsePyqYearFilter(
         'all'
       );
     }
 
-
     if (
-      value !==
-      'upsc'
+      value !== 'upsc'
     ) {
 
       setUpscExamFilter(
@@ -1256,10 +1440,8 @@ export function PracticePage() {
       );
     }
 
-
     if (
-      value !==
-      'state'
+      value !== 'state'
     ) {
 
       setStateFilter(
@@ -1288,14 +1470,10 @@ export function PracticePage() {
       'pyq'
   ) {
 
-    setTypeFilter(
-      value
-    );
-
+    setTypeFilter(value);
 
     if (
-      value !==
-      'pyq'
+      value !== 'pyq'
     ) {
 
       setCsePyqYearFilter(
@@ -1310,6 +1488,10 @@ export function PracticePage() {
    */
 
   function resetFilters() {
+
+    setSessionMode(
+      'practice'
+    );
 
     setOriginFilter(
       'all'
@@ -1370,14 +1552,84 @@ export function PracticePage() {
 
 
   /*
-   * START PRACTICE
+   * PRACTICE CONFIG
+   */
+
+  function buildPracticeConfig() {
+
+    return {
+
+      session_mode:
+        sessionMode,
+
+      origin:
+        originFilter,
+
+      subject:
+        subjectFilter,
+
+      topic:
+        topicFilter,
+
+      difficulty:
+        difficultyFilter,
+
+      question_type:
+        typeFilter,
+
+      cse_pyq_year:
+        csePyqYearFilter,
+
+      upsc_exam:
+        upscExamFilter,
+
+      upsc_cycle:
+        upscCycleFilter,
+
+      upsc_year:
+        upscYearFilter,
+
+      state:
+        stateFilter,
+
+      state_exam:
+        stateExamFilter,
+
+      state_year:
+        stateYearFilter,
+
+      session_size:
+        sessionSize,
+
+      search:
+        searchText,
+
+      cse_pattern:
+        sessionMode ===
+          'exam'
+          ? {
+              marks_per_question:
+                CSE_MARKS_PER_QUESTION,
+
+              negative_mark:
+                CSE_NEGATIVE_MARK,
+
+              seconds_per_question:
+                CSE_SECONDS_PER_QUESTION
+            }
+          : null
+    };
+  }
+
+
+  /*
+   * START SESSION
    */
 
   function startPractice() {
 
     if (
-      filteredQuestions.length ===
-      0
+      filteredQuestions.length === 0
     ) {
 
       setSetupMessage(
@@ -1387,12 +1639,24 @@ export function PracticePage() {
       return;
     }
 
+    if (
+      sessionMode ===
+        'exam' &&
+      originFilter !==
+        'cse'
+    ) {
+
+      setSetupMessage(
+        'CSE Exam Mode can only use CSE / General questions.'
+      );
+
+      return;
+    }
 
     const randomized =
       shuffleQuestions(
         filteredQuestions
       );
-
 
     const selectedSet =
       sessionSize ===
@@ -1405,6 +1669,8 @@ export function PracticePage() {
             )
           );
 
+    const now =
+      Date.now();
 
     setQuestions(
       selectedSet
@@ -1420,11 +1686,45 @@ export function PracticePage() {
 
     setFinished(false);
 
+    setExamSelections({});
+
+    setExamResult(null);
+
+    setShowExamReview(false);
+
     setAttemptSaved(false);
 
     setResultMessage('');
 
     setSetupMessage('');
+
+    setSessionStartedAt(
+      now
+    );
+
+    if (
+      sessionMode ===
+        'exam'
+    ) {
+
+      const limit =
+        selectedSet.length *
+        CSE_SECONDS_PER_QUESTION;
+
+      setTimeLimitSeconds(
+        limit
+      );
+
+      setTimeLeft(
+        limit
+      );
+
+    } else {
+
+      setTimeLimitSeconds(0);
+
+      setTimeLeft(null);
+    }
 
     setPracticeStarted(
       true
@@ -1433,36 +1733,28 @@ export function PracticePage() {
 
 
   /*
-   * ANSWER
+   * PRACTICE MODE ANSWER
    */
 
-  function answer(
+  function answerPracticeQuestion(
     option: number
   ) {
 
     if (
-      selected !==
-        null ||
+      selected !== null ||
       !questions[index]
     ) {
       return;
     }
 
-
     const currentQuestion =
       questions[index];
 
-
     const isCorrect =
       option ===
-      currentQuestion
-        .correct_index;
+      currentQuestion.correct_index;
 
-
-    setSelected(
-      option
-    );
-
+    setSelected(option);
 
     if (isCorrect) {
 
@@ -1472,11 +1764,9 @@ export function PracticePage() {
       );
     }
 
-
     setAnswers(
       current => [
         ...current,
-
         {
           question_id:
             currentQuestion.id,
@@ -1485,8 +1775,7 @@ export function PracticePage() {
             option,
 
           correct_index:
-            currentQuestion
-              .correct_index,
+            currentQuestion.correct_index,
 
           is_correct:
             isCorrect
@@ -1497,43 +1786,127 @@ export function PracticePage() {
 
 
   /*
-   * SAVE RESULT
+   * EXAM MODE ANSWER
    */
 
-  async function savePracticeAttempt() {
+  function answerExamQuestion(
+    option: number
+  ) {
+
+    const currentQuestion =
+      questions[index];
+
+    if (!currentQuestion) {
+      return;
+    }
+
+    setExamSelections(
+      current => ({
+        ...current,
+        [currentQuestion.id]:
+          option
+      })
+    );
+  }
+
+
+  /*
+   * CLEAR EXAM RESPONSE
+   */
+
+  function clearExamResponse() {
+
+    const currentQuestion =
+      questions[index];
+
+    if (!currentQuestion) {
+      return;
+    }
+
+    setExamSelections(
+      current => {
+
+        const copy = {
+          ...current
+        };
+
+        delete copy[
+          currentQuestion.id
+        ];
+
+        return copy;
+      }
+    );
+  }
+
+
+  /*
+   * SESSION DURATION
+   */
+
+  function getDurationSeconds() {
+
+    if (!sessionStartedAt) {
+      return 0;
+    }
+
+    return Math.max(
+      0,
+      Math.floor(
+        (
+          Date.now() -
+          sessionStartedAt
+        ) /
+        1000
+      )
+    );
+  }
+
+
+  /*
+   * SAVE ATTEMPT
+   */
+
+  async function saveAttempt(
+    mode: SessionMode,
+    records: AnswerRecord[],
+    correct: number,
+    incorrect: number,
+    unanswered: number,
+    marksObtained:
+      number | null,
+    maxMarks:
+      number | null,
+    negativeMarks:
+      number | null,
+    durationSeconds:
+      number,
+    limitSeconds:
+      number | null
+  ) {
 
     if (
       !supabase ||
       attemptSaved ||
-      questions.length ===
-        0
+      questions.length === 0
     ) {
       return;
     }
 
-
-    setSavingResult(
-      true
-    );
+    setSavingResult(true);
 
     setResultMessage('');
-
 
     const {
       data: {
         user
       }
     } =
-      await supabase
-        .auth
-        .getUser();
-
+      await supabase.auth.getUser();
 
     if (!user) {
 
-      setSavingResult(
-        false
-      );
+      setSavingResult(false);
 
       setResultMessage(
         'Result completed. Sign in as a student to save practice history.'
@@ -1542,18 +1915,7 @@ export function PracticePage() {
       return;
     }
 
-
-    const percentage =
-      Math.round(
-        (
-          score /
-          questions.length
-        ) *
-        100
-      );
-
-
-    const practiceSubjects =
+    const subjectsInSession =
       Array.from(
         new Set(
           questions.map(
@@ -1563,13 +1925,35 @@ export function PracticePage() {
         )
       );
 
-
     const sessionSubject =
-      practiceSubjects.length ===
+      subjectsInSession.length ===
         1
-        ? practiceSubjects[0]
+        ? subjectsInSession[0]
         : 'Mixed';
 
+    const attempted =
+      correct +
+      incorrect;
+
+    const percentage =
+      mode === 'exam' &&
+      maxMarks &&
+      maxMarks > 0 &&
+      marksObtained !== null
+        ? roundNumber(
+            (
+              marksObtained /
+              maxMarks
+            ) *
+            100
+          )
+        : roundNumber(
+            (
+              correct /
+              questions.length
+            ) *
+            100
+          );
 
     const {
       error: saveError
@@ -1586,8 +1970,17 @@ export function PracticePage() {
           total_questions:
             questions.length,
 
+          attempted_questions:
+            attempted,
+
           correct_answers:
-            score,
+            correct,
+
+          incorrect_answers:
+            incorrect,
+
+          unanswered_questions:
+            unanswered,
 
           score_percent:
             percentage,
@@ -1595,9 +1988,29 @@ export function PracticePage() {
           subject:
             sessionSubject,
 
-          answers
-        });
+          answers:
+            records,
 
+          mode,
+
+          marks_obtained:
+            marksObtained,
+
+          max_marks:
+            maxMarks,
+
+          negative_marks:
+            negativeMarks,
+
+          duration_seconds:
+            durationSeconds,
+
+          time_limit_seconds:
+            limitSeconds,
+
+          practice_config:
+            buildPracticeConfig()
+        });
 
     if (saveError) {
 
@@ -1610,48 +2023,82 @@ export function PracticePage() {
         `Result could not be saved: ${saveError.message}`
       );
 
-      setSavingResult(
-        false
-      );
+      setSavingResult(false);
 
       return;
     }
 
-
-    setAttemptSaved(
-      true
-    );
+    setAttemptSaved(true);
 
     setResultMessage(
-      'Practice result saved successfully.'
+      mode === 'exam'
+        ? 'Exam result saved successfully.'
+        : 'Practice result saved successfully.'
     );
 
-    setSavingResult(
-      false
+    setSavingResult(false);
+  }
+
+
+  /*
+   * FINISH PRACTICE MODE
+   */
+
+  async function finishPracticeMode() {
+
+    const correct =
+      answers.filter(
+        item =>
+          item.is_correct
+      ).length;
+
+    const incorrect =
+      answers.filter(
+        item =>
+          !item.is_correct
+      ).length;
+
+    const unanswered =
+      Math.max(
+        0,
+        questions.length -
+        answers.length
+      );
+
+    setScore(correct);
+
+    setFinished(true);
+
+    await saveAttempt(
+      'practice',
+      answers,
+      correct,
+      incorrect,
+      unanswered,
+      null,
+      null,
+      null,
+      getDurationSeconds(),
+      null
     );
   }
 
 
   /*
-   * NEXT
+   * NEXT PRACTICE QUESTION
    */
 
-  async function next() {
+  async function nextPracticeQuestion() {
 
     if (
       index ===
       questions.length - 1
     ) {
 
-      setFinished(
-        true
-      );
-
-      await savePracticeAttempt();
+      await finishPracticeMode();
 
       return;
     }
-
 
     setIndex(
       current =>
@@ -1663,38 +2110,203 @@ export function PracticePage() {
 
 
   /*
-   * SAME SET
+   * SUBMIT EXAM
    */
 
-  function restart() {
+  async function submitExam(
+    automatic = false
+  ) {
 
-    setIndex(0);
+    if (
+      finished ||
+      questions.length === 0
+    ) {
+      return;
+    }
 
-    setSelected(null);
+    if (!automatic) {
 
-    setScore(0);
+      const confirmed =
+        window.confirm(
+          'Submit your exam now? You will not be able to change answers after submission.'
+        );
 
-    setAnswers([]);
+      if (!confirmed) {
+        return;
+      }
+    }
 
-    setFinished(false);
+    const records:
+      AnswerRecord[] =
+        questions.map(
+          item => {
 
-    setAttemptSaved(false);
+            const chosen =
+              examSelections[
+                item.id
+              ];
 
-    setResultMessage('');
+            const hasAnswer =
+              typeof chosen ===
+              'number';
+
+            return {
+
+              question_id:
+                item.id,
+
+              selected_index:
+                hasAnswer
+                  ? chosen
+                  : null,
+
+              correct_index:
+                item.correct_index,
+
+              is_correct:
+                hasAnswer &&
+                chosen ===
+                  item.correct_index
+            };
+          }
+        );
+
+    const attempted =
+      records.filter(
+        item =>
+          item.selected_index !==
+          null
+      ).length;
+
+    const correct =
+      records.filter(
+        item =>
+          item.is_correct
+      ).length;
+
+    const incorrect =
+      records.filter(
+        item =>
+          item.selected_index !==
+            null &&
+          !item.is_correct
+      ).length;
+
+    const unanswered =
+      questions.length -
+      attempted;
+
+    const positiveMarks =
+      correct *
+      CSE_MARKS_PER_QUESTION;
+
+    const negativeMarks =
+      incorrect *
+      CSE_NEGATIVE_MARK;
+
+    const marksObtained =
+      positiveMarks -
+      negativeMarks;
+
+    const maxMarks =
+      questions.length *
+      CSE_MARKS_PER_QUESTION;
+
+    const duration =
+      Math.min(
+        timeLimitSeconds,
+        getDurationSeconds()
+      );
+
+    const result:
+      ExamResult = {
+
+        attempted,
+
+        correct,
+
+        incorrect,
+
+        unanswered,
+
+        positiveMarks:
+          roundNumber(
+            positiveMarks,
+            4
+          ),
+
+        negativeMarks:
+          roundNumber(
+            negativeMarks,
+            4
+          ),
+
+        marksObtained:
+          roundNumber(
+            marksObtained,
+            4
+          ),
+
+        maxMarks:
+          roundNumber(
+            maxMarks,
+            4
+          ),
+
+        timeUsedSeconds:
+          duration,
+
+        timeLimitSeconds,
+
+        answers:
+          records
+      };
+
+    /*
+     * Stop timer immediately
+     */
+
+    setTimeLeft(
+      automatic
+        ? 0
+        : timeLeft
+    );
+
+    setScore(correct);
+
+    setAnswers(records);
+
+    setExamResult(result);
+
+    setFinished(true);
+
+    if (automatic) {
+
+      setResultMessage(
+        'Time expired. Your exam was submitted automatically.'
+      );
+    }
+
+    await saveAttempt(
+      'exam',
+      records,
+      correct,
+      incorrect,
+      unanswered,
+      result.marksObtained,
+      result.maxMarks,
+      result.negativeMarks,
+      result.timeUsedSeconds,
+      result.timeLimitSeconds
+    );
   }
 
 
   /*
-   * CHANGE SET
+   * RESTART SAME SET
    */
 
-  function changePracticeSet() {
-
-    setPracticeStarted(
-      false
-    );
-
-    setQuestions([]);
+  function restartSameSet() {
 
     setIndex(0);
 
@@ -1706,9 +2318,51 @@ export function PracticePage() {
 
     setFinished(false);
 
+    setExamSelections({});
+
+    setExamResult(null);
+
+    setShowExamReview(false);
+
     setAttemptSaved(false);
 
     setResultMessage('');
+
+    setSessionStartedAt(
+      Date.now()
+    );
+
+    if (
+      sessionMode ===
+        'exam'
+    ) {
+
+      const limit =
+        questions.length *
+        CSE_SECONDS_PER_QUESTION;
+
+      setTimeLimitSeconds(
+        limit
+      );
+
+      setTimeLeft(
+        limit
+      );
+
+    } else {
+
+      setTimeLeft(null);
+    }
+  }
+
+
+  /*
+   * CHANGE PRACTICE SET
+   */
+
+  function changePracticeSet() {
+
+    resetActiveSession();
   }
 
 
@@ -1720,19 +2374,14 @@ export function PracticePage() {
 
     return (
 
-      <div
-        className="page-wrap"
-      >
+      <div className="page-wrap">
 
         <TopBar
           title="Prelims Practice"
           subtitle="UPSC and State PSC question bank"
         />
 
-
-        <section
-          className="panel"
-        >
+        <section className="panel">
 
           <h2>
             Loading MCQs...
@@ -1753,29 +2402,22 @@ export function PracticePage() {
 
     return (
 
-      <div
-        className="page-wrap"
-      >
+      <div className="page-wrap">
 
         <TopBar
           title="Prelims Practice"
           subtitle="UPSC and State PSC question bank"
         />
 
-
-        <section
-          className="panel"
-        >
+        <section className="panel">
 
           <h2>
             Unable to load questions
           </h2>
 
-
           <p>
             {error}
           </p>
-
 
           <button
             className="primary-btn"
@@ -1797,44 +2439,126 @@ export function PracticePage() {
    * SETUP SCREEN
    */
 
-  if (
-    !practiceStarted
-  ) {
+  if (!practiceStarted) {
 
     return (
 
-      <div
-        className="page-wrap"
-      >
+      <div className="page-wrap">
 
         <TopBar
           title="Prelims Practice"
-          subtitle="Choose your practice question set"
+          subtitle="Build your question set"
         />
-
 
         <section
           className="panel admin-form"
         >
 
-          <span
-            className="eyebrow"
-          >
+          <span className="eyebrow">
             PRELIMS QUESTION BANK
           </span>
-
 
           <h2>
             Build Your Practice Set
           </h2>
 
 
-          <p>
-            Practice CSE questions,
-            other UPSC examinations
-            and State PSC questions
-            from one place.
-          </p>
+          {/* SESSION MODE */}
+
+          <div
+            style={{
+              marginTop: '16px',
+              padding: '16px',
+              border:
+                '1px solid rgba(255,255,255,.10)',
+              borderRadius: '14px'
+            }}
+          >
+
+            <span className="eyebrow">
+              SESSION MODE
+            </span>
+
+            <label>
+              Mode
+
+              <select
+                value={
+                  sessionMode
+                }
+                onChange={
+                  event =>
+                    changeSessionMode(
+                      event.target
+                        .value as
+                        SessionMode
+                    )
+                }
+              >
+
+                <option value="practice">
+                  Practice Mode
+                </option>
+
+                <option value="exam">
+                  CSE Exam Mode
+                </option>
+
+              </select>
+
+            </label>
+
+
+            {sessionMode ===
+              'practice' ? (
+
+              <div className="callout">
+
+                <strong>
+                  Practice Mode
+                </strong>
+
+                <p>
+                  See the correct answer
+                  and explanation after
+                  every question.
+                </p>
+
+              </div>
+
+            ) : (
+
+              <div className="callout">
+
+                <strong>
+                  CSE Exam Simulation
+                </strong>
+
+                <p>
+                  +2 for correct,
+                  -0.6667 for wrong,
+                  no penalty for
+                  unanswered questions.
+                </p>
+
+                <p>
+                  Time is scaled from
+                  the 100-question,
+                  120-minute CSE
+                  Prelims pattern.
+                </p>
+
+                <p>
+                  Answers and explanations
+                  remain hidden until
+                  submission.
+                </p>
+
+              </div>
+
+            )}
+
+          </div>
 
 
           {/* ORIGIN */}
@@ -1878,7 +2602,7 @@ export function PracticePage() {
           </label>
 
 
-          {/* KEYWORD SEARCH */}
+          {/* SEARCH */}
 
           <label>
             Search Question Bank
@@ -1894,13 +2618,13 @@ export function PracticePage() {
                     event.target.value
                   )
               }
-              placeholder="Article 21, monsoon, inflation, biodiversity, NDA..."
+              placeholder="Article 21, monsoon, inflation, biodiversity..."
             />
 
             <small>
-              Search by question,
-              topic, tag, examination,
-              year or source.
+              Search question, topic,
+              tag, examination, year
+              or source.
             </small>
 
           </label>
@@ -1908,9 +2632,7 @@ export function PracticePage() {
 
           {/* SUBJECT + TOPIC */}
 
-          <div
-            className="form-two"
-          >
+          <div className="form-two">
 
             <label>
               Subject
@@ -1941,17 +2663,12 @@ export function PracticePage() {
                   All Subjects
                 </option>
 
-
                 {subjects.map(
                   item => (
 
                     <option
-                      key={
-                        item
-                      }
-                      value={
-                        item
-                      }
+                      key={item}
+                      value={item}
                     >
                       {item}
                     </option>
@@ -1989,17 +2706,12 @@ export function PracticePage() {
                   All Topics
                 </option>
 
-
                 {topics.map(
                   topic => (
 
                     <option
-                      key={
-                        topic
-                      }
-                      value={
-                        topic
-                      }
+                      key={topic}
+                      value={topic}
                     >
                       {topic}
                     </option>
@@ -2016,9 +2728,7 @@ export function PracticePage() {
 
           {/* DIFFICULTY + TYPE */}
 
-          <div
-            className="form-two"
-          >
+          <div className="form-two">
 
             <label>
               Difficulty
@@ -2097,7 +2807,7 @@ export function PracticePage() {
           </div>
 
 
-          {/* CSE PYQ YEAR */}
+          {/* CSE PYQ */}
 
           {originFilter ===
             'cse' &&
@@ -2114,12 +2824,9 @@ export function PracticePage() {
               }}
             >
 
-              <span
-                className="eyebrow"
-              >
+              <span className="eyebrow">
                 CSE PRELIMS PYQ
               </span>
-
 
               <label>
                 PYQ Year
@@ -2140,14 +2847,11 @@ export function PracticePage() {
                     All CSE PYQ Years
                   </option>
 
-
                   {csePyqYears.map(
                     year => (
 
                       <option
-                        key={
-                          year
-                        }
+                        key={year}
                         value={
                           String(year)
                         }
@@ -2179,12 +2883,9 @@ export function PracticePage() {
             }}
           >
 
-            <span
-              className="eyebrow"
-            >
-              PRACTICE SESSION
+            <span className="eyebrow">
+              SESSION SIZE
             </span>
-
 
             <label>
               Number of Questions
@@ -2227,17 +2928,27 @@ export function PracticePage() {
 
             </label>
 
+            {sessionMode ===
+              'exam' && (
 
-            <small>
-              Questions are randomly
-              selected from your
-              matching question bank.
-            </small>
+              <p>
+                Estimated exam time:{' '}
+                <strong>
+                  {
+                    formatTime(
+                      sessionQuestionCount *
+                      CSE_SECONDS_PER_QUESTION
+                    )
+                  }
+                </strong>
+              </p>
+
+            )}
 
           </div>
 
 
-          {/* UPSC */}
+          {/* OTHER UPSC */}
 
           {originFilter ===
             'upsc' && (
@@ -2252,16 +2963,11 @@ export function PracticePage() {
               }}
             >
 
-              <span
-                className="eyebrow"
-              >
+              <span className="eyebrow">
                 OTHER UPSC EXAMS
               </span>
 
-
-              <div
-                className="form-two"
-              >
+              <div className="form-two">
 
                 <label>
                   Examination
@@ -2292,17 +2998,12 @@ export function PracticePage() {
                       All UPSC Exams
                     </option>
 
-
                     {upscExams.map(
                       exam => (
 
                         <option
-                          key={
-                            exam
-                          }
-                          value={
-                            exam
-                          }
+                          key={exam}
+                          value={exam}
                         >
                           {exam}
                         </option>
@@ -2334,17 +3035,12 @@ export function PracticePage() {
                       All Cycles
                     </option>
 
-
                     {upscCycles.map(
                       cycle => (
 
                         <option
-                          key={
-                            cycle
-                          }
-                          value={
-                            cycle
-                          }
+                          key={cycle}
+                          value={cycle}
                         >
                           {cycle}
                         </option>
@@ -2378,14 +3074,11 @@ export function PracticePage() {
                     All Years
                   </option>
 
-
                   {upscYears.map(
                     year => (
 
                       <option
-                        key={
-                          year
-                        }
+                        key={year}
                         value={
                           String(year)
                         }
@@ -2420,12 +3113,9 @@ export function PracticePage() {
               }}
             >
 
-              <span
-                className="eyebrow"
-              >
+              <span className="eyebrow">
                 STATE PSC
               </span>
-
 
               <h3>
                 Choose State Examination
@@ -2461,17 +3151,12 @@ export function PracticePage() {
                     All States
                   </option>
 
-
                   {states.map(
                     state => (
 
                       <option
-                        key={
-                          state
-                        }
-                        value={
-                          state
-                        }
+                        key={state}
+                        value={state}
                       >
                         {state}
                       </option>
@@ -2509,17 +3194,12 @@ export function PracticePage() {
                     All Examinations
                   </option>
 
-
                   {stateExams.map(
                     exam => (
 
                       <option
-                        key={
-                          exam
-                        }
-                        value={
-                          exam
-                        }
+                        key={exam}
+                        value={exam}
                       >
                         {exam}
                       </option>
@@ -2551,14 +3231,11 @@ export function PracticePage() {
                     All Years
                   </option>
 
-
                   {stateYears.map(
                     year => (
 
                       <option
-                        key={
-                          year
-                        }
+                        key={year}
                         value={
                           String(year)
                         }
@@ -2591,65 +3268,54 @@ export function PracticePage() {
               {
                 filteredQuestions.length
               }{' '}
-              questions match your
-              filters
+              questions match your filters
             </strong>
 
-
             <p>
-              Your session will contain{' '}
+              Session questions:{' '}
 
               <strong>
                 {
                   sessionQuestionCount
                 }
-              </strong>{' '}
-
-              question
-              {
-                sessionQuestionCount ===
-                  1
-                  ? ''
-                  : 's'
-              }.
+              </strong>
             </p>
 
+            {sessionMode ===
+              'exam' && (
 
-            {sessionSize !==
-              'all' &&
-              filteredQuestions.length >
-                Number(
-                  sessionSize
-                ) && (
+              <>
+                <p>
+                  Maximum marks:{' '}
+                  <strong>
+                    {
+                      sessionQuestionCount *
+                      CSE_MARKS_PER_QUESTION
+                    }
+                  </strong>
+                </p>
 
-              <p>
-                Questions will be
-                randomly selected from
-                the matching bank.
-              </p>
+                <p>
+                  Time limit:{' '}
+                  <strong>
+                    {
+                      formatTime(
+                        sessionQuestionCount *
+                        CSE_SECONDS_PER_QUESTION
+                      )
+                    }
+                  </strong>
+                </p>
+              </>
 
             )}
 
           </div>
 
 
-          {allQuestions.length ===
-            0 && (
-
-            <p>
-              No published Prelims
-              questions are currently
-              available.
-            </p>
-
-          )}
-
-
           {setupMessage && (
 
-            <p
-              className="form-message"
-            >
+            <p className="form-message">
               {setupMessage}
             </p>
 
@@ -2672,14 +3338,17 @@ export function PracticePage() {
                 startPractice
               }
               disabled={
-                filteredQuestions
-                  .length ===
+                filteredQuestions.length ===
                 0
               }
             >
-              Start Practice
+              {
+                sessionMode ===
+                  'exam'
+                  ? 'Start Exam'
+                  : 'Start Practice'
+              }
             </button>
-
 
             <button
               type="button"
@@ -2690,7 +3359,6 @@ export function PracticePage() {
             >
               Reset Filters
             </button>
-
 
             <button
               type="button"
@@ -2717,56 +3385,409 @@ export function PracticePage() {
 
   if (finished) {
 
-    const percentage =
-      Math.round(
-        (
-          score /
-          questions.length
-        ) *
-        100
-      );
+    /*
+     * EXAM RESULT
+     */
 
+    if (
+      sessionMode ===
+        'exam' &&
+      examResult
+    ) {
+
+      const markPercentage =
+        examResult.maxMarks > 0
+          ? roundNumber(
+              (
+                examResult.marksObtained /
+                examResult.maxMarks
+              ) *
+              100
+            )
+          : 0;
+
+      return (
+
+        <div className="page-wrap">
+
+          <TopBar
+            title="CSE Exam Result"
+            subtitle="Prelims simulation completed"
+          />
+
+
+          <section className="result-card">
+
+            <span className="result-icon">
+              🎯
+            </span>
+
+            <h2>
+              {
+                examResult.marksObtained
+              }
+              /
+              {
+                examResult.maxMarks
+              }
+            </h2>
+
+            <h3>
+              {markPercentage}%
+            </h3>
+
+            <p>
+              CSE-style negative
+              marking has been applied.
+            </p>
+
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  'repeat(auto-fit,minmax(130px,1fr))',
+                gap: '10px',
+                marginTop: '18px',
+                textAlign: 'left'
+              }}
+            >
+
+              <div className="callout">
+                <strong>
+                  {
+                    questions.length
+                  }
+                </strong>
+                <p>
+                  Questions
+                </p>
+              </div>
+
+              <div className="callout">
+                <strong>
+                  {
+                    examResult.attempted
+                  }
+                </strong>
+                <p>
+                  Attempted
+                </p>
+              </div>
+
+              <div className="callout">
+                <strong>
+                  {
+                    examResult.correct
+                  }
+                </strong>
+                <p>
+                  Correct
+                </p>
+              </div>
+
+              <div className="callout">
+                <strong>
+                  {
+                    examResult.incorrect
+                  }
+                </strong>
+                <p>
+                  Incorrect
+                </p>
+              </div>
+
+              <div className="callout">
+                <strong>
+                  {
+                    examResult.unanswered
+                  }
+                </strong>
+                <p>
+                  Unanswered
+                </p>
+              </div>
+
+              <div className="callout">
+                <strong>
+                  -
+                  {
+                    examResult.negativeMarks
+                  }
+                </strong>
+                <p>
+                  Negative Marks
+                </p>
+              </div>
+
+              <div className="callout">
+                <strong>
+                  {
+                    formatTime(
+                      examResult.timeUsedSeconds
+                    )
+                  }
+                </strong>
+                <p>
+                  Time Used
+                </p>
+              </div>
+
+            </div>
+
+
+            {savingResult && (
+
+              <p>
+                Saving exam result...
+              </p>
+
+            )}
+
+            {resultMessage && (
+
+              <p className="form-message">
+                {resultMessage}
+              </p>
+
+            )}
+
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                marginTop: '18px'
+              }}
+            >
+
+              <button
+                className="primary-btn"
+                onClick={() =>
+                  setShowExamReview(
+                    current =>
+                      !current
+                  )
+                }
+              >
+                {
+                  showExamReview
+                    ? 'Hide Answer Review'
+                    : 'Review Answers'
+                }
+              </button>
+
+              <button
+                className="secondary-btn"
+                onClick={
+                  restartSameSet
+                }
+              >
+                Attempt Same Set Again
+              </button>
+
+              <button
+                className="secondary-btn"
+                onClick={
+                  changePracticeSet
+                }
+              >
+                Choose Another Set
+              </button>
+
+            </div>
+
+          </section>
+
+
+          {showExamReview && (
+
+            <section
+              className="panel"
+              style={{
+                marginTop: '18px'
+              }}
+            >
+
+              <span className="eyebrow">
+                ANSWER REVIEW
+              </span>
+
+              <h2>
+                Review Your Exam
+              </h2>
+
+
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '16px'
+                }}
+              >
+
+                {questions.map(
+                  (
+                    question,
+                    questionIndex
+                  ) => {
+
+                    const record =
+                      examResult.answers[
+                        questionIndex
+                      ];
+
+                    const selectedIndex =
+                      record?.selected_index ??
+                      null;
+
+                    return (
+
+                      <article
+                        key={
+                          question.id
+                        }
+                        style={{
+                          padding: '16px',
+                          border:
+                            '1px solid rgba(255,255,255,.10)',
+                          borderRadius: '14px'
+                        }}
+                      >
+
+                        <strong>
+                          Question{' '}
+                          {
+                            questionIndex +
+                            1
+                          }
+                        </strong>
+
+                        <h3>
+                          {
+                            question.question
+                          }
+                        </h3>
+
+                        <p>
+                          Your answer:{' '}
+
+                          <strong>
+                            {
+                              selectedIndex ===
+                                null
+                                ? 'Not Answered'
+                                : String.fromCharCode(
+                                    65 +
+                                    selectedIndex
+                                  )
+                            }
+                          </strong>
+                        </p>
+
+                        <p>
+                          Correct answer:{' '}
+
+                          <strong>
+                            {
+                              String.fromCharCode(
+                                65 +
+                                question.correct_index
+                              )
+                            }
+                          </strong>
+                        </p>
+
+                        <p>
+                          Status:{' '}
+
+                          <strong>
+                            {
+                              selectedIndex ===
+                                null
+                                ? 'Unanswered'
+                                : record?.is_correct
+                                ? 'Correct'
+                                : 'Incorrect'
+                            }
+                          </strong>
+                        </p>
+
+                        <div className="explanation">
+
+                          <strong>
+                            Explanation
+                          </strong>
+
+                          <p>
+                            {
+                              question.explanation
+                            }
+                          </p>
+
+                        </div>
+
+                      </article>
+                    );
+                  }
+                )}
+
+              </div>
+
+            </section>
+
+          )}
+
+        </div>
+      );
+    }
+
+
+    /*
+     * PRACTICE RESULT
+     */
+
+    const percentage =
+      questions.length > 0
+        ? Math.round(
+            (
+              score /
+              questions.length
+            ) *
+            100
+          )
+        : 0;
 
     return (
 
-      <div
-        className="page-wrap"
-      >
+      <div className="page-wrap">
 
         <TopBar
           title="Prelims Practice"
           subtitle="Your practice result"
         />
 
+        <section className="result-card">
 
-        <section
-          className="result-card"
-        >
-
-          <span
-            className="result-icon"
-          >
+          <span className="result-icon">
             🎯
           </span>
-
 
           <h2>
             {score}/
             {questions.length}
           </h2>
 
-
           <h3>
             {percentage}%
           </h3>
-
 
           <p>
             Review explanations and
             strengthen the concepts
             you missed.
           </p>
-
 
           {savingResult && (
 
@@ -2776,37 +3797,31 @@ export function PracticePage() {
 
           )}
 
-
           {resultMessage && (
 
-            <p
-              className="form-message"
-            >
+            <p className="form-message">
               {resultMessage}
             </p>
 
           )}
-
 
           <div
             style={{
               display: 'flex',
               gap: '10px',
               flexWrap: 'wrap',
-              justifyContent:
-                'center'
+              justifyContent: 'center'
             }}
           >
 
             <button
               className="primary-btn"
               onClick={
-                restart
+                restartSameSet
               }
             >
               Practice Same Set Again
             </button>
-
 
             <button
               className="secondary-btn"
@@ -2833,45 +3848,455 @@ export function PracticePage() {
   const q =
     questions[index];
 
-
   if (!q) {
-
     return null;
   }
 
-
   const origin =
-    getQuestionOrigin(
-      q
-    );
+    getQuestionOrigin(q);
 
+
+  /*
+   * EXAM MODE SCREEN
+   */
+
+  if (
+    sessionMode ===
+      'exam'
+  ) {
+
+    const chosen =
+      examSelections[
+        q.id
+      ];
+
+    const answeredCount =
+      Object.keys(
+        examSelections
+      ).length;
+
+    return (
+
+      <div className="page-wrap">
+
+        <TopBar
+          title="CSE Exam Mode"
+          subtitle="Prelims simulation"
+        />
+
+
+        {/* EXAM HEADER */}
+
+        <section
+          className="panel"
+          style={{
+            marginBottom: '14px'
+          }}
+        >
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent:
+                'space-between',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}
+          >
+
+            <div>
+
+              <span className="eyebrow">
+                TIME REMAINING
+              </span>
+
+              <h2
+                style={{
+                  marginBottom: 0
+                }}
+              >
+                {
+                  formatTime(
+                    timeLeft || 0
+                  )
+                }
+              </h2>
+
+            </div>
+
+
+            <div>
+
+              <strong>
+                Answered:{' '}
+                {
+                  answeredCount
+                }
+                /
+                {
+                  questions.length
+                }
+              </strong>
+
+            </div>
+
+
+            <button
+              className="secondary-btn"
+              onClick={() =>
+                submitExam(false)
+              }
+            >
+              Submit Exam
+            </button>
+
+          </div>
+
+        </section>
+
+
+        {/* QUESTION PALETTE */}
+
+        <section
+          className="panel"
+          style={{
+            marginBottom: '14px'
+          }}
+        >
+
+          <span className="eyebrow">
+            QUESTION PALETTE
+          </span>
+
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              marginTop: '10px'
+            }}
+          >
+
+            {questions.map(
+              (
+                item,
+                paletteIndex
+              ) => {
+
+                const hasAnswer =
+                  typeof
+                    examSelections[
+                      item.id
+                    ] ===
+                  'number';
+
+                const isCurrent =
+                  paletteIndex ===
+                  index;
+
+                return (
+
+                  <button
+                    key={
+                      item.id
+                    }
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() =>
+                      setIndex(
+                        paletteIndex
+                      )
+                    }
+                    style={{
+                      minWidth: '44px',
+                      padding: '8px',
+                      opacity:
+                        hasAnswer
+                          ? 1
+                          : 0.6,
+                      outline:
+                        isCurrent
+                          ? '2px solid currentColor'
+                          : 'none'
+                    }}
+                    title={
+                      hasAnswer
+                        ? 'Answered'
+                        : 'Not answered'
+                    }
+                  >
+                    {
+                      paletteIndex +
+                      1
+                    }
+                  </button>
+                );
+              }
+            )}
+
+          </div>
+
+          <small>
+            Brighter numbers are answered.
+            Outlined number is the current
+            question.
+          </small>
+
+        </section>
+
+
+        {/* QUESTION */}
+
+        <section className="quiz-card">
+
+          <div className="quiz-meta">
+
+            <div>
+
+              <span>
+                {q.subject}
+              </span>
+
+              {q.topic && (
+
+                <small
+                  style={{
+                    display: 'block',
+                    marginTop: '4px'
+                  }}
+                >
+                  {q.topic}
+                </small>
+
+              )}
+
+            </div>
+
+            <strong>
+              Question{' '}
+              {index + 1}/
+              {questions.length}
+            </strong>
+
+          </div>
+
+
+          <div className="progress-track">
+
+            <span
+              style={{
+                width:
+                  `${
+                    (
+                      (
+                        index + 1
+                      ) /
+                      questions.length
+                    ) *
+                    100
+                  }%`
+              }}
+            />
+
+          </div>
+
+
+          <div
+            className="tag-row"
+            style={{
+              marginBottom: '12px'
+            }}
+          >
+
+            <span className="tag">
+              {q.difficulty}
+            </span>
+
+            <span className="tag">
+              CSE Exam
+            </span>
+
+            {q.is_pyq && (
+
+              <span className="tag">
+                PYQ{' '}
+                {
+                  q.pyq_year || ''
+                }
+              </span>
+
+            )}
+
+          </div>
+
+
+          <h2>
+            {q.question}
+          </h2>
+
+
+          <div className="option-list">
+
+            {q.options.map(
+              (
+                option,
+                optionIndex
+              ) => {
+
+                const isChosen =
+                  chosen ===
+                  optionIndex;
+
+                return (
+
+                  <button
+                    key={
+                      `${q.id}-${optionIndex}`
+                    }
+                    className="option"
+                    onClick={() =>
+                      answerExamQuestion(
+                        optionIndex
+                      )
+                    }
+                    style={{
+                      border:
+                        isChosen
+                          ? '2px solid currentColor'
+                          : undefined
+                    }}
+                  >
+
+                    <span>
+                      {
+                        String.fromCharCode(
+                          65 +
+                          optionIndex
+                        )
+                      }
+                    </span>
+
+                    {option}
+
+                  </button>
+                );
+              }
+            )}
+
+          </div>
+
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap',
+              marginTop: '18px'
+            }}
+          >
+
+            <button
+              type="button"
+              className="secondary-btn"
+              disabled={
+                index === 0
+              }
+              onClick={() =>
+                setIndex(
+                  current =>
+                    Math.max(
+                      0,
+                      current - 1
+                    )
+                )
+              }
+            >
+              Previous
+            </button>
+
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={
+                clearExamResponse
+              }
+              disabled={
+                typeof chosen !==
+                'number'
+              }
+            >
+              Clear Response
+            </button>
+
+
+            {index <
+              questions.length -
+                1 ? (
+
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={() =>
+                  setIndex(
+                    current =>
+                      Math.min(
+                        questions.length -
+                          1,
+                        current + 1
+                      )
+                  )
+                }
+              >
+                Save & Next
+              </button>
+
+            ) : (
+
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={() =>
+                  submitExam(false)
+                }
+              >
+                Submit Exam
+              </button>
+
+            )}
+
+          </div>
+
+        </section>
+
+      </div>
+    );
+  }
+
+
+  /*
+   * PRACTICE MODE SCREEN
+   */
 
   return (
 
-    <div
-      className="page-wrap"
-    >
+    <div className="page-wrap">
 
       <TopBar
         title="Prelims Practice"
         subtitle="Learn from every answer"
       />
 
+      <section className="quiz-card">
 
-      <section
-        className="quiz-card"
-      >
-
-        <div
-          className="quiz-meta"
-        >
+        <div className="quiz-meta">
 
           <div>
 
             <span>
               {q.subject}
             </span>
-
 
             {q.topic && (
 
@@ -2888,7 +4313,6 @@ export function PracticePage() {
 
           </div>
 
-
           <strong>
             {index + 1}/
             {questions.length}
@@ -2897,9 +4321,7 @@ export function PracticePage() {
         </div>
 
 
-        <div
-          className="progress-track"
-        >
+        <div className="progress-track">
 
           <span
             style={{
@@ -2919,8 +4341,6 @@ export function PracticePage() {
         </div>
 
 
-        {/* META */}
-
         <div
           className="tag-row"
           style={{
@@ -2928,69 +4348,51 @@ export function PracticePage() {
           }}
         >
 
-          <span
-            className="tag"
-          >
+          <span className="tag">
             {q.difficulty}
           </span>
-
 
           {origin ===
             'cse' && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               CSE / General
             </span>
 
           )}
 
-
           {origin ===
             'upsc' && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               UPSC Value Add
             </span>
 
           )}
 
-
           {origin ===
             'state' && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               State PSC
             </span>
 
           )}
 
-
           {q.is_pyq && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               PYQ{' '}
               {
-                q.pyq_year ||
-                ''
+                q.pyq_year || ''
               }
             </span>
 
           )}
 
-
           {q.upsc_exam_name && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               {
                 q.upsc_exam_name
               }
@@ -2998,12 +4400,9 @@ export function PracticePage() {
 
           )}
 
-
           {q.upsc_exam_cycle && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               Cycle{' '}
               {
                 q.upsc_exam_cycle
@@ -3012,12 +4411,9 @@ export function PracticePage() {
 
           )}
 
-
           {q.upsc_exam_year && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               {
                 q.upsc_exam_year
               }
@@ -3025,12 +4421,9 @@ export function PracticePage() {
 
           )}
 
-
           {q.state_psc_state && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               {
                 q.state_psc_state
               }
@@ -3038,12 +4431,9 @@ export function PracticePage() {
 
           )}
 
-
           {q.state_psc_exam_name && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               {
                 q.state_psc_exam_name
               }
@@ -3051,33 +4441,14 @@ export function PracticePage() {
 
           )}
 
-
           {q.state_psc_year && (
 
-            <span
-              className="tag"
-            >
+            <span className="tag">
               {
                 q.state_psc_year
               }
             </span>
 
-          )}
-
-
-          {q.tags.map(
-            tag => (
-
-              <span
-                className="tag"
-                key={
-                  tag
-                }
-              >
-                {tag}
-              </span>
-
-            )
           )}
 
         </div>
@@ -3088,11 +4459,7 @@ export function PracticePage() {
         </h2>
 
 
-        {/* OPTIONS */}
-
-        <div
-          className="option-list"
-        >
+        <div className="option-list">
 
           {q.options.map(
             (
@@ -3111,7 +4478,6 @@ export function PracticePage() {
                   ? 'wrong'
                   : 'muted';
 
-
               return (
 
                 <button
@@ -3122,7 +4488,7 @@ export function PracticePage() {
                     `option ${state}`
                   }
                   onClick={() =>
-                    answer(
+                    answerPracticeQuestion(
                       optionIndex
                     )
                   }
@@ -3137,11 +4503,9 @@ export function PracticePage() {
                     }
                   </span>
 
-
                   {option}
 
                 </button>
-
               );
             }
           )}
@@ -3149,18 +4513,13 @@ export function PracticePage() {
         </div>
 
 
-        {/* EXPLANATION */}
-
         {selected !== null && (
 
-          <div
-            className="explanation"
-          >
+          <div className="explanation">
 
             <strong>
               Explanation
             </strong>
-
 
             <p>
               {q.explanation}
@@ -3178,7 +4537,6 @@ export function PracticePage() {
                 <strong>
                   UPSC Examination Reference
                 </strong>
-
 
                 <p>
                   {
@@ -3227,7 +4585,6 @@ export function PracticePage() {
                   State PSC Reference
                 </strong>
 
-
                 <p>
                   {
                     q.state_psc_state
@@ -3239,7 +4596,6 @@ export function PracticePage() {
                       : ''
                   }
                 </p>
-
 
                 {q.state_psc_exam_name && (
 
@@ -3254,7 +4610,6 @@ export function PracticePage() {
                   </p>
 
                 )}
-
 
                 <p>
                   {
@@ -3286,9 +4641,7 @@ export function PracticePage() {
               <p>
                 <small>
                   Source:{' '}
-                  {
-                    q.source
-                  }
+                  {q.source}
                 </small>
               </p>
 
@@ -3314,17 +4667,14 @@ export function PracticePage() {
 
             <div
               style={{
-                marginTop: '16px',
-                display: 'flex',
-                gap: '10px',
-                flexWrap: 'wrap'
+                marginTop: '16px'
               }}
             >
 
               <button
                 className="primary-btn"
                 onClick={
-                  next
+                  nextPracticeQuestion
                 }
               >
                 {
@@ -3333,17 +4683,6 @@ export function PracticePage() {
                     ? 'See result'
                     : 'Next question'
                 }
-              </button>
-
-
-              <button
-                type="button"
-                className="secondary-btn"
-                onClick={
-                  changePracticeSet
-                }
-              >
-                Change Practice Set
               </button>
 
             </div>
