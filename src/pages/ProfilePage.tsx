@@ -24,6 +24,10 @@ import {
 } from '../components/MySavedPrelimsQuestions';
 
 import {
+  PrelimsPerformanceTrend
+} from '../components/PrelimsPerformanceTrend';
+
+import {
   PrelimsWeakAreaAnalysis
 } from '../components/PrelimsWeakAreaAnalysis';
 
@@ -45,6 +49,13 @@ export function ProfilePage({
   /*
    * EXPANDABLE STUDY TOOLS
    */
+
+  const [
+    showPerformanceTrend,
+    setShowPerformanceTrend
+  ] =
+    useState(false);
+
 
   const [
     showWeakAnalysis,
@@ -77,6 +88,12 @@ export function ProfilePage({
   /*
    * SECTION REFERENCES
    */
+
+  const performanceTrendRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
 
   const weakAnalysisRef =
     useRef<HTMLDivElement | null>(
@@ -144,6 +161,10 @@ export function ProfilePage({
 
   function closeExpandableTools() {
 
+    setShowPerformanceTrend(
+      false
+    );
+
     setShowWeakAnalysis(
       false
     );
@@ -163,6 +184,53 @@ export function ProfilePage({
 
 
   /*
+   * PERFORMANCE TREND
+   */
+
+  function togglePerformanceTrend() {
+
+    const nextState =
+      !showPerformanceTrend;
+
+
+    setShowWeakAnalysis(
+      false
+    );
+
+    setShowMistakeBook(
+      false
+    );
+
+    setShowMistakePractice(
+      false
+    );
+
+    setShowRevisionBank(
+      false
+    );
+
+    setShowPerformanceTrend(
+      nextState
+    );
+
+
+    if (nextState) {
+
+      window.setTimeout(
+        () => {
+
+          scrollToSection(
+            performanceTrendRef.current
+          );
+
+        },
+        150
+      );
+    }
+  }
+
+
+  /*
    * WEAK AREA ANALYSIS
    */
 
@@ -171,6 +239,10 @@ export function ProfilePage({
     const nextState =
       !showWeakAnalysis;
 
+
+    setShowPerformanceTrend(
+      false
+    );
 
     setShowMistakeBook(
       false
@@ -215,6 +287,10 @@ export function ProfilePage({
       !showMistakeBook;
 
 
+    setShowPerformanceTrend(
+      false
+    );
+
     setShowWeakAnalysis(
       false
     );
@@ -258,6 +334,10 @@ export function ProfilePage({
       !showMistakePractice;
 
 
+    setShowPerformanceTrend(
+      false
+    );
+
     setShowWeakAnalysis(
       false
     );
@@ -300,6 +380,10 @@ export function ProfilePage({
     const nextState =
       !showRevisionBank;
 
+
+    setShowPerformanceTrend(
+      false
+    );
 
     setShowWeakAnalysis(
       false
@@ -463,16 +547,64 @@ export function ProfilePage({
 
 
         <p>
-          Analyse performance,
-          practise mistakes,
-          revise saved questions
-          and track improvement.
+          Track improvement,
+          identify weak areas,
+          practise mistakes
+          and build focused revision.
         </p>
 
 
         <div
           className="settings-list"
         >
+
+          {/* PERFORMANCE TREND */}
+
+          <button
+            type="button"
+            onClick={
+              togglePerformanceTrend
+            }
+          >
+
+            <span
+              style={{
+                display:
+                  'flex',
+
+                flexDirection:
+                  'column',
+
+                alignItems:
+                  'flex-start',
+
+                gap:
+                  '3px'
+              }}
+            >
+
+              <strong>
+                📈 Prelims Performance Trend
+              </strong>
+
+
+              <small>
+                Track improvement across attempts
+              </small>
+
+            </span>
+
+
+            <span>
+              {
+                showPerformanceTrend
+                  ? '⌃'
+                  : '›'
+              }
+            </span>
+
+          </button>
+
 
           {/* WEAK AREA ANALYSIS */}
 
@@ -900,6 +1032,59 @@ export function ProfilePage({
         </div>
 
       </section>
+
+
+      {/* PERFORMANCE TREND */}
+
+      {showPerformanceTrend && (
+
+        <div
+          ref={
+            performanceTrendRef
+          }
+          style={{
+            scrollMarginTop:
+              '20px'
+          }}
+        >
+
+          <PrelimsPerformanceTrend />
+
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              justifyContent:
+                'center',
+
+              marginTop:
+                '12px'
+            }}
+          >
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => {
+
+                setShowPerformanceTrend(
+                  false
+                );
+
+                returnToTop();
+
+              }}
+            >
+              Close Performance Trend
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
 
 
       {/* WEAK AREA ANALYSIS */}
