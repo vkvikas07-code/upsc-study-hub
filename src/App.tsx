@@ -54,43 +54,176 @@ import type {
 } from './types';
 
 
-const defaultTasks:
-  DailyTask[] = [
-
+const defaultTasks: DailyTask[] = [
   {
-    id:
-      'ca',
-
-    label:
-      'Read today’s current affairs brief',
-
-    done:
-      false
+    id: 'ca',
+    label: 'Read today’s current affairs brief',
+    done: false
   },
-
   {
-    id:
-      'mcq',
-
-    label:
-      'Attempt at least 10 MCQs',
-
-    done:
-      false
+    id: 'mcq',
+    label: 'Attempt at least 10 MCQs',
+    done: false
   },
-
   {
-    id:
-      'rev',
-
-    label:
-      'Revise one saved topic',
-
-    done:
-      false
+    id: 'rev',
+    label: 'Revise one saved topic',
+    done: false
   }
-
 ];
+
+
+/*
+ * LOCAL DATE
+ *
+ * Example:
+ * 2026-09-10
+ *
+ * We intentionally use the
+ * device's local date instead
+ * of UTC so the daily plan
+ * changes at the student's
+ * local midnight.
+ */
+
+function getLocalDateKey() {
+
+  const now =
+    new Date();
+
+
+  const year =
+    now.getFullYear();
+
+
+  const month =
+    String(
+      now.getMonth() + 1
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+  const day =
+    String(
+      now.getDate()
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+  return (
+    `${year}-${month}-${day}`
+  );
+}
+
+
+/*
+ * DAILY TASK STORAGE KEY
+ */
+
+function getTaskStorageKey(
+  day:
+    string
+) {
+
+  return (
+    `upsc_tasks_${day}`
+  );
+}
+
+
+/*
+ * READ TASKS FOR ONE DAY
+ */
+
+function loadTasksForDay(
+  day:
+    string
+): DailyTask[] {
+
+  try {
+
+    const stored =
+      localStorage.getItem(
+        getTaskStorageKey(
+          day
+        )
+      );
+
+
+    if (!stored) {
+
+      return defaultTasks.map(
+        task => ({
+          ...task
+        })
+      );
+    }
+
+
+    const parsed =
+      JSON.parse(
+        stored
+      );
+
+
+    if (
+      !Array.isArray(
+        parsed
+      )
+    ) {
+
+      return defaultTasks.map(
+        task => ({
+          ...task
+        })
+      );
+    }
+
+
+    /*
+     * Merge stored completion
+     * with current default tasks.
+     *
+     * This means if we add a
+     * new default task later,
+     * existing users still get it.
+     */
+
+    return defaultTasks.map(
+      defaultTask => {
+
+        const storedTask =
+          parsed.find(
+            item =>
+              item &&
+              item.id ===
+                defaultTask.id
+          );
+
+
+        return {
+          ...defaultTask,
+
+          done:
+            storedTask?.done ===
+            true
+        };
+      }
+    );
+
+  } catch {
+
+    return defaultTasks.map(
+      task => ({
+        ...task
+      })
+    );
+  }
+}
 
 
 export default function App() {
@@ -109,9 +242,7 @@ export default function App() {
 
 
   /*
-   * PRACTICE SECTION
-   *
-   * Prelims or Mains
+   * PRACTICE MODE
    */
 
   const [
@@ -127,6 +258,19 @@ export default function App() {
 
 
   /*
+   * CURRENT DAILY PLAN DATE
+   */
+
+  const [
+    taskDay,
+    setTaskDay
+  ] =
+    useState(
+      getLocalDateKey
+    );
+
+
+  /*
    * DAILY TASKS
    */
 
@@ -137,28 +281,10 @@ export default function App() {
     useState<
       DailyTask[]
     >(
-      () => {
-
-        try {
-
-          return (
-
-            JSON.parse(
-              localStorage.getItem(
-                'upsc_tasks'
-              ) ||
-              'null'
-            ) ||
-
-            defaultTasks
-
-          );
-
-        } catch {
-
-          return defaultTasks;
-        }
-      }
+      () =>
+        loadTasksForDay(
+          getLocalDateKey()
+        )
     );
 
 
@@ -192,7 +318,9 @@ export default function App() {
 
 
     localStorage.setItem(
-      'upsc_tasks',
+      getTaskStorageKey(
+        taskDay
+      ),
       JSON.stringify(
         next
       )
@@ -201,8 +329,72 @@ export default function App() {
 
 
   /*
-   * ADD NEW CURRENT
-   * AFFAIRS ITEM LOCALLY
+   * AUTO RESET DAILY PLAN
+   *
+   * Check once per minute.
+   *
+   * If the app stays open
+   * across midnight, it will
+   * automatically load a fresh
+   * plan for the new date.
+   */
+
+  useEffect(
+    () => {
+
+      const timer =
+        window.setInterval(
+          () => {
+
+            const currentDay =
+              getLocalDateKey();
+
+
+            if (
+              currentDay !==
+              taskDay
+            ) {
+
+              setTaskDay(
+                currentDay
+              );
+
+
+              setTasksState(
+                loadTasksForDay(
+                  currentDay
+                )
+              );
+
+
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+            }
+
+          },
+          60_000
+        );
+
+
+      return () => {
+
+        window.clearInterval(
+          timer
+        );
+      };
+
+    },
+    [
+      taskDay
+    ]
+  );
+
+
+  /*
+   * PUBLISH CURRENT AFFAIR
+   * LOCALLY AFTER ADMIN SAVE
    */
 
   function publish(
@@ -220,24 +412,13 @@ export default function App() {
 
 
   /*
-   * DIRECT PRELIMS
-   * PRACTICE NAVIGATION
+   * OPEN PRELIMS PRACTICE
    *
-   * Used by:
-   * - Home
-   * - Smart Study
+   * Always force Prelims mode
+   * before opening Practice.
    */
 
   function openPrelimsPractice() {
-
-    /*
-     * Important:
-     * force Prelims mode first.
-     *
-     * This prevents the student
-     * from landing on Mains if
-     * Mains was previously open.
-     */
 
     setPracticeMode(
       'prelims'
@@ -357,7 +538,6 @@ export default function App() {
 
                 publishedAt:
                   item.published_at
-
                     ? new Date(
                         item.published_at
                       )
@@ -374,7 +554,6 @@ export default function App() {
                               'numeric'
                           }
                         )
-
                     : ''
               })
             );
@@ -395,18 +574,15 @@ export default function App() {
 
   /*
    * SCROLL TO TOP
-   * WHEN MAIN PAGE CHANGES
+   * WHEN MAIN TAB CHANGES
    */
 
   useEffect(
     () => {
 
       window.scrollTo({
-        top:
-          0,
-
-        behavior:
-          'smooth'
+        top: 0,
+        behavior: 'smooth'
       });
 
     },
@@ -417,13 +593,12 @@ export default function App() {
 
 
   /*
-   * DEFAULT PAGE
+   * HOME
    */
 
   let content = (
 
     <HomePage
-
       tasks={
         tasks
       }
@@ -447,7 +622,6 @@ export default function App() {
           'current'
         )
       }
-
     />
 
   );
@@ -481,8 +655,6 @@ export default function App() {
 
       <>
 
-        {/* PRACTICE TYPE SWITCHER */}
-
         <div
           className="page-wrap"
         >
@@ -490,15 +662,10 @@ export default function App() {
           <div
             className="filter-row"
             style={{
-              paddingTop:
-                '18px',
-
-              paddingBottom:
-                '0'
+              paddingTop: '18px',
+              paddingBottom: '0'
             }}
           >
-
-            {/* PRELIMS */}
 
             <button
               type="button"
@@ -506,9 +673,7 @@ export default function App() {
               className={
                 practiceMode ===
                   'prelims'
-
                   ? 'filter active'
-
                   : 'filter'
               }
 
@@ -522,17 +687,13 @@ export default function App() {
             </button>
 
 
-            {/* MAINS */}
-
             <button
               type="button"
 
               className={
                 practiceMode ===
                   'mains'
-
                   ? 'filter active'
-
                   : 'filter'
               }
 
@@ -550,16 +711,12 @@ export default function App() {
         </div>
 
 
-        {/* PRACTICE CONTENT */}
-
         {
           practiceMode ===
           'prelims'
-
             ? (
               <PracticePage />
             )
-
             : (
               <MainsPracticePage />
             )
@@ -604,31 +761,15 @@ export default function App() {
     content = (
 
       <ProfilePage
-
         onAdmin={() =>
           setActive(
             'admin'
           )
         }
 
-        /*
-         * SMART STUDY:
-         *
-         * Start Mixed Practice
-         * or
-         * Start Prelims Practice
-         *
-         * now opens:
-         *
-         * Practice
-         *   ↓
-         * Prelims MCQ
-         */
-
         onOpenPractice={
           openPrelimsPractice
         }
-
       />
 
     );
@@ -636,7 +777,7 @@ export default function App() {
 
 
   /*
-   * ADMIN STUDIO
+   * ADMIN
    */
 
   if (
@@ -647,7 +788,6 @@ export default function App() {
     content = (
 
       <AdminPage
-
         onPublish={
           item => {
 
@@ -661,7 +801,6 @@ export default function App() {
             );
           }
         }
-
       />
 
     );
@@ -669,7 +808,7 @@ export default function App() {
 
 
   /*
-   * MAIN APPLICATION
+   * APPLICATION SHELL
    */
 
   return (
