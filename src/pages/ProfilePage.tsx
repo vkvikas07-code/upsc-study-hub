@@ -24,6 +24,10 @@ import {
 } from '../components/MySavedPrelimsQuestions';
 
 import {
+  PrelimsNextAction
+} from '../components/PrelimsNextAction';
+
+import {
   PrelimsPerformanceTrend
 } from '../components/PrelimsPerformanceTrend';
 
@@ -40,6 +44,81 @@ import {
 } from '../components/PrelimsMistakePractice';
 
 
+type OpenTool =
+  | 'performance'
+  | 'weak'
+  | 'mistakeBook'
+  | 'mistakePractice'
+  | 'revision'
+  | null;
+
+
+type ToolButtonProps = {
+  title: string;
+  subtitle: string;
+  open?: boolean;
+  onClick: () => void;
+};
+
+
+function StudyToolButton({
+  title,
+  subtitle,
+  open = false,
+  onClick
+}: ToolButtonProps) {
+
+  return (
+
+    <button
+      type="button"
+      onClick={
+        onClick
+      }
+    >
+
+      <span
+        style={{
+          display:
+            'flex',
+
+          flexDirection:
+            'column',
+
+          alignItems:
+            'flex-start',
+
+          gap:
+            '3px'
+        }}
+      >
+
+        <strong>
+          {title}
+        </strong>
+
+
+        <small>
+          {subtitle}
+        </small>
+
+      </span>
+
+
+      <span>
+        {
+          open
+            ? '⌃'
+            : '›'
+        }
+      </span>
+
+    </button>
+
+  );
+}
+
+
 export function ProfilePage({
   onAdmin
 }: {
@@ -47,42 +126,17 @@ export function ProfilePage({
 }) {
 
   /*
-   * EXPANDABLE STUDY TOOLS
+   * ONLY ONE LARGE TOOL
+   * STAYS OPEN AT A TIME
    */
 
   const [
-    showPerformanceTrend,
-    setShowPerformanceTrend
+    openTool,
+    setOpenTool
   ] =
-    useState(false);
-
-
-  const [
-    showWeakAnalysis,
-    setShowWeakAnalysis
-  ] =
-    useState(false);
-
-
-  const [
-    showMistakeBook,
-    setShowMistakeBook
-  ] =
-    useState(false);
-
-
-  const [
-    showMistakePractice,
-    setShowMistakePractice
-  ] =
-    useState(false);
-
-
-  const [
-    showRevisionBank,
-    setShowRevisionBank
-  ] =
-    useState(false);
+    useState<OpenTool>(
+      null
+    );
 
 
   /*
@@ -137,333 +191,143 @@ export function ProfilePage({
 
   function scrollToSection(
     element:
+      HTMLDivElement | null,
+    delay = 150
+  ) {
+
+    window.setTimeout(
+      () => {
+
+        element?.scrollIntoView({
+          behavior:
+            'smooth',
+
+          block:
+            'start'
+        });
+
+      },
+      delay
+    );
+  }
+
+
+  /*
+   * TOGGLE AN EXPANDABLE TOOL
+   */
+
+  function toggleTool(
+    tool: Exclude<
+      OpenTool,
+      null
+    >,
+    element:
       HTMLDivElement | null
   ) {
 
-    if (!element) {
+    if (
+      openTool ===
+      tool
+    ) {
+
+      setOpenTool(
+        null
+      );
+
       return;
     }
 
 
-    element.scrollIntoView({
-      behavior:
-        'smooth',
+    setOpenTool(
+      tool
+    );
 
-      block:
-        'start'
-    });
+
+    scrollToSection(
+      element
+    );
   }
 
 
   /*
-   * CLOSE ALL EXPANDABLE TOOLS
+   * DIRECT OPEN FUNCTIONS
+   *
+   * Used by Smart Next Action.
    */
 
-  function closeExpandableTools() {
+  function openWeakAreas() {
 
-    setShowPerformanceTrend(
-      false
+    setOpenTool(
+      'weak'
     );
 
-    setShowWeakAnalysis(
-      false
+
+    scrollToSection(
+      weakAnalysisRef.current
+    );
+  }
+
+
+  function openMistakePractice() {
+
+    setOpenTool(
+      'mistakePractice'
     );
 
-    setShowMistakeBook(
-      false
+
+    scrollToSection(
+      mistakePracticeRef.current
+    );
+  }
+
+
+  function openRevisionBank() {
+
+    setOpenTool(
+      'revision'
     );
 
-    setShowMistakePractice(
-      false
-    );
 
-    setShowRevisionBank(
-      false
+    scrollToSection(
+      revisionBankRef.current
     );
   }
 
 
   /*
-   * PERFORMANCE TREND
-   */
-
-  function togglePerformanceTrend() {
-
-    const nextState =
-      !showPerformanceTrend;
-
-
-    setShowWeakAnalysis(
-      false
-    );
-
-    setShowMistakeBook(
-      false
-    );
-
-    setShowMistakePractice(
-      false
-    );
-
-    setShowRevisionBank(
-      false
-    );
-
-    setShowPerformanceTrend(
-      nextState
-    );
-
-
-    if (nextState) {
-
-      window.setTimeout(
-        () => {
-
-          scrollToSection(
-            performanceTrendRef.current
-          );
-
-        },
-        150
-      );
-    }
-  }
-
-
-  /*
-   * WEAK AREA ANALYSIS
-   */
-
-  function toggleWeakAnalysis() {
-
-    const nextState =
-      !showWeakAnalysis;
-
-
-    setShowPerformanceTrend(
-      false
-    );
-
-    setShowMistakeBook(
-      false
-    );
-
-    setShowMistakePractice(
-      false
-    );
-
-    setShowRevisionBank(
-      false
-    );
-
-    setShowWeakAnalysis(
-      nextState
-    );
-
-
-    if (nextState) {
-
-      window.setTimeout(
-        () => {
-
-          scrollToSection(
-            weakAnalysisRef.current
-          );
-
-        },
-        150
-      );
-    }
-  }
-
-
-  /*
-   * MISTAKE BOOK
-   */
-
-  function toggleMistakeBook() {
-
-    const nextState =
-      !showMistakeBook;
-
-
-    setShowPerformanceTrend(
-      false
-    );
-
-    setShowWeakAnalysis(
-      false
-    );
-
-    setShowMistakePractice(
-      false
-    );
-
-    setShowRevisionBank(
-      false
-    );
-
-    setShowMistakeBook(
-      nextState
-    );
-
-
-    if (nextState) {
-
-      window.setTimeout(
-        () => {
-
-          scrollToSection(
-            mistakeBookRef.current
-          );
-
-        },
-        150
-      );
-    }
-  }
-
-
-  /*
-   * PRACTICE MISTAKES
-   */
-
-  function toggleMistakePractice() {
-
-    const nextState =
-      !showMistakePractice;
-
-
-    setShowPerformanceTrend(
-      false
-    );
-
-    setShowWeakAnalysis(
-      false
-    );
-
-    setShowMistakeBook(
-      false
-    );
-
-    setShowRevisionBank(
-      false
-    );
-
-    setShowMistakePractice(
-      nextState
-    );
-
-
-    if (nextState) {
-
-      window.setTimeout(
-        () => {
-
-          scrollToSection(
-            mistakePracticeRef.current
-          );
-
-        },
-        150
-      );
-    }
-  }
-
-
-  /*
-   * REVISION BANK
-   */
-
-  function toggleRevisionBank() {
-
-    const nextState =
-      !showRevisionBank;
-
-
-    setShowPerformanceTrend(
-      false
-    );
-
-    setShowWeakAnalysis(
-      false
-    );
-
-    setShowMistakeBook(
-      false
-    );
-
-    setShowMistakePractice(
-      false
-    );
-
-    setShowRevisionBank(
-      nextState
-    );
-
-
-    if (nextState) {
-
-      window.setTimeout(
-        () => {
-
-          scrollToSection(
-            revisionBankRef.current
-          );
-
-        },
-        150
-      );
-    }
-  }
-
-
-  /*
-   * PRELIMS HISTORY
+   * HISTORY NAVIGATION
    */
 
   function openPrelimsHistory() {
 
-    closeExpandableTools();
+    setOpenTool(
+      null
+    );
 
 
-    window.setTimeout(
-      () => {
-
-        scrollToSection(
-          prelimsHistoryRef.current
-        );
-
-      },
+    scrollToSection(
+      prelimsHistoryRef.current,
       100
     );
   }
 
-
-  /*
-   * MAINS EVALUATIONS
-   */
 
   function openMainsEvaluations() {
 
-    closeExpandableTools();
+    setOpenTool(
+      null
+    );
 
 
-    window.setTimeout(
-      () => {
-
-        scrollToSection(
-          mainsEvaluationRef.current
-        );
-
-      },
+    scrollToSection(
+      mainsEvaluationRef.current,
       100
     );
   }
 
 
   /*
-   * RETURN TO PAGE TOP
+   * RETURN TO TOP
    */
 
   function returnToTop() {
@@ -478,11 +342,24 @@ export function ProfilePage({
   }
 
 
+  function closeTool() {
+
+    setOpenTool(
+      null
+    );
+
+
+    returnToTop();
+  }
+
+
   return (
 
     <div
       className="page-wrap"
     >
+
+      {/* TOP BAR */}
 
       <TopBar
         title="My Study"
@@ -524,6 +401,25 @@ export function ProfilePage({
       <StudyOverview />
 
 
+      {/* SMART NEXT ACTION */}
+
+      <PrelimsNextAction
+
+        onOpenMistakePractice={
+          openMistakePractice
+        }
+
+        onOpenWeakAreas={
+          openWeakAreas
+        }
+
+        onOpenRevisionBank={
+          openRevisionBank
+        }
+
+      />
+
+
       {/* STUDY TOOLS */}
 
       <section
@@ -560,330 +456,147 @@ export function ProfilePage({
 
           {/* PERFORMANCE TREND */}
 
-          <button
-            type="button"
-            onClick={
-              togglePerformanceTrend
+          <StudyToolButton
+
+            title="📈 Prelims Performance Trend"
+
+            subtitle="Track improvement across attempts"
+
+            open={
+              openTool ===
+              'performance'
             }
-          >
 
-            <span
-              style={{
-                display:
-                  'flex',
-
-                flexDirection:
-                  'column',
-
-                alignItems:
-                  'flex-start',
-
-                gap:
-                  '3px'
-              }}
-            >
-
-              <strong>
-                📈 Prelims Performance Trend
-              </strong>
-
-
-              <small>
-                Track improvement across attempts
-              </small>
-
-            </span>
-
-
-            <span>
-              {
-                showPerformanceTrend
-                  ? '⌃'
-                  : '›'
-              }
-            </span>
-
-          </button>
-
-
-          {/* WEAK AREA ANALYSIS */}
-
-          <button
-            type="button"
-            onClick={
-              toggleWeakAnalysis
+            onClick={() =>
+              toggleTool(
+                'performance',
+                performanceTrendRef.current
+              )
             }
-          >
 
-            <span
-              style={{
-                display:
-                  'flex',
-
-                flexDirection:
-                  'column',
-
-                alignItems:
-                  'flex-start',
-
-                gap:
-                  '3px'
-              }}
-            >
-
-              <strong>
-                📊 Prelims Weak Areas
-              </strong>
+          />
 
 
-              <small>
-                Subject and topic analysis
-              </small>
+          {/* WEAK AREAS */}
 
-            </span>
+          <StudyToolButton
 
+            title="📊 Prelims Weak Areas"
 
-            <span>
-              {
-                showWeakAnalysis
-                  ? '⌃'
-                  : '›'
-              }
-            </span>
+            subtitle="Subject and topic analysis"
 
-          </button>
+            open={
+              openTool ===
+              'weak'
+            }
+
+            onClick={() =>
+              toggleTool(
+                'weak',
+                weakAnalysisRef.current
+              )
+            }
+
+          />
 
 
           {/* MISTAKE BOOK */}
 
-          <button
-            type="button"
-            onClick={
-              toggleMistakeBook
+          <StudyToolButton
+
+            title="✕ Prelims Mistake Book"
+
+            subtitle="Review questions answered incorrectly"
+
+            open={
+              openTool ===
+              'mistakeBook'
             }
-          >
 
-            <span
-              style={{
-                display:
-                  'flex',
-
-                flexDirection:
-                  'column',
-
-                alignItems:
-                  'flex-start',
-
-                gap:
-                  '3px'
-              }}
-            >
-
-              <strong>
-                ✕ Prelims Mistake Book
-              </strong>
-
-
-              <small>
-                Review questions answered incorrectly
-              </small>
-
-            </span>
-
-
-            <span>
-              {
-                showMistakeBook
-                  ? '⌃'
-                  : '›'
-              }
-            </span>
-
-          </button>
-
-
-          {/* PRACTICE MISTAKES */}
-
-          <button
-            type="button"
-            onClick={
-              toggleMistakePractice
+            onClick={() =>
+              toggleTool(
+                'mistakeBook',
+                mistakeBookRef.current
+              )
             }
-          >
 
-            <span
-              style={{
-                display:
-                  'flex',
-
-                flexDirection:
-                  'column',
-
-                alignItems:
-                  'flex-start',
-
-                gap:
-                  '3px'
-              }}
-            >
-
-              <strong>
-                🎯 Practice Your Mistakes
-              </strong>
+          />
 
 
-              <small>
-                Reattempt questions you got wrong
-              </small>
+          {/* MISTAKE PRACTICE */}
 
-            </span>
+          <StudyToolButton
 
+            title="🎯 Practice Your Mistakes"
 
-            <span>
-              {
-                showMistakePractice
-                  ? '⌃'
-                  : '›'
-              }
-            </span>
+            subtitle="Reattempt questions you got wrong"
 
-          </button>
+            open={
+              openTool ===
+              'mistakePractice'
+            }
+
+            onClick={() =>
+              toggleTool(
+                'mistakePractice',
+                mistakePracticeRef.current
+              )
+            }
+
+          />
 
 
           {/* REVISION BANK */}
 
-          <button
-            type="button"
-            onClick={
-              toggleRevisionBank
+          <StudyToolButton
+
+            title="★ Revision Bank"
+
+            subtitle="Saved Prelims questions"
+
+            open={
+              openTool ===
+              'revision'
             }
-          >
 
-            <span
-              style={{
-                display:
-                  'flex',
+            onClick={() =>
+              toggleTool(
+                'revision',
+                revisionBankRef.current
+              )
+            }
 
-                flexDirection:
-                  'column',
-
-                alignItems:
-                  'flex-start',
-
-                gap:
-                  '3px'
-              }}
-            >
-
-              <strong>
-                ★ Revision Bank
-              </strong>
-
-
-              <small>
-                Saved Prelims questions
-              </small>
-
-            </span>
-
-
-            <span>
-              {
-                showRevisionBank
-                  ? '⌃'
-                  : '›'
-              }
-            </span>
-
-          </button>
+          />
 
 
           {/* PRELIMS HISTORY */}
 
-          <button
-            type="button"
+          <StudyToolButton
+
+            title="Prelims History"
+
+            subtitle="Practice and Exam results"
+
             onClick={
               openPrelimsHistory
             }
-          >
 
-            <span
-              style={{
-                display:
-                  'flex',
-
-                flexDirection:
-                  'column',
-
-                alignItems:
-                  'flex-start',
-
-                gap:
-                  '3px'
-              }}
-            >
-
-              <strong>
-                Prelims History
-              </strong>
-
-
-              <small>
-                Practice and Exam results
-              </small>
-
-            </span>
-
-
-            <span>
-              ›
-            </span>
-
-          </button>
+          />
 
 
           {/* MAINS EVALUATIONS */}
 
-          <button
-            type="button"
+          <StudyToolButton
+
+            title="Mains Evaluations"
+
+            subtitle="Reviewed answer sheets"
+
             onClick={
               openMainsEvaluations
             }
-          >
 
-            <span
-              style={{
-                display:
-                  'flex',
-
-                flexDirection:
-                  'column',
-
-                alignItems:
-                  'flex-start',
-
-                gap:
-                  '3px'
-              }}
-            >
-
-              <strong>
-                Mains Evaluations
-              </strong>
-
-
-              <small>
-                Reviewed answer sheets
-              </small>
-
-            </span>
-
-
-            <span>
-              ›
-            </span>
-
-          </button>
+          />
 
 
           {/* NOTES */}
@@ -1036,7 +749,8 @@ export function ProfilePage({
 
       {/* PERFORMANCE TREND */}
 
-      {showPerformanceTrend && (
+      {openTool ===
+        'performance' && (
 
         <div
           ref={
@@ -1067,15 +781,9 @@ export function ProfilePage({
             <button
               type="button"
               className="secondary-btn"
-              onClick={() => {
-
-                setShowPerformanceTrend(
-                  false
-                );
-
-                returnToTop();
-
-              }}
+              onClick={
+                closeTool
+              }
             >
               Close Performance Trend
             </button>
@@ -1089,7 +797,8 @@ export function ProfilePage({
 
       {/* WEAK AREA ANALYSIS */}
 
-      {showWeakAnalysis && (
+      {openTool ===
+        'weak' && (
 
         <div
           ref={
@@ -1120,15 +829,9 @@ export function ProfilePage({
             <button
               type="button"
               className="secondary-btn"
-              onClick={() => {
-
-                setShowWeakAnalysis(
-                  false
-                );
-
-                returnToTop();
-
-              }}
+              onClick={
+                closeTool
+              }
             >
               Close Weak Area Analysis
             </button>
@@ -1142,7 +845,8 @@ export function ProfilePage({
 
       {/* MISTAKE BOOK */}
 
-      {showMistakeBook && (
+      {openTool ===
+        'mistakeBook' && (
 
         <div
           ref={
@@ -1173,15 +877,9 @@ export function ProfilePage({
             <button
               type="button"
               className="secondary-btn"
-              onClick={() => {
-
-                setShowMistakeBook(
-                  false
-                );
-
-                returnToTop();
-
-              }}
+              onClick={
+                closeTool
+              }
             >
               Close Mistake Book
             </button>
@@ -1193,9 +891,10 @@ export function ProfilePage({
       )}
 
 
-      {/* PRACTICE MISTAKES */}
+      {/* MISTAKE PRACTICE */}
 
-      {showMistakePractice && (
+      {openTool ===
+        'mistakePractice' && (
 
         <div
           ref={
@@ -1226,15 +925,9 @@ export function ProfilePage({
             <button
               type="button"
               className="secondary-btn"
-              onClick={() => {
-
-                setShowMistakePractice(
-                  false
-                );
-
-                returnToTop();
-
-              }}
+              onClick={
+                closeTool
+              }
             >
               Close Mistake Practice
             </button>
@@ -1248,7 +941,8 @@ export function ProfilePage({
 
       {/* REVISION BANK */}
 
-      {showRevisionBank && (
+      {openTool ===
+        'revision' && (
 
         <div
           ref={
@@ -1279,15 +973,9 @@ export function ProfilePage({
             <button
               type="button"
               className="secondary-btn"
-              onClick={() => {
-
-                setShowRevisionBank(
-                  false
-                );
-
-                returnToTop();
-
-              }}
+              onClick={
+                closeTool
+              }
             >
               Close Revision Bank
             </button>
