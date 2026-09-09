@@ -27,6 +27,10 @@ import {
   PrelimsWeakAreaAnalysis
 } from '../components/PrelimsWeakAreaAnalysis';
 
+import {
+  PrelimsMistakeBook
+} from '../components/PrelimsMistakeBook';
+
 
 export function ProfilePage({
   onAdmin
@@ -35,12 +39,19 @@ export function ProfilePage({
 }) {
 
   /*
-   * EXPANDABLE TOOLS
+   * EXPANDABLE STUDY TOOLS
    */
 
   const [
     showWeakAnalysis,
     setShowWeakAnalysis
+  ] =
+    useState(false);
+
+
+  const [
+    showMistakeBook,
+    setShowMistakeBook
   ] =
     useState(false);
 
@@ -57,6 +68,12 @@ export function ProfilePage({
    */
 
   const weakAnalysisRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
+
+  const mistakeBookRef =
     useRef<HTMLDivElement | null>(
       null
     );
@@ -105,6 +122,26 @@ export function ProfilePage({
 
 
   /*
+   * CLOSE ALL EXPANDABLE TOOLS
+   */
+
+  function closeExpandableTools() {
+
+    setShowWeakAnalysis(
+      false
+    );
+
+    setShowMistakeBook(
+      false
+    );
+
+    setShowRevisionBank(
+      false
+    );
+  }
+
+
+  /*
    * WEAK AREA ANALYSIS
    */
 
@@ -114,15 +151,13 @@ export function ProfilePage({
       !showWeakAnalysis;
 
 
-    /*
-     * Keep only one large
-     * expandable section open.
-     */
+    setShowMistakeBook(
+      false
+    );
 
     setShowRevisionBank(
       false
     );
-
 
     setShowWeakAnalysis(
       nextState
@@ -146,6 +181,45 @@ export function ProfilePage({
 
 
   /*
+   * MISTAKE BOOK
+   */
+
+  function toggleMistakeBook() {
+
+    const nextState =
+      !showMistakeBook;
+
+
+    setShowWeakAnalysis(
+      false
+    );
+
+    setShowRevisionBank(
+      false
+    );
+
+    setShowMistakeBook(
+      nextState
+    );
+
+
+    if (nextState) {
+
+      window.setTimeout(
+        () => {
+
+          scrollToSection(
+            mistakeBookRef.current
+          );
+
+        },
+        150
+      );
+    }
+  }
+
+
+  /*
    * REVISION BANK
    */
 
@@ -159,6 +233,9 @@ export function ProfilePage({
       false
     );
 
+    setShowMistakeBook(
+      false
+    );
 
     setShowRevisionBank(
       nextState
@@ -187,13 +264,7 @@ export function ProfilePage({
 
   function openPrelimsHistory() {
 
-    setShowWeakAnalysis(
-      false
-    );
-
-    setShowRevisionBank(
-      false
-    );
+    closeExpandableTools();
 
 
     window.setTimeout(
@@ -215,13 +286,7 @@ export function ProfilePage({
 
   function openMainsEvaluations() {
 
-    setShowWeakAnalysis(
-      false
-    );
-
-    setShowRevisionBank(
-      false
-    );
+    closeExpandableTools();
 
 
     window.setTimeout(
@@ -238,7 +303,7 @@ export function ProfilePage({
 
 
   /*
-   * RETURN TO TOP
+   * RETURN TO PAGE TOP
    */
 
   function returnToTop() {
@@ -261,7 +326,7 @@ export function ProfilePage({
 
       <TopBar
         title="My Study"
-        subtitle="Your progress, practice and evaluations"
+        subtitle="Your progress, revision and evaluations"
       />
 
 
@@ -322,9 +387,9 @@ export function ProfilePage({
 
 
         <p>
-          Analyse weak areas,
-          revise saved questions
-          and track your performance.
+          Analyse your performance,
+          revisit mistakes and build
+          a focused revision system.
         </p>
 
 
@@ -372,6 +437,54 @@ export function ProfilePage({
             <span>
               {
                 showWeakAnalysis
+                  ? '⌃'
+                  : '›'
+              }
+            </span>
+
+          </button>
+
+
+          {/* MISTAKE BOOK */}
+
+          <button
+            type="button"
+            onClick={
+              toggleMistakeBook
+            }
+          >
+
+            <span
+              style={{
+                display:
+                  'flex',
+
+                flexDirection:
+                  'column',
+
+                alignItems:
+                  'flex-start',
+
+                gap:
+                  '3px'
+              }}
+            >
+
+              <strong>
+                ✕ Prelims Mistake Book
+              </strong>
+
+
+              <small>
+                Questions answered incorrectly
+              </small>
+
+            </span>
+
+
+            <span>
+              {
+                showMistakeBook
                   ? '⌃'
                   : '›'
               }
@@ -472,7 +585,7 @@ export function ProfilePage({
           </button>
 
 
-          {/* MAINS EVALUATION */}
+          {/* MAINS EVALUATIONS */}
 
           <button
             type="button"
@@ -709,6 +822,60 @@ export function ProfilePage({
               }}
             >
               Close Weak Area Analysis
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* MISTAKE BOOK */}
+
+      {showMistakeBook && (
+
+        <div
+          ref={
+            mistakeBookRef
+          }
+          style={{
+            scrollMarginTop:
+              '20px'
+          }}
+        >
+
+          <PrelimsMistakeBook />
+
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              justifyContent:
+                'center',
+
+              marginTop:
+                '12px'
+            }}
+          >
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => {
+
+                setShowMistakeBook(
+                  false
+                );
+
+
+                returnToTop();
+
+              }}
+            >
+              Close Mistake Book
             </button>
 
           </div>
