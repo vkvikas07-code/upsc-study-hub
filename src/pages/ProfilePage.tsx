@@ -31,6 +31,10 @@ import {
   PrelimsMistakeBook
 } from '../components/PrelimsMistakeBook';
 
+import {
+  PrelimsMistakePractice
+} from '../components/PrelimsMistakePractice';
+
 
 export function ProfilePage({
   onAdmin
@@ -57,6 +61,13 @@ export function ProfilePage({
 
 
   const [
+    showMistakePractice,
+    setShowMistakePractice
+  ] =
+    useState(false);
+
+
+  const [
     showRevisionBank,
     setShowRevisionBank
   ] =
@@ -74,6 +85,12 @@ export function ProfilePage({
 
 
   const mistakeBookRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
+
+  const mistakePracticeRef =
     useRef<HTMLDivElement | null>(
       null
     );
@@ -135,6 +152,10 @@ export function ProfilePage({
       false
     );
 
+    setShowMistakePractice(
+      false
+    );
+
     setShowRevisionBank(
       false
     );
@@ -152,6 +173,10 @@ export function ProfilePage({
 
 
     setShowMistakeBook(
+      false
+    );
+
+    setShowMistakePractice(
       false
     );
 
@@ -194,6 +219,10 @@ export function ProfilePage({
       false
     );
 
+    setShowMistakePractice(
+      false
+    );
+
     setShowRevisionBank(
       false
     );
@@ -220,6 +249,49 @@ export function ProfilePage({
 
 
   /*
+   * PRACTICE MISTAKES
+   */
+
+  function toggleMistakePractice() {
+
+    const nextState =
+      !showMistakePractice;
+
+
+    setShowWeakAnalysis(
+      false
+    );
+
+    setShowMistakeBook(
+      false
+    );
+
+    setShowRevisionBank(
+      false
+    );
+
+    setShowMistakePractice(
+      nextState
+    );
+
+
+    if (nextState) {
+
+      window.setTimeout(
+        () => {
+
+          scrollToSection(
+            mistakePracticeRef.current
+          );
+
+        },
+        150
+      );
+    }
+  }
+
+
+  /*
    * REVISION BANK
    */
 
@@ -234,6 +306,10 @@ export function ProfilePage({
     );
 
     setShowMistakeBook(
+      false
+    );
+
+    setShowMistakePractice(
       false
     );
 
@@ -387,9 +463,10 @@ export function ProfilePage({
 
 
         <p>
-          Analyse your performance,
-          revisit mistakes and build
-          a focused revision system.
+          Analyse performance,
+          practise mistakes,
+          revise saved questions
+          and track improvement.
         </p>
 
 
@@ -476,7 +553,7 @@ export function ProfilePage({
 
 
               <small>
-                Questions answered incorrectly
+                Review questions answered incorrectly
               </small>
 
             </span>
@@ -485,6 +562,54 @@ export function ProfilePage({
             <span>
               {
                 showMistakeBook
+                  ? '⌃'
+                  : '›'
+              }
+            </span>
+
+          </button>
+
+
+          {/* PRACTICE MISTAKES */}
+
+          <button
+            type="button"
+            onClick={
+              toggleMistakePractice
+            }
+          >
+
+            <span
+              style={{
+                display:
+                  'flex',
+
+                flexDirection:
+                  'column',
+
+                alignItems:
+                  'flex-start',
+
+                gap:
+                  '3px'
+              }}
+            >
+
+              <strong>
+                🎯 Practice Your Mistakes
+              </strong>
+
+
+              <small>
+                Reattempt questions you got wrong
+              </small>
+
+            </span>
+
+
+            <span>
+              {
+                showMistakePractice
                   ? '⌃'
                   : '›'
               }
@@ -729,7 +854,7 @@ export function ProfilePage({
           </button>
 
 
-          {/* ADMIN STUDIO */}
+          {/* ADMIN */}
 
           <button
             type="button"
@@ -816,7 +941,6 @@ export function ProfilePage({
                   false
                 );
 
-
                 returnToTop();
 
               }}
@@ -870,12 +994,64 @@ export function ProfilePage({
                   false
                 );
 
-
                 returnToTop();
 
               }}
             >
               Close Mistake Book
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* PRACTICE MISTAKES */}
+
+      {showMistakePractice && (
+
+        <div
+          ref={
+            mistakePracticeRef
+          }
+          style={{
+            scrollMarginTop:
+              '20px'
+          }}
+        >
+
+          <PrelimsMistakePractice />
+
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              justifyContent:
+                'center',
+
+              marginTop:
+                '12px'
+            }}
+          >
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => {
+
+                setShowMistakePractice(
+                  false
+                );
+
+                returnToTop();
+
+              }}
+            >
+              Close Mistake Practice
             </button>
 
           </div>
@@ -923,7 +1099,6 @@ export function ProfilePage({
                 setShowRevisionBank(
                   false
                 );
-
 
                 returnToTop();
 
