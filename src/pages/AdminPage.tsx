@@ -16,6 +16,10 @@ import {
 } from '../components/QuestionManager';
 
 import {
+  PrelimsTestManager
+} from '../components/PrelimsTestManager';
+
+import {
   MainsQuestionManager
 } from '../components/MainsQuestionManager';
 
@@ -49,6 +53,7 @@ type ArticleStatus =
 type AdminTab =
   | 'current'
   | 'mcq'
+  | 'tests'
   | 'mains'
   | 'evaluation';
 
@@ -1490,11 +1495,11 @@ export function AdminPage({
         </div>
 
 
-        <p>
-          Manage Current Affairs, Prelims MCQs,
-          Mains questions and student evaluations
-          from separate workspaces.
-        </p>
+<p>
+  Manage Current Affairs, Prelims MCQs,
+  Prelims Test Series, Mains questions
+  and student evaluations from separate workspaces.
+</p>
 
 
         <div
@@ -1604,21 +1609,21 @@ export function AdminPage({
 
 
           <button
-            type="button"
-            className={
-              adminTab ===
-              'mcq'
-                ? 'filter active'
-                : 'filter'
-            }
-            onClick={() =>
-              switchAdminTab(
-                'mcq'
-              )
-            }
-          >
-            Prelims MCQ
-          </button>
+  type="button"
+  className={
+    adminTab ===
+    'tests'
+      ? 'filter active'
+      : 'filter'
+  }
+  onClick={() =>
+    switchAdminTab(
+      'tests'
+    )
+  }
+>
+  Prelims Test Series
+</button>
 
 
           <button
@@ -2447,6 +2452,19 @@ export function AdminPage({
         <QuestionManager />
       </div>
 
+      {/* PRELIMS TEST SERIES TAB */}
+
+<div
+  style={{
+    display:
+      adminTab ===
+      'tests'
+        ? 'block'
+        : 'none'
+  }}
+>
+  <PrelimsTestManager />
+</div>
 
       {/* MAINS QUESTIONS TAB */}
 
