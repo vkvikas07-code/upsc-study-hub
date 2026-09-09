@@ -103,7 +103,7 @@ const QUESTION_SELECT = `
 
 
 /*
- * DETERMINE SOURCE OF QUESTION
+ * QUESTION ORIGIN
  */
 
 function getQuestionOrigin(
@@ -127,7 +127,7 @@ function getQuestionOrigin(
 
 
 /*
- * RANDOMIZE QUESTION ARRAY
+ * RANDOMIZE
  */
 
 function shuffleQuestions(
@@ -168,16 +168,14 @@ function shuffleQuestions(
 export function PracticePage() {
 
   /*
-   * DATABASE QUESTIONS
+   * DATABASE
    */
 
   const [
     allQuestions,
     setAllQuestions
   ] =
-    useState<
-      LiveQuestion[]
-    >([]);
+    useState<LiveQuestion[]>([]);
 
 
   /*
@@ -188,9 +186,7 @@ export function PracticePage() {
     questions,
     setQuestions
   ] =
-    useState<
-      LiveQuestion[]
-    >([]);
+    useState<LiveQuestion[]>([]);
 
 
   const [
@@ -215,9 +211,9 @@ export function PracticePage() {
     selected,
     setSelected
   ] =
-    useState<
-      number | null
-    >(null);
+    useState<number | null>(
+      null
+    );
 
 
   const [
@@ -231,9 +227,7 @@ export function PracticePage() {
     answers,
     setAnswers
   ] =
-    useState<
-      AnswerRecord[]
-    >([]);
+    useState<AnswerRecord[]>([]);
 
 
   const [
@@ -244,7 +238,7 @@ export function PracticePage() {
 
 
   /*
-   * PAGE
+   * PAGE STATE
    */
 
   const [
@@ -303,6 +297,17 @@ export function PracticePage() {
     >('all');
 
 
+  /*
+   * NEW KEYWORD SEARCH
+   */
+
+  const [
+    searchText,
+    setSearchText
+  ] =
+    useState('');
+
+
   const [
     subjectFilter,
     setSubjectFilter
@@ -311,8 +316,15 @@ export function PracticePage() {
 
 
   /*
-   * NEW DIFFICULTY FILTER
+   * NEW TOPIC FILTER
    */
+
+  const [
+    topicFilter,
+    setTopicFilter
+  ] =
+    useState('all');
+
 
   const [
     difficultyFilter,
@@ -336,7 +348,7 @@ export function PracticePage() {
 
 
   /*
-   * NEW CSE PYQ YEAR FILTER
+   * CSE PYQ YEAR
    */
 
   const [
@@ -360,7 +372,7 @@ export function PracticePage() {
 
 
   /*
-   * OTHER UPSC FILTERS
+   * OTHER UPSC
    */
 
   const [
@@ -385,7 +397,7 @@ export function PracticePage() {
 
 
   /*
-   * STATE PSC FILTERS
+   * STATE PSC
    */
 
   const [
@@ -456,8 +468,7 @@ export function PracticePage() {
         .order(
           'created_at',
           {
-            ascending:
-              false
+            ascending: false
           }
         );
 
@@ -522,7 +533,10 @@ export function PracticePage() {
               Array.isArray(
                 item.tags
               )
-                ? item.tags
+                ? item.tags.map(
+                    tag =>
+                      String(tag)
+                  )
                 : [],
 
             is_pyq:
@@ -578,7 +592,6 @@ export function PracticePage() {
       formatted
     );
 
-
     setQuestions([]);
 
     setPracticeStarted(
@@ -614,7 +627,7 @@ export function PracticePage() {
 
 
   /*
-   * SUBJECT OPTIONS
+   * SUBJECTS
    */
 
   const subjects =
@@ -634,6 +647,46 @@ export function PracticePage() {
         ).sort(),
       [
         allQuestions
+      ]
+    );
+
+
+  /*
+   * TOPICS
+   *
+   * Topic list changes according
+   * to selected subject.
+   */
+
+  const topics =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            allQuestions
+              .filter(
+                item =>
+                  subjectFilter ===
+                    'all' ||
+                  item.subject ===
+                    subjectFilter
+              )
+              .map(
+                item =>
+                  item.topic
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is string =>
+                    Boolean(value)
+              )
+          )
+        ).sort(),
+      [
+        allQuestions,
+        subjectFilter
       ]
     );
 
@@ -660,6 +713,12 @@ export function PracticePage() {
                       'all' ||
                     item.subject ===
                       subjectFilter
+                  ) &&
+                  (
+                    topicFilter ===
+                      'all' ||
+                    item.topic ===
+                      topicFilter
                   )
               )
               .map(
@@ -684,13 +743,14 @@ export function PracticePage() {
         ),
       [
         allQuestions,
-        subjectFilter
+        subjectFilter,
+        topicFilter
       ]
     );
 
 
   /*
-   * UPSC EXAM OPTIONS
+   * UPSC EXAMS
    */
 
   const upscExams =
@@ -792,7 +852,7 @@ export function PracticePage() {
 
 
   /*
-   * STATE OPTIONS
+   * STATES
    */
 
   const states =
@@ -821,7 +881,7 @@ export function PracticePage() {
 
 
   /*
-   * STATE EXAM OPTIONS
+   * STATE EXAMS
    */
 
   const stateExams =
@@ -858,7 +918,7 @@ export function PracticePage() {
 
 
   /*
-   * STATE YEAR OPTIONS
+   * STATE YEARS
    */
 
   const stateYears =
@@ -926,6 +986,59 @@ export function PracticePage() {
               );
 
 
+            /*
+             * KEYWORD SEARCH
+             */
+
+            const search =
+              searchText
+                .trim()
+                .toLowerCase();
+
+
+            const searchableText =
+              [
+                item.question,
+                item.subject,
+                item.topic || '',
+                item.tags.join(' '),
+                item.source || '',
+                item.upsc_exam_name || '',
+                item.upsc_exam_cycle || '',
+                item.upsc_exam_stage || '',
+                item.upsc_exam_paper || '',
+                item.upsc_exam_year
+                  ? String(
+                      item.upsc_exam_year
+                    )
+                  : '',
+                item.state_psc_state || '',
+                item.state_psc_name || '',
+                item.state_psc_exam_name || '',
+                item.state_psc_stage || '',
+                item.state_psc_paper || '',
+                item.state_psc_year
+                  ? String(
+                      item.state_psc_year
+                    )
+                  : '',
+                item.pyq_year
+                  ? String(
+                      item.pyq_year
+                    )
+                  : ''
+              ]
+                .join(' ')
+                .toLowerCase();
+
+
+            const matchesSearch =
+              !search ||
+              searchableText.includes(
+                search
+              );
+
+
             const matchesOrigin =
               originFilter ===
                 'all' ||
@@ -938,6 +1051,13 @@ export function PracticePage() {
                 'all' ||
               item.subject ===
                 subjectFilter;
+
+
+            const matchesTopic =
+              topicFilter ===
+                'all' ||
+              item.topic ===
+                topicFilter;
 
 
             const matchesDifficulty =
@@ -1041,8 +1161,10 @@ export function PracticePage() {
 
 
             return (
+              matchesSearch &&
               matchesOrigin &&
               matchesSubject &&
+              matchesTopic &&
               matchesDifficulty &&
               matchesType &&
               matchesCsePyqYear &&
@@ -1057,8 +1179,10 @@ export function PracticePage() {
         ),
       [
         allQuestions,
+        searchText,
         originFilter,
         subjectFilter,
+        topicFilter,
         difficultyFilter,
         typeFilter,
         csePyqYearFilter,
@@ -1073,7 +1197,7 @@ export function PracticePage() {
 
 
   /*
-   * SESSION QUESTION COUNT
+   * SESSION COUNT
    */
 
   const sessionQuestionCount =
@@ -1103,11 +1227,6 @@ export function PracticePage() {
     );
 
 
-    /*
-     * REMOVE CSE YEAR
-     * IF LEAVING CSE
-     */
-
     if (
       value !==
       'cse'
@@ -1118,11 +1237,6 @@ export function PracticePage() {
       );
     }
 
-
-    /*
-     * REMOVE UPSC FILTERS
-     * IF LEAVING UPSC
-     */
 
     if (
       value !==
@@ -1142,11 +1256,6 @@ export function PracticePage() {
       );
     }
 
-
-    /*
-     * REMOVE STATE FILTERS
-     * IF LEAVING STATE
-     */
 
     if (
       value !==
@@ -1169,7 +1278,7 @@ export function PracticePage() {
 
 
   /*
-   * CHANGE QUESTION TYPE
+   * CHANGE TYPE
    */
 
   function changeTypeFilter(
@@ -1206,7 +1315,13 @@ export function PracticePage() {
       'all'
     );
 
+    setSearchText('');
+
     setSubjectFilter(
+      'all'
+    );
+
+    setTopicFilter(
       'all'
     );
 
@@ -1318,7 +1433,7 @@ export function PracticePage() {
 
 
   /*
-   * ANSWER QUESTION
+   * ANSWER
    */
 
   function answer(
@@ -1518,15 +1633,14 @@ export function PracticePage() {
 
 
   /*
-   * NEXT QUESTION
+   * NEXT
    */
 
   async function next() {
 
     if (
       index ===
-      questions.length -
-        1
+      questions.length - 1
     ) {
 
       setFinished(
@@ -1549,7 +1663,7 @@ export function PracticePage() {
 
 
   /*
-   * REPEAT SAME SET
+   * SAME SET
    */
 
   function restart() {
@@ -1571,7 +1685,7 @@ export function PracticePage() {
 
 
   /*
-   * RETURN TO FILTER SCREEN
+   * CHANGE SET
    */
 
   function changePracticeSet() {
@@ -1680,7 +1794,7 @@ export function PracticePage() {
 
 
   /*
-   * PRACTICE SETUP
+   * SETUP SCREEN
    */
 
   if (
@@ -1717,13 +1831,13 @@ export function PracticePage() {
 
           <p>
             Practice CSE questions,
-            other UPSC examination
-            questions and State PSC
-            questions from one place.
+            other UPSC examinations
+            and State PSC questions
+            from one place.
           </p>
 
 
-          {/* QUESTION ORIGIN */}
+          {/* ORIGIN */}
 
           <label>
             Question Origin
@@ -1764,7 +1878,35 @@ export function PracticePage() {
           </label>
 
 
-          {/* SUBJECT + DIFFICULTY */}
+          {/* KEYWORD SEARCH */}
+
+          <label>
+            Search Question Bank
+
+            <input
+              type="search"
+              value={
+                searchText
+              }
+              onChange={
+                event =>
+                  setSearchText(
+                    event.target.value
+                  )
+              }
+              placeholder="Article 21, monsoon, inflation, biodiversity, NDA..."
+            />
+
+            <small>
+              Search by question,
+              topic, tag, examination,
+              year or source.
+            </small>
+
+          </label>
+
+
+          {/* SUBJECT + TOPIC */}
 
           <div
             className="form-two"
@@ -1782,6 +1924,10 @@ export function PracticePage() {
 
                     setSubjectFilter(
                       event.target.value
+                    );
+
+                    setTopicFilter(
+                      'all'
                     );
 
                     setCsePyqYearFilter(
@@ -1817,6 +1963,62 @@ export function PracticePage() {
 
             </label>
 
+
+            <label>
+              Topic
+
+              <select
+                value={
+                  topicFilter
+                }
+                onChange={
+                  event => {
+
+                    setTopicFilter(
+                      event.target.value
+                    );
+
+                    setCsePyqYearFilter(
+                      'all'
+                    );
+                  }
+                }
+              >
+
+                <option value="all">
+                  All Topics
+                </option>
+
+
+                {topics.map(
+                  topic => (
+
+                    <option
+                      key={
+                        topic
+                      }
+                      value={
+                        topic
+                      }
+                    >
+                      {topic}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+          </div>
+
+
+          {/* DIFFICULTY + TYPE */}
+
+          <div
+            className="form-two"
+          >
 
             <label>
               Difficulty
@@ -1856,45 +2058,43 @@ export function PracticePage() {
 
             </label>
 
+
+            <label>
+              Question Type
+
+              <select
+                value={
+                  typeFilter
+                }
+                onChange={
+                  event =>
+                    changeTypeFilter(
+                      event.target
+                        .value as
+                        | 'all'
+                        | 'practice'
+                        | 'pyq'
+                    )
+                }
+              >
+
+                <option value="all">
+                  All Questions
+                </option>
+
+                <option value="pyq">
+                  Previous Year Questions
+                </option>
+
+                <option value="practice">
+                  Practice Questions
+                </option>
+
+              </select>
+
+            </label>
+
           </div>
-
-
-          {/* QUESTION TYPE */}
-
-          <label>
-            Question Type
-
-            <select
-              value={
-                typeFilter
-              }
-              onChange={
-                event =>
-                  changeTypeFilter(
-                    event.target
-                      .value as
-                      | 'all'
-                      | 'practice'
-                      | 'pyq'
-                  )
-              }
-            >
-
-              <option value="all">
-                All Questions
-              </option>
-
-              <option value="pyq">
-                Previous Year Questions
-              </option>
-
-              <option value="practice">
-                Practice Questions
-              </option>
-
-            </select>
-
-          </label>
 
 
           {/* CSE PYQ YEAR */}
@@ -1906,17 +2106,11 @@ export function PracticePage() {
 
             <div
               style={{
-                marginTop:
-                  '14px',
-
-                padding:
-                  '16px',
-
+                marginTop: '14px',
+                padding: '16px',
                 border:
                   '1px solid rgba(255,255,255,.10)',
-
-                borderRadius:
-                  '14px'
+                borderRadius: '14px'
               }}
             >
 
@@ -1968,13 +2162,6 @@ export function PracticePage() {
 
               </label>
 
-
-              <small>
-                Select a specific UPSC
-                Civil Services Prelims
-                previous-year paper.
-              </small>
-
             </div>
 
           )}
@@ -1984,17 +2171,11 @@ export function PracticePage() {
 
           <div
             style={{
-              marginTop:
-                '14px',
-
-              padding:
-                '16px',
-
+              marginTop: '14px',
+              padding: '16px',
               border:
                 '1px solid rgba(255,255,255,.10)',
-
-              borderRadius:
-                '14px'
+              borderRadius: '14px'
             }}
           >
 
@@ -2049,31 +2230,25 @@ export function PracticePage() {
 
             <small>
               Questions are randomly
-              selected from the matching
-              question bank.
+              selected from your
+              matching question bank.
             </small>
 
           </div>
 
 
-          {/* OTHER UPSC FILTERS */}
+          {/* UPSC */}
 
           {originFilter ===
             'upsc' && (
 
             <div
               style={{
-                marginTop:
-                  '18px',
-
-                padding:
-                  '16px',
-
+                marginTop: '18px',
+                padding: '16px',
                 border:
                   '1px solid rgba(255,255,255,.10)',
-
-                borderRadius:
-                  '14px'
+                borderRadius: '14px'
               }}
             >
 
@@ -2230,24 +2405,18 @@ export function PracticePage() {
           )}
 
 
-          {/* STATE PSC FILTERS */}
+          {/* STATE PSC */}
 
           {originFilter ===
             'state' && (
 
             <div
               style={{
-                marginTop:
-                  '18px',
-
-                padding:
-                  '16px',
-
+                marginTop: '18px',
+                padding: '16px',
                 border:
                   '1px solid rgba(255,255,255,.10)',
-
-                borderRadius:
-                  '14px'
+                borderRadius: '14px'
               }}
             >
 
@@ -2409,13 +2578,12 @@ export function PracticePage() {
           )}
 
 
-          {/* QUESTION COUNT */}
+          {/* COUNT */}
 
           <div
             className="callout"
             style={{
-              marginTop:
-                '18px'
+              marginTop: '18px'
             }}
           >
 
@@ -2490,17 +2658,10 @@ export function PracticePage() {
 
           <div
             style={{
-              display:
-                'flex',
-
-              gap:
-                '10px',
-
-              flexWrap:
-                'wrap',
-
-              marginTop:
-                '18px'
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap',
+              marginTop: '18px'
             }}
           >
 
@@ -2551,7 +2712,7 @@ export function PracticePage() {
 
 
   /*
-   * RESULT
+   * RESULT SCREEN
    */
 
   if (finished) {
@@ -2629,15 +2790,9 @@ export function PracticePage() {
 
           <div
             style={{
-              display:
-                'flex',
-
-              gap:
-                '10px',
-
-              flexWrap:
-                'wrap',
-
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap',
               justifyContent:
                 'center'
             }}
@@ -2722,11 +2877,8 @@ export function PracticePage() {
 
               <small
                 style={{
-                  display:
-                    'block',
-
-                  marginTop:
-                    '4px'
+                  display: 'block',
+                  marginTop: '4px'
                 }}
               >
                 {q.topic}
@@ -2772,8 +2924,7 @@ export function PracticePage() {
         <div
           className="tag-row"
           style={{
-            marginBottom:
-              '12px'
+            marginBottom: '12px'
           }}
         >
 
@@ -2950,8 +3101,7 @@ export function PracticePage() {
             ) => {
 
               const state =
-                selected ===
-                  null
+                selected === null
                   ? ''
                   : optionIndex ===
                     q.correct_index
@@ -3001,8 +3151,7 @@ export function PracticePage() {
 
         {/* EXPLANATION */}
 
-        {selected !==
-          null && (
+        {selected !== null && (
 
           <div
             className="explanation"
@@ -3018,14 +3167,11 @@ export function PracticePage() {
             </p>
 
 
-            {/* UPSC REFERENCE */}
-
             {q.upsc_exam_name && (
 
               <div
                 style={{
-                  marginTop:
-                    '12px'
+                  marginTop: '12px'
                 }}
               >
 
@@ -3069,14 +3215,11 @@ export function PracticePage() {
             )}
 
 
-            {/* STATE PSC REFERENCE */}
-
             {q.state_psc_state && (
 
               <div
                 style={{
-                  marginTop:
-                    '12px'
+                  marginTop: '12px'
                 }}
               >
 
@@ -3171,17 +3314,10 @@ export function PracticePage() {
 
             <div
               style={{
-                marginTop:
-                  '16px',
-
-                display:
-                  'flex',
-
-                gap:
-                  '10px',
-
-                flexWrap:
-                  'wrap'
+                marginTop: '16px',
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap'
               }}
             >
 
@@ -3193,8 +3329,7 @@ export function PracticePage() {
               >
                 {
                   index ===
-                  questions.length -
-                    1
+                  questions.length - 1
                     ? 'See result'
                     : 'Next question'
                 }
