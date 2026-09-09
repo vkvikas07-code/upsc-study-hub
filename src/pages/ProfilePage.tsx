@@ -23,17 +23,27 @@ import {
   MySavedPrelimsQuestions
 } from '../components/MySavedPrelimsQuestions';
 
+import {
+  PrelimsWeakAreaAnalysis
+} from '../components/PrelimsWeakAreaAnalysis';
+
 
 export function ProfilePage({
   onAdmin
 }: {
-  onAdmin:
-    () => void;
+  onAdmin: () => void;
 }) {
 
   /*
-   * REVISION BANK
+   * EXPANDABLE TOOLS
    */
+
+  const [
+    showWeakAnalysis,
+    setShowWeakAnalysis
+  ] =
+    useState(false);
+
 
   const [
     showRevisionBank,
@@ -43,16 +53,22 @@ export function ProfilePage({
 
 
   /*
-   * PAGE REFERENCES
+   * SECTION REFERENCES
    */
 
-  const prelimsHistoryRef =
+  const weakAnalysisRef =
     useRef<HTMLDivElement | null>(
       null
     );
 
 
   const revisionBankRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
+
+  const prelimsHistoryRef =
     useRef<HTMLDivElement | null>(
       null
     );
@@ -65,7 +81,7 @@ export function ProfilePage({
 
 
   /*
-   * SCROLL TO SECTION
+   * SCROLL HELPER
    */
 
   function scrollToSection(
@@ -78,31 +94,70 @@ export function ProfilePage({
     }
 
 
-    window.setTimeout(
-      () => {
+    element.scrollIntoView({
+      behavior:
+        'smooth',
 
-        element.scrollIntoView({
-          behavior:
-            'smooth',
-
-          block:
-            'start'
-        });
-
-      },
-      100
-    );
+      block:
+        'start'
+    });
   }
 
 
   /*
-   * OPEN / CLOSE REVISION BANK
+   * WEAK AREA ANALYSIS
+   */
+
+  function toggleWeakAnalysis() {
+
+    const nextState =
+      !showWeakAnalysis;
+
+
+    /*
+     * Keep only one large
+     * expandable section open.
+     */
+
+    setShowRevisionBank(
+      false
+    );
+
+
+    setShowWeakAnalysis(
+      nextState
+    );
+
+
+    if (nextState) {
+
+      window.setTimeout(
+        () => {
+
+          scrollToSection(
+            weakAnalysisRef.current
+          );
+
+        },
+        150
+      );
+    }
+  }
+
+
+  /*
+   * REVISION BANK
    */
 
   function toggleRevisionBank() {
 
     const nextState =
       !showRevisionBank;
+
+
+    setShowWeakAnalysis(
+      false
+    );
 
 
     setShowRevisionBank(
@@ -127,26 +182,74 @@ export function ProfilePage({
 
 
   /*
-   * OPEN PRELIMS HISTORY
+   * PRELIMS HISTORY
    */
 
   function openPrelimsHistory() {
 
-    scrollToSection(
-      prelimsHistoryRef.current
+    setShowWeakAnalysis(
+      false
+    );
+
+    setShowRevisionBank(
+      false
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        scrollToSection(
+          prelimsHistoryRef.current
+        );
+
+      },
+      100
     );
   }
 
 
   /*
-   * OPEN MAINS EVALUATIONS
+   * MAINS EVALUATIONS
    */
 
   function openMainsEvaluations() {
 
-    scrollToSection(
-      mainsEvaluationRef.current
+    setShowWeakAnalysis(
+      false
     );
+
+    setShowRevisionBank(
+      false
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        scrollToSection(
+          mainsEvaluationRef.current
+        );
+
+      },
+      100
+    );
+  }
+
+
+  /*
+   * RETURN TO TOP
+   */
+
+  function returnToTop() {
+
+    window.scrollTo({
+      top:
+        0,
+
+      behavior:
+        'smooth'
+    });
   }
 
 
@@ -196,7 +299,7 @@ export function ProfilePage({
       <StudyOverview />
 
 
-      {/* QUICK STUDY TOOLS */}
+      {/* STUDY TOOLS */}
 
       <section
         className="panel"
@@ -219,15 +322,63 @@ export function ProfilePage({
 
 
         <p>
-          Quickly open your revision,
-          practice history and
-          evaluation records.
+          Analyse weak areas,
+          revise saved questions
+          and track your performance.
         </p>
 
 
         <div
           className="settings-list"
         >
+
+          {/* WEAK AREA ANALYSIS */}
+
+          <button
+            type="button"
+            onClick={
+              toggleWeakAnalysis
+            }
+          >
+
+            <span
+              style={{
+                display:
+                  'flex',
+
+                flexDirection:
+                  'column',
+
+                alignItems:
+                  'flex-start',
+
+                gap:
+                  '3px'
+              }}
+            >
+
+              <strong>
+                📊 Prelims Weak Areas
+              </strong>
+
+
+              <small>
+                Subject and topic analysis
+              </small>
+
+            </span>
+
+
+            <span>
+              {
+                showWeakAnalysis
+                  ? '⌃'
+                  : '›'
+              }
+            </span>
+
+          </button>
+
 
           {/* REVISION BANK */}
 
@@ -365,7 +516,7 @@ export function ProfilePage({
           </button>
 
 
-          {/* NOTES - FUTURE */}
+          {/* NOTES */}
 
           <button
             type="button"
@@ -415,7 +566,7 @@ export function ProfilePage({
           </button>
 
 
-          {/* OFFLINE - FUTURE */}
+          {/* OFFLINE STUDY */}
 
           <button
             type="button"
@@ -465,7 +616,7 @@ export function ProfilePage({
           </button>
 
 
-          {/* ADMIN */}
+          {/* ADMIN STUDIO */}
 
           <button
             type="button"
@@ -513,6 +664,60 @@ export function ProfilePage({
       </section>
 
 
+      {/* WEAK AREA ANALYSIS */}
+
+      {showWeakAnalysis && (
+
+        <div
+          ref={
+            weakAnalysisRef
+          }
+          style={{
+            scrollMarginTop:
+              '20px'
+          }}
+        >
+
+          <PrelimsWeakAreaAnalysis />
+
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              justifyContent:
+                'center',
+
+              marginTop:
+                '12px'
+            }}
+          >
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => {
+
+                setShowWeakAnalysis(
+                  false
+                );
+
+
+                returnToTop();
+
+              }}
+            >
+              Close Weak Area Analysis
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+
       {/* REVISION BANK */}
 
       {showRevisionBank && (
@@ -521,6 +726,10 @@ export function ProfilePage({
           ref={
             revisionBankRef
           }
+          style={{
+            scrollMarginTop:
+              '20px'
+          }}
         >
 
           <MySavedPrelimsQuestions />
@@ -549,13 +758,7 @@ export function ProfilePage({
                 );
 
 
-                window.scrollTo({
-                  top:
-                    0,
-
-                  behavior:
-                    'smooth'
-                });
+                returnToTop();
 
               }}
             >
