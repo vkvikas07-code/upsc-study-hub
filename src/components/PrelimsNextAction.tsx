@@ -19,7 +19,6 @@ type ParsedAnswer = {
 type QuestionMeta = {
   id: string;
   subject: string;
-  topic: string | null;
 };
 
 
@@ -42,13 +41,9 @@ type RecommendationType =
 
 type Recommendation = {
   type: RecommendationType;
-
   title: string;
-
   message: string;
-
   reason: string;
-
   subject: string | null;
 };
 
@@ -57,93 +52,85 @@ type Props = {
   onOpenMistakePractice?: () => void;
   onOpenWeakAreas?: () => void;
   onOpenRevisionBank?: () => void;
+
+  /*
+   * NEW:
+   * Opens main Prelims Practice page.
+   */
+  onOpenPractice?: () => void;
 };
 
 
 function parseAnswer(
   value: unknown
-):
-  ParsedAnswer | null {
+): ParsedAnswer | null {
 
   if (
     !value ||
-    typeof value !==
-      'object'
+    typeof value !== 'object'
   ) {
-
     return null;
   }
 
 
-  const record =
+  const row =
     value as
-      Record<
-        string,
-        unknown
-      >;
+      Record<string, unknown>;
 
 
   if (
-    typeof
-      record.question_id !==
-      'string'
+    typeof row.question_id !==
+    'string'
   ) {
-
     return null;
   }
 
 
   return {
-
     question_id:
-      record.question_id,
+      row.question_id,
 
     selected_index:
-      typeof
-        record.selected_index ===
-        'number'
-        ? record.selected_index
+      typeof row.selected_index ===
+      'number'
+        ? row.selected_index
         : null,
 
     is_correct:
-      record.is_correct ===
-      true
+      row.is_correct === true
   };
 }
 
 
-function roundNumber(
+function round(
   value: number
 ) {
-
-  return Math.round(
-    value *
-    10
-  ) /
-  10;
+  return (
+    Math.round(
+      value * 10
+    ) / 10
+  );
 }
 
 
-function accuracy(
+function calculateAccuracy(
   correct: number,
   attempted: number
 ) {
 
   if (
-    attempted <=
-    0
+    attempted <= 0
   ) {
-
     return 0;
   }
 
 
-  return roundNumber(
+  return round(
     (
       correct /
       attempted
     ) *
-    100
+      100
   );
 }
 
@@ -151,7 +138,8 @@ function accuracy(
 export function PrelimsNextAction({
   onOpenMistakePractice,
   onOpenWeakAreas,
-  onOpenRevisionBank
+  onOpenRevisionBank,
+  onOpenPractice
 }: Props) {
 
   const [
@@ -172,9 +160,9 @@ export function PrelimsNextAction({
     subjectStats,
     setSubjectStats
   ] =
-    useState<
-      SubjectStat[]
-    >([]);
+    useState<SubjectStat[]>(
+      []
+    );
 
 
   const [
@@ -222,7 +210,7 @@ export function PrelimsNextAction({
 
 
   /*
-   * LOAD STUDENT DATA
+   * LOAD STUDENT PERFORMANCE
    */
 
   async function loadRecommendation() {
@@ -240,7 +228,6 @@ export function PrelimsNextAction({
 
 
     setLoading(true);
-
     setError('');
 
 
@@ -267,7 +254,7 @@ export function PrelimsNextAction({
 
 
     /*
-     * LOAD RECENT ATTEMPTS
+     * RECENT 10 ATTEMPTS
      */
 
     const {
@@ -300,9 +287,7 @@ export function PrelimsNextAction({
               false
           }
         )
-        .limit(
-          10
-        );
+        .limit(10);
 
 
     if (attemptError) {
@@ -311,7 +296,6 @@ export function PrelimsNextAction({
         'Unable to build Prelims recommendation:',
         attemptError
       );
-
 
       setError(
         attemptError.message
@@ -333,10 +317,7 @@ export function PrelimsNextAction({
 
 
     /*
-     * RECENT VS PREVIOUS
-     *
-     * Latest 5 attempts
-     * compared with previous 5.
+     * LAST 5 VS PREVIOUS 5
      */
 
     const recent =
@@ -354,15 +335,11 @@ export function PrelimsNextAction({
 
 
     function groupAccuracy(
-      rows:
-        typeof attempts
+      rows: typeof attempts
     ) {
 
-      let correct =
-        0;
-
-      let attempted =
-        0;
+      let correct = 0;
+      let attempted = 0;
 
 
       rows.forEach(
@@ -371,21 +348,21 @@ export function PrelimsNextAction({
           correct +=
             Number(
               row.correct_answers ||
-              0
+                0
             );
 
 
           attempted +=
             Number(
               row.attempted_questions ??
-              row.total_questions ??
-              0
+                row.total_questions ??
+                0
             );
         }
       );
 
 
-      return accuracy(
+      return calculateAccuracy(
         correct,
         attempted
       );
@@ -400,8 +377,7 @@ export function PrelimsNextAction({
 
 
     setPreviousAccuracy(
-      previous.length >
-        0
+      previous.length > 0
         ? groupAccuracy(
             previous
           )
@@ -410,7 +386,7 @@ export function PrelimsNextAction({
 
 
     /*
-     * COLLECT ANSWERS
+     * COLLECT QUESTION ANSWERS
      */
 
     const parsedAnswers:
@@ -425,24 +401,23 @@ export function PrelimsNextAction({
             attempt.answers
           )
         ) {
-
           return;
         }
 
 
         attempt.answers.forEach(
-          rawAnswer => {
+          raw => {
 
-            const parsed =
+            const answer =
               parseAnswer(
-                rawAnswer
+                raw
               );
 
 
-            if (parsed) {
+            if (answer) {
 
               parsedAnswers.push(
-                parsed
+                answer
               );
             }
           }
@@ -453,16 +428,16 @@ export function PrelimsNextAction({
 
     const answered =
       parsedAnswers.filter(
-        item =>
-          item.selected_index !==
+        answer =>
+          answer.selected_index !==
           null
       );
 
 
     const wrong =
       answered.filter(
-        item =>
-          !item.is_correct
+        answer =>
+          !answer.is_correct
       );
 
 
@@ -477,46 +452,41 @@ export function PrelimsNextAction({
 
 
     /*
-     * LOAD QUESTION METADATA
+     * QUESTION METADATA
      */
 
     const questionIds =
       Array.from(
         new Set(
           answered.map(
-            item =>
-              item.question_id
+            answer =>
+              answer.question_id
           )
         )
       );
 
 
     if (
-      questionIds.length >
-      0
+      questionIds.length > 0
     ) {
 
       const questionRows:
         QuestionMeta[] = [];
 
 
-      const chunkSize =
-        200;
+      const chunkSize = 200;
 
 
       for (
         let start = 0;
-        start <
-        questionIds.length;
-        start +=
-        chunkSize
+        start < questionIds.length;
+        start += chunkSize
       ) {
 
         const chunk =
           questionIds.slice(
             start,
-            start +
-            chunkSize
+            start + chunkSize
           );
 
 
@@ -530,7 +500,7 @@ export function PrelimsNextAction({
               'questions'
             )
             .select(
-              'id, subject, topic'
+              'id, subject'
             )
             .in(
               'id',
@@ -555,7 +525,6 @@ export function PrelimsNextAction({
           item => {
 
             questionRows.push({
-
               id:
                 String(
                   item.id
@@ -564,15 +533,8 @@ export function PrelimsNextAction({
               subject:
                 String(
                   item.subject ||
-                  'Other'
-                ),
-
-              topic:
-                item.topic
-                  ? String(
-                      item.topic
-                    )
-                  : null
+                    'Other'
+                )
             });
           }
         );
@@ -587,21 +549,21 @@ export function PrelimsNextAction({
 
 
       questionRows.forEach(
-        question => {
+        item => {
 
           questionMap.set(
-            question.id,
-            question
+            item.id,
+            item
           );
         }
       );
 
 
       /*
-       * BUILD SUBJECT STATS
+       * SUBJECT ACCURACY
        */
 
-      const subjectMap =
+      const statMap =
         new Map<
           string,
           SubjectStat
@@ -618,22 +580,16 @@ export function PrelimsNextAction({
 
 
           if (!question) {
-
             return;
           }
 
 
-          const subjectName =
-            question.subject;
-
-
           const existing =
-            subjectMap.get(
-              subjectName
+            statMap.get(
+              question.subject
             ) || {
-
               subject:
-                subjectName,
+                question.subject,
 
               attempted:
                 0,
@@ -667,8 +623,8 @@ export function PrelimsNextAction({
           }
 
 
-          subjectMap.set(
-            subjectName,
+          statMap.set(
+            question.subject,
             existing
           );
         }
@@ -677,14 +633,14 @@ export function PrelimsNextAction({
 
       const stats =
         Array.from(
-          subjectMap.values()
+          statMap.values()
         )
           .map(
             item => ({
               ...item,
 
               accuracy:
-                accuracy(
+                calculateAccuracy(
                   item.correct,
                   item.attempted
                 )
@@ -727,7 +683,7 @@ export function PrelimsNextAction({
 
 
     /*
-     * SAVED REVISION QUESTIONS
+     * REVISION BANK COUNT
      */
 
     const {
@@ -759,9 +715,7 @@ export function PrelimsNextAction({
         );
 
 
-    if (
-      bookmarkError
-    ) {
+    if (bookmarkError) {
 
       console.error(
         'Unable to count revision questions:',
@@ -795,11 +749,10 @@ export function PrelimsNextAction({
 
 
   /*
-   * LOWEST SUBJECT
+   * WEAKEST SUBJECT
    *
-   * Require at least 3 answers
-   * before declaring a subject
-   * weak.
+   * Require at least
+   * 3 answered questions.
    */
 
   const weakestSubject =
@@ -807,8 +760,7 @@ export function PrelimsNextAction({
       () =>
         subjectStats.find(
           item =>
-            item.attempted >=
-            3
+            item.attempted >= 3
         ) || null,
       [
         subjectStats
@@ -817,28 +769,23 @@ export function PrelimsNextAction({
 
 
   /*
-   * PERSONAL RECOMMENDATION
+   * BUILD RECOMMENDATION
    */
 
   const recommendation =
-    useMemo<
-      Recommendation
-    >(
+    useMemo<Recommendation>(
       () => {
 
         /*
-         * Not enough history
+         * BUILD BASELINE
          */
 
         if (
-          totalAttempts <
-            2 ||
-          totalAnswered <
-            10
+          totalAttempts < 2 ||
+          totalAnswered < 10
         ) {
 
           return {
-
             type:
               'build_history',
 
@@ -858,12 +805,11 @@ export function PrelimsNextAction({
 
 
         /*
-         * Significant mistake load
+         * MISTAKE PRIORITY
          */
 
         if (
-          totalWrong >=
-            5 &&
+          totalWrong >= 5 &&
           (
             !weakestSubject ||
             weakestSubject.accuracy <
@@ -872,7 +818,6 @@ export function PrelimsNextAction({
         ) {
 
           return {
-
             type:
               'mistakes',
 
@@ -900,7 +845,7 @@ export function PrelimsNextAction({
 
 
         /*
-         * Weak subject
+         * WEAK SUBJECT
          */
 
         if (
@@ -910,7 +855,6 @@ export function PrelimsNextAction({
         ) {
 
           return {
-
             type:
               'weak_area',
 
@@ -930,16 +874,14 @@ export function PrelimsNextAction({
 
 
         /*
-         * Revision backlog
+         * REVISION BACKLOG
          */
 
         if (
-          savedQuestionCount >=
-          5
+          savedQuestionCount >= 5
         ) {
 
           return {
-
             type:
               'revision',
 
@@ -959,19 +901,16 @@ export function PrelimsNextAction({
 
 
         /*
-         * Falling trend
+         * DECLINING PERFORMANCE
          */
 
         if (
-          previousAccuracy !==
-            null &&
+          previousAccuracy !== null &&
           recentAccuracy <
-            previousAccuracy -
-              5
+            previousAccuracy - 5
         ) {
 
           return {
-
             type:
               'weak_area',
 
@@ -982,7 +921,7 @@ export function PrelimsNextAction({
               'Use Weak Area Analysis and revise before attempting another full mixed set.',
 
             reason:
-              `Recent accuracy is ${recentAccuracy}% compared with ${previousAccuracy}% in the previous group.`,
+              `Recent accuracy is ${recentAccuracy}% compared with ${previousAccuracy}% previously.`,
 
             subject:
               weakestSubject
@@ -993,11 +932,10 @@ export function PrelimsNextAction({
 
 
         /*
-         * Normal / improving
+         * NORMAL / IMPROVING
          */
 
         return {
-
           type:
             'mixed_practice',
 
@@ -1030,46 +968,54 @@ export function PrelimsNextAction({
 
 
   /*
-   * ACTION BUTTON
+   * RECOMMENDATION ACTION
    */
 
   function runRecommendation() {
 
-    if (
-      recommendation.type ===
-      'mistakes'
+    switch (
+      recommendation.type
     ) {
 
-      onOpenMistakePractice?.();
+      case 'mistakes':
 
-      return;
-    }
+        onOpenMistakePractice?.();
 
-
-    if (
-      recommendation.type ===
-      'weak_area'
-    ) {
-
-      onOpenWeakAreas?.();
-
-      return;
-    }
+        break;
 
 
-    if (
-      recommendation.type ===
-      'revision'
-    ) {
+      case 'weak_area':
 
-      onOpenRevisionBank?.();
+        onOpenWeakAreas?.();
 
-      return;
+        break;
+
+
+      case 'revision':
+
+        onOpenRevisionBank?.();
+
+        break;
+
+
+      case 'mixed_practice':
+
+      case 'build_history':
+
+        onOpenPractice?.();
+
+        break;
     }
   }
 
 
-  const hasInternalAction =
+  /*
+   * DOES THIS RECOMMENDATION
+   * HAVE A CLICK ACTION?
+   */
+
+  const hasAction =
+
     (
       recommendation.type ===
         'mistakes' &&
@@ -1092,7 +1038,52 @@ export function PrelimsNextAction({
       Boolean(
         onOpenRevisionBank
       )
+    ) ||
+
+    (
+      (
+        recommendation.type ===
+          'mixed_practice' ||
+        recommendation.type ===
+          'build_history'
+      ) &&
+      Boolean(
+        onOpenPractice
+      )
     );
+
+
+  function actionLabel() {
+
+    switch (
+      recommendation.type
+    ) {
+
+      case 'mistakes':
+
+        return 'Practice My Mistakes';
+
+
+      case 'weak_area':
+
+        return 'Open Weak Areas';
+
+
+      case 'revision':
+
+        return 'Open Revision Bank';
+
+
+      case 'build_history':
+
+        return 'Start Prelims Practice';
+
+
+      case 'mixed_practice':
+
+        return 'Start Mixed Practice';
+    }
+  }
 
 
   return (
@@ -1144,7 +1135,7 @@ export function PrelimsNextAction({
 
 
           <p>
-            A simple recommendation
+            One recommended next step
             based on your recent
             Prelims performance.
           </p>
@@ -1165,6 +1156,8 @@ export function PrelimsNextAction({
       </div>
 
 
+      {/* LOADING */}
+
       {loading && (
 
         <p>
@@ -1174,6 +1167,8 @@ export function PrelimsNextAction({
 
       )}
 
+
+      {/* ERROR */}
 
       {error && (
 
@@ -1193,6 +1188,8 @@ export function PrelimsNextAction({
 
       )}
 
+
+      {/* RECOMMENDATION */}
 
       {!loading &&
         !error && (
@@ -1235,12 +1232,7 @@ export function PrelimsNextAction({
           </h3>
 
 
-          <p
-            style={{
-              fontSize:
-                '1rem'
-            }}
-          >
+          <p>
             {
               recommendation.message
             }
@@ -1293,7 +1285,7 @@ export function PrelimsNextAction({
           )}
 
 
-          {hasInternalAction && (
+          {hasAction ? (
 
             <button
               type="button"
@@ -1306,63 +1298,38 @@ export function PrelimsNextAction({
                   '16px'
               }}
             >
-
-              {
-                recommendation.type ===
-                  'mistakes'
-                  ? 'Practice My Mistakes'
-
-                  : recommendation.type ===
-                    'weak_area'
-                  ? 'Open Weak Areas'
-
-                  : 'Open Revision Bank'
-              }
-
+              {actionLabel()}
             </button>
 
-          )}
-
-
-          {!hasInternalAction &&
-            recommendation.type ===
-              'mixed_practice' && (
+          ) : (
 
             <p
               style={{
                 marginTop:
                   '14px',
+
                 marginBottom:
                   0
               }}
             >
-              Open the{' '}
-              <strong>
-                Practice
-              </strong>{' '}
-              tab and start a
-              20-question mixed set.
-            </p>
 
-          )}
+              {recommendation.type ===
+                'mixed_practice' ||
+              recommendation.type ===
+                'build_history'
+                ? (
+                  <>
+                    Open the{' '}
+                    <strong>
+                      Practice
+                    </strong>{' '}
+                    tab to continue.
+                  </>
+                )
+                : (
+                  'Open the relevant Study Tool below.'
+                )}
 
-
-          {!hasInternalAction &&
-            recommendation.type ===
-              'build_history' && (
-
-            <p
-              style={{
-                marginTop:
-                  '14px',
-                marginBottom:
-                  0
-              }}
-            >
-              Start with at least
-              10 to 20 mixed MCQs
-              so the analytics can
-              learn from your results.
             </p>
 
           )}
