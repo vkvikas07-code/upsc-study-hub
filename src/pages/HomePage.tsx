@@ -30,6 +30,10 @@ import {
 } from '../components/TopBar';
 
 import {
+  HomeSyllabusSnapshot
+} from '../components/HomeSyllabusSnapshot';
+
+import {
   supabase
 } from '../lib/supabase';
 
@@ -180,10 +184,9 @@ function calculateStreak(
 
 
   /*
-   * A streak remains active
-   * during the current day if
-   * the student practised
-   * yesterday.
+   * Streak remains active
+   * if student practised
+   * today or yesterday.
    */
 
   const today =
@@ -298,7 +301,7 @@ export function HomePage({
 
 
   /*
-   * REAL PRELIMS STATS
+   * PRELIMS PERFORMANCE
    */
 
   const [
@@ -332,7 +335,7 @@ export function HomePage({
 
 
   /*
-   * LOAD STUDENT PERFORMANCE
+   * LOAD REAL HOME STATS
    */
 
   useEffect(
@@ -440,11 +443,11 @@ export function HomePage({
 
 
         /*
-         * LOAD RECENT HISTORY
+         * RECENT PERFORMANCE
          *
-         * 200 rows are enough
-         * for recent average
-         * and streak tracking.
+         * We load up to 200 rows
+         * for recent average and
+         * streak calculation.
          */
 
         const {
@@ -602,6 +605,7 @@ export function HomePage({
 
             ? {
                 ...task,
+
                 done:
                   !task.done
               }
@@ -626,7 +630,7 @@ export function HomePage({
       />
 
 
-      {/* TODAY FOCUS */}
+      {/* TODAY'S FOCUS */}
 
       <section
         className="hero-card"
@@ -656,12 +660,14 @@ export function HomePage({
           <button
             type="button"
             className="primary-btn"
+
             onClick={
               onGoCurrent
             }
           >
 
             Start today's study
+
 
             <IonIcon
               icon={
@@ -698,7 +704,7 @@ export function HomePage({
         className="metrics-grid"
       >
 
-        {/* AVERAGE */}
+        {/* AVERAGE SCORE */}
 
         <article
           className="metric-card"
@@ -764,7 +770,7 @@ export function HomePage({
         </article>
 
 
-        {/* TOTAL ATTEMPTS */}
+        {/* PRELIMS SESSIONS */}
 
         <article
           className="metric-card"
@@ -812,6 +818,7 @@ export function HomePage({
                   ? totalAttempts ===
                     1
                     ? '1 session completed'
+
                     : `${totalAttempts} sessions completed`
 
                   : 'Sign in to track'
@@ -824,7 +831,7 @@ export function HomePage({
         </article>
 
 
-        {/* STREAK */}
+        {/* PRACTICE STREAK */}
 
         <article
           className="metric-card"
@@ -892,7 +899,7 @@ export function HomePage({
       </section>
 
 
-      {/* DAILY PLAN + SYLLABUS */}
+      {/* DAILY PLAN + LIVE SYLLABUS */}
 
       <section
         className="content-grid two-col"
@@ -997,57 +1004,18 @@ export function HomePage({
         </article>
 
 
-        {/* SYLLABUS TRACKER */}
+        {/* LIVE SYLLABUS SNAPSHOT */}
 
-        <article
-          className="panel syllabus-card"
-        >
-
-          <div
-            className="panel-head"
-          >
-
-            <div>
-
-              <span
-                className="eyebrow"
-              >
-                SYLLABUS TRACKER
-              </span>
-
-
-              <h3>
-                Know where you stand
-              </h3>
-
-            </div>
-
-          </div>
-
-
-          <p>
-            Track subjects by topic
-            instead of guessing how much
-            of the syllabus is complete.
-          </p>
-
-
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={
-              onGoLearn
-            }
-          >
-            Open tracker
-          </button>
-
-        </article>
+        <HomeSyllabusSnapshot
+          onOpenSyllabus={
+            onGoLearn
+          }
+        />
 
       </section>
 
 
-      {/* SUBJECTS */}
+      {/* QUICK STUDY */}
 
       <section
         className="panel"
@@ -1076,6 +1044,7 @@ export function HomePage({
           <button
             type="button"
             className="text-btn"
+
             onClick={
               onGoLearn
             }
@@ -1096,9 +1065,11 @@ export function HomePage({
               <button
                 type="button"
                 className="subject-tile"
+
                 key={
                   subject.name
                 }
+
                 onClick={
                   onGoLearn
                 }
@@ -1130,7 +1101,7 @@ export function HomePage({
       </section>
 
 
-      {/* DAILY PRACTICE */}
+      {/* DAILY PRELIMS PRACTICE */}
 
       <section
         className="test-banner"
@@ -1161,6 +1132,7 @@ export function HomePage({
         <button
           type="button"
           className="primary-btn"
+
           onClick={
             onGoPractice
           }
