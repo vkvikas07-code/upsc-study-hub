@@ -61,6 +61,21 @@ type ToolButtonProps = {
 };
 
 
+type ProfilePageProps = {
+  onAdmin: () => void;
+
+  /*
+   * Optional for now.
+   *
+   * In the next step App.tsx
+   * will supply this function
+   * so Smart Study can open
+   * the main Prelims Practice tab.
+   */
+  onOpenPractice?: () => void;
+};
+
+
 function StudyToolButton({
   title,
   subtitle,
@@ -120,14 +135,13 @@ function StudyToolButton({
 
 
 export function ProfilePage({
-  onAdmin
-}: {
-  onAdmin: () => void;
-}) {
+  onAdmin,
+  onOpenPractice
+}: ProfilePageProps) {
 
   /*
-   * ONLY ONE LARGE TOOL
-   * STAYS OPEN AT A TIME
+   * ONLY ONE LARGE STUDY TOOL
+   * REMAINS OPEN AT A TIME
    */
 
   const [
@@ -213,14 +227,16 @@ export function ProfilePage({
 
 
   /*
-   * TOGGLE AN EXPANDABLE TOOL
+   * TOGGLE EXPANDABLE TOOL
    */
 
   function toggleTool(
-    tool: Exclude<
-      OpenTool,
-      null
-    >,
+    tool:
+      Exclude<
+        OpenTool,
+        null
+      >,
+
     element:
       HTMLDivElement | null
   ) {
@@ -250,9 +266,8 @@ export function ProfilePage({
 
 
   /*
-   * DIRECT OPEN FUNCTIONS
-   *
-   * Used by Smart Next Action.
+   * SMART STUDY:
+   * OPEN WEAK AREAS
    */
 
   function openWeakAreas() {
@@ -268,6 +283,11 @@ export function ProfilePage({
   }
 
 
+  /*
+   * SMART STUDY:
+   * OPEN MISTAKE PRACTICE
+   */
+
   function openMistakePractice() {
 
     setOpenTool(
@@ -280,6 +300,11 @@ export function ProfilePage({
     );
   }
 
+
+  /*
+   * SMART STUDY:
+   * OPEN REVISION BANK
+   */
 
   function openRevisionBank() {
 
@@ -295,7 +320,22 @@ export function ProfilePage({
 
 
   /*
-   * HISTORY NAVIGATION
+   * SMART STUDY:
+   * OPEN MAIN PRELIMS PRACTICE
+   *
+   * App.tsx will connect the
+   * actual navigation in the
+   * next step.
+   */
+
+  function openMainPractice() {
+
+    onOpenPractice?.();
+  }
+
+
+  /*
+   * PRELIMS HISTORY
    */
 
   function openPrelimsHistory() {
@@ -312,6 +352,10 @@ export function ProfilePage({
   }
 
 
+  /*
+   * MAINS EVALUATIONS
+   */
+
   function openMainsEvaluations() {
 
     setOpenTool(
@@ -327,7 +371,7 @@ export function ProfilePage({
 
 
   /*
-   * RETURN TO TOP
+   * RETURN TO PAGE TOP
    */
 
   function returnToTop() {
@@ -341,6 +385,10 @@ export function ProfilePage({
     });
   }
 
+
+  /*
+   * CLOSE ACTIVE TOOL
+   */
 
   function closeTool() {
 
@@ -417,6 +465,10 @@ export function ProfilePage({
           openRevisionBank
         }
 
+        onOpenPractice={
+          openMainPractice
+        }
+
       />
 
 
@@ -457,9 +509,7 @@ export function ProfilePage({
           {/* PERFORMANCE TREND */}
 
           <StudyToolButton
-
             title="📈 Prelims Performance Trend"
-
             subtitle="Track improvement across attempts"
 
             open={
@@ -473,16 +523,13 @@ export function ProfilePage({
                 performanceTrendRef.current
               )
             }
-
           />
 
 
           {/* WEAK AREAS */}
 
           <StudyToolButton
-
             title="📊 Prelims Weak Areas"
-
             subtitle="Subject and topic analysis"
 
             open={
@@ -496,16 +543,13 @@ export function ProfilePage({
                 weakAnalysisRef.current
               )
             }
-
           />
 
 
           {/* MISTAKE BOOK */}
 
           <StudyToolButton
-
             title="✕ Prelims Mistake Book"
-
             subtitle="Review questions answered incorrectly"
 
             open={
@@ -519,16 +563,13 @@ export function ProfilePage({
                 mistakeBookRef.current
               )
             }
-
           />
 
 
-          {/* MISTAKE PRACTICE */}
+          {/* PRACTICE MISTAKES */}
 
           <StudyToolButton
-
             title="🎯 Practice Your Mistakes"
-
             subtitle="Reattempt questions you got wrong"
 
             open={
@@ -542,16 +583,13 @@ export function ProfilePage({
                 mistakePracticeRef.current
               )
             }
-
           />
 
 
           {/* REVISION BANK */}
 
           <StudyToolButton
-
             title="★ Revision Bank"
-
             subtitle="Saved Prelims questions"
 
             open={
@@ -565,37 +603,30 @@ export function ProfilePage({
                 revisionBankRef.current
               )
             }
-
           />
 
 
           {/* PRELIMS HISTORY */}
 
           <StudyToolButton
-
             title="Prelims History"
-
             subtitle="Practice and Exam results"
 
             onClick={
               openPrelimsHistory
             }
-
           />
 
 
           {/* MAINS EVALUATIONS */}
 
           <StudyToolButton
-
             title="Mains Evaluations"
-
             subtitle="Reviewed answer sheets"
 
             onClick={
               openMainsEvaluations
             }
-
           />
 
 
@@ -699,7 +730,7 @@ export function ProfilePage({
           </button>
 
 
-          {/* ADMIN */}
+          {/* ADMIN STUDIO */}
 
           <button
             type="button"
