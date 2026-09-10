@@ -16,6 +16,10 @@ import {
 } from '../components/MyPrelimsHistory';
 
 import {
+  MyPrelimsTestHistory
+} from '../components/MyPrelimsTestHistory';
+
+import {
   MyMainsEvaluations
 } from '../components/MyMainsEvaluations';
 
@@ -1020,22 +1024,27 @@ export function ProfilePage({
 
       {/* PRELIMS HISTORY */}
 
-      <div
-        ref={
-          prelimsHistoryRef
-        }
-        style={{
-          scrollMarginTop:
-            '20px'
-        }}
-      >
+<div
+  ref={
+    prelimsHistoryRef
+  }
+  style={{
+    scrollMarginTop:
+      '20px'
+  }}
+>
 
-        <MyPrelimsHistory />
+  <MyPrelimsHistory />
 
-      </div>
+</div>
 
 
-      {/* MAINS EVALUATIONS */}
+{/* PRELIMS TEST SERIES HISTORY */}
+
+<MyPrelimsTestHistory />
+
+
+{/* MAINS EVALUATIONS */}
 
       <div
         ref={
