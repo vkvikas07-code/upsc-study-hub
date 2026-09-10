@@ -34,6 +34,10 @@ import {
 } from '../components/HomeSyllabusSnapshot';
 
 import {
+  HomeBookProgressSnapshot
+} from '../components/HomeBookProgressSnapshot';
+
+import {
   supabase
 } from '../lib/supabase';
 
@@ -50,7 +54,14 @@ type AttemptStatRow = {
 };
 
 
+type HomeLearnMode =
+  | 'syllabus'
+  | 'resources'
+  | 'book-progress';
+
+
 type HomePageProps = {
+
   tasks:
     DailyTask[];
 
@@ -65,13 +76,22 @@ type HomePageProps = {
 
   onGoLearn:
     (
-      subject?: string | null
+      subject?:
+        string |
+        null,
+
+      mode?:
+        HomeLearnMode
     ) => void;
 
   onGoCurrent:
     () => void;
 };
 
+
+/*
+ * SAFE NUMBER
+ */
 
 function safeNumber(
   value:
@@ -94,6 +114,10 @@ function safeNumber(
     : 0;
 }
 
+
+/*
+ * LOCAL DATE KEY
+ */
 
 function localDateKey(
   date:
@@ -130,6 +154,10 @@ function localDateKey(
   );
 }
 
+
+/*
+ * PRACTICE STREAK
+ */
 
 function calculateStreak(
   attempts:
@@ -264,16 +292,24 @@ function calculateStreak(
 }
 
 
+/*
+ * HOME PAGE
+ */
+
 export function HomePage({
+
   tasks,
   setTasks,
   onGoPractice,
   onGoLearn,
   onGoCurrent
+
 }: HomePageProps) {
 
   /*
+   * =========================================
    * DAILY PLAN
+   * =========================================
    */
 
   const completed =
@@ -291,13 +327,15 @@ export function HomePage({
             completed /
             tasks.length
           ) *
-            100
+          100
         )
       : 0;
 
 
   /*
+   * =========================================
    * PRELIMS PERFORMANCE
+   * =========================================
    */
 
   const [
@@ -340,8 +378,8 @@ export function HomePage({
    * LOAD HOME PERFORMANCE
    *
    * Includes:
-   * - normal Prelims MCQ practice
-   * - Prelims Test Series attempts
+   * - Prelims Question Bank
+   * - Prelims Test Series
    */
 
   useEffect(
@@ -353,7 +391,11 @@ export function HomePage({
 
       async function loadHomeStats() {
 
-        if (!supabase) {
+        const client =
+          supabase;
+
+
+        if (!client) {
 
           if (
             active
@@ -363,6 +405,7 @@ export function HomePage({
               false
             );
           }
+
 
           return;
         }
@@ -378,12 +421,16 @@ export function HomePage({
         }
 
 
+        /*
+         * CURRENT USER
+         */
+
         const {
           data: {
             user
           }
         } =
-          await supabase
+          await client
             .auth
             .getUser();
 
@@ -402,17 +449,21 @@ export function HomePage({
             false
           );
 
+
           setAttempts(
             []
           );
+
 
           setTotalAttempts(
             0
           );
 
+
           setStatsLoading(
             false
           );
+
 
           return;
         }
@@ -424,7 +475,8 @@ export function HomePage({
 
 
         /*
-         * TOTAL COMPLETED SESSIONS
+         * TOTAL COMPLETED
+         * PRELIMS SESSIONS
          */
 
         const [
@@ -433,7 +485,7 @@ export function HomePage({
         ] =
           await Promise.all([
 
-            supabase
+            client
               .from(
                 'practice_attempts'
               )
@@ -457,7 +509,7 @@ export function HomePage({
                 null
               ),
 
-            supabase
+            client
               .from(
                 'test_attempts'
               )
@@ -527,10 +579,8 @@ export function HomePage({
 
 
         /*
-         * RECENT PERFORMANCE
-         *
-         * Combine the latest rows
-         * from both Prelims systems.
+         * LOAD RECENT PRACTICE
+         * AND TEST PERFORMANCE
          */
 
         const [
@@ -539,7 +589,7 @@ export function HomePage({
         ] =
           await Promise.all([
 
-            supabase
+            client
               .from(
                 'practice_attempts'
               )
@@ -569,7 +619,7 @@ export function HomePage({
                 200
               ),
 
-            supabase
+            client
               .from(
                 'test_attempts'
               )
@@ -632,6 +682,10 @@ export function HomePage({
         }
 
 
+        /*
+         * NORMAL PRACTICE ROWS
+         */
+
         const practiceRows:
           AttemptStatRow[] =
             (
@@ -645,9 +699,17 @@ export function HomePage({
 
                 completed_at:
                   item.completed_at
+
               })
             );
 
+
+        /*
+         * TEST SERIES ROWS
+         *
+         * test_attempts.score
+         * already stores percentage
+         */
 
         const testRows:
           AttemptStatRow[] =
@@ -662,9 +724,14 @@ export function HomePage({
 
                 completed_at:
                   item.completed_at
+
               })
             );
 
+
+        /*
+         * COMBINE BOTH
+         */
 
         const combinedAttempts =
           [
@@ -733,7 +800,9 @@ export function HomePage({
 
 
   /*
+   * =========================================
    * LAST FIVE SESSION AVERAGE
+   * =========================================
    */
 
   const recentAverage =
@@ -774,6 +843,7 @@ export function HomePage({
           total /
           recent.length
         );
+
       },
       [
         attempts
@@ -782,7 +852,9 @@ export function HomePage({
 
 
   /*
+   * =========================================
    * PRACTICE STREAK
+   * =========================================
    */
 
   const currentStreak =
@@ -798,7 +870,9 @@ export function HomePage({
 
 
   /*
+   * =========================================
    * DAILY PLAN TOGGLE
+   * =========================================
    */
 
   function toggleTask(
@@ -826,21 +900,34 @@ export function HomePage({
   }
 
 
+  /*
+   * =========================================
+   * PAGE
+   * =========================================
+   */
+
   return (
 
     <div
       className="page-wrap"
     >
 
-      {/* HEADER */}
+      {/* =====================================
+          HEADER
+      ===================================== */}
 
       <TopBar
+
         title="UPSC Study Hub"
+
         subtitle="Preparation that moves with you"
+
       />
 
 
-      {/* TODAY'S FOCUS */}
+      {/* =====================================
+          TODAY'S FOCUS
+      ===================================== */}
 
       <section
         className="hero-card"
@@ -908,7 +995,9 @@ export function HomePage({
       </section>
 
 
-      {/* PERFORMANCE METRICS */}
+      {/* =====================================
+          PERFORMANCE METRICS
+      ===================================== */}
 
       <section
         className="metrics-grid"
@@ -1109,13 +1198,22 @@ export function HomePage({
       </section>
 
 
-      {/* DAILY PLAN + LIVE SYLLABUS */}
+      {/* =====================================
+          DAILY PLAN + STUDY PROGRESS
+      ===================================== */}
 
       <section
-        className="content-grid two-col"
+        className="content-grid"
+
+        style={{
+          gridTemplateColumns:
+            'repeat(auto-fit, minmax(280px, 1fr))'
+        }}
       >
 
-        {/* DAILY PLAN */}
+        {/* =================================
+            DAILY PLAN
+        ================================= */}
 
         <article
           className="panel"
@@ -1214,13 +1312,32 @@ export function HomePage({
         </article>
 
 
-        {/* LIVE SYLLABUS SNAPSHOT */}
+        {/* =================================
+            LIVE SYLLABUS SNAPSHOT
+        ================================= */}
 
         <HomeSyllabusSnapshot
 
           onOpenSyllabus={() =>
             onGoLearn(
-              null
+              null,
+              'syllabus'
+            )
+          }
+
+        />
+
+
+        {/* =================================
+            BOOK PROGRESS SNAPSHOT
+        ================================= */}
+
+        <HomeBookProgressSnapshot
+
+          onOpenTracker={() =>
+            onGoLearn(
+              null,
+              'book-progress'
             )
           }
 
@@ -1229,7 +1346,9 @@ export function HomePage({
       </section>
 
 
-      {/* QUICK STUDY */}
+      {/* =====================================
+          QUICK STUDY
+      ===================================== */}
 
       <section
         className="panel"
@@ -1261,7 +1380,8 @@ export function HomePage({
 
             onClick={() =>
               onGoLearn(
-                null
+                null,
+                'syllabus'
               )
             }
           >
@@ -1288,7 +1408,8 @@ export function HomePage({
 
                 onClick={() =>
                   onGoLearn(
-                    subject.name
+                    subject.name,
+                    'syllabus'
                   )
                 }
               >
@@ -1319,7 +1440,9 @@ export function HomePage({
       </section>
 
 
-      {/* DAILY PRELIMS PRACTICE */}
+      {/* =====================================
+          DAILY PRELIMS PRACTICE
+      ===================================== */}
 
       <section
         className="test-banner"
