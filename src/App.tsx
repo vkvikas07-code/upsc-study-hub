@@ -23,6 +23,10 @@ import {
   LearnHubPage
 } from './pages/LearnHubPage';
 
+import type {
+  LearnMode
+} from './pages/LearnHubPage';
+
 import {
   PracticePage
 } from './pages/PracticePage';
@@ -64,22 +68,42 @@ type PracticeMode =
   | 'mains';
 
 
-const defaultTasks: DailyTask[] = [
+const defaultTasks:
+  DailyTask[] = [
+
   {
-    id: 'ca',
-    label: 'Read today’s current affairs brief',
-    done: false
+    id:
+      'ca',
+
+    label:
+      'Read today’s current affairs brief',
+
+    done:
+      false
   },
+
   {
-    id: 'mcq',
-    label: 'Attempt at least 10 MCQs',
-    done: false
+    id:
+      'mcq',
+
+    label:
+      'Attempt at least 10 MCQs',
+
+    done:
+      false
   },
+
   {
-    id: 'rev',
-    label: 'Revise one saved topic',
-    done: false
+    id:
+      'rev',
+
+    label:
+      'Revise one saved topic',
+
+    done:
+      false
   }
+
 ];
 
 
@@ -99,7 +123,8 @@ function getLocalDateKey() {
 
   const month =
     String(
-      now.getMonth() + 1
+      now.getMonth() +
+      1
     ).padStart(
       2,
       '0'
@@ -126,7 +151,8 @@ function getLocalDateKey() {
  */
 
 function getTaskStorageKey(
-  day: string
+  day:
+    string
 ) {
 
   return (
@@ -140,8 +166,10 @@ function getTaskStorageKey(
  */
 
 function loadTasksForDay(
-  day: string
-): DailyTask[] {
+  day:
+    string
+):
+  DailyTask[] {
 
   try {
 
@@ -196,6 +224,7 @@ function loadTasksForDay(
 
 
         return {
+
           ...defaultTask,
 
           done:
@@ -216,6 +245,10 @@ function loadTasksForDay(
 }
 
 
+/*
+ * APPLICATION
+ */
+
 export default function App() {
 
   /*
@@ -226,7 +259,9 @@ export default function App() {
     active,
     setActive
   ] =
-    useState<NavKey>(
+    useState<
+      NavKey
+    >(
       'home'
     );
 
@@ -235,10 +270,10 @@ export default function App() {
    * SELECTED LEARN SUBJECT
    *
    * null =
-   * show complete syllabus
+   * show complete Learn area
    *
    * string =
-   * open selected subject
+   * open a selected subject
    * from Home Quick Study
    */
 
@@ -255,6 +290,25 @@ export default function App() {
 
 
   /*
+   * LEARN WORKSPACE
+   *
+   * syllabus
+   * resources
+   * book-progress
+   */
+
+  const [
+    learnMode,
+    setLearnMode
+  ] =
+    useState<
+      LearnMode
+    >(
+      'syllabus'
+    );
+
+
+  /*
    * PRACTICE WORKSPACE
    */
 
@@ -262,7 +316,9 @@ export default function App() {
     practiceMode,
     setPracticeMode
   ] =
-    useState<PracticeMode>(
+    useState<
+      PracticeMode
+    >(
       'prelims'
     );
 
@@ -288,7 +344,9 @@ export default function App() {
     tasks,
     setTasksState
   ] =
-    useState<DailyTask[]>(
+    useState<
+      DailyTask[]
+    >(
       () =>
         loadTasksForDay(
           getLocalDateKey()
@@ -304,7 +362,9 @@ export default function App() {
     articles,
     setArticles
   ] =
-    useState<CurrentAffair[]>(
+    useState<
+      CurrentAffair[]
+    >(
       initialCurrentAffairs
     );
 
@@ -314,7 +374,8 @@ export default function App() {
    */
 
   function setTasks(
-    next: DailyTask[]
+    next:
+      DailyTask[]
   ) {
 
     setTasksState(
@@ -326,6 +387,7 @@ export default function App() {
       getTaskStorageKey(
         taskDay
       ),
+
       JSON.stringify(
         next
       )
@@ -366,8 +428,11 @@ export default function App() {
 
 
               window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
+                top:
+                  0,
+
+                behavior:
+                  'smooth'
               });
             }
 
@@ -395,7 +460,8 @@ export default function App() {
    */
 
   function publish(
-    item: CurrentAffair
+    item:
+      CurrentAffair
   ) {
 
     setArticles(
@@ -410,19 +476,39 @@ export default function App() {
   /*
    * OPEN LEARN
    *
-   * Home Quick Study can
-   * provide a specific subject.
+   * Examples:
+   *
+   * openLearn()
+   * -> Syllabus Tracker
+   *
+   * openLearn('History')
+   * -> History syllabus
+   *
+   * openLearn(null, 'book-progress')
+   * -> Book Progress directly
+   *
+   * openLearn(null, 'resources')
+   * -> Study Resources directly
    */
 
   function openLearn(
     subject:
       string |
       null =
-        null
+        null,
+
+    mode:
+      LearnMode =
+        'syllabus'
   ) {
 
     setLearnSubject(
       subject
+    );
+
+
+    setLearnMode(
+      mode
     );
 
 
@@ -435,9 +521,9 @@ export default function App() {
   /*
    * MAIN SHELL NAVIGATION
    *
-   * Opening Learn from normal
-   * navigation clears an old
-   * Home subject filter.
+   * Normal Learn navigation
+   * always opens the default
+   * Syllabus Tracker.
    */
 
   function navigateMain(
@@ -452,6 +538,11 @@ export default function App() {
 
       setLearnSubject(
         null
+      );
+
+
+      setLearnMode(
+        'syllabus'
       );
     }
 
@@ -496,6 +587,7 @@ export default function App() {
             'Supabase is not configured.'
           );
 
+
           return;
         }
 
@@ -535,12 +627,15 @@ export default function App() {
             );
 
 
-        if (error) {
+        if (
+          error
+        ) {
 
           console.error(
             'Unable to load current affairs:',
             error
           );
+
 
           return;
         }
@@ -605,6 +700,7 @@ export default function App() {
                           }
                         )
                     : ''
+
               })
             );
 
@@ -630,8 +726,11 @@ export default function App() {
     () => {
 
       window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
+        top:
+          0,
+
+        behavior:
+          'smooth'
       });
 
     },
@@ -642,7 +741,9 @@ export default function App() {
 
 
   /*
+   * =========================================
    * HOME
+   * =========================================
    */
 
   let content = (
@@ -662,7 +763,12 @@ export default function App() {
       }
 
       onGoLearn={
-        openLearn
+        subject =>
+          openLearn(
+            subject ??
+            null,
+            'syllabus'
+          )
       }
 
       onGoCurrent={() =>
@@ -677,7 +783,9 @@ export default function App() {
 
 
   /*
+   * =========================================
    * LEARN HUB
+   * =========================================
    */
 
   if (
@@ -693,6 +801,10 @@ export default function App() {
           learnSubject
         }
 
+        initialMode={
+          learnMode
+        }
+
       />
 
     );
@@ -700,7 +812,9 @@ export default function App() {
 
 
   /*
+   * =========================================
    * PRACTICE
+   * =========================================
    */
 
   if (
@@ -839,7 +953,9 @@ export default function App() {
 
 
   /*
+   * =========================================
    * CURRENT AFFAIRS
+   * =========================================
    */
 
   if (
@@ -850,9 +966,11 @@ export default function App() {
     content = (
 
       <CurrentPage
+
         items={
           articles
         }
+
       />
 
     );
@@ -860,7 +978,9 @@ export default function App() {
 
 
   /*
+   * =========================================
    * MY STUDY
+   * =========================================
    */
 
   if (
@@ -889,7 +1009,9 @@ export default function App() {
 
 
   /*
+   * =========================================
    * ADMIN
+   * =========================================
    */
 
   if (
@@ -922,7 +1044,9 @@ export default function App() {
 
 
   /*
+   * =========================================
    * APPLICATION SHELL
+   * =========================================
    */
 
   return (
