@@ -64,7 +64,9 @@ type HomePageProps = {
     () => void;
 
   onGoLearn:
-    () => void;
+  (
+    subject?: string | null
+  ) => void;
 
   onGoCurrent:
     () => void;
@@ -1007,10 +1009,12 @@ export function HomePage({
         {/* LIVE SYLLABUS SNAPSHOT */}
 
         <HomeSyllabusSnapshot
-          onOpenSyllabus={
-            onGoLearn
-          }
-        />
+  onOpenSyllabus={() =>
+    onGoLearn(
+      null
+    )
+  }
+/>
 
       </section>
 
@@ -1042,15 +1046,17 @@ export function HomePage({
 
 
           <button
-            type="button"
-            className="text-btn"
+  type="button"
+  className="text-btn"
 
-            onClick={
-              onGoLearn
-            }
-          >
-            View all
-          </button>
+  onClick={() =>
+    onGoLearn(
+      null
+    )
+  }
+>
+  View all
+</button>
 
         </div>
 
@@ -1070,9 +1076,11 @@ export function HomePage({
                   subject.name
                 }
 
-                onClick={
-                  onGoLearn
-                }
+               onClick={() =>
+  onGoLearn(
+    subject.name
+  )
+}
               >
 
                 <span
