@@ -12,6 +12,10 @@ import {
 } from './components/Shell';
 
 import {
+  PrelimsTestSeries
+} from './components/PrelimsTestSeries';
+
+import {
   HomePage
 } from './pages/HomePage';
 
@@ -54,6 +58,12 @@ import type {
 } from './types';
 
 
+type PracticeMode =
+  | 'prelims'
+  | 'tests'
+  | 'mains';
+
+
 const defaultTasks: DailyTask[] = [
   {
     id: 'ca',
@@ -79,11 +89,9 @@ const defaultTasks: DailyTask[] = [
  * Example:
  * 2026-09-10
  *
- * We intentionally use the
- * device's local date instead
- * of UTC so the daily plan
- * changes at the student's
- * local midnight.
+ * Uses the student's device
+ * local date so the Daily Plan
+ * resets at local midnight.
  */
 
 function getLocalDateKey() {
@@ -125,8 +133,7 @@ function getLocalDateKey() {
  */
 
 function getTaskStorageKey(
-  day:
-    string
+  day: string
 ) {
 
   return (
@@ -140,8 +147,7 @@ function getTaskStorageKey(
  */
 
 function loadTasksForDay(
-  day:
-    string
+  day: string
 ): DailyTask[] {
 
   try {
@@ -185,12 +191,8 @@ function loadTasksForDay(
 
 
     /*
-     * Merge stored completion
+     * Merge saved completion
      * with current default tasks.
-     *
-     * This means if we add a
-     * new default task later,
-     * existing users still get it.
      */
 
     return defaultTasks.map(
@@ -242,17 +244,23 @@ export default function App() {
 
 
   /*
-   * PRACTICE MODE
+   * PRACTICE WORKSPACE
+   *
+   * prelims =
+   * normal question-bank practice
+   *
+   * tests =
+   * published Test Series
+   *
+   * mains =
+   * answer writing
    */
 
   const [
     practiceMode,
     setPracticeMode
   ] =
-    useState<
-      'prelims' |
-      'mains'
-    >(
+    useState<PracticeMode>(
       'prelims'
     );
 
@@ -278,9 +286,7 @@ export default function App() {
     tasks,
     setTasksState
   ] =
-    useState<
-      DailyTask[]
-    >(
+    useState<DailyTask[]>(
       () =>
         loadTasksForDay(
           getLocalDateKey()
@@ -296,9 +302,7 @@ export default function App() {
     articles,
     setArticles
   ] =
-    useState<
-      CurrentAffair[]
-    >(
+    useState<CurrentAffair[]>(
       initialCurrentAffairs
     );
 
@@ -308,8 +312,7 @@ export default function App() {
    */
 
   function setTasks(
-    next:
-      DailyTask[]
+    next: DailyTask[]
   ) {
 
     setTasksState(
@@ -331,12 +334,7 @@ export default function App() {
   /*
    * AUTO RESET DAILY PLAN
    *
-   * Check once per minute.
-   *
-   * If the app stays open
-   * across midnight, it will
-   * automatically load a fresh
-   * plan for the new date.
+   * Check once every minute.
    */
 
   useEffect(
@@ -398,8 +396,7 @@ export default function App() {
    */
 
   function publish(
-    item:
-      CurrentAffair
+    item: CurrentAffair
   ) {
 
     setArticles(
@@ -412,10 +409,10 @@ export default function App() {
 
 
   /*
-   * OPEN PRELIMS PRACTICE
+   * OPEN NORMAL PRELIMS
+   * QUESTION-BANK PRACTICE
    *
-   * Always force Prelims mode
-   * before opening Practice.
+   * Used by Home and Smart Study.
    */
 
   function openPrelimsPractice() {
@@ -480,8 +477,7 @@ export default function App() {
             .order(
               'published_at',
               {
-                ascending:
-                  false
+                ascending: false
               }
             );
 
@@ -655,6 +651,8 @@ export default function App() {
 
       <>
 
+        {/* PRACTICE WORKSPACE SWITCHER */}
+
         <div
           className="page-wrap"
         >
@@ -662,10 +660,15 @@ export default function App() {
           <div
             className="filter-row"
             style={{
-              paddingTop: '18px',
-              paddingBottom: '0'
+              paddingTop:
+                '18px',
+
+              paddingBottom:
+                '0'
             }}
           >
+
+            {/* NORMAL PRELIMS PRACTICE */}
 
             <button
               type="button"
@@ -686,6 +689,30 @@ export default function App() {
               Prelims MCQ
             </button>
 
+
+            {/* PRELIMS TEST SERIES */}
+
+            <button
+              type="button"
+
+              className={
+                practiceMode ===
+                  'tests'
+                  ? 'filter active'
+                  : 'filter'
+              }
+
+              onClick={() =>
+                setPracticeMode(
+                  'tests'
+                )
+              }
+            >
+              Prelims Test Series
+            </button>
+
+
+            {/* MAINS ANSWER WRITING */}
 
             <button
               type="button"
@@ -711,12 +738,25 @@ export default function App() {
         </div>
 
 
+        {/* PRACTICE CONTENT */}
+
         {
           practiceMode ===
           'prelims'
             ? (
               <PracticePage />
             )
+
+            : practiceMode ===
+              'tests'
+            ? (
+              <div
+                className="page-wrap"
+              >
+                <PrelimsTestSeries />
+              </div>
+            )
+
             : (
               <MainsPracticePage />
             )
