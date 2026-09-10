@@ -191,13 +191,19 @@ export function ProfilePage({
     );
 
 
-  const prelimsHistoryRef =
-    useRef<HTMLDivElement | null>(
-      null
-    );
+ const prelimsHistoryRef =
+  useRef<HTMLDivElement | null>(
+    null
+  );
 
 
-  const mainsEvaluationRef =
+const testSeriesHistoryRef =
+  useRef<HTMLDivElement | null>(
+    null
+  );
+
+
+const mainsEvaluationRef =
     useRef<HTMLDivElement | null>(
       null
     );
@@ -354,7 +360,22 @@ export function ProfilePage({
       100
     );
   }
+/*
+ * TEST SERIES HISTORY
+ */
 
+function openTestSeriesHistory() {
+
+  setOpenTool(
+    null
+  );
+
+
+  scrollToSection(
+    testSeriesHistoryRef.current,
+    100
+  );
+}
 
   /*
    * MAINS EVALUATIONS
@@ -613,16 +634,26 @@ export function ProfilePage({
           {/* PRELIMS HISTORY */}
 
           <StudyToolButton
-            title="Prelims History"
-            subtitle="Practice and Exam results"
+  title="Prelims History"
+  subtitle="Practice and Exam results"
 
-            onClick={
-              openPrelimsHistory
-            }
-          />
+  onClick={
+    openPrelimsHistory
+  }
+/>
 
 
-          {/* MAINS EVALUATIONS */}
+<StudyToolButton
+  title="📝 Test Series History"
+  subtitle="Mock tests, scores and marks"
+
+  onClick={
+    openTestSeriesHistory
+  }
+/>
+
+
+{/* MAINS EVALUATIONS */}
 
           <StudyToolButton
             title="Mains Evaluations"
@@ -1041,7 +1072,19 @@ export function ProfilePage({
 
 {/* PRELIMS TEST SERIES HISTORY */}
 
-<MyPrelimsTestHistory />
+<div
+  ref={
+    testSeriesHistoryRef
+  }
+  style={{
+    scrollMarginTop:
+      '20px'
+  }}
+>
+
+  <MyPrelimsTestHistory />
+
+</div>
 
 
 {/* MAINS EVALUATIONS */}
