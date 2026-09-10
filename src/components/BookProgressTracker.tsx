@@ -13,23 +13,10 @@ type BookRow = {
   id: string;
   title: string;
   subject: string;
-
-  description:
-    string |
-    null;
-
-  author:
-    string |
-    null;
-
-  publisher:
-    string |
-    null;
-
-  source_name:
-    string |
-    null;
-
+  description: string | null;
+  author: string | null;
+  publisher: string | null;
+  source_name: string | null;
   sort_order: number;
 };
 
@@ -39,13 +26,8 @@ type TopicRow = {
   book_id: string;
   subject: string;
   topic_name: string;
-
-  parent_id:
-    string |
-    null;
-
+  parent_id: string | null;
   sort_order: number;
-
   is_active: boolean;
 };
 
@@ -53,48 +35,47 @@ type TopicRow = {
 type ProgressRow = {
   book_topic_id: string;
   completed: boolean;
-
-  revision_count:
-    number |
-    string |
-    null;
-
-  revision_1_at:
-    string |
-    null;
-
-  revision_2_at:
-    string |
-    null;
-
-  final_revision_at:
-    string |
-    null;
+  revision_count: number | string | null;
+  revision_1_at: string | null;
+  revision_2_at: string | null;
+  final_revision_at: string | null;
+  next_revision_due_at: string | null;
 };
 
 
 type ProgressState = {
   completed: boolean;
   revisionCount: number;
+  revision1At: string | null;
+  revision2At: string | null;
+  finalRevisionAt: string | null;
+  nextRevisionDueAt: string | null;
+};
 
-  revision1At:
-    string |
-    null;
 
-  revision2At:
-    string |
-    null;
+type DueInfo = {
+  timestamp: number;
+  nextLabel: string;
+  dateLabel: string;
+  statusLabel: string;
+  color: string;
+  borderColor: string;
+  background: string;
+  overdue: boolean;
+  dueToday: boolean;
+};
 
-  finalRevisionAt:
-    string |
-    null;
+
+type DueSummary = {
+  overdue: number;
+  dueToday: number;
+  scheduled: number;
+  earliest: DueInfo | null;
 };
 
 
 type BookProgressTrackerProps = {
-  initialSubject?:
-    string |
-    null;
+  initialSubject?: string | null;
 };
 
 
@@ -127,141 +108,259 @@ const PROGRESS_SELECT = `
   revision_count,
   revision_1_at,
   revision_2_at,
-  final_revision_at
+  final_revision_at,
+  next_revision_due_at
 `;
 
 
-const EMPTY_PROGRESS:
-  ProgressState = {
-
-  completed:
-    false,
-
-  revisionCount:
-    0,
-
-  revision1At:
-    null,
-
-  revision2At:
-    null,
-
-  finalRevisionAt:
-    null
+const EMPTY_PROGRESS: ProgressState = {
+  completed: false,
+  revisionCount: 0,
+  revision1At: null,
+  revision2At: null,
+  finalRevisionAt: null,
+  nextRevisionDueAt: null
 };
 
 
+const DAY_MS =
+  24 * 60 * 60 * 1000;
+
+
 /*
- * SAFE NUMBER
+ * HELPERS
  */
 
 function safeNumber(
   value: unknown,
   fallback = 0
 ) {
-
   const number =
-    Number(
-      value
-    );
+    Number(value);
 
-
-  return Number.isFinite(
-    number
-  )
+  return Number.isFinite(number)
     ? number
     : fallback;
 }
 
 
-/*
- * REVISION COUNT
- */
-
 function cleanRevisionCount(
   value: unknown
 ) {
-
-  const number =
-    Math.round(
-      safeNumber(
-        value,
-        0
-      )
-    );
-
-
   return Math.min(
     3,
     Math.max(
       0,
-      number
+      Math.round(
+        safeNumber(value)
+      )
     )
   );
 }
 
 
-/*
- * NORMALISE TEXT
- */
-
 function normalise(
-  value:
-    string
+  value: string
 ) {
-
   return value
     .trim()
     .toLowerCase();
 }
 
 
-/*
- * FORMAT DATE
- */
-
 function formatDate(
-  value:
-    string |
-    null
+  value: string | null
 ) {
-
   if (!value) {
-
     return '';
   }
 
-
   const date =
-    new Date(
-      value
-    );
-
+    new Date(value);
 
   if (
     Number.isNaN(
       date.getTime()
     )
   ) {
-
     return '';
   }
 
+  return date.toLocaleDateString(
+    'en-IN',
+    {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }
+  );
+}
 
-  return date
-    .toLocaleDateString(
-      'en-IN',
-      {
-        day:
-          '2-digit',
 
-        month:
-          'short',
+function startOfDay(
+  value: Date
+) {
+  const date =
+    new Date(value);
 
-        year:
-          'numeric'
-      }
+  date.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  return date;
+}
+
+
+function nextRevisionLabel(
+  revisionCount: number
+) {
+  if (
+    revisionCount === 0
+  ) {
+    return 'Revision 1';
+  }
+
+  if (
+    revisionCount === 1
+  ) {
+    return 'Revision 2';
+  }
+
+  return 'Final Revision';
+}
+
+
+function buildDueInfo(
+  dueValue: string | null,
+  revisionCount: number
+): DueInfo | null {
+
+  if (
+    !dueValue ||
+    revisionCount >= 3
+  ) {
+    return null;
+  }
+
+  const due =
+    new Date(dueValue);
+
+  if (
+    Number.isNaN(
+      due.getTime()
+    )
+  ) {
+    return null;
+  }
+
+  const today =
+    startOfDay(
+      new Date()
     );
+
+  const dueDay =
+    startOfDay(due);
+
+  const difference =
+    Math.round(
+      (
+        dueDay.getTime() -
+        today.getTime()
+      ) /
+      DAY_MS
+    );
+
+  let statusLabel =
+    '';
+
+  let color =
+    '#5eead4';
+
+  let borderColor =
+    'rgba(20,184,166,.35)';
+
+  let background =
+    'rgba(20,184,166,.08)';
+
+
+  if (
+    difference < 0
+  ) {
+    const days =
+      Math.abs(difference);
+
+    statusLabel =
+      `Overdue by ${days} ${
+        days === 1
+          ? 'day'
+          : 'days'
+      }`;
+
+    color =
+      '#fca5a5';
+
+    borderColor =
+      'rgba(248,113,113,.38)';
+
+    background =
+      'rgba(127,29,29,.14)';
+
+  } else if (
+    difference === 0
+  ) {
+    statusLabel =
+      'Due today';
+
+    color =
+      '#fde68a';
+
+    borderColor =
+      'rgba(251,191,36,.38)';
+
+    background =
+      'rgba(120,53,15,.14)';
+
+  } else if (
+    difference === 1
+  ) {
+    statusLabel =
+      'Due tomorrow';
+
+  } else {
+    statusLabel =
+      `Due in ${difference} days`;
+  }
+
+
+  return {
+    timestamp:
+      due.getTime(),
+
+    nextLabel:
+      nextRevisionLabel(
+        revisionCount
+      ),
+
+    dateLabel:
+      formatDate(dueValue),
+
+    statusLabel,
+
+    color,
+
+    borderColor,
+
+    background,
+
+    overdue:
+      difference < 0,
+
+    dueToday:
+      difference === 0
+  };
 }
 
 
@@ -274,27 +373,21 @@ export function BookProgressTracker({
 }: BookProgressTrackerProps) {
 
   /*
-   * =========================================
    * DATA
-   * =========================================
    */
 
   const [
     books,
     setBooks
   ] =
-    useState<
-      BookRow[]
-    >([]);
+    useState<BookRow[]>([]);
 
 
   const [
     topics,
     setTopics
   ] =
-    useState<
-      TopicRow[]
-    >([]);
+    useState<TopicRow[]>([]);
 
 
   const [
@@ -309,24 +402,14 @@ export function BookProgressTracker({
     >({});
 
 
-  /*
-   * CURRENTLY SAVING
-   */
-
   const [
     savingIds,
     setSavingIds
   ] =
-    useState<
-      Set<string>
-    >(
+    useState<Set<string>>(
       new Set()
     );
 
-
-  /*
-   * BOOK EXPANSION
-   */
 
   const [
     expandedBooks,
@@ -340,17 +423,11 @@ export function BookProgressTracker({
     >({});
 
 
-  /*
-   * FILTERS
-   */
-
   const [
     subjectFilter,
     setSubjectFilter
   ] =
-    useState(
-      'all'
-    );
+    useState('all');
 
 
   const [
@@ -360,26 +437,18 @@ export function BookProgressTracker({
     useState('');
 
 
-  /*
-   * PAGE STATE
-   */
-
   const [
     loading,
     setLoading
   ] =
-    useState(
-      true
-    );
+    useState(true);
 
 
   const [
     signedIn,
     setSignedIn
   ] =
-    useState(
-      false
-    );
+    useState(false);
 
 
   const [
@@ -390,16 +459,12 @@ export function BookProgressTracker({
 
 
   /*
-   * =========================================
    * PROGRESS HELPERS
-   * =========================================
    */
 
   function getProgressState(
-    topicId:
-      string
-  ):
-    ProgressState {
+    topicId: string
+  ): ProgressState {
 
     return (
       progressByTopic[
@@ -411,16 +476,12 @@ export function BookProgressTracker({
 
 
   function rowToProgressState(
-    row:
-      ProgressRow
-  ):
-    ProgressState {
+    row: ProgressRow
+  ): ProgressState {
 
     return {
-
       completed:
-        row.completed ===
-        true,
+        row.completed === true,
 
       revisionCount:
         cleanRevisionCount(
@@ -428,57 +489,41 @@ export function BookProgressTracker({
         ),
 
       revision1At:
-        row.revision_1_at ||
-        null,
+        row.revision_1_at || null,
 
       revision2At:
-        row.revision_2_at ||
-        null,
+        row.revision_2_at || null,
 
       finalRevisionAt:
-        row.final_revision_at ||
-        null
+        row.final_revision_at || null,
 
+      nextRevisionDueAt:
+        row.next_revision_due_at || null
     };
   }
 
 
   function setSaving(
-    ids:
-      string[],
-    saving:
-      boolean
+    ids: string[],
+    saving: boolean
   ) {
 
     setSavingIds(
       current => {
 
         const next =
-          new Set(
-            current
-          );
-
+          new Set(current);
 
         ids.forEach(
           id => {
 
-            if (
-              saving
-            ) {
-
-              next.add(
-                id
-              );
-
+            if (saving) {
+              next.add(id);
             } else {
-
-              next.delete(
-                id
-              );
+              next.delete(id);
             }
           }
         );
-
 
         return next;
       }
@@ -487,9 +532,7 @@ export function BookProgressTracker({
 
 
   /*
-   * =========================================
    * LOAD TRACKER
-   * =========================================
    */
 
   async function loadTracker() {
@@ -497,41 +540,27 @@ export function BookProgressTracker({
     const client =
       supabase;
 
-
     if (!client) {
-
       setMessage(
         'Supabase is not configured.'
       );
 
-
-      setLoading(
-        false
-      );
-
+      setLoading(false);
 
       return;
     }
 
-
-    setLoading(
-      true
-    );
-
-
+    setLoading(true);
     setMessage('');
 
 
     /*
-     * LOAD BOOKS
+     * BOOKS
      */
 
     const {
-      data:
-        bookData,
-
-      error:
-        bookError
+      data: bookData,
+      error: bookError
     } =
       await client
         .from(
@@ -551,45 +580,34 @@ export function BookProgressTracker({
         .order(
           'subject',
           {
-            ascending:
-              true
+            ascending: true
           }
         )
         .order(
           'sort_order',
           {
-            ascending:
-              true
+            ascending: true
           }
         )
         .order(
           'title',
           {
-            ascending:
-              true
+            ascending: true
           }
         );
 
 
-    if (
-      bookError
-    ) {
-
+    if (bookError) {
       console.error(
         'Unable to load books:',
         bookError
       );
 
-
       setMessage(
         bookError.message
       );
 
-
-      setLoading(
-        false
-      );
-
+      setLoading(false);
 
       return;
     }
@@ -598,20 +616,15 @@ export function BookProgressTracker({
     const cleanBooks:
       BookRow[] =
         (
-          bookData ||
-          []
+          bookData || []
         ).map(
           item => ({
-
             id:
-              String(
-                item.id
-              ),
+              String(item.id),
 
             title:
               String(
-                item.title ||
-                ''
+                item.title || ''
               ),
 
             subject:
@@ -652,7 +665,6 @@ export function BookProgressTracker({
               safeNumber(
                 item.sort_order
               )
-
           })
         );
 
@@ -663,15 +675,12 @@ export function BookProgressTracker({
 
 
     /*
-     * LOAD TOPICS
+     * TOPICS
      */
 
     const {
-      data:
-        topicData,
-
-      error:
-        topicError
+      data: topicData,
+      error: topicError
     } =
       await client
         .from(
@@ -687,47 +696,32 @@ export function BookProgressTracker({
         .order(
           'sort_order',
           {
-            ascending:
-              true
+            ascending: true
           }
         )
         .order(
           'topic_name',
           {
-            ascending:
-              true
+            ascending: true
           }
         );
 
 
-    if (
-      topicError
-    ) {
-
+    if (topicError) {
       console.error(
         'Unable to load book topics:',
         topicError
       );
 
-
       setMessage(
         topicError.message
       );
 
-
-      setLoading(
-        false
-      );
-
+      setLoading(false);
 
       return;
     }
 
-
-    /*
-     * ONLY TOPICS BELONGING
-     * TO PUBLISHED BOOKS
-     */
 
     const publishedBookIds =
       new Set(
@@ -741,16 +735,12 @@ export function BookProgressTracker({
     const cleanTopics:
       TopicRow[] =
         (
-          topicData ||
-          []
+          topicData || []
         )
           .map(
             item => ({
-
               id:
-                String(
-                  item.id
-                ),
+                String(item.id),
 
               book_id:
                 String(
@@ -759,14 +749,12 @@ export function BookProgressTracker({
 
               subject:
                 String(
-                  item.subject ||
-                  ''
+                  item.subject || ''
                 ),
 
               topic_name:
                 String(
-                  item.topic_name ||
-                  ''
+                  item.topic_name || ''
                 ),
 
               parent_id:
@@ -782,9 +770,7 @@ export function BookProgressTracker({
                 ),
 
               is_active:
-                item.is_active !==
-                false
-
+                item.is_active !== false
             })
           )
           .filter(
@@ -801,7 +787,7 @@ export function BookProgressTracker({
 
 
     /*
-     * CURRENT USER
+     * USER
      */
 
     const {
@@ -815,42 +801,24 @@ export function BookProgressTracker({
 
 
     if (!user) {
-
-      setSignedIn(
-        false
-      );
-
-
-      setProgressByTopic(
-        {}
-      );
-
-
-      setLoading(
-        false
-      );
-
+      setSignedIn(false);
+      setProgressByTopic({});
+      setLoading(false);
 
       return;
     }
 
 
-    setSignedIn(
-      true
-    );
+    setSignedIn(true);
 
 
     /*
-     * LOAD READ +
-     * REVISION PROGRESS
+     * PROGRESS
      */
 
     const {
-      data:
-        progressData,
-
-      error:
-        progressError
+      data: progressData,
+      error: progressError
     } =
       await client
         .from(
@@ -865,30 +833,18 @@ export function BookProgressTracker({
         );
 
 
-    if (
-      progressError
-    ) {
-
+    if (progressError) {
       console.error(
         'Unable to load book progress:',
         progressError
       );
 
-
       setMessage(
         progressError.message
       );
 
-
-      setProgressByTopic(
-        {}
-      );
-
-
-      setLoading(
-        false
-      );
-
+      setProgressByTopic({});
+      setLoading(false);
 
       return;
     }
@@ -902,15 +858,12 @@ export function BookProgressTracker({
 
 
     (
-      progressData ||
-      []
+      progressData || []
     ).forEach(
       item => {
 
         const row =
-          item as
-            ProgressRow;
-
+          item as ProgressRow;
 
         nextProgress[
           String(
@@ -928,31 +881,20 @@ export function BookProgressTracker({
       nextProgress
     );
 
-
-    setLoading(
-      false
-    );
+    setLoading(false);
   }
 
 
-  /*
-   * INITIAL LOAD
-   */
-
   useEffect(
     () => {
-
       void loadTracker();
-
     },
     []
   );
 
 
   /*
-   * =========================================
    * SUBJECTS
-   * =========================================
    */
 
   const subjects =
@@ -965,12 +907,9 @@ export function BookProgressTracker({
               books
                 .map(
                   book =>
-                    book.subject
-                      .trim()
+                    book.subject.trim()
                 )
-                .filter(
-                  Boolean
-                )
+                .filter(Boolean)
             )
           )
           .sort(
@@ -984,14 +923,12 @@ export function BookProgressTracker({
           );
 
       },
-      [
-        books
-      ]
+      [books]
     );
 
 
   /*
-   * MATCH HOME SUBJECT
+   * INITIAL SUBJECT
    */
 
   useEffect(
@@ -999,10 +936,8 @@ export function BookProgressTracker({
 
       if (
         !initialSubject ||
-        subjects.length ===
-          0
+        subjects.length === 0
       ) {
-
         return;
       }
 
@@ -1018,19 +953,14 @@ export function BookProgressTracker({
           subject =>
             normalise(
               subject
-            ) ===
-            requested
+            ) === requested
         );
 
 
-      if (
-        exact
-      ) {
-
+      if (exact) {
         setSubjectFilter(
           exact
         );
-
 
         return;
       }
@@ -1041,10 +971,7 @@ export function BookProgressTracker({
           subject => {
 
             const candidate =
-              normalise(
-                subject
-              );
-
+              normalise(subject);
 
             return (
               candidate.includes(
@@ -1058,10 +985,7 @@ export function BookProgressTracker({
         );
 
 
-      if (
-        partial
-      ) {
-
+      if (partial) {
         setSubjectFilter(
           partial
         );
@@ -1076,9 +1000,7 @@ export function BookProgressTracker({
 
 
   /*
-   * =========================================
    * TOPIC TREE
-   * =========================================
    */
 
   const childrenMap =
@@ -1098,22 +1020,17 @@ export function BookProgressTracker({
             if (
               !topic.parent_id
             ) {
-
               return;
             }
-
 
             const existing =
               map.get(
                 topic.parent_id
-              ) ||
-              [];
-
+              ) || [];
 
             existing.push(
               topic
             );
-
 
             map.set(
               topic.parent_id,
@@ -1136,13 +1053,11 @@ export function BookProgressTracker({
                   first.sort_order !==
                   second.sort_order
                 ) {
-
                   return (
                     first.sort_order -
                     second.sort_order
                   );
                 }
-
 
                 return first
                   .topic_name
@@ -1158,15 +1073,9 @@ export function BookProgressTracker({
         return map;
 
       },
-      [
-        topics
-      ]
+      [topics]
     );
 
-
-  /*
-   * ROOT TOPICS BY BOOK
-   */
 
   const rootTopicsByBook =
     useMemo(
@@ -1190,14 +1099,11 @@ export function BookProgressTracker({
               const existing =
                 map.get(
                   topic.book_id
-                ) ||
-                [];
-
+                ) || [];
 
               existing.push(
                 topic
               );
-
 
               map.set(
                 topic.book_id,
@@ -1220,13 +1126,11 @@ export function BookProgressTracker({
                   first.sort_order !==
                   second.sort_order
                 ) {
-
                   return (
                     first.sort_order -
                     second.sort_order
                   );
                 }
-
 
                 return first
                   .topic_name
@@ -1242,39 +1146,29 @@ export function BookProgressTracker({
         return map;
 
       },
-      [
-        topics
-      ]
+      [topics]
     );
 
 
   /*
-   * GET LEAF ITEMS
+   * LEAF HELPERS
    */
 
   function getLeafIds(
-    topicId:
-      string,
+    topicId: string,
     visited =
       new Set<string>()
-  ):
-    string[] {
+  ): string[] {
 
     if (
-      visited.has(
-        topicId
-      )
+      visited.has(topicId)
     ) {
-
       return [];
     }
 
 
     const nextVisited =
-      new Set(
-        visited
-      );
-
+      new Set(visited);
 
     nextVisited.add(
       topicId
@@ -1284,15 +1178,12 @@ export function BookProgressTracker({
     const children =
       childrenMap.get(
         topicId
-      ) ||
-      [];
+      ) || [];
 
 
     if (
-      children.length ===
-      0
+      children.length === 0
     ) {
-
       return [
         topicId
       ];
@@ -1309,20 +1200,14 @@ export function BookProgressTracker({
   }
 
 
-  /*
-   * BOOK LEAF IDS
-   */
-
   function getBookLeafIds(
-    bookId:
-      string
+    bookId: string
   ) {
 
     const roots =
       rootTopicsByBook.get(
         bookId
-      ) ||
-      [];
+      ) || [];
 
 
     return roots.flatMap(
@@ -1334,13 +1219,8 @@ export function BookProgressTracker({
   }
 
 
-  /*
-   * SUBJECT LEAF IDS
-   */
-
   function getSubjectLeafIds(
-    subject:
-      string
+    subject: string
   ) {
 
     return books
@@ -1358,10 +1238,6 @@ export function BookProgressTracker({
   }
 
 
-  /*
-   * ALL LEAF IDS
-   */
-
   const allLeafIds =
     books.flatMap(
       book =>
@@ -1372,14 +1248,11 @@ export function BookProgressTracker({
 
 
   /*
-   * =========================================
    * PROGRESS CALCULATIONS
-   * =========================================
    */
 
   function getReadCount(
-    ids:
-      string[]
+    ids: string[]
   ) {
 
     return ids.filter(
@@ -1392,12 +1265,9 @@ export function BookProgressTracker({
 
 
   function getRevisionCount(
-    ids:
-      string[],
+    ids: string[],
     minimumRevision:
-      1 |
-      2 |
-      3
+      1 | 2 | 3
   ) {
 
     return ids.filter(
@@ -1411,20 +1281,15 @@ export function BookProgressTracker({
 
 
   function getPercent(
-    completed:
-      number,
-    total:
-      number
+    completed: number,
+    total: number
   ) {
 
     if (
-      total <=
-      0
+      total <= 0
     ) {
-
       return 0;
     }
-
 
     return Math.round(
       (
@@ -1436,42 +1301,92 @@ export function BookProgressTracker({
   }
 
 
-  function getReadPercent(
-    ids:
-      string[]
-  ) {
-
-    return getPercent(
-      getReadCount(
-        ids
-      ),
-      ids.length
-    );
-  }
-
-
-  function getRevisionPercent(
-    ids:
-      string[],
-    level:
-      1 |
-      2 |
-      3
-  ) {
-
-    return getPercent(
-      getRevisionCount(
-        ids,
-        level
-      ),
-      ids.length
-    );
-  }
-
-
   /*
-   * OVERALL STATS
+   * DUE SUMMARY
    */
+
+  function getDueSummary(
+    ids: string[]
+  ): DueSummary {
+
+    let overdue =
+      0;
+
+    let dueToday =
+      0;
+
+    let scheduled =
+      0;
+
+    let earliest:
+      DueInfo | null =
+        null;
+
+
+    ids.forEach(
+      id => {
+
+        const progress =
+          getProgressState(id);
+
+
+        if (
+          !progress.completed ||
+          progress.revisionCount >= 3
+        ) {
+          return;
+        }
+
+
+        const due =
+          buildDueInfo(
+            progress.nextRevisionDueAt,
+            progress.revisionCount
+          );
+
+
+        if (!due) {
+          return;
+        }
+
+
+        scheduled += 1;
+
+
+        if (
+          due.overdue
+        ) {
+          overdue += 1;
+        }
+
+
+        if (
+          due.dueToday
+        ) {
+          dueToday += 1;
+        }
+
+
+        if (
+          !earliest ||
+          due.timestamp <
+          earliest.timestamp
+        ) {
+          earliest =
+            due;
+        }
+      }
+    );
+
+
+    return {
+      overdue,
+      dueToday,
+      scheduled,
+      earliest
+    };
+  }
+
 
   const overallReadCount =
     getReadCount(
@@ -1528,10 +1443,14 @@ export function BookProgressTracker({
     );
 
 
+  const overallDue =
+    getDueSummary(
+      allLeafIds
+    );
+
+
   /*
-   * =========================================
-   * SEARCH + FILTER
-   * =========================================
+   * SEARCH
    */
 
   const visibleBooks =
@@ -1539,9 +1458,7 @@ export function BookProgressTracker({
       () => {
 
         const query =
-          normalise(
-            search
-          );
+          normalise(search);
 
 
         return books.filter(
@@ -1553,13 +1470,11 @@ export function BookProgressTracker({
               book.subject !==
                 subjectFilter
             ) {
-
               return false;
             }
 
 
             if (!query) {
-
               return true;
             }
 
@@ -1568,18 +1483,12 @@ export function BookProgressTracker({
               [
                 book.title,
                 book.subject,
-                book.description ||
-                  '',
-                book.author ||
-                  '',
-                book.publisher ||
-                  '',
-                book.source_name ||
-                  ''
+                book.description || '',
+                book.author || '',
+                book.publisher || '',
+                book.source_name || ''
               ]
-                .join(
-                  ' '
-                )
+                .join(' ')
                 .toLowerCase();
 
 
@@ -1588,7 +1497,6 @@ export function BookProgressTracker({
                 query
               )
             ) {
-
               return true;
             }
 
@@ -1623,7 +1531,6 @@ export function BookProgressTracker({
         return subjects
           .map(
             subject => ({
-
               subject,
 
               books:
@@ -1632,13 +1539,11 @@ export function BookProgressTracker({
                     book.subject ===
                     subject
                 )
-
             })
           )
           .filter(
             group =>
-              group.books.length >
-              0
+              group.books.length > 0
           );
 
       },
@@ -1650,23 +1555,18 @@ export function BookProgressTracker({
 
 
   /*
-   * =========================================
-   * EXPAND BOOK
-   * =========================================
+   * BOOK EXPANSION
    */
 
   function toggleBook(
-    bookId:
-      string
+    bookId: string
   ) {
 
     setExpandedBooks(
       current => ({
         ...current,
 
-        [
-          bookId
-        ]:
+        [bookId]:
           !current[
             bookId
           ]
@@ -1675,35 +1575,24 @@ export function BookProgressTracker({
   }
 
 
-  /*
-   * SAVING CHECK
-   */
-
   function isSaving(
-    ids:
-      string[]
+    ids: string[]
   ) {
 
     return ids.some(
       id =>
-        savingIds.has(
-          id
-        )
+        savingIds.has(id)
     );
   }
 
 
   /*
-   * =========================================
-   * SAVE READ STATUS
-   * =========================================
+   * SAVE READ
    */
 
   async function saveCompletion(
-    ids:
-      string[],
-    completed:
-      boolean
+    ids: string[],
+    completed: boolean
   ) {
 
     const client =
@@ -1711,21 +1600,17 @@ export function BookProgressTracker({
 
 
     if (!client) {
-
       setMessage(
         'Supabase is not configured.'
       );
-
 
       return;
     }
 
 
     if (
-      ids.length ===
-      0
+      ids.length === 0
     ) {
-
       return;
     }
 
@@ -1741,16 +1626,11 @@ export function BookProgressTracker({
 
 
     if (!user) {
-
-      setSignedIn(
-        false
-      );
-
+      setSignedIn(false);
 
       setMessage(
         'Sign in from the Me section to save your reading progress.'
       );
-
 
       return;
     }
@@ -1767,13 +1647,10 @@ export function BookProgressTracker({
         id => {
 
           const current =
-            getProgressState(
-              id
-            );
+            getProgressState(id);
 
 
           return {
-
             user_id:
               user.id,
 
@@ -1786,7 +1663,6 @@ export function BookProgressTracker({
               completed
                 ? current.revisionCount
                 : 0
-
           };
         }
       );
@@ -1812,26 +1688,20 @@ export function BookProgressTracker({
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       console.error(
         'Unable to save reading progress:',
         error
       );
 
-
       setMessage(
         error.message
       );
-
 
       setSaving(
         ids,
         false
       );
-
 
       return;
     }
@@ -1847,17 +1717,14 @@ export function BookProgressTracker({
 
         if (
           data &&
-          data.length >
-            0
+          data.length > 0
         ) {
 
           data.forEach(
             item => {
 
               const row =
-                item as
-                  ProgressRow;
-
+                item as ProgressRow;
 
               next[
                 String(
@@ -1876,16 +1743,11 @@ export function BookProgressTracker({
             id => {
 
               const old =
-                current[
-                  id
-                ] ||
+                current[id] ||
                 EMPTY_PROGRESS;
 
 
-              next[
-                id
-              ] = {
-
+              next[id] = {
                 ...old,
 
                 completed,
@@ -1908,8 +1770,12 @@ export function BookProgressTracker({
                 finalRevisionAt:
                   completed
                     ? old.finalRevisionAt
-                    : null
+                    : null,
 
+                nextRevisionDueAt:
+                  completed
+                    ? old.nextRevisionDueAt
+                    : null
               };
             }
           );
@@ -1929,23 +1795,19 @@ export function BookProgressTracker({
 
     setMessage(
       completed
-        ? 'Reading progress saved.'
+        ? 'Reading progress saved. Your next revision date has been scheduled automatically.'
         : 'Reading and revision progress cleared.'
     );
   }
 
 
   /*
-   * =========================================
    * SAVE REVISION
-   * =========================================
    */
 
   async function saveRevision(
-    topicId:
-      string,
-    revisionCount:
-      number
+    topicId: string,
+    revisionCount: number
   ) {
 
     const client =
@@ -1953,11 +1815,9 @@ export function BookProgressTracker({
 
 
     if (!client) {
-
       setMessage(
         'Supabase is not configured.'
       );
-
 
       return;
     }
@@ -1972,11 +1832,9 @@ export function BookProgressTracker({
     if (
       !current.completed
     ) {
-
       setMessage(
         'Mark this portion as Read before adding a revision.'
       );
-
 
       return;
     }
@@ -1999,25 +1857,18 @@ export function BookProgressTracker({
 
 
     if (!user) {
-
-      setSignedIn(
-        false
-      );
-
+      setSignedIn(false);
 
       setMessage(
         'Sign in from the Me section to save revisions.'
       );
-
 
       return;
     }
 
 
     setSaving(
-      [
-        topicId
-      ],
+      [topicId],
       true
     );
 
@@ -2031,21 +1882,19 @@ export function BookProgressTracker({
           'book_topic_progress'
         )
         .upsert(
-          [
-            {
-              user_id:
-                user.id,
+          {
+            user_id:
+              user.id,
 
-              book_topic_id:
-                topicId,
+            book_topic_id:
+              topicId,
 
-              completed:
-                true,
+            completed:
+              true,
 
-              revision_count:
-                nextRevision
-            }
-          ],
+            revision_count:
+              nextRevision
+          },
           {
             onConflict:
               'user_id,book_topic_id'
@@ -2056,28 +1905,20 @@ export function BookProgressTracker({
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       console.error(
         'Unable to save revision:',
         error
       );
 
-
       setMessage(
         error.message
       );
 
-
       setSaving(
-        [
-          topicId
-        ],
+        [topicId],
         false
       );
-
 
       return;
     }
@@ -2085,121 +1926,90 @@ export function BookProgressTracker({
 
     if (
       data &&
-      data.length >
-        0
+      data.length > 0
     ) {
 
       const row =
-        data[
-          0
-        ] as
-          ProgressRow;
+        data[0] as ProgressRow;
 
 
       setProgressByTopic(
         existing => ({
-
           ...existing,
 
-          [
-            topicId
-          ]:
+          [topicId]:
             rowToProgressState(
               row
             )
-
         })
       );
 
     } else {
 
       setProgressByTopic(
-        existing => {
+        existing => ({
+          ...existing,
 
-          const old =
-            existing[
-              topicId
-            ] ||
-            EMPTY_PROGRESS;
+          [topicId]: {
+            ...(
+              existing[
+                topicId
+              ] ||
+              EMPTY_PROGRESS
+            ),
 
+            completed:
+              true,
 
-          return {
-
-            ...existing,
-
-            [
-              topicId
-            ]: {
-
-              ...old,
-
-              completed:
-                true,
-
-              revisionCount:
-                nextRevision
-
-            }
-
-          };
-        }
+            revisionCount:
+              nextRevision
+          }
+        })
       );
     }
 
 
     setSaving(
-      [
-        topicId
-      ],
+      [topicId],
       false
     );
 
 
     if (
-      nextRevision ===
-      0
+      nextRevision === 0
     ) {
-
       setMessage(
         'Revision progress reset.'
       );
 
     } else if (
-      nextRevision ===
-      1
+      nextRevision === 1
     ) {
-
       setMessage(
-        'Revision 1 completed.'
+        'Revision 1 completed. Revision 2 has been scheduled automatically.'
       );
 
     } else if (
-      nextRevision ===
-      2
+      nextRevision === 2
     ) {
-
       setMessage(
-        'Revision 2 completed.'
+        'Revision 2 completed. Final Revision has been scheduled automatically.'
       );
 
     } else {
-
       setMessage(
-        'Final revision completed.'
+        'Final Revision completed. This portion is fully revised.'
       );
     }
   }
 
 
   /*
-   * =========================================
    * TOGGLE READ
-   * =========================================
    */
 
   async function toggleTopic(
-    topic:
-      TopicRow
+    topic: TopicRow
   ) {
 
     const leafIds =
@@ -2209,10 +2019,8 @@ export function BookProgressTracker({
 
 
     if (
-      leafIds.length ===
-      0
+      leafIds.length === 0
     ) {
-
       return;
     }
 
@@ -2226,39 +2034,26 @@ export function BookProgressTracker({
       );
 
 
-    /*
-     * REMOVING READ STATUS
-     * ALSO REMOVES REVISION DATA.
-     */
-
-    if (
-      allRead
-    ) {
+    if (allRead) {
 
       const hasRevision =
         leafIds.some(
           id =>
             getProgressState(
               id
-            ).revisionCount >
-            0
+            ).revisionCount > 0
         );
 
 
-      if (
-        hasRevision
-      ) {
+      if (hasRevision) {
 
         const confirmed =
           window.confirm(
-            'Marking this portion as unread will also clear its revision history. Continue?'
+            'Marking this portion as unread will also clear its revision history and future revision schedule. Continue?'
           );
 
 
-        if (
-          !confirmed
-        ) {
-
+        if (!confirmed) {
           return;
         }
       }
@@ -2273,9 +2068,7 @@ export function BookProgressTracker({
 
 
   /*
-   * =========================================
    * FILTER RESET
-   * =========================================
    */
 
   function clearFilters() {
@@ -2283,77 +2076,65 @@ export function BookProgressTracker({
     setSearch('');
 
 
-    if (
-      initialSubject
-    ) {
+    if (!initialSubject) {
+      setSubjectFilter('all');
 
-      const requested =
-        normalise(
-          initialSubject
-        );
-
-
-      const match =
-        subjects.find(
-          subject => {
-
-            const candidate =
-              normalise(
-                subject
-              );
-
-
-            return (
-              candidate ===
-                requested ||
-              candidate.includes(
-                requested
-              ) ||
-              requested.includes(
-                candidate
-              )
-            );
-          }
-        );
-
-
-      setSubjectFilter(
-        match ||
-        'all'
-      );
-
-    } else {
-
-      setSubjectFilter(
-        'all'
-      );
+      return;
     }
+
+
+    const requested =
+      normalise(
+        initialSubject
+      );
+
+
+    const match =
+      subjects.find(
+        subject => {
+
+          const candidate =
+            normalise(
+              subject
+            );
+
+
+          return (
+            candidate === requested ||
+            candidate.includes(
+              requested
+            ) ||
+            requested.includes(
+              candidate
+            )
+          );
+        }
+      );
+
+
+    setSubjectFilter(
+      match || 'all'
+    );
   }
 
 
   /*
-   * =========================================
    * RENDER TOPIC
-   * =========================================
    */
 
   function renderTopic(
-    topic:
-      TopicRow,
-    depth =
-      0
+    topic: TopicRow,
+    depth = 0
   ) {
 
     const children =
       childrenMap.get(
         topic.id
-      ) ||
-      [];
+      ) || [];
 
 
     const isLeaf =
-      children.length ===
-      0;
+      children.length === 0;
 
 
     const leafIds =
@@ -2404,8 +2185,7 @@ export function BookProgressTracker({
 
 
     const fullyRead =
-      leafIds.length >
-        0 &&
+      leafIds.length > 0 &&
       readCount ===
         leafIds.length;
 
@@ -2422,39 +2202,49 @@ export function BookProgressTracker({
       );
 
 
+    const dueSummary =
+      getDueSummary(
+        leafIds
+      );
+
+
+    const leafDue =
+      isLeaf
+        ? buildDueInfo(
+            leafProgress
+              .nextRevisionDueAt,
+
+            leafProgress
+              .revisionCount
+          )
+        : null;
+
+
     let latestRevisionDate =
       '';
 
 
-    if (
-      isLeaf
-    ) {
+    if (isLeaf) {
 
       if (
-        leafProgress.revisionCount ===
-        3
+        leafProgress.revisionCount === 3
       ) {
-
         latestRevisionDate =
           formatDate(
             leafProgress.finalRevisionAt
           );
 
       } else if (
-        leafProgress.revisionCount ===
-        2
+        leafProgress.revisionCount === 2
       ) {
-
         latestRevisionDate =
           formatDate(
             leafProgress.revision2At
           );
 
       } else if (
-        leafProgress.revisionCount ===
-        1
+        leafProgress.revisionCount === 1
       ) {
-
         latestRevisionDate =
           formatDate(
             leafProgress.revision1At
@@ -2472,40 +2262,36 @@ export function BookProgressTracker({
 
         style={{
           marginLeft:
-            depth >
-              0
+            depth > 0
               ? '18px'
               : '0',
 
           marginTop:
-            depth >
-              0
+            depth > 0
               ? '8px'
               : '12px',
 
           padding:
-            depth >
-              0
+            depth > 0
               ? '11px 12px'
               : '13px 14px',
 
           border:
-            '1px solid rgba(255,255,255,.08)',
+            dueSummary.overdue > 0
+              ? '1px solid rgba(248,113,113,.30)'
+              : '1px solid rgba(255,255,255,.08)',
 
           borderRadius:
             '12px',
 
           background:
-            depth >
-              0
+            depth > 0
               ? '#0e1525'
               : 'rgba(255,255,255,.025)'
         }}
       >
 
-        {/* =================================
-            TOPIC HEADER
-        ================================= */}
+        {/* TOPIC HEADER */}
 
         <div
           style={{
@@ -2585,9 +2371,7 @@ export function BookProgressTracker({
             <span>
 
               <strong>
-                {
-                  topic.topic_name
-                }
+                {topic.topic_name}
               </strong>
 
 
@@ -2605,21 +2389,55 @@ export function BookProgressTracker({
                       '#94a3b8'
                   }}
                 >
-
                   Read {readCount}/{leafIds.length}
-
                   {' • '}
-
                   R1 {revision1Count}/{leafIds.length}
-
                   {' • '}
-
                   R2 {revision2Count}/{leafIds.length}
-
                   {' • '}
-
                   Final {finalCount}/{leafIds.length}
+                </small>
 
+              )}
+
+
+              {!isLeaf &&
+                signedIn &&
+                dueSummary.earliest && (
+
+                <small
+                  style={{
+                    display:
+                      'block',
+
+                    marginTop:
+                      '5px',
+
+                    color:
+                      dueSummary
+                        .earliest
+                        .color
+                  }}
+                >
+                  Next due:
+                  {' '}
+                  {
+                    dueSummary
+                      .earliest
+                      .nextLabel
+                  }
+                  {' • '}
+                  {
+                    dueSummary
+                      .earliest
+                      .statusLabel
+                  }
+                  {' • '}
+                  {
+                    dueSummary
+                      .earliest
+                      .dateLabel
+                  }
                 </small>
 
               )}
@@ -2668,9 +2486,7 @@ export function BookProgressTracker({
         </div>
 
 
-        {/* =================================
-            READ PROGRESS BAR
-        ================================= */}
+        {/* READ BAR */}
 
         <div
           className="progress-track"
@@ -2680,20 +2496,16 @@ export function BookProgressTracker({
               '10px'
           }}
         >
-
           <span
             style={{
               width:
                 `${readPercent}%`
             }}
           />
-
         </div>
 
 
-        {/* =================================
-            LEAF REVISION CONTROLS
-        ================================= */}
+        {/* LEAF REVISION CONTROLS */}
 
         {isLeaf && (
 
@@ -2703,8 +2515,6 @@ export function BookProgressTracker({
                 '12px'
             }}
           >
-
-            {/* STAGES */}
 
             <div
               style={{
@@ -2721,6 +2531,7 @@ export function BookProgressTracker({
 
               <span
                 className="tag"
+
                 style={{
                   opacity:
                     leafProgress.completed
@@ -2738,17 +2549,16 @@ export function BookProgressTracker({
 
               <span
                 className="tag"
+
                 style={{
                   opacity:
-                    leafProgress.revisionCount >=
-                      1
+                    leafProgress.revisionCount >= 1
                       ? 1
                       : 0.5
                 }}
               >
                 {
-                  leafProgress.revisionCount >=
-                    1
+                  leafProgress.revisionCount >= 1
                     ? '✓ Revision 1'
                     : '○ Revision 1'
                 }
@@ -2757,17 +2567,16 @@ export function BookProgressTracker({
 
               <span
                 className="tag"
+
                 style={{
                   opacity:
-                    leafProgress.revisionCount >=
-                      2
+                    leafProgress.revisionCount >= 2
                       ? 1
                       : 0.5
                 }}
               >
                 {
-                  leafProgress.revisionCount >=
-                    2
+                  leafProgress.revisionCount >= 2
                     ? '✓ Revision 2'
                     : '○ Revision 2'
                 }
@@ -2776,17 +2585,16 @@ export function BookProgressTracker({
 
               <span
                 className="tag"
+
                 style={{
                   opacity:
-                    leafProgress.revisionCount >=
-                      3
+                    leafProgress.revisionCount >= 3
                       ? 1
                       : 0.5
                 }}
               >
                 {
-                  leafProgress.revisionCount >=
-                    3
+                  leafProgress.revisionCount >= 3
                     ? '✓ Final'
                     : '○ Final'
                 }
@@ -2795,11 +2603,69 @@ export function BookProgressTracker({
             </div>
 
 
-            {/* NEXT REVISION */}
+            {/* NEXT REVISION DATE */}
 
             {leafProgress.completed &&
-              leafProgress.revisionCount <
-                3 && (
+              leafProgress.revisionCount < 3 &&
+              leafDue && (
+
+              <div
+                style={{
+                  marginTop:
+                    '10px',
+
+                  padding:
+                    '10px 12px',
+
+                  border:
+                    `1px solid ${leafDue.borderColor}`,
+
+                  borderRadius:
+                    '10px',
+
+                  background:
+                    leafDue.background
+                }}
+              >
+
+                <strong
+                  style={{
+                    color:
+                      leafDue.color
+                  }}
+                >
+                  {leafDue.statusLabel}
+                </strong>
+
+
+                <small
+                  style={{
+                    display:
+                      'block',
+
+                    marginTop:
+                      '4px',
+
+                    color:
+                      '#cbd5e1'
+                  }}
+                >
+                  Next:
+                  {' '}
+                  {leafDue.nextLabel}
+                  {' • '}
+                  {leafDue.dateLabel}
+                </small>
+
+              </div>
+
+            )}
+
+
+            {/* NEXT REVISION ACTION */}
+
+            {leafProgress.completed &&
+              leafProgress.revisionCount < 3 && (
 
               <button
                 type="button"
@@ -2822,22 +2688,18 @@ export function BookProgressTracker({
                     '10px'
                 }}
               >
-
                 {
                   currentlySaving
                     ? 'Saving...'
 
-                    : leafProgress.revisionCount ===
-                      0
+                    : leafProgress.revisionCount === 0
                     ? 'Mark Revision 1'
 
-                    : leafProgress.revisionCount ===
-                      1
+                    : leafProgress.revisionCount === 1
                     ? 'Mark Revision 2'
 
                     : 'Mark Final Revision'
                 }
-
               </button>
 
             )}
@@ -2846,8 +2708,7 @@ export function BookProgressTracker({
             {/* FULLY REVISED */}
 
             {leafProgress.completed &&
-              leafProgress.revisionCount ===
-                3 && (
+              leafProgress.revisionCount === 3 && (
 
               <div
                 className="callout"
@@ -2857,7 +2718,6 @@ export function BookProgressTracker({
                     '10px'
                 }}
               >
-
                 <strong>
                   ✓ Fully Revised
                 </strong>
@@ -2874,7 +2734,9 @@ export function BookProgressTracker({
                         '4px'
                     }}
                   >
-                    Final revision: {latestRevisionDate}
+                    Final revision:
+                    {' '}
+                    {latestRevisionDate}
                   </small>
 
                 )}
@@ -2884,13 +2746,11 @@ export function BookProgressTracker({
             )}
 
 
-            {/* CURRENT REVISION DATE */}
+            {/* LATEST REVISION */}
 
             {leafProgress.completed &&
-              leafProgress.revisionCount >
-                0 &&
-              leafProgress.revisionCount <
-                3 &&
+              leafProgress.revisionCount > 0 &&
+              leafProgress.revisionCount < 3 &&
               latestRevisionDate && (
 
               <small
@@ -2905,17 +2765,18 @@ export function BookProgressTracker({
                     '8px'
                 }}
               >
-                Latest revision: {latestRevisionDate}
+                Latest revision:
+                {' '}
+                {latestRevisionDate}
               </small>
 
             )}
 
 
-            {/* UNDO REVISION */}
+            {/* UNDO */}
 
             {leafProgress.completed &&
-              leafProgress.revisionCount >
-                0 && (
+              leafProgress.revisionCount > 0 && (
 
               <button
                 type="button"
@@ -2944,8 +2805,6 @@ export function BookProgressTracker({
             )}
 
 
-            {/* NOT READ */}
-
             {!leafProgress.completed &&
               signedIn && (
 
@@ -2961,7 +2820,9 @@ export function BookProgressTracker({
                     '9px'
                 }}
               >
-                Mark this portion as Read to unlock revision tracking.
+                Mark this portion as Read to
+                create its automatic revision
+                schedule.
               </small>
 
             )}
@@ -2971,9 +2832,7 @@ export function BookProgressTracker({
         )}
 
 
-        {/* =================================
-            CHILD TOPICS
-        ================================= */}
+        {/* CHILDREN */}
 
         {!isLeaf && (
 
@@ -2991,8 +2850,7 @@ export function BookProgressTracker({
               child =>
                 renderTopic(
                   child,
-                  depth +
-                    1
+                  depth + 1
                 )
             )}
 
@@ -3001,15 +2859,12 @@ export function BookProgressTracker({
         )}
 
       </div>
-
     );
   }
 
 
   /*
-   * =========================================
    * PAGE
-   * =========================================
    */
 
   return (
@@ -3018,9 +2873,7 @@ export function BookProgressTracker({
       className="study-resources-page"
     >
 
-      {/* =====================================
-          HEADER
-      ===================================== */}
+      {/* HEADER */}
 
       <section
         className="panel"
@@ -3034,15 +2887,15 @@ export function BookProgressTracker({
 
 
         <h2>
-          Reading & Revision Tracker
+          Reading, Revision & Due Dates
         </h2>
 
 
         <p>
-          Track each book from reading through
-          Revision 1, Revision 2 and Final Revision.
-          Progress is calculated from the smallest
-          readable topics and subtopics.
+          Track every book from first reading
+          through Revision 1, Revision 2 and
+          Final Revision. The app automatically
+          shows what is due, overdue or coming next.
         </p>
 
 
@@ -3060,16 +2913,12 @@ export function BookProgressTracker({
           <article
             className="metric-card"
           >
-
             <div>
-
               <span>
                 Read
               </span>
 
-
               <strong>
-
                 {
                   loading
                     ? '...'
@@ -3077,32 +2926,24 @@ export function BookProgressTracker({
                     ? `${overallReadPercent}%`
                     : '—'
                 }
-
               </strong>
-
 
               <small>
                 {overallReadCount}/{allLeafIds.length} portions
               </small>
-
             </div>
-
           </article>
 
 
           <article
             className="metric-card"
           >
-
             <div>
-
               <span>
                 Revision 1
               </span>
 
-
               <strong>
-
                 {
                   loading
                     ? '...'
@@ -3110,32 +2951,24 @@ export function BookProgressTracker({
                     ? `${overallRevision1Percent}%`
                     : '—'
                 }
-
               </strong>
-
 
               <small>
                 {overallRevision1Count}/{allLeafIds.length} portions
               </small>
-
             </div>
-
           </article>
 
 
           <article
             className="metric-card"
           >
-
             <div>
-
               <span>
                 Revision 2
               </span>
 
-
               <strong>
-
                 {
                   loading
                     ? '...'
@@ -3143,32 +2976,24 @@ export function BookProgressTracker({
                     ? `${overallRevision2Percent}%`
                     : '—'
                 }
-
               </strong>
-
 
               <small>
                 {overallRevision2Count}/{allLeafIds.length} portions
               </small>
-
             </div>
-
           </article>
 
 
           <article
             className="metric-card"
           >
-
             <div>
-
               <span>
                 Final Revision
               </span>
 
-
               <strong>
-
                 {
                   loading
                     ? '...'
@@ -3176,26 +3001,146 @@ export function BookProgressTracker({
                     ? `${overallFinalPercent}%`
                     : '—'
                 }
-
               </strong>
-
 
               <small>
                 {overallFinalCount}/{allLeafIds.length} portions
               </small>
-
             </div>
-
           </article>
 
         </div>
 
 
-        {/* OVERALL READ BAR */}
+        {/* DUE SUMMARY */}
 
         {signedIn &&
-          allLeafIds.length >
-            0 && (
+          allLeafIds.length > 0 && (
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              gap:
+                '8px',
+
+              flexWrap:
+                'wrap',
+
+              marginTop:
+                '16px'
+            }}
+          >
+
+            <span
+              className="tag"
+            >
+              Due today:
+              {' '}
+              {overallDue.dueToday}
+            </span>
+
+
+            <span
+              className="tag"
+            >
+              Overdue:
+              {' '}
+              {overallDue.overdue}
+            </span>
+
+
+            <span
+              className="tag"
+            >
+              Scheduled:
+              {' '}
+              {overallDue.scheduled}
+            </span>
+
+          </div>
+
+        )}
+
+
+        {signedIn &&
+          overallDue.earliest && (
+
+          <div
+            style={{
+              marginTop:
+                '12px',
+
+              padding:
+                '12px',
+
+              border:
+                `1px solid ${
+                  overallDue
+                    .earliest
+                    .borderColor
+                }`,
+
+              borderRadius:
+                '12px',
+
+              background:
+                overallDue
+                  .earliest
+                  .background
+            }}
+          >
+
+            <strong
+              style={{
+                color:
+                  overallDue
+                    .earliest
+                    .color
+              }}
+            >
+              Next priority:
+              {' '}
+              {
+                overallDue
+                  .earliest
+                  .statusLabel
+              }
+            </strong>
+
+
+            <small
+              style={{
+                display:
+                  'block',
+
+                marginTop:
+                  '5px'
+              }}
+            >
+              {
+                overallDue
+                  .earliest
+                  .nextLabel
+              }
+              {' • '}
+              {
+                overallDue
+                  .earliest
+                  .dateLabel
+              }
+            </small>
+
+          </div>
+
+        )}
+
+
+        {/* READING BAR */}
+
+        {signedIn &&
+          allLeafIds.length > 0 && (
 
           <div
             style={{
@@ -3219,30 +3164,25 @@ export function BookProgressTracker({
                   '7px'
               }}
             >
-
               <strong>
                 Reading Progress
               </strong>
 
-
               <strong>
                 {overallReadPercent}%
               </strong>
-
             </div>
 
 
             <div
               className="progress-track"
             >
-
               <span
                 style={{
                   width:
                     `${overallReadPercent}%`
                 }}
               />
-
             </div>
 
           </div>
@@ -3250,11 +3190,10 @@ export function BookProgressTracker({
         )}
 
 
-        {/* FINAL REVISION BAR */}
+        {/* FINAL BAR */}
 
         {signedIn &&
-          allLeafIds.length >
-            0 && (
+          allLeafIds.length > 0 && (
 
           <div
             style={{
@@ -3278,38 +3217,31 @@ export function BookProgressTracker({
                   '7px'
               }}
             >
-
               <strong>
                 Final Revision Progress
               </strong>
 
-
               <strong>
                 {overallFinalPercent}%
               </strong>
-
             </div>
 
 
             <div
               className="progress-track"
             >
-
               <span
                 style={{
                   width:
                     `${overallFinalPercent}%`
                 }}
               />
-
             </div>
 
           </div>
 
         )}
 
-
-        {/* SIGNED OUT */}
 
         {!signedIn &&
           !loading && (
@@ -3322,24 +3254,19 @@ export function BookProgressTracker({
                 '16px'
             }}
           >
-
             <strong>
               Sign in to track preparation
             </strong>
 
-
             <p>
-              You can view books and topics without
-              signing in, but reading and revision
-              progress requires your account.
+              Books and topics are visible without
+              signing in, but personal progress and
+              revision dates require an account.
             </p>
-
           </div>
 
         )}
 
-
-        {/* MESSAGE */}
 
         {message && (
 
@@ -3376,9 +3303,7 @@ export function BookProgressTracker({
       </section>
 
 
-      {/* =====================================
-          FILTER
-      ===================================== */}
+      {/* FILTER */}
 
       <section
         className="panel"
@@ -3392,20 +3317,16 @@ export function BookProgressTracker({
         <div
           className="panel-head"
         >
-
           <div>
-
             <span
               className="eyebrow"
             >
               FIND YOUR BOOK
             </span>
 
-
             <h3>
               Subject and Book Filter
             </h3>
-
           </div>
 
 
@@ -3419,7 +3340,6 @@ export function BookProgressTracker({
           >
             Clear
           </button>
-
         </div>
 
 
@@ -3428,11 +3348,9 @@ export function BookProgressTracker({
         >
 
           <label>
-
             <span>
               Subject
             </span>
-
 
             <select
               value={
@@ -3446,15 +3364,12 @@ export function BookProgressTracker({
                   )
               }
             >
-
               <option value="all">
                 All Subjects
               </option>
 
-
               {subjects.map(
                 subject => (
-
                   <option
                     key={
                       subject
@@ -3466,21 +3381,16 @@ export function BookProgressTracker({
                   >
                     {subject}
                   </option>
-
                 )
               )}
-
             </select>
-
           </label>
 
 
           <label>
-
             <span>
               Search
             </span>
-
 
             <input
               type="text"
@@ -3498,7 +3408,6 @@ export function BookProgressTracker({
 
               placeholder="Book, topic, subtopic..."
             />
-
           </label>
 
         </div>
@@ -3506,9 +3415,7 @@ export function BookProgressTracker({
       </section>
 
 
-      {/* =====================================
-          LOADING
-      ===================================== */}
+      {/* LOADING */}
 
       {loading && (
 
@@ -3526,13 +3433,10 @@ export function BookProgressTracker({
       )}
 
 
-      {/* =====================================
-          NO BOOKS
-      ===================================== */}
+      {/* NO BOOKS */}
 
       {!loading &&
-        books.length ===
-          0 && (
+        books.length === 0 && (
 
         <section
           className="panel"
@@ -3542,32 +3446,25 @@ export function BookProgressTracker({
               '18px'
           }}
         >
-
           <h3>
             No published books yet
           </h3>
-
 
           <p>
             Add Standard Book resources from
             Admin Studio and create their topics
             in Book Structure.
           </p>
-
         </section>
 
       )}
 
 
-      {/* =====================================
-          NO FILTER RESULTS
-      ===================================== */}
+      {/* NO FILTER RESULT */}
 
       {!loading &&
-        books.length >
-          0 &&
-        subjectGroups.length ===
-          0 && (
+        books.length > 0 &&
+        subjectGroups.length === 0 && (
 
         <section
           className="panel"
@@ -3577,24 +3474,19 @@ export function BookProgressTracker({
               '18px'
           }}
         >
-
           <h3>
             No matching books
           </h3>
 
-
           <p>
             Try another subject or search term.
           </p>
-
         </section>
 
       )}
 
 
-      {/* =====================================
-          SUBJECTS
-      ===================================== */}
+      {/* SUBJECTS */}
 
       {!loading &&
         subjectGroups.map(
@@ -3633,6 +3525,12 @@ export function BookProgressTracker({
               );
 
 
+            const subjectDue =
+              getDueSummary(
+                subjectLeafIds
+              );
+
+
             return (
 
               <section
@@ -3655,18 +3553,15 @@ export function BookProgressTracker({
                 >
 
                   <div>
-
                     <span
                       className="eyebrow"
                     >
                       SUBJECT
                     </span>
 
-
                     <h2>
                       {group.subject}
                     </h2>
-
 
                     <small
                       style={{
@@ -3674,27 +3569,59 @@ export function BookProgressTracker({
                           '#94a3b8'
                       }}
                     >
-
                       {group.books.length}
-
                       {' '}
-
                       book{
-                        group.books.length ===
-                          1
+                        group.books.length === 1
                           ? ''
                           : 's'
                       }
-
                       {' • '}
-
                       {subjectReadCount}/{subjectLeafIds.length}
-
                       {' '}
-
                       read
-
                     </small>
+
+
+                    {signedIn &&
+                      subjectDue.earliest && (
+
+                      <small
+                        style={{
+                          display:
+                            'block',
+
+                          marginTop:
+                            '5px',
+
+                          color:
+                            subjectDue
+                              .earliest
+                              .color
+                        }}
+                      >
+                        Next due:
+                        {' '}
+                        {
+                          subjectDue
+                            .earliest
+                            .nextLabel
+                        }
+                        {' • '}
+                        {
+                          subjectDue
+                            .earliest
+                            .statusLabel
+                        }
+                        {' • '}
+                        {
+                          subjectDue
+                            .earliest
+                            .dateLabel
+                        }
+                      </small>
+
+                    )}
 
                   </div>
 
@@ -3749,7 +3676,6 @@ export function BookProgressTracker({
                       '12px'
                   }}
                 >
-
                   <span
                     style={{
                       width:
@@ -3758,8 +3684,41 @@ export function BookProgressTracker({
                           : '0%'
                     }}
                   />
-
                 </div>
+
+
+                {signedIn &&
+                  subjectLeafIds.length > 0 && (
+
+                  <div
+                    style={{
+                      display:
+                        'flex',
+
+                      gap:
+                        '7px',
+
+                      flexWrap:
+                        'wrap',
+
+                      marginTop:
+                        '10px'
+                    }}
+                  >
+                    <span
+                      className="tag"
+                    >
+                      Due today {subjectDue.dueToday}
+                    </span>
+
+                    <span
+                      className="tag"
+                    >
+                      Overdue {subjectDue.overdue}
+                    </span>
+                  </div>
+
+                )}
 
 
                 {/* BOOKS */}
@@ -3813,18 +3772,22 @@ export function BookProgressTracker({
                         );
 
 
+                      const bookDue =
+                        getDueSummary(
+                          bookLeafIds
+                        );
+
+
                       const rootTopics =
                         rootTopicsByBook.get(
                           book.id
-                        ) ||
-                        [];
+                        ) || [];
 
 
                       const expanded =
                         expandedBooks[
                           book.id
-                        ] ===
-                        true;
+                        ] === true;
 
 
                       const source =
@@ -3843,7 +3806,9 @@ export function BookProgressTracker({
 
                           style={{
                             border:
-                              '1px solid rgba(255,255,255,.08)',
+                              bookDue.overdue > 0
+                                ? '1px solid rgba(248,113,113,.28)'
+                                : '1px solid rgba(255,255,255,.08)',
 
                             borderRadius:
                               '16px',
@@ -3883,13 +3848,11 @@ export function BookProgressTracker({
                                   '1 1 260px'
                               }}
                             >
-
                               <span
                                 className="tag"
                               >
                                 Standard Book
                               </span>
-
 
                               <h3
                                 style={{
@@ -3900,9 +3863,7 @@ export function BookProgressTracker({
                                 {book.title}
                               </h3>
 
-
                               {source && (
-
                                 <small
                                   style={{
                                     color:
@@ -3911,15 +3872,52 @@ export function BookProgressTracker({
                                 >
                                   {source}
                                 </small>
-
                               )}
 
-
                               {book.description && (
-
                                 <p>
                                   {book.description}
                                 </p>
+                              )}
+
+
+                              {signedIn &&
+                                bookDue.earliest && (
+
+                                <small
+                                  style={{
+                                    display:
+                                      'block',
+
+                                    marginTop:
+                                      '8px',
+
+                                    color:
+                                      bookDue
+                                        .earliest
+                                        .color
+                                  }}
+                                >
+                                  Next due:
+                                  {' '}
+                                  {
+                                    bookDue
+                                      .earliest
+                                      .nextLabel
+                                  }
+                                  {' • '}
+                                  {
+                                    bookDue
+                                      .earliest
+                                      .statusLabel
+                                  }
+                                  {' • '}
+                                  {
+                                    bookDue
+                                      .earliest
+                                      .dateLabel
+                                  }
+                                </small>
 
                               )}
 
@@ -3932,7 +3930,6 @@ export function BookProgressTracker({
                                   'right'
                               }}
                             >
-
                               <strong
                                 style={{
                                   display:
@@ -3949,9 +3946,7 @@ export function BookProgressTracker({
                                 }
                               </strong>
 
-
                               {signedIn && (
-
                                 <small
                                   style={{
                                     display:
@@ -3966,9 +3961,7 @@ export function BookProgressTracker({
                                 >
                                   {bookFinalPercent}% Final
                                 </small>
-
                               )}
-
 
                               <small
                                 style={{
@@ -3984,13 +3977,12 @@ export function BookProgressTracker({
                               >
                                 {bookReadCount}/{bookLeafIds.length} portions
                               </small>
-
                             </div>
 
                           </div>
 
 
-                          {/* BOOK READ BAR */}
+                          {/* BOOK BAR */}
 
                           <div
                             className="progress-track"
@@ -4000,7 +3992,6 @@ export function BookProgressTracker({
                                 '12px'
                             }}
                           >
-
                             <span
                               style={{
                                 width:
@@ -4009,15 +4000,13 @@ export function BookProgressTracker({
                                     : '0%'
                               }}
                             />
-
                           </div>
 
 
-                          {/* BOOK REVISION SUMMARY */}
+                          {/* BOOK SUMMARY */}
 
                           {signedIn &&
-                            bookLeafIds.length >
-                              0 && (
+                            bookLeafIds.length > 0 && (
 
                             <div
                               style={{
@@ -4046,7 +4035,6 @@ export function BookProgressTracker({
                                 }/{bookLeafIds.length}
                               </span>
 
-
                               <span
                                 className="tag"
                               >
@@ -4058,19 +4046,28 @@ export function BookProgressTracker({
                                 }/{bookLeafIds.length}
                               </span>
 
-
                               <span
                                 className="tag"
                               >
                                 Final {bookFinalCount}/{bookLeafIds.length}
                               </span>
 
+                              <span
+                                className="tag"
+                              >
+                                Due today {bookDue.dueToday}
+                              </span>
+
+                              <span
+                                className="tag"
+                              >
+                                Overdue {bookDue.overdue}
+                              </span>
+
                             </div>
 
                           )}
 
-
-                          {/* OPEN BOOK */}
 
                           <button
                             type="button"
@@ -4092,17 +4089,13 @@ export function BookProgressTracker({
                                 '14px'
                             }}
                           >
-
                             {
                               expanded
                                 ? 'Hide Topics'
                                 : 'Open Topics'
                             }
-
                           </button>
 
-
-                          {/* TOPICS */}
 
                           {expanded && (
 
@@ -4113,16 +4106,13 @@ export function BookProgressTracker({
                               }}
                             >
 
-                              {rootTopics.length ===
-                                0 && (
-
+                              {rootTopics.length === 0 && (
                                 <div
                                   className="callout"
                                 >
                                   No topics have been added
                                   to this book yet.
                                 </div>
-
                               )}
 
 
@@ -4152,6 +4142,5 @@ export function BookProgressTracker({
         )}
 
     </div>
-
   );
 }
