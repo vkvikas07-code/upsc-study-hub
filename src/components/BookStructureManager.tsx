@@ -1440,6 +1440,259 @@ export function BookStructureManager() {
    */
 
   async function moveTopic(
+  topic:
+    BookTopic,
+  direction:
+    'up' |
+    'down'
+) {
+
+  /*
+   * IMPORTANT:
+   *
+   * Store the checked Supabase
+   * client in a local constant.
+   *
+   * TypeScript can then safely
+   * use it inside map() callbacks.
+   */
+
+  const client =
+    supabase;
+
+
+  if (!client) {
+
+    setMessage(
+      'Supabase is not configured.'
+    );
+
+    return;
+  }
+
+
+  /*
+   * ONLY REORDER ITEMS
+   * INSIDE THE SAME PARENT.
+   *
+   * Main topics reorder
+   * with main topics.
+   *
+   * Subtopics reorder only
+   * inside their parent topic.
+   */
+
+  const siblings =
+    topics
+      .filter(
+        item =>
+          item.parent_id ===
+          topic.parent_id
+      )
+      .sort(
+        (
+          first,
+          second
+        ) => {
+
+          if (
+            first.sort_order !==
+            second.sort_order
+          ) {
+
+            return (
+              first.sort_order -
+              second.sort_order
+            );
+          }
+
+
+          return first
+            .topic_name
+            .localeCompare(
+              second.topic_name
+            );
+        }
+      );
+
+
+  /*
+   * FIND CURRENT POSITION
+   */
+
+  const currentIndex =
+    siblings.findIndex(
+      item =>
+        item.id ===
+        topic.id
+    );
+
+
+  if (
+    currentIndex <
+    0
+  ) {
+
+    return;
+  }
+
+
+  /*
+   * CALCULATE TARGET POSITION
+   */
+
+  const targetIndex =
+    direction ===
+      'up'
+      ? currentIndex -
+        1
+      : currentIndex +
+        1;
+
+
+  /*
+   * DO NOTHING IF ALREADY
+   * FIRST OR LAST ITEM
+   */
+
+  if (
+    targetIndex <
+      0 ||
+    targetIndex >=
+      siblings.length
+  ) {
+
+    return;
+  }
+
+
+  /*
+   * CREATE NEW ORDER
+   */
+
+  const reordered =
+    [
+      ...siblings
+    ];
+
+
+  const [
+    moved
+  ] =
+    reordered.splice(
+      currentIndex,
+      1
+    );
+
+
+  if (!moved) {
+
+    return;
+  }
+
+
+  reordered.splice(
+    targetIndex,
+    0,
+    moved
+  );
+
+
+  setMessage(
+    'Updating order...'
+  );
+
+
+  /*
+   * NORMALISE SORT ORDER
+   *
+   * 10
+   * 20
+   * 30
+   * 40
+   * ...
+   */
+
+  const results =
+    await Promise.all(
+
+      reordered.map(
+        (
+          item,
+          itemIndex
+        ) =>
+
+          client
+            .from(
+              'book_topics'
+            )
+            .update({
+
+              sort_order:
+                (
+                  itemIndex +
+                  1
+                ) *
+                10
+
+            })
+            .eq(
+              'id',
+              item.id
+            )
+      )
+
+    );
+
+
+  /*
+   * CHECK IF ANY UPDATE FAILED
+   */
+
+  const failed =
+    results.find(
+      result =>
+        result.error
+    );
+
+
+  if (
+    failed?.error
+  ) {
+
+    console.error(
+      'Unable to reorder topics:',
+      failed.error
+    );
+
+
+    setMessage(
+      failed.error.message
+    );
+
+
+    return;
+  }
+
+
+  /*
+   * SUCCESS
+   */
+
+  setMessage(
+    'Order updated.'
+  );
+
+
+  /*
+   * RELOAD THE BOOK
+   * STRUCTURE
+   */
+
+  await loadTopics(
+    topic.book_id
+  );
+}
     topic:
       BookTopic,
     direction:
