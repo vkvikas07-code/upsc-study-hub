@@ -32,20 +32,127 @@ type TopicRow = {
 type ProgressRow = {
   book_topic_id: string;
   completed: boolean;
+
+  revision_count:
+    number |
+    string |
+    null;
+};
+
+
+type ProgressState = {
+  completed: boolean;
+  revisionCount: number;
 };
 
 
 type SubjectSummary = {
   subject: string;
-  completed: number;
+
   total: number;
-  percent: number;
+
+  read: number;
+  revision1: number;
+  revision2: number;
+  final: number;
+
+  readPercent: number;
+  revision1Percent: number;
+  revision2Percent: number;
+  finalPercent: number;
 };
 
 
 type HomeBookProgressSnapshotProps = {
   onOpenTracker: () => void;
 };
+
+
+const EMPTY_PROGRESS:
+  ProgressState = {
+
+  completed:
+    false,
+
+  revisionCount:
+    0
+};
+
+
+/*
+ * SAFE NUMBER
+ */
+
+function safeNumber(
+  value:
+    unknown
+) {
+
+  const number =
+    Number(
+      value
+    );
+
+
+  return Number.isFinite(
+    number
+  )
+    ? number
+    : 0;
+}
+
+
+/*
+ * REVISION COUNT
+ */
+
+function cleanRevisionCount(
+  value:
+    unknown
+) {
+
+  return Math.min(
+    3,
+    Math.max(
+      0,
+      Math.round(
+        safeNumber(
+          value
+        )
+      )
+    )
+  );
+}
+
+
+/*
+ * PERCENT
+ */
+
+function percentage(
+  completed:
+    number,
+  total:
+    number
+) {
+
+  if (
+    total <=
+    0
+  ) {
+
+    return 0;
+  }
+
+
+  return Math.round(
+    (
+      completed /
+      total
+    ) *
+    100
+  );
+}
 
 
 /*
@@ -57,7 +164,9 @@ export function HomeBookProgressSnapshot({
 }: HomeBookProgressSnapshotProps) {
 
   /*
+   * =========================================
    * DATA
+   * =========================================
    */
 
   const [
@@ -79,14 +188,15 @@ export function HomeBookProgressSnapshot({
 
 
   const [
-    completedIds,
-    setCompletedIds
+    progressByTopic,
+    setProgressByTopic
   ] =
     useState<
-      Set<string>
-    >(
-      new Set()
-    );
+      Record<
+        string,
+        ProgressState
+      >
+    >({});
 
 
   /*
@@ -119,7 +229,9 @@ export function HomeBookProgressSnapshot({
 
 
   /*
+   * =========================================
    * LOAD SNAPSHOT
+   * =========================================
    */
 
   async function loadSnapshot() {
@@ -247,6 +359,7 @@ export function HomeBookProgressSnapshot({
                 item.subject ||
                 'General'
               )
+
           })
         );
 
@@ -257,7 +370,7 @@ export function HomeBookProgressSnapshot({
 
 
     /*
-     * NO BOOKS YET
+     * NO BOOKS
      */
 
     if (
@@ -270,8 +383,13 @@ export function HomeBookProgressSnapshot({
       );
 
 
-      setCompletedIds(
-        new Set()
+      setProgressByTopic(
+        {}
+      );
+
+
+      setSignedIn(
+        false
       );
 
 
@@ -285,8 +403,8 @@ export function HomeBookProgressSnapshot({
 
 
     /*
-     * ONLY TOPICS BELONGING
-     * TO PUBLISHED BOOKS
+     * LOAD ACTIVE TOPICS
+     * ONLY FOR PUBLISHED BOOKS
      */
 
     const bookIds =
@@ -384,6 +502,7 @@ export function HomeBookProgressSnapshot({
             is_active:
               item.is_active !==
               false
+
           })
         );
 
@@ -394,7 +513,7 @@ export function HomeBookProgressSnapshot({
 
 
     /*
-     * CHECK CURRENT USER
+     * CURRENT USER
      */
 
     const {
@@ -414,8 +533,8 @@ export function HomeBookProgressSnapshot({
       );
 
 
-      setCompletedIds(
-        new Set()
+      setProgressByTopic(
+        {}
       );
 
 
@@ -434,7 +553,8 @@ export function HomeBookProgressSnapshot({
 
 
     /*
-     * LOAD USER COMPLETION
+     * LOAD READ +
+     * REVISION PROGRESS
      */
 
     const {
@@ -451,7 +571,8 @@ export function HomeBookProgressSnapshot({
         .select(
           `
           book_topic_id,
-          completed
+          completed,
+          revision_count
           `
         )
         .eq(
@@ -475,8 +596,8 @@ export function HomeBookProgressSnapshot({
       );
 
 
-      setCompletedIds(
-        new Set()
+      setProgressByTopic(
+        {}
       );
 
 
@@ -489,8 +610,11 @@ export function HomeBookProgressSnapshot({
     }
 
 
-    const nextCompletedIds =
-      new Set<string>();
+    const nextProgress:
+      Record<
+        string,
+        ProgressState
+      > = {};
 
 
     (
@@ -504,22 +628,28 @@ export function HomeBookProgressSnapshot({
             ProgressRow;
 
 
-        if (
-          row.completed
-        ) {
+        nextProgress[
+          String(
+            row.book_topic_id
+          )
+        ] = {
 
-          nextCompletedIds.add(
-            String(
-              row.book_topic_id
+          completed:
+            row.completed ===
+            true,
+
+          revisionCount:
+            cleanRevisionCount(
+              row.revision_count
             )
-          );
-        }
+
+        };
       }
     );
 
 
-    setCompletedIds(
-      nextCompletedIds
+    setProgressByTopic(
+      nextProgress
     );
 
 
@@ -544,7 +674,9 @@ export function HomeBookProgressSnapshot({
 
 
   /*
+   * =========================================
    * CHILDREN MAP
+   * =========================================
    */
 
   const childrenMap =
@@ -569,21 +701,21 @@ export function HomeBookProgressSnapshot({
             }
 
 
-            const current =
+            const children =
               map.get(
                 topic.parent_id
               ) ||
               [];
 
 
-            current.push(
+            children.push(
               topic
             );
 
 
             map.set(
               topic.parent_id,
-              current
+              children
             );
           }
         );
@@ -599,11 +731,12 @@ export function HomeBookProgressSnapshot({
 
 
   /*
+   * =========================================
    * LEAF TOPICS
    *
-   * Progress is calculated
-   * from the smallest readable
-   * portions only.
+   * Only the smallest readable
+   * portions count toward progress.
+   * =========================================
    */
 
   const leafTopics =
@@ -636,10 +769,30 @@ export function HomeBookProgressSnapshot({
 
 
   /*
-   * OVERALL PROGRESS
+   * PROGRESS STATE
    */
 
-  const overallStats =
+  function getProgress(
+    topicId:
+      string
+  ) {
+
+    return (
+      progressByTopic[
+        topicId
+      ] ||
+      EMPTY_PROGRESS
+    );
+  }
+
+
+  /*
+   * =========================================
+   * OVERALL COUNTS
+   * =========================================
+   */
+
+  const overall =
     useMemo(
       () => {
 
@@ -647,74 +800,138 @@ export function HomeBookProgressSnapshot({
           leafTopics.length;
 
 
-        if (
-          total ===
-          0
-        ) {
-
-          return {
-            completed:
-              0,
-
-            total:
-              0,
-
-            percent:
-              0
-          };
-        }
+        let read =
+          0;
 
 
-        const completed =
-          leafTopics.filter(
-            topic =>
-              completedIds.has(
+        let revision1 =
+          0;
+
+
+        let revision2 =
+          0;
+
+
+        let final =
+          0;
+
+
+        leafTopics.forEach(
+          topic => {
+
+            const progress =
+              progressByTopic[
                 topic.id
-              )
-          ).length;
+              ] ||
+              EMPTY_PROGRESS;
+
+
+            if (
+              progress.completed
+            ) {
+
+              read +=
+                1;
+            }
+
+
+            if (
+              progress.revisionCount >=
+              1
+            ) {
+
+              revision1 +=
+                1;
+            }
+
+
+            if (
+              progress.revisionCount >=
+              2
+            ) {
+
+              revision2 +=
+                1;
+            }
+
+
+            if (
+              progress.revisionCount >=
+              3
+            ) {
+
+              final +=
+                1;
+            }
+          }
+        );
 
 
         return {
 
-          completed,
-
           total,
 
-          percent:
-            Math.round(
-              (
-                completed /
-                total
-              ) *
-              100
+          read,
+
+          revision1,
+
+          revision2,
+
+          final,
+
+          readPercent:
+            percentage(
+              read,
+              total
+            ),
+
+          revision1Percent:
+            percentage(
+              revision1,
+              total
+            ),
+
+          revision2Percent:
+            percentage(
+              revision2,
+              total
+            ),
+
+          finalPercent:
+            percentage(
+              final,
+              total
             )
+
         };
 
       },
       [
         leafTopics,
-        completedIds
+        progressByTopic
       ]
     );
 
 
   /*
-   * SUBJECT PROGRESS
+   * =========================================
+   * SUBJECT SUMMARY
+   * =========================================
    */
 
   const subjectSummaries =
     useMemo(
       () => {
 
-        const subjectMap =
+        const map =
           new Map<
             string,
             {
-              completed:
-                number;
-
-              total:
-                number;
+              total: number;
+              read: number;
+              revision1: number;
+              revision2: number;
+              final: number;
             }
           >();
 
@@ -723,8 +940,8 @@ export function HomeBookProgressSnapshot({
           topic => {
 
             /*
-             * USE BOOK SUBJECT AS
-             * PRIMARY SOURCE.
+             * BOOK SUBJECT IS
+             * THE PRIMARY SOURCE
              */
 
             const book =
@@ -742,14 +959,23 @@ export function HomeBookProgressSnapshot({
 
 
             const current =
-              subjectMap.get(
+              map.get(
                 subject
-              ) ||
-              {
-                completed:
-                  0,
+              ) || {
 
                 total:
+                  0,
+
+                read:
+                  0,
+
+                revision1:
+                  0,
+
+                revision2:
+                  0,
+
+                final:
                   0
               };
 
@@ -758,18 +984,53 @@ export function HomeBookProgressSnapshot({
               1;
 
 
-            if (
-              completedIds.has(
+            const progress =
+              progressByTopic[
                 topic.id
-              )
+              ] ||
+              EMPTY_PROGRESS;
+
+
+            if (
+              progress.completed
             ) {
 
-              current.completed +=
+              current.read +=
                 1;
             }
 
 
-            subjectMap.set(
+            if (
+              progress.revisionCount >=
+              1
+            ) {
+
+              current.revision1 +=
+                1;
+            }
+
+
+            if (
+              progress.revisionCount >=
+              2
+            ) {
+
+              current.revision2 +=
+                1;
+            }
+
+
+            if (
+              progress.revisionCount >=
+              3
+            ) {
+
+              current.final +=
+                1;
+            }
+
+
+            map.set(
               subject,
               current
             );
@@ -781,7 +1042,7 @@ export function HomeBookProgressSnapshot({
           SubjectSummary[] =
             Array
               .from(
-                subjectMap.entries()
+                map.entries()
               )
               .map(
                 (
@@ -793,33 +1054,51 @@ export function HomeBookProgressSnapshot({
 
                   subject,
 
-                  completed:
-                    stats.completed,
-
                   total:
                     stats.total,
 
-                  percent:
-                    stats.total >
-                      0
-                      ? Math.round(
-                          (
-                            stats.completed /
-                            stats.total
-                          ) *
-                          100
-                        )
-                      : 0
+                  read:
+                    stats.read,
+
+                  revision1:
+                    stats.revision1,
+
+                  revision2:
+                    stats.revision2,
+
+                  final:
+                    stats.final,
+
+                  readPercent:
+                    percentage(
+                      stats.read,
+                      stats.total
+                    ),
+
+                  revision1Percent:
+                    percentage(
+                      stats.revision1,
+                      stats.total
+                    ),
+
+                  revision2Percent:
+                    percentage(
+                      stats.revision2,
+                      stats.total
+                    ),
+
+                  finalPercent:
+                    percentage(
+                      stats.final,
+                      stats.total
+                    )
+
                 })
               );
 
 
         /*
-         * SHOW MOST ACTIVE
-         * SUBJECTS FIRST.
-         *
-         * If equal, higher
-         * completion appears first.
+         * ACTIVE SUBJECTS FIRST
          */
 
         result.sort(
@@ -829,12 +1108,12 @@ export function HomeBookProgressSnapshot({
           ) => {
 
             const firstStarted =
-              first.completed >
+              first.read >
               0;
 
 
             const secondStarted =
-              second.completed >
+              second.read >
               0;
 
 
@@ -850,13 +1129,25 @@ export function HomeBookProgressSnapshot({
 
 
             if (
-              first.percent !==
-              second.percent
+              first.finalPercent !==
+              second.finalPercent
             ) {
 
               return (
-                second.percent -
-                first.percent
+                second.finalPercent -
+                first.finalPercent
+              );
+            }
+
+
+            if (
+              first.readPercent !==
+              second.readPercent
+            ) {
+
+              return (
+                second.readPercent -
+                first.readPercent
               );
             }
 
@@ -876,7 +1167,7 @@ export function HomeBookProgressSnapshot({
       [
         books,
         leafTopics,
-        completedIds
+        progressByTopic
       ]
     );
 
@@ -893,14 +1184,14 @@ export function HomeBookProgressSnapshot({
 
 
   /*
-   * BOOK COUNT WITH TOPICS
+   * BOOKS WITH TOPICS
    */
 
   const booksWithTopics =
     useMemo(
       () => {
 
-        const bookIds =
+        const ids =
           new Set(
             topics.map(
               topic =>
@@ -911,7 +1202,7 @@ export function HomeBookProgressSnapshot({
 
         return books.filter(
           book =>
-            bookIds.has(
+            ids.has(
               book.id
             )
         ).length;
@@ -924,15 +1215,19 @@ export function HomeBookProgressSnapshot({
     );
 
 
+  /*
+   * =========================================
+   * PAGE
+   * =========================================
+   */
+
   return (
 
     <article
       className="panel"
     >
 
-      {/* =====================================
-          HEADER
-      ===================================== */}
+      {/* HEADER */}
 
       <div
         className="panel-head"
@@ -948,7 +1243,7 @@ export function HomeBookProgressSnapshot({
 
 
           <h3>
-            Your reading progress
+            Reading & Revision
           </h3>
 
         </div>
@@ -968,22 +1263,18 @@ export function HomeBookProgressSnapshot({
       </div>
 
 
-      {/* =====================================
-          LOADING
-      ===================================== */}
+      {/* LOADING */}
 
       {loading && (
 
         <p>
-          Loading book progress...
+          Loading preparation progress...
         </p>
 
       )}
 
 
-      {/* =====================================
-          ERROR
-      ===================================== */}
+      {/* ERROR */}
 
       {!loading &&
         error && (
@@ -997,22 +1288,18 @@ export function HomeBookProgressSnapshot({
       )}
 
 
-      {/* =====================================
-          NO BOOK STRUCTURE
-      ===================================== */}
+      {/* NO BOOKS */}
 
       {!loading &&
         !error &&
-        books.length >
-          0 &&
-        leafTopics.length ===
+        books.length ===
           0 && (
 
         <>
 
           <p>
-            Your books are ready, but no
-            topic structure is available yet.
+            No published Standard Books are
+            available yet.
           </p>
 
 
@@ -1032,26 +1319,40 @@ export function HomeBookProgressSnapshot({
       )}
 
 
-      {/* =====================================
-          NO BOOKS
-      ===================================== */}
+      {/* NO TOPICS */}
 
       {!loading &&
         !error &&
-        books.length ===
+        books.length >
+          0 &&
+        leafTopics.length ===
           0 && (
 
-        <p>
-          No published Standard Books are
-          available yet.
-        </p>
+        <>
+
+          <p>
+            Books are available, but their topic
+            structure has not been added yet.
+          </p>
+
+
+          <button
+            type="button"
+            className="secondary-btn"
+
+            onClick={
+              onOpenTracker
+            }
+          >
+            Open Book Progress
+          </button>
+
+        </>
 
       )}
 
 
-      {/* =====================================
-          SIGNED OUT
-      ===================================== */}
+      {/* SIGNED OUT */}
 
       {!loading &&
         !error &&
@@ -1064,9 +1365,8 @@ export function HomeBookProgressSnapshot({
         <>
 
           <p>
-            Sign in to save your reading
-            completion and view your personal
-            Book Progress.
+            Sign in to track reading and revision
+            progress across your UPSC books.
           </p>
 
 
@@ -1076,7 +1376,7 @@ export function HomeBookProgressSnapshot({
                 'flex',
 
               gap:
-                '8px',
+                '7px',
 
               flexWrap:
                 'wrap',
@@ -1096,9 +1396,7 @@ export function HomeBookProgressSnapshot({
             <span
               className="tag"
             >
-              {
-                overallStats.total
-              } reading portions
+              {leafTopics.length} portions
             </span>
 
           </div>
@@ -1125,9 +1423,7 @@ export function HomeBookProgressSnapshot({
       )}
 
 
-      {/* =====================================
-          SIGNED IN
-      ===================================== */}
+      {/* SIGNED IN */}
 
       {!loading &&
         !error &&
@@ -1137,7 +1433,9 @@ export function HomeBookProgressSnapshot({
 
         <>
 
-          {/* OVERALL */}
+          {/* =================================
+              OVERALL PREPARATION
+          ================================= */}
 
           <div
             style={{
@@ -1167,17 +1465,20 @@ export function HomeBookProgressSnapshot({
                   'space-between',
 
                 alignItems:
-                  'center',
+                  'flex-start',
 
                 gap:
-                  '12px'
+                  '12px',
+
+                flexWrap:
+                  'wrap'
               }}
             >
 
               <div>
 
                 <strong>
-                  Overall Reading
+                  Overall Preparation
                 </strong>
 
 
@@ -1193,17 +1494,7 @@ export function HomeBookProgressSnapshot({
                       '#94a3b8'
                   }}
                 >
-
-                  {
-                    overallStats.completed
-                  }
-                  /
-                  {
-                    overallStats.total
-                  }
-                  {' '}
-                  portions completed
-
+                  {overall.total} total reading portions
                 </small>
 
               </div>
@@ -1212,42 +1503,176 @@ export function HomeBookProgressSnapshot({
               <strong
                 style={{
                   fontSize:
-                    '1.35rem',
-
-                  color:
-                    '#5eead4'
+                    '1.35rem'
                 }}
               >
-                {
-                  overallStats.percent
-                }%
+                {overall.readPercent}% Read
               </strong>
 
             </div>
 
 
-            <div
-              className="progress-track"
+            {/* READING BAR */}
 
+            <div
               style={{
                 marginTop:
-                  '10px'
+                  '13px'
+              }}
+            >
+
+              <div
+                style={{
+                  display:
+                    'flex',
+
+                  justifyContent:
+                    'space-between',
+
+                  gap:
+                    '10px',
+
+                  marginBottom:
+                    '6px'
+                }}
+              >
+
+                <small>
+                  Reading
+                </small>
+
+
+                <small>
+                  {overall.read}/{overall.total}
+                </small>
+
+              </div>
+
+
+              <div
+                className="progress-track"
+              >
+
+                <span
+                  style={{
+                    width:
+                      `${overall.readPercent}%`
+                  }}
+                />
+
+              </div>
+
+            </div>
+
+
+            {/* FINAL REVISION BAR */}
+
+            <div
+              style={{
+                marginTop:
+                  '11px'
+              }}
+            >
+
+              <div
+                style={{
+                  display:
+                    'flex',
+
+                  justifyContent:
+                    'space-between',
+
+                  gap:
+                    '10px',
+
+                  marginBottom:
+                    '6px'
+                }}
+              >
+
+                <small>
+                  Final Revision
+                </small>
+
+
+                <small>
+                  {overall.final}/{overall.total}
+                  {' • '}
+                  {overall.finalPercent}%
+                </small>
+
+              </div>
+
+
+              <div
+                className="progress-track"
+              >
+
+                <span
+                  style={{
+                    width:
+                      `${overall.finalPercent}%`
+                  }}
+                />
+
+              </div>
+
+            </div>
+
+
+            {/* REVISION COUNTS */}
+
+            <div
+              style={{
+                display:
+                  'flex',
+
+                gap:
+                  '7px',
+
+                flexWrap:
+                  'wrap',
+
+                marginTop:
+                  '12px'
               }}
             >
 
               <span
-                style={{
-                  width:
-                    `${overallStats.percent}%`
-                }}
-              />
+                className="tag"
+              >
+                Read {overall.read}/{overall.total}
+              </span>
+
+
+              <span
+                className="tag"
+              >
+                R1 {overall.revision1}/{overall.total}
+              </span>
+
+
+              <span
+                className="tag"
+              >
+                R2 {overall.revision2}/{overall.total}
+              </span>
+
+
+              <span
+                className="tag"
+              >
+                Final {overall.final}/{overall.total}
+              </span>
 
             </div>
 
           </div>
 
 
-          {/* SUBJECT PROGRESS */}
+          {/* =================================
+              TOP SUBJECTS
+          ================================= */}
 
           {topSubjects.length >
             0 && (
@@ -1258,7 +1683,7 @@ export function HomeBookProgressSnapshot({
                   'grid',
 
                 gap:
-                  '9px',
+                  '10px',
 
                 marginTop:
                   '12px'
@@ -1275,7 +1700,7 @@ export function HomeBookProgressSnapshot({
 
                     style={{
                       padding:
-                        '11px 12px',
+                        '12px',
 
                       border:
                         '1px solid rgba(255,255,255,.07)',
@@ -1288,6 +1713,8 @@ export function HomeBookProgressSnapshot({
                     }}
                   >
 
+                    {/* SUBJECT TITLE */}
+
                     <div
                       style={{
                         display:
@@ -1296,41 +1723,64 @@ export function HomeBookProgressSnapshot({
                         justifyContent:
                           'space-between',
 
-                        gap:
-                          '12px',
-
                         alignItems:
-                          'center'
+                          'center',
+
+                        gap:
+                          '12px'
+                      }}
+                    >
+
+                      <strong
+                        style={{
+                          minWidth:
+                            0,
+
+                          overflow:
+                            'hidden',
+
+                          textOverflow:
+                            'ellipsis',
+
+                          whiteSpace:
+                            'nowrap'
+                        }}
+                      >
+                        {subject.subject}
+                      </strong>
+
+
+                      <strong>
+                        {subject.readPercent}%
+                      </strong>
+
+                    </div>
+
+
+                    {/* READ */}
+
+                    <div
+                      style={{
+                        marginTop:
+                          '9px'
                       }}
                     >
 
                       <div
                         style={{
-                          minWidth:
-                            0
+                          display:
+                            'flex',
+
+                          justifyContent:
+                            'space-between',
+
+                          gap:
+                            '8px',
+
+                          marginBottom:
+                            '5px'
                         }}
                       >
-
-                        <strong
-                          style={{
-                            display:
-                              'block',
-
-                            overflow:
-                              'hidden',
-
-                            textOverflow:
-                              'ellipsis',
-
-                            whiteSpace:
-                              'nowrap'
-                          }}
-                        >
-                          {
-                            subject.subject
-                          }
-                        </strong>
-
 
                         <small
                           style={{
@@ -1338,41 +1788,128 @@ export function HomeBookProgressSnapshot({
                               '#94a3b8'
                           }}
                         >
+                          Read
+                        </small>
 
-                          {
-                            subject.completed
-                          }
-                          /
-                          {
-                            subject.total
-                          }
-                          {' '}
-                          completed
 
+                        <small>
+                          {subject.read}/{subject.total}
                         </small>
 
                       </div>
 
 
-                      <strong>
-                        {
-                          subject.percent
-                        }%
-                      </strong>
+                      <div
+                        className="progress-track"
+                      >
+
+                        <span
+                          style={{
+                            width:
+                              `${subject.readPercent}%`
+                          }}
+                        />
+
+                      </div>
 
                     </div>
 
 
+                    {/* FINAL */}
+
                     <div
-                      className="mini-progress"
+                      style={{
+                        marginTop:
+                          '8px'
+                      }}
+                    >
+
+                      <div
+                        style={{
+                          display:
+                            'flex',
+
+                          justifyContent:
+                            'space-between',
+
+                          gap:
+                            '8px',
+
+                          marginBottom:
+                            '5px'
+                        }}
+                      >
+
+                        <small
+                          style={{
+                            color:
+                              '#94a3b8'
+                          }}
+                        >
+                          Final Revision
+                        </small>
+
+
+                        <small>
+                          {subject.finalPercent}%
+                        </small>
+
+                      </div>
+
+
+                      <div
+                        className="progress-track"
+                      >
+
+                        <span
+                          style={{
+                            width:
+                              `${subject.finalPercent}%`
+                          }}
+                        />
+
+                      </div>
+
+                    </div>
+
+
+                    {/* R1 / R2 / FINAL */}
+
+                    <div
+                      style={{
+                        display:
+                          'flex',
+
+                        gap:
+                          '6px',
+
+                        flexWrap:
+                          'wrap',
+
+                        marginTop:
+                          '9px'
+                      }}
                     >
 
                       <span
-                        style={{
-                          width:
-                            `${subject.percent}%`
-                        }}
-                      />
+                        className="tag"
+                      >
+                        R1 {subject.revision1}/{subject.total}
+                      </span>
+
+
+                      <span
+                        className="tag"
+                      >
+                        R2 {subject.revision2}/{subject.total}
+                      </span>
+
+
+                      <span
+                        className="tag"
+                      >
+                        Final {subject.final}/{subject.total}
+                      </span>
 
                     </div>
 
@@ -1386,7 +1923,9 @@ export function HomeBookProgressSnapshot({
           )}
 
 
-          {/* SUMMARY */}
+          {/* =================================
+              SUMMARY
+          ================================= */}
 
           <div
             style={{
@@ -1407,27 +1946,21 @@ export function HomeBookProgressSnapshot({
             <span
               className="tag"
             >
-              {
-                subjectSummaries.length
-              } subjects
+              {subjectSummaries.length} subjects
             </span>
 
 
             <span
               className="tag"
             >
-              {
-                booksWithTopics
-              } books tracked
+              {booksWithTopics} books tracked
             </span>
 
 
             <span
               className="tag"
             >
-              {
-                overallStats.total
-              } portions
+              {overall.total} portions
             </span>
 
           </div>
@@ -1448,7 +1981,7 @@ export function HomeBookProgressSnapshot({
                 '14px'
             }}
           >
-            Open Book Progress
+            Open Reading & Revision Tracker
           </button>
 
         </>
