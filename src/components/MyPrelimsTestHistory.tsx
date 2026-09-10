@@ -5,6 +5,10 @@ import {
 } from 'react';
 
 import {
+  PrelimsTestAttemptReview
+} from './PrelimsTestAttemptReview';
+
+import {
   supabase
 } from '../lib/supabase';
 
@@ -48,11 +52,12 @@ type TestRow = {
 };
 
 
-type CombinedAttempt = AttemptRow & {
-  testTitle: string;
-  paper: string;
-  testType: TestType;
-};
+type CombinedAttempt =
+  AttemptRow & {
+    testTitle: string;
+    paper: string;
+    testType: TestType;
+  };
 
 
 function safeNumber(
@@ -101,8 +106,7 @@ function formatDuration(
 
   if (
     seconds === null ||
-    seconds <
-      0
+    seconds < 0
   ) {
 
     return '—';
@@ -138,8 +142,7 @@ function formatDuration(
 
 
   if (
-    hours >
-    0
+    hours > 0
   ) {
 
     return (
@@ -150,8 +153,7 @@ function formatDuration(
 
 
   if (
-    minutes >
-    0
+    minutes > 0
   ) {
 
     return (
@@ -161,7 +163,9 @@ function formatDuration(
   }
 
 
-  return `${remainingSeconds}s`;
+  return (
+    `${remainingSeconds}s`
+  );
 }
 
 
@@ -242,7 +246,7 @@ function testTypeLabel(
 export function MyPrelimsTestHistory() {
 
   /*
-   * DATA
+   * HISTORY DATA
    */
 
   const [
@@ -258,7 +262,9 @@ export function MyPrelimsTestHistory() {
     loading,
     setLoading
   ] =
-    useState(true);
+    useState(
+      true
+    );
 
 
   const [
@@ -266,6 +272,22 @@ export function MyPrelimsTestHistory() {
     setError
   ] =
     useState('');
+
+
+  /*
+   * ATTEMPT REVIEW
+   */
+
+  const [
+    selectedAttemptId,
+    setSelectedAttemptId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
 
 
   /*
@@ -295,6 +317,65 @@ export function MyPrelimsTestHistory() {
     useState(
       'all'
     );
+
+
+  /*
+   * SCROLL TO THIS SECTION
+   */
+
+  function scrollToHistory() {
+
+    window.setTimeout(
+      () => {
+
+        document
+          .getElementById(
+            'prelims-test-series-history'
+          )
+          ?.scrollIntoView({
+            behavior:
+              'smooth',
+
+            block:
+              'start'
+          });
+
+      },
+      50
+    );
+  }
+
+
+  /*
+   * OPEN SAVED ATTEMPT
+   */
+
+  function openAttemptReview(
+    attemptId: string
+  ) {
+
+    setSelectedAttemptId(
+      attemptId
+    );
+
+
+    scrollToHistory();
+  }
+
+
+  /*
+   * CLOSE SAVED ATTEMPT
+   */
+
+  function closeAttemptReview() {
+
+    setSelectedAttemptId(
+      null
+    );
+
+
+    scrollToHistory();
+  }
 
 
   /*
@@ -353,7 +434,7 @@ export function MyPrelimsTestHistory() {
 
 
     /*
-     * LOAD TEST ATTEMPTS
+     * LOAD OWN TEST ATTEMPTS
      */
 
     const {
@@ -421,6 +502,7 @@ export function MyPrelimsTestHistory() {
         attemptError.message
       );
 
+
       setLoading(
         false
       );
@@ -434,6 +516,10 @@ export function MyPrelimsTestHistory() {
       [];
 
 
+    /*
+     * NOTHING COMPLETED YET
+     */
+
     if (
       rawAttempts.length ===
       0
@@ -442,6 +528,7 @@ export function MyPrelimsTestHistory() {
       setAttempts(
         []
       );
+
 
       setLoading(
         false
@@ -452,7 +539,7 @@ export function MyPrelimsTestHistory() {
 
 
     /*
-     * FIND RELATED TESTS
+     * FIND TEST IDS
      */
 
     const testIds =
@@ -467,6 +554,10 @@ export function MyPrelimsTestHistory() {
         )
       );
 
+
+    /*
+     * LOAD RELATED TEST INFO
+     */
 
     const {
       data:
@@ -493,27 +584,28 @@ export function MyPrelimsTestHistory() {
         );
 
 
+    /*
+     * Test metadata can be missing
+     * for an old unpublished test.
+     *
+     * Do not block student's
+     * attempt history because of it.
+     */
+
     if (
       testError
     ) {
 
-      console.error(
-        'Unable to load Test Series information:',
+      console.warn(
+        'Unable to load some Test Series metadata:',
         testError
       );
-
-
-      setError(
-        testError.message
-      );
-
-      setLoading(
-        false
-      );
-
-      return;
     }
 
+
+    /*
+     * TEST LOOKUP
+     */
 
     const testMap =
       new Map<
@@ -682,7 +774,7 @@ export function MyPrelimsTestHistory() {
 
               paper:
                 test?.paper ||
-                'GS Paper I',
+                'Prelims',
 
               testType:
                 test?.test_type ||
@@ -702,6 +794,10 @@ export function MyPrelimsTestHistory() {
     );
   }
 
+
+  /*
+   * INITIAL LOAD
+   */
 
   useEffect(
     () => {
@@ -730,6 +826,10 @@ export function MyPrelimsTestHistory() {
         return attempts.filter(
           attempt => {
 
+            /*
+             * PAPER FILTER
+             */
+
             if (
               paperFilter !==
                 'all' &&
@@ -741,6 +841,10 @@ export function MyPrelimsTestHistory() {
             }
 
 
+            /*
+             * TEST TYPE FILTER
+             */
+
             if (
               typeFilter !==
                 'all' &&
@@ -751,6 +855,10 @@ export function MyPrelimsTestHistory() {
               return false;
             }
 
+
+            /*
+             * SEARCH
+             */
 
             if (!query) {
 
@@ -793,12 +901,16 @@ export function MyPrelimsTestHistory() {
 
 
   /*
-   * SUMMARY METRICS
+   * TOTAL ATTEMPTS
    */
 
   const totalAttempts =
     attempts.length;
 
+
+  /*
+   * AVERAGE SCORE
+   */
 
   const averageScore =
     useMemo(
@@ -838,6 +950,10 @@ export function MyPrelimsTestHistory() {
     );
 
 
+  /*
+   * BEST SCORE
+   */
+
   const bestScore =
     useMemo(
       () => {
@@ -868,6 +984,10 @@ export function MyPrelimsTestHistory() {
     );
 
 
+  /*
+   * LATEST SCORE
+   */
+
   const latestScore =
     attempts.length >
       0
@@ -879,13 +999,57 @@ export function MyPrelimsTestHistory() {
       : 0;
 
 
+  /*
+   * SAVED ATTEMPT REVIEW
+   */
+
+  if (
+    selectedAttemptId
+  ) {
+
+    return (
+
+      <div
+        id="prelims-test-series-history"
+        style={{
+          scrollMarginTop:
+            '20px'
+        }}
+      >
+
+        <PrelimsTestAttemptReview
+
+          attemptId={
+            selectedAttemptId
+          }
+
+          onClose={
+            closeAttemptReview
+          }
+
+        />
+
+      </div>
+
+    );
+  }
+
+
+  /*
+   * HISTORY SCREEN
+   */
+
   return (
 
     <section
+      id="prelims-test-series-history"
       className="panel"
       style={{
         marginTop:
-          '18px'
+          '18px',
+
+        scrollMarginTop:
+          '20px'
       }}
     >
 
@@ -911,7 +1075,8 @@ export function MyPrelimsTestHistory() {
 
           <p>
             Review your mock-test
-            scores, marks and accuracy.
+            scores, marks, accuracy
+            and complete answer analysis.
           </p>
 
         </div>
@@ -921,8 +1086,8 @@ export function MyPrelimsTestHistory() {
           type="button"
           className="secondary-btn"
 
-          onClick={
-            loadHistory
+          onClick={() =>
+            void loadHistory()
           }
         >
           Refresh
@@ -959,7 +1124,7 @@ export function MyPrelimsTestHistory() {
       )}
 
 
-      {/* EMPTY */}
+      {/* EMPTY HISTORY */}
 
       {!loading &&
         !error &&
@@ -976,9 +1141,10 @@ export function MyPrelimsTestHistory() {
 
 
           <p>
-            Complete a published Prelims
-            Test Series paper and the
-            result will appear here.
+            Complete a published
+            Prelims Test Series paper
+            and the result will appear
+            here.
           </p>
 
         </div>
@@ -986,10 +1152,9 @@ export function MyPrelimsTestHistory() {
       )}
 
 
-      {/* HISTORY */}
+      {/* HISTORY CONTENT */}
 
       {!loading &&
-        !error &&
         attempts.length >
           0 && (
 
@@ -1008,6 +1173,7 @@ export function MyPrelimsTestHistory() {
             <article
               className="metric-card"
             >
+
               <div>
 
                 <span>
@@ -1020,12 +1186,14 @@ export function MyPrelimsTestHistory() {
                 </strong>
 
               </div>
+
             </article>
 
 
             <article
               className="metric-card"
             >
+
               <div>
 
                 <span>
@@ -1038,12 +1206,14 @@ export function MyPrelimsTestHistory() {
                 </strong>
 
               </div>
+
             </article>
 
 
             <article
               className="metric-card"
             >
+
               <div>
 
                 <span>
@@ -1056,12 +1226,14 @@ export function MyPrelimsTestHistory() {
                 </strong>
 
               </div>
+
             </article>
 
 
             <article
               className="metric-card"
             >
+
               <div>
 
                 <span>
@@ -1074,6 +1246,7 @@ export function MyPrelimsTestHistory() {
                 </strong>
 
               </div>
+
             </article>
 
           </div>
@@ -1097,7 +1270,10 @@ export function MyPrelimsTestHistory() {
             }}
           >
 
+            {/* SEARCH */}
+
             <label>
+
               Search
 
               <input
@@ -1118,10 +1294,14 @@ export function MyPrelimsTestHistory() {
 
                 placeholder="Search test"
               />
+
             </label>
 
 
+            {/* PAPER */}
+
             <label>
+
               Paper
 
               <select
@@ -1152,10 +1332,14 @@ export function MyPrelimsTestHistory() {
                 </option>
 
               </select>
+
             </label>
 
 
+            {/* TEST TYPE */}
+
             <label>
+
               Test Type
 
               <select
@@ -1194,12 +1378,13 @@ export function MyPrelimsTestHistory() {
                 </option>
 
               </select>
+
             </label>
 
           </div>
 
 
-          {/* ATTEMPT CARDS */}
+          {/* ATTEMPT LIST */}
 
           <div
             style={{
@@ -1236,6 +1421,8 @@ export function MyPrelimsTestHistory() {
                       '#0e1525'
                   }}
                 >
+
+                  {/* CARD HEADER */}
 
                   <div
                     style={{
@@ -1322,6 +1509,8 @@ export function MyPrelimsTestHistory() {
                     </div>
 
 
+                    {/* SCORE */}
+
                     <div
                       style={{
                         textAlign:
@@ -1356,6 +1545,8 @@ export function MyPrelimsTestHistory() {
                   </div>
 
 
+                  {/* ATTEMPT METRICS */}
+
                   <div
                     style={{
                       display:
@@ -1373,9 +1564,11 @@ export function MyPrelimsTestHistory() {
                   >
 
                     <div>
+
                       <small>
                         Questions
                       </small>
+
 
                       <div>
                         <strong>
@@ -1385,13 +1578,35 @@ export function MyPrelimsTestHistory() {
                           }
                         </strong>
                       </div>
+
                     </div>
 
 
                     <div>
+
+                      <small>
+                        Attempted
+                      </small>
+
+
+                      <div>
+                        <strong>
+                          {
+                            attempt
+                              .attempted_questions
+                          }
+                        </strong>
+                      </div>
+
+                    </div>
+
+
+                    <div>
+
                       <small>
                         Correct
                       </small>
+
 
                       <div>
                         <strong>
@@ -1401,13 +1616,16 @@ export function MyPrelimsTestHistory() {
                           }
                         </strong>
                       </div>
+
                     </div>
 
 
                     <div>
+
                       <small>
                         Incorrect
                       </small>
+
 
                       <div>
                         <strong>
@@ -1417,13 +1635,16 @@ export function MyPrelimsTestHistory() {
                           }
                         </strong>
                       </div>
+
                     </div>
 
 
                     <div>
+
                       <small>
                         Unanswered
                       </small>
+
 
                       <div>
                         <strong>
@@ -1433,16 +1654,20 @@ export function MyPrelimsTestHistory() {
                           }
                         </strong>
                       </div>
+
                     </div>
 
 
                     <div>
+
                       <small>
                         Marks
                       </small>
 
+
                       <div>
                         <strong>
+
                           {
                             attempt
                               .marks_obtained ??
@@ -1456,15 +1681,19 @@ export function MyPrelimsTestHistory() {
                               ? ` / ${attempt.max_marks}`
                               : ''
                           }
+
                         </strong>
                       </div>
+
                     </div>
 
 
                     <div>
+
                       <small>
                         Negative
                       </small>
+
 
                       <div>
                         <strong>
@@ -1478,13 +1707,16 @@ export function MyPrelimsTestHistory() {
                           }
                         </strong>
                       </div>
+
                     </div>
 
 
                     <div>
+
                       <small>
                         Time Used
                       </small>
+
 
                       <div>
                         <strong>
@@ -1496,7 +1728,42 @@ export function MyPrelimsTestHistory() {
                           }
                         </strong>
                       </div>
+
                     </div>
+
+                  </div>
+
+
+                  {/* REVIEW BUTTON */}
+
+                  <div
+                    style={{
+                      display:
+                        'flex',
+
+                      gap:
+                        '8px',
+
+                      flexWrap:
+                        'wrap',
+
+                      marginTop:
+                        '16px'
+                    }}
+                  >
+
+                    <button
+                      type="button"
+                      className="primary-btn"
+
+                      onClick={() =>
+                        openAttemptReview(
+                          attempt.id
+                        )
+                      }
+                    >
+                      Review Attempt
+                    </button>
 
                   </div>
 
@@ -1505,6 +1772,8 @@ export function MyPrelimsTestHistory() {
               )
             )}
 
+
+            {/* NO FILTER MATCH */}
 
             {visibleAttempts.length ===
               0 && (
