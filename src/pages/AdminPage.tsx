@@ -28,6 +28,10 @@ import {
 } from '../components/MainsEvaluationManager';
 
 import {
+  ResourceAdminHub
+} from '../components/ResourceAdminHub';
+
+import {
   AdminWorkspaceStats
 } from '../components/AdminWorkspaceStats';
 
@@ -56,7 +60,8 @@ type AdminTab =
   | 'mcq'
   | 'tests'
   | 'mains'
-  | 'evaluation';
+  | 'evaluation'
+  | 'resources';
 
 
 type AdminArticle = {
@@ -1112,6 +1117,24 @@ export function AdminPage({
             Mains Evaluation
             <PendingEvaluationBadge />
           </button>
+          <button
+  type="button"
+
+  className={
+    adminTab ===
+      'resources'
+      ? 'filter active'
+      : 'filter'
+  }
+
+  onClick={() =>
+    switchAdminTab(
+      'resources'
+    )
+  }
+>
+  Study Material
+</button>
         </div>
       </section>
 
@@ -1703,8 +1726,40 @@ export function AdminPage({
               : 'none'
         }}
       >
-        <MainsEvaluationManager />
-      </div>
-    </div>
-  );
+       {/* MAINS EVALUATION TAB */}
+
+<div
+  style={{
+    display:
+      adminTab ===
+        'evaluation'
+        ? 'block'
+        : 'none'
+  }}
+>
+
+  <MainsEvaluationManager />
+
+</div>
+
+
+{/* STUDY MATERIAL TAB */}
+
+<div
+  style={{
+    display:
+      adminTab ===
+        'resources'
+        ? 'block'
+        : 'none'
+  }}
+>
+
+  <ResourceAdminHub />
+
+</div>
+
+
+</div>
+);
 }
