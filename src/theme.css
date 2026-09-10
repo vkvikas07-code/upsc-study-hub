@@ -327,3 +327,179 @@ label select {
 .study-resources-page input[type="search"]::-webkit-search-results-decoration {
   -webkit-appearance: none;
 }
+
+/* =========================================================
+   STUDY RESOURCES
+   DARK FORM CONTROLS
+========================================================= */
+
+.study-resources-page {
+  color-scheme: dark;
+}
+
+
+/* FILTER GRID */
+
+.study-resource-filter-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(160px, 1fr)
+    );
+  gap: 12px;
+  margin-top: 14px;
+}
+
+
+/* LABEL */
+
+.study-resources-page label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+
+  color: #cbd5e1;
+
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+
+/* INPUT + SELECT + TEXTAREA */
+
+.study-resources-page input,
+.study-resources-page select,
+.study-resources-page textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+
+  background: #0e1525;
+  color: #f8fafc;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.10
+    );
+
+  border-radius: 11px;
+
+  padding: 10px 12px;
+
+  outline: none;
+
+  font: inherit;
+
+  color-scheme: dark;
+}
+
+
+/* SEARCH */
+
+.study-resources-page input[type="text"] {
+  background: #0e1525;
+  color: #f8fafc;
+}
+
+
+/* PLACEHOLDER */
+
+.study-resources-page input::placeholder,
+.study-resources-page textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+
+/* SELECT */
+
+.study-resources-page select {
+  background-color: #0e1525;
+  color: #f8fafc;
+
+  cursor: pointer;
+}
+
+
+/* DROPDOWN OPTIONS */
+
+.study-resources-page select option {
+  background: #0e1525;
+  color: #f8fafc;
+}
+
+
+/* FOCUS */
+
+.study-resources-page input:focus,
+.study-resources-page select:focus,
+.study-resources-page textarea:focus {
+  border-color:
+    rgba(
+      20,
+      184,
+      166,
+      0.75
+    );
+
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      20,
+      184,
+      166,
+      0.10
+    );
+}
+
+
+/* HOVER */
+
+.study-resources-page input:hover,
+.study-resources-page select:hover,
+.study-resources-page textarea:hover {
+  border-color:
+    rgba(
+      148,
+      163,
+      184,
+      0.30
+    );
+}
+
+
+/* CHROME AUTOFILL */
+
+.study-resources-page input:-webkit-autofill,
+.study-resources-page input:-webkit-autofill:hover,
+.study-resources-page input:-webkit-autofill:focus {
+  -webkit-text-fill-color:
+    #f8fafc;
+
+  -webkit-box-shadow:
+    0 0 0 1000px
+    #0e1525
+    inset;
+
+  caret-color:
+    #f8fafc;
+}
+
+
+/* MOBILE */
+
+@media (
+  max-width: 700px
+) {
+
+  .study-resource-filter-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+}
