@@ -33,21 +33,11 @@ type BookTopic = {
   book_id: string;
   subject: string;
   topic_name: string;
-
-  parent_id:
-    string |
-    null;
-
+  parent_id: string | null;
   sort_order: number;
-
-  is_active:
-    boolean;
-
-  created_at:
-    string;
-
-  updated_at:
-    string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 
@@ -78,10 +68,8 @@ const TOPIC_SELECT = `
  */
 
 function safeNumber(
-  value:
-    unknown,
-  fallback =
-    0
+  value: unknown,
+  fallback = 0
 ) {
 
   const number =
@@ -105,7 +93,7 @@ function safeNumber(
 export function BookStructureManager() {
 
   /*
-   * BOOK DATA
+   * DATA
    */
 
   const [
@@ -161,7 +149,7 @@ export function BookStructureManager() {
 
 
   /*
-   * SUBJECT + BOOK
+   * SUBJECT / BOOK
    */
 
   const [
@@ -203,14 +191,6 @@ export function BookStructureManager() {
     useState('');
 
 
-  /*
-   * NULL / EMPTY =
-   * MAIN TOPIC
-   *
-   * UUID =
-   * SUBTOPIC
-   */
-
   const [
     parentId,
     setParentId
@@ -228,12 +208,39 @@ export function BookStructureManager() {
 
 
   /*
-   * LOAD STANDARD BOOKS
+   * RESET FORM
+   */
+
+  function resetTopicForm() {
+
+    setEditingId(
+      null
+    );
+
+
+    setTopicName('');
+
+
+    setParentId('');
+
+
+    setIsActive(
+      true
+    );
+  }
+
+
+  /*
+   * LOAD BOOKS
    */
 
   async function loadBooks() {
 
-    if (!supabase) {
+    const client =
+      supabase;
+
+
+    if (!client) {
 
       setMessage(
         'Supabase is not configured.'
@@ -261,7 +268,7 @@ export function BookStructureManager() {
       data,
       error
     } =
-      await supabase
+      await client
         .from(
           'study_resources'
         )
@@ -305,13 +312,13 @@ export function BookStructureManager() {
       );
 
 
-      setMessage(
-        error.message
+      setBooks(
+        []
       );
 
 
-      setBooks(
-        []
+      setMessage(
+        error.message
       );
 
 
@@ -369,23 +376,30 @@ export function BookStructureManager() {
     );
 
 
-    /*
-     * SELECT FIRST BOOK
-     * IF NONE SELECTED
-     */
+    setSelectedBookId(
+      current => {
 
-    if (
-      cleanBooks.length >
-        0 &&
-      !selectedBookId
-    ) {
+        if (
+          current &&
+          cleanBooks.some(
+            book =>
+              book.id ===
+              current
+          )
+        ) {
 
-      setSelectedBookId(
-        cleanBooks[
-          0
-        ].id
-      );
-    }
+          return current;
+        }
+
+
+        return (
+          cleanBooks[
+            0
+          ]?.id ||
+          ''
+        );
+      }
+    );
 
 
     setLoadingBooks(
@@ -403,14 +417,19 @@ export function BookStructureManager() {
       string
   ) {
 
+    const client =
+      supabase;
+
+
     if (
-      !supabase ||
+      !client ||
       !bookId
     ) {
 
       setTopics(
         []
       );
+
 
       return;
     }
@@ -425,7 +444,7 @@ export function BookStructureManager() {
       data,
       error
     } =
-      await supabase
+      await client
         .from(
           'book_topics'
         )
@@ -462,13 +481,13 @@ export function BookStructureManager() {
       );
 
 
-      setMessage(
-        error.message
+      setTopics(
+        []
       );
 
 
-      setTopics(
-        []
+      setMessage(
+        error.message
       );
 
 
@@ -554,7 +573,7 @@ export function BookStructureManager() {
 
 
   /*
-   * INITIAL BOOK LOAD
+   * INITIAL LOAD
    */
 
   useEffect(
@@ -568,12 +587,15 @@ export function BookStructureManager() {
 
 
   /*
-   * LOAD TOPICS WHEN
-   * BOOK CHANGES
+   * LOAD TOPICS
+   * WHEN BOOK CHANGES
    */
 
   useEffect(
     () => {
+
+      resetTopicForm();
+
 
       if (
         selectedBookId
@@ -589,9 +611,6 @@ export function BookStructureManager() {
           []
         );
       }
-
-
-      resetTopicForm();
 
     },
     [
@@ -640,7 +659,7 @@ export function BookStructureManager() {
 
 
   /*
-   * BOOKS FOR SUBJECT
+   * BOOKS BY SUBJECT
    */
 
   const filteredBooks =
@@ -671,10 +690,7 @@ export function BookStructureManager() {
 
 
   /*
-   * IF SUBJECT CHANGES
-   * AND CURRENT BOOK
-   * IS NOT INSIDE SUBJECT,
-   * SELECT FIRST BOOK.
+   * KEEP VALID BOOK SELECTED
    */
 
   useEffect(
@@ -685,15 +701,21 @@ export function BookStructureManager() {
         0
       ) {
 
-        setSelectedBookId(
-          ''
-        );
+        if (
+          selectedBookId
+        ) {
+
+          setSelectedBookId(
+            ''
+          );
+        }
+
 
         return;
       }
 
 
-      const exists =
+      const currentExists =
         filteredBooks.some(
           book =>
             book.id ===
@@ -701,7 +723,9 @@ export function BookStructureManager() {
         );
 
 
-      if (!exists) {
+      if (
+        !currentExists
+      ) {
 
         setSelectedBookId(
           filteredBooks[
@@ -712,7 +736,6 @@ export function BookStructureManager() {
 
     },
     [
-      subjectFilter,
       filteredBooks,
       selectedBookId
     ]
@@ -727,12 +750,14 @@ export function BookStructureManager() {
     useMemo(
       () => {
 
-        return books.find(
-          book =>
-            book.id ===
-            selectedBookId
-        ) ||
-        null;
+        return (
+          books.find(
+            book =>
+              book.id ===
+              selectedBookId
+          ) ||
+          null
+        );
 
       },
       [
@@ -743,7 +768,7 @@ export function BookStructureManager() {
 
 
   /*
-   * ROOT TOPICS
+   * MAIN TOPICS
    */
 
   const rootTopics =
@@ -789,7 +814,7 @@ export function BookStructureManager() {
 
 
   /*
-   * CHILDREN OF TOPIC
+   * GET SUBTOPICS
    */
 
   function getSubtopics(
@@ -858,41 +883,39 @@ export function BookStructureManager() {
     }
 
 
-    const maximum =
+    return (
       Math.max(
         ...siblings.map(
           topic =>
             topic.sort_order
         )
-      );
-
-
-    return (
-      maximum +
+      ) +
       10
     );
   }
 
 
   /*
-   * RESET FORM
+   * SCROLL TO FORM
    */
 
-  function resetTopicForm() {
+  function scrollToForm() {
 
-    setEditingId(
-      null
-    );
+    window.requestAnimationFrame(
+      () => {
 
+        document
+          .getElementById(
+            'book-topic-form'
+          )
+          ?.scrollIntoView({
+            behavior:
+              'smooth',
 
-    setTopicName('');
-
-
-    setParentId('');
-
-
-    setIsActive(
-      true
+            block:
+              'start'
+          });
+      }
     );
   }
 
@@ -911,22 +934,7 @@ export function BookStructureManager() {
     );
 
 
-    window.requestAnimationFrame(
-      () => {
-
-        document
-          .getElementById(
-            'book-topic-form'
-          )
-          ?.scrollIntoView({
-            behavior:
-              'smooth',
-
-            block:
-              'start'
-          });
-      }
-    );
+    scrollToForm();
   }
 
 
@@ -962,22 +970,7 @@ export function BookStructureManager() {
     );
 
 
-    window.requestAnimationFrame(
-      () => {
-
-        document
-          .getElementById(
-            'book-topic-form'
-          )
-          ?.scrollIntoView({
-            behavior:
-              'smooth',
-
-            block:
-              'start'
-          });
-      }
-    );
+    scrollToForm();
   }
 
 
@@ -1016,27 +1009,12 @@ export function BookStructureManager() {
     );
 
 
-    window.requestAnimationFrame(
-      () => {
-
-        document
-          .getElementById(
-            'book-topic-form'
-          )
-          ?.scrollIntoView({
-            behavior:
-              'smooth',
-
-            block:
-              'start'
-          });
-      }
-    );
+    scrollToForm();
   }
 
 
   /*
-   * SAVE TOPIC / SUBTOPIC
+   * SAVE TOPIC
    */
 
   async function saveTopic(
@@ -1047,13 +1025,16 @@ export function BookStructureManager() {
     event.preventDefault();
 
 
-    if (
-      !supabase
-    ) {
+    const client =
+      supabase;
+
+
+    if (!client) {
 
       setMessage(
         'Supabase is not configured.'
       );
+
 
       return;
     }
@@ -1067,32 +1048,34 @@ export function BookStructureManager() {
         'Select a book first.'
       );
 
+
       return;
     }
 
 
+    const cleanName =
+      topicName.trim();
+
+
     if (
-      !topicName.trim()
+      !cleanName
     ) {
 
       setMessage(
         'Topic name is required.'
       );
 
+
       return;
     }
 
-
-    /*
-     * CURRENT USER
-     */
 
     const {
       data: {
         user
       }
     } =
-      await supabase
+      await client
         .auth
         .getUser();
 
@@ -1102,6 +1085,7 @@ export function BookStructureManager() {
       setMessage(
         'Your session expired. Please sign in again.'
       );
+
 
       return;
     }
@@ -1113,10 +1097,7 @@ export function BookStructureManager() {
 
 
     /*
-     * EDIT EXISTING
-     *
-     * We preserve whether the
-     * item is a topic/subtopic.
+     * UPDATE
      */
 
     if (
@@ -1126,20 +1107,21 @@ export function BookStructureManager() {
       const {
         error
       } =
-        await supabase
+        await client
           .from(
             'book_topics'
           )
           .update({
 
             topic_name:
-              topicName.trim(),
+              cleanName,
 
             subject:
               selectedBook.subject,
 
             is_active:
               isActive
+
           })
           .eq(
             'id',
@@ -1178,7 +1160,7 @@ export function BookStructureManager() {
     } else {
 
       /*
-       * CREATE NEW
+       * CREATE
        */
 
       const actualParentId =
@@ -1195,7 +1177,7 @@ export function BookStructureManager() {
       const {
         error
       } =
-        await supabase
+        await client
           .from(
             'book_topics'
           )
@@ -1208,7 +1190,7 @@ export function BookStructureManager() {
               selectedBook.subject,
 
             topic_name:
-              topicName.trim(),
+              cleanName,
 
             parent_id:
               actualParentId,
@@ -1221,6 +1203,7 @@ export function BookStructureManager() {
 
             created_by:
               user.id
+
           });
 
 
@@ -1271,7 +1254,7 @@ export function BookStructureManager() {
 
 
   /*
-   * ACTIVE / INACTIVE
+   * SHOW / HIDE
    */
 
   async function toggleActive(
@@ -1279,9 +1262,16 @@ export function BookStructureManager() {
       BookTopic
   ) {
 
-    if (
-      !supabase
-    ) {
+    const client =
+      supabase;
+
+
+    if (!client) {
+
+      setMessage(
+        'Supabase is not configured.'
+      );
+
 
       return;
     }
@@ -1294,7 +1284,7 @@ export function BookStructureManager() {
     const {
       error
     } =
-      await supabase
+      await client
         .from(
           'book_topics'
         )
@@ -1349,9 +1339,16 @@ export function BookStructureManager() {
       BookTopic
   ) {
 
-    if (
-      !supabase
-    ) {
+    const client =
+      supabase;
+
+
+    if (!client) {
+
+      setMessage(
+        'Supabase is not configured.'
+      );
+
 
       return;
     }
@@ -1366,7 +1363,9 @@ export function BookStructureManager() {
     const warning =
       children.length >
         0
-        ? `This topic has ${children.length} subtopic(s). Deleting the main topic will also delete those subtopics and their progress. Continue?`
+
+        ? `This topic has ${children.length} subtopic(s). Deleting it will also delete those subtopics and their saved progress. Continue?`
+
         : `Delete "${topic.topic_name}"?`;
 
 
@@ -1376,7 +1375,9 @@ export function BookStructureManager() {
       );
 
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
 
       return;
     }
@@ -1385,7 +1386,7 @@ export function BookStructureManager() {
     const {
       error
     } =
-      await supabase
+      await client
         .from(
           'book_topics'
         )
@@ -1436,263 +1437,10 @@ export function BookStructureManager() {
 
 
   /*
-   * REORDER TOPIC OR SUBTOPIC
+   * MOVE TOPIC
    */
 
   async function moveTopic(
-  topic:
-    BookTopic,
-  direction:
-    'up' |
-    'down'
-) {
-
-  /*
-   * IMPORTANT:
-   *
-   * Store the checked Supabase
-   * client in a local constant.
-   *
-   * TypeScript can then safely
-   * use it inside map() callbacks.
-   */
-
-  const client =
-    supabase;
-
-
-  if (!client) {
-
-    setMessage(
-      'Supabase is not configured.'
-    );
-
-    return;
-  }
-
-
-  /*
-   * ONLY REORDER ITEMS
-   * INSIDE THE SAME PARENT.
-   *
-   * Main topics reorder
-   * with main topics.
-   *
-   * Subtopics reorder only
-   * inside their parent topic.
-   */
-
-  const siblings =
-    topics
-      .filter(
-        item =>
-          item.parent_id ===
-          topic.parent_id
-      )
-      .sort(
-        (
-          first,
-          second
-        ) => {
-
-          if (
-            first.sort_order !==
-            second.sort_order
-          ) {
-
-            return (
-              first.sort_order -
-              second.sort_order
-            );
-          }
-
-
-          return first
-            .topic_name
-            .localeCompare(
-              second.topic_name
-            );
-        }
-      );
-
-
-  /*
-   * FIND CURRENT POSITION
-   */
-
-  const currentIndex =
-    siblings.findIndex(
-      item =>
-        item.id ===
-        topic.id
-    );
-
-
-  if (
-    currentIndex <
-    0
-  ) {
-
-    return;
-  }
-
-
-  /*
-   * CALCULATE TARGET POSITION
-   */
-
-  const targetIndex =
-    direction ===
-      'up'
-      ? currentIndex -
-        1
-      : currentIndex +
-        1;
-
-
-  /*
-   * DO NOTHING IF ALREADY
-   * FIRST OR LAST ITEM
-   */
-
-  if (
-    targetIndex <
-      0 ||
-    targetIndex >=
-      siblings.length
-  ) {
-
-    return;
-  }
-
-
-  /*
-   * CREATE NEW ORDER
-   */
-
-  const reordered =
-    [
-      ...siblings
-    ];
-
-
-  const [
-    moved
-  ] =
-    reordered.splice(
-      currentIndex,
-      1
-    );
-
-
-  if (!moved) {
-
-    return;
-  }
-
-
-  reordered.splice(
-    targetIndex,
-    0,
-    moved
-  );
-
-
-  setMessage(
-    'Updating order...'
-  );
-
-
-  /*
-   * NORMALISE SORT ORDER
-   *
-   * 10
-   * 20
-   * 30
-   * 40
-   * ...
-   */
-
-  const results =
-    await Promise.all(
-
-      reordered.map(
-        (
-          item,
-          itemIndex
-        ) =>
-
-          client
-            .from(
-              'book_topics'
-            )
-            .update({
-
-              sort_order:
-                (
-                  itemIndex +
-                  1
-                ) *
-                10
-
-            })
-            .eq(
-              'id',
-              item.id
-            )
-      )
-
-    );
-
-
-  /*
-   * CHECK IF ANY UPDATE FAILED
-   */
-
-  const failed =
-    results.find(
-      result =>
-        result.error
-    );
-
-
-  if (
-    failed?.error
-  ) {
-
-    console.error(
-      'Unable to reorder topics:',
-      failed.error
-    );
-
-
-    setMessage(
-      failed.error.message
-    );
-
-
-    return;
-  }
-
-
-  /*
-   * SUCCESS
-   */
-
-  setMessage(
-    'Order updated.'
-  );
-
-
-  /*
-   * RELOAD THE BOOK
-   * STRUCTURE
-   */
-
-  await loadTopics(
-    topic.book_id
-  );
-}
     topic:
       BookTopic,
     direction:
@@ -1700,17 +1448,29 @@ export function BookStructureManager() {
       'down'
   ) {
 
-    if (
-      !supabase
-    ) {
+    /*
+     * IMPORTANT:
+     * use local non-null client
+     * inside Promise.map()
+     */
+
+    const client =
+      supabase;
+
+
+    if (!client) {
+
+      setMessage(
+        'Supabase is not configured.'
+      );
+
 
       return;
     }
 
 
     /*
-     * ONLY REORDER WITHIN
-     * SAME PARENT.
+     * ONLY SIBLINGS
      */
 
     const siblings =
@@ -1799,6 +1559,14 @@ export function BookStructureManager() {
       );
 
 
+    if (
+      !moved
+    ) {
+
+      return;
+    }
+
+
     reordered.splice(
       targetIndex,
       0,
@@ -1812,8 +1580,7 @@ export function BookStructureManager() {
 
 
     /*
-     * NORMALISE ORDER:
-     * 10, 20, 30...
+     * SAVE NORMALISED ORDER
      */
 
     const results =
@@ -1825,17 +1592,19 @@ export function BookStructureManager() {
             itemIndex
           ) =>
 
-            supabase
+            client
               .from(
                 'book_topics'
               )
               .update({
+
                 sort_order:
                   (
                     itemIndex +
                     1
                   ) *
                   10
+
               })
               .eq(
                 'id',
@@ -1884,7 +1653,7 @@ export function BookStructureManager() {
 
 
   /*
-   * TOTAL SUBTOPICS
+   * COUNTS
    */
 
   const subtopicCount =
@@ -1905,10 +1674,6 @@ export function BookStructureManager() {
     );
 
 
-  /*
-   * ACTIVE ITEMS
-   */
-
   const activeCount =
     useMemo(
       () => {
@@ -1926,25 +1691,29 @@ export function BookStructureManager() {
 
 
   /*
-   * FORM PARENT
+   * CURRENT FORM PARENT
    */
 
   const formParent =
     useMemo(
       () => {
 
-        if (!parentId) {
+        if (
+          !parentId
+        ) {
 
           return null;
         }
 
 
-        return topics.find(
-          topic =>
-            topic.id ===
-            parentId
-        ) ||
-        null;
+        return (
+          topics.find(
+            topic =>
+              topic.id ===
+              parentId
+          ) ||
+          null
+        );
 
       },
       [
@@ -2227,11 +1996,9 @@ export function BookStructureManager() {
           <div
             className="callout"
           >
-
             No Standard Book entries exist yet.
             Add books first from the Study
             Resources manager.
-
           </div>
 
         )}
@@ -2341,7 +2108,10 @@ export function BookStructureManager() {
 
               <strong>
                 {' '}
-                {formParent.topic_name}
+                {
+                  formParent
+                    .topic_name
+                }
               </strong>
 
             </div>
@@ -2411,6 +2181,7 @@ export function BookStructureManager() {
                     )
                 }
               />
+
 
               Active and visible to students
 
@@ -2533,6 +2304,7 @@ export function BookStructureManager() {
           <p>
             {selectedBook.subject}
             {' → '}
+
             <strong>
               {selectedBook.title}
             </strong>
@@ -2574,10 +2346,8 @@ export function BookStructureManager() {
                   '14px'
               }}
             >
-
               No topics added yet.
               Click + Main Topic to begin.
-
             </div>
 
           )}
@@ -2717,13 +2487,16 @@ export function BookStructureManager() {
                               '9px'
                           }}
                         >
-                          {topic.topic_name}
+                          {
+                            topic
+                              .topic_name
+                          }
                         </h3>
 
                       </div>
 
 
-                      {/* MAIN TOPIC ACTIONS */}
+                      {/* TOPIC ACTIONS */}
 
                       <div
                         style={{
@@ -2927,7 +2700,9 @@ export function BookStructureManager() {
                                     }
                                   </strong>
 
+
                                   {' '}
+
 
                                   <span
                                     className="tag"
@@ -2944,6 +2719,8 @@ export function BookStructureManager() {
 
                               </div>
 
+
+                              {/* SUBTOPIC ACTIONS */}
 
                               <div
                                 style={{
