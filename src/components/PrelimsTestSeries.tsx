@@ -95,6 +95,14 @@ type TestResult = {
 };
 
 
+type TestAttemptSummary = {
+  attempts: number;
+  bestScore: number | null;
+  latestScore: number | null;
+  lastCompletedAt: string | null;
+};
+
+
 const TEST_SELECT = `
   id,
   title,
@@ -158,6 +166,30 @@ function roundNumber(
       multiplier
     ) /
     multiplier
+  );
+}
+
+
+function formatScore(
+  value:
+    number |
+    null
+) {
+
+  if (
+    value ===
+    null
+  ) {
+
+    return '—';
+  }
+
+
+  return (
+    `${roundNumber(
+      value,
+      1
+    )}%`
   );
 }
 
@@ -256,8 +288,16 @@ function testTypeLabel(
 
 
 function formatDate(
-  value: string
+  value:
+    string |
+    null
 ) {
+
+  if (!value) {
+
+    return '';
+  }
+
 
   const date =
     new Date(
@@ -292,6 +332,18 @@ function formatDate(
 }
 
 
+function optionLetter(
+  index: number
+) {
+
+  return String
+    .fromCharCode(
+      65 +
+      index
+    );
+}
+
+
 export function PrelimsTestSeries() {
 
   /*
@@ -320,17 +372,45 @@ export function PrelimsTestSeries() {
 
 
   const [
-    loading,
-    setLoading
+    attemptSummaries,
+    setAttemptSummaries
   ] =
-    useState(true);
+    useState<
+      Record<
+        string,
+        TestAttemptSummary
+      >
+    >({});
 
 
   const [
-    loadingTest,
-    setLoadingTest
+    signedIn,
+    setSignedIn
   ] =
-    useState(false);
+    useState(
+      false
+    );
+
+
+  const [
+    loading,
+    setLoading
+  ] =
+    useState(
+      true
+    );
+
+
+  const [
+    loadingTestId,
+    setLoadingTestId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
 
 
   const [
@@ -363,6 +443,15 @@ export function PrelimsTestSeries() {
   const [
     typeFilter,
     setTypeFilter
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
+    attemptFilter,
+    setAttemptFilter
   ] =
     useState(
       'all'
@@ -404,7 +493,9 @@ export function PrelimsTestSeries() {
     index,
     setIndex
   ] =
-    useState(0);
+    useState(
+      0
+    );
 
 
   /*
@@ -443,7 +534,9 @@ export function PrelimsTestSeries() {
     timeLeft,
     setTimeLeft
   ] =
-    useState(0);
+    useState(
+      0
+    );
 
 
   const [
@@ -459,7 +552,9 @@ export function PrelimsTestSeries() {
     submitting,
     setSubmitting
   ] =
-    useState(false);
+    useState(
+      false
+    );
 
 
   /*
@@ -550,77 +645,78 @@ export function PrelimsTestSeries() {
     }
 
 
-    const rows =
-      (
-        data ||
-        []
-      ).map(
-        item => ({
+    const rows:
+      TestRow[] =
+        (
+          data ||
+          []
+        ).map(
+          item => ({
 
-          id:
-            String(
-              item.id
-            ),
+            id:
+              String(
+                item.id
+              ),
 
-          title:
-            String(
-              item.title ||
-              ''
-            ),
+            title:
+              String(
+                item.title ||
+                ''
+              ),
 
-          description:
-            item.description
-              ? String(
-                  item.description
-                )
-              : null,
+            description:
+              item.description
+                ? String(
+                    item.description
+                  )
+                : null,
 
-          duration_minutes:
-            safeNumber(
-              item.duration_minutes,
-              120
-            ),
+            duration_minutes:
+              safeNumber(
+                item.duration_minutes,
+                120
+              ),
 
-          paper:
-            item.paper
-              ? String(
-                  item.paper
-                )
-              : null,
+            paper:
+              item.paper
+                ? String(
+                    item.paper
+                  )
+                : null,
 
-          test_type:
-            (
-              item.test_type ||
-              'sectional'
-            ) as
-              TestType,
+            test_type:
+              (
+                item.test_type ||
+                'sectional'
+              ) as
+                TestType,
 
-          marks_per_question:
-            safeNumber(
-              item.marks_per_question,
-              2
-            ),
+            marks_per_question:
+              safeNumber(
+                item.marks_per_question,
+                2
+              ),
 
-          negative_marks:
-            safeNumber(
-              item.negative_marks,
-              0.6667
-            ),
+            negative_marks:
+              safeNumber(
+                item.negative_marks,
+                0.6667
+              ),
 
-          instructions:
-            item.instructions
-              ? String(
-                  item.instructions
-                )
-              : null,
+            instructions:
+              item.instructions
+                ? String(
+                    item.instructions
+                  )
+                : null,
 
-          created_at:
-            String(
-              item.created_at ||
-              ''
-            )
-        })
-      );
+            created_at:
+              String(
+                item.created_at ||
+                ''
+              )
+          })
+        );
 
 
     setTests(
@@ -628,97 +724,294 @@ export function PrelimsTestSeries() {
     );
 
 
-    /*
-     * QUESTION COUNTS
-     */
-
     if (
-      rows.length >
+      rows.length ===
       0
     ) {
-
-      const ids =
-        rows.map(
-          test =>
-            test.id
-        );
-
-
-      const {
-        data:
-          mappingData,
-
-        error:
-          mappingError
-      } =
-        await supabase
-          .from(
-            'test_questions'
-          )
-          .select(
-            'test_id'
-          )
-          .in(
-            'test_id',
-            ids
-          );
-
-
-      if (
-        mappingError
-      ) {
-
-        console.error(
-          'Unable to count test questions:',
-          mappingError
-        );
-
-      } else {
-
-        const counts:
-          Record<
-            string,
-            number
-          > = {};
-
-
-        (
-          mappingData ||
-          []
-        ).forEach(
-          row => {
-
-            const testId =
-              String(
-                row.test_id
-              );
-
-
-            counts[
-              testId
-            ] =
-              (
-                counts[
-                  testId
-                ] ||
-                0
-              ) +
-              1;
-          }
-        );
-
-
-        setQuestionCounts(
-          counts
-        );
-      }
-
-    } else {
 
       setQuestionCounts(
         {}
       );
+
+      setAttemptSummaries(
+        {}
+      );
+
+      setLoading(
+        false
+      );
+
+      return;
     }
+
+
+    const ids =
+      rows.map(
+        test =>
+          test.id
+      );
+
+
+    /*
+     * QUESTION COUNTS
+     */
+
+    const {
+      data:
+        mappingData,
+
+      error:
+        mappingError
+    } =
+      await supabase
+        .from(
+          'test_questions'
+        )
+        .select(
+          'test_id'
+        )
+        .in(
+          'test_id',
+          ids
+        );
+
+
+    if (
+      mappingError
+    ) {
+
+      console.error(
+        'Unable to count test questions:',
+        mappingError
+      );
+
+      setQuestionCounts(
+        {}
+      );
+
+    } else {
+
+      const counts:
+        Record<
+          string,
+          number
+        > = {};
+
+
+      (
+        mappingData ||
+        []
+      ).forEach(
+        row => {
+
+          const testId =
+            String(
+              row.test_id
+            );
+
+
+          counts[
+            testId
+          ] =
+            (
+              counts[
+                testId
+              ] ||
+              0
+            ) +
+            1;
+        }
+      );
+
+
+      setQuestionCounts(
+        counts
+      );
+    }
+
+
+    /*
+     * CURRENT STUDENT
+     */
+
+    const {
+      data: {
+        user
+      }
+    } =
+      await supabase
+        .auth
+        .getUser();
+
+
+    setSignedIn(
+      Boolean(
+        user
+      )
+    );
+
+
+    if (!user) {
+
+      setAttemptSummaries(
+        {}
+      );
+
+      setLoading(
+        false
+      );
+
+      return;
+    }
+
+
+    /*
+     * STUDENT'S COMPLETED
+     * TEST SERIES ATTEMPTS
+     */
+
+    const {
+      data:
+        attemptData,
+
+      error:
+        attemptError
+    } =
+      await supabase
+        .from(
+          'test_attempts'
+        )
+        .select(
+          `
+          test_id,
+          score,
+          completed_at
+          `
+        )
+        .eq(
+          'user_id',
+          user.id
+        )
+        .in(
+          'test_id',
+          ids
+        )
+        .not(
+          'completed_at',
+          'is',
+          null
+        )
+        .order(
+          'completed_at',
+          {
+            ascending:
+              false
+          }
+        );
+
+
+    if (
+      attemptError
+    ) {
+
+      console.error(
+        'Unable to load Test Series attempt summaries:',
+        attemptError
+      );
+
+      setAttemptSummaries(
+        {}
+      );
+
+      setLoading(
+        false
+      );
+
+      return;
+    }
+
+
+    const summaries:
+      Record<
+        string,
+        TestAttemptSummary
+      > = {};
+
+
+    (
+      attemptData ||
+      []
+    ).forEach(
+      item => {
+
+        const testId =
+          String(
+            item.test_id
+          );
+
+
+        const score =
+          safeNumber(
+            item.score
+          );
+
+
+        const completedAt =
+          item.completed_at
+            ? String(
+                item.completed_at
+              )
+            : null;
+
+
+        const previous =
+          summaries[
+            testId
+          ];
+
+
+        if (!previous) {
+
+          summaries[
+            testId
+          ] = {
+
+            attempts:
+              1,
+
+            bestScore:
+              score,
+
+            latestScore:
+              score,
+
+            lastCompletedAt:
+              completedAt
+          };
+
+          return;
+        }
+
+
+        previous.attempts +=
+          1;
+
+
+        previous.bestScore =
+          previous.bestScore ===
+            null
+            ? score
+            : Math.max(
+                previous.bestScore,
+                score
+              );
+      }
+    );
+
+
+    setAttemptSummaries(
+      summaries
+    );
 
 
     setLoading(
@@ -735,6 +1028,50 @@ export function PrelimsTestSeries() {
     },
     []
   );
+
+
+  /*
+   * LIBRARY METRICS
+   */
+
+  const attemptedTests =
+    useMemo(
+      () =>
+        tests.filter(
+          test =>
+            (
+              attemptSummaries[
+                test.id
+              ]?.attempts ||
+              0
+            ) >
+            0
+        ).length,
+      [
+        tests,
+        attemptSummaries
+      ]
+    );
+
+
+  const totalStudentAttempts =
+    useMemo(
+      () =>
+        Object.values(
+          attemptSummaries
+        ).reduce(
+          (
+            total,
+            summary
+          ) =>
+            total +
+            summary.attempts,
+          0
+        ),
+      [
+        attemptSummaries
+      ]
+    );
 
 
   /*
@@ -776,6 +1113,36 @@ export function PrelimsTestSeries() {
             }
 
 
+            const attempted =
+              (
+                attemptSummaries[
+                  test.id
+                ]?.attempts ||
+                0
+              ) >
+              0;
+
+
+            if (
+              attemptFilter ===
+                'attempted' &&
+              !attempted
+            ) {
+
+              return false;
+            }
+
+
+            if (
+              attemptFilter ===
+                'not_attempted' &&
+              attempted
+            ) {
+
+              return false;
+            }
+
+
             if (!query) {
 
               return true;
@@ -806,7 +1173,9 @@ export function PrelimsTestSeries() {
         tests,
         search,
         paperFilter,
-        typeFilter
+        typeFilter,
+        attemptFilter,
+        attemptSummaries
       ]
     );
 
@@ -825,21 +1194,14 @@ export function PrelimsTestSeries() {
     }
 
 
-    setLoadingTest(
-      true
+    setLoadingTestId(
+      test.id
     );
 
     setMessage(
       'Loading test...'
     );
 
-
-    /*
-     * Student must be signed in
-     * because questions are
-     * protected for authenticated
-     * users.
-     */
 
     const {
       data: {
@@ -853,8 +1215,8 @@ export function PrelimsTestSeries() {
 
     if (!user) {
 
-      setLoadingTest(
-        false
+      setLoadingTestId(
+        null
       );
 
       setMessage(
@@ -864,10 +1226,6 @@ export function PrelimsTestSeries() {
       return;
     }
 
-
-    /*
-     * TEST QUESTION ORDER
-     */
 
     const {
       data:
@@ -903,8 +1261,8 @@ export function PrelimsTestSeries() {
       mappingError
     ) {
 
-      setLoadingTest(
-        false
+      setLoadingTestId(
+        null
       );
 
       setMessage(
@@ -928,8 +1286,8 @@ export function PrelimsTestSeries() {
       0
     ) {
 
-      setLoadingTest(
-        false
+      setLoadingTestId(
+        null
       );
 
       setMessage(
@@ -948,10 +1306,6 @@ export function PrelimsTestSeries() {
           )
       );
 
-
-    /*
-     * LOAD QUESTION DETAILS
-     */
 
     const loadedQuestions:
       LiveQuestion[] = [];
@@ -978,8 +1332,11 @@ export function PrelimsTestSeries() {
 
 
       const {
-        data,
-        error
+        data:
+          questionData,
+
+        error:
+          questionError
       } =
         await supabase
           .from(
@@ -998,14 +1355,16 @@ export function PrelimsTestSeries() {
           );
 
 
-      if (error) {
+      if (
+        questionError
+      ) {
 
-        setLoadingTest(
-          false
+        setLoadingTestId(
+          null
         );
 
         setMessage(
-          error.message
+          questionError.message
         );
 
         return;
@@ -1013,7 +1372,7 @@ export function PrelimsTestSeries() {
 
 
       (
-        data ||
+        questionData ||
         []
       ).forEach(
         item => {
@@ -1080,7 +1439,7 @@ export function PrelimsTestSeries() {
 
             pyq_year:
               item.pyq_year
-                ? Number(
+                ? safeNumber(
                     item.pyq_year
                   )
                 : null,
@@ -1096,10 +1455,6 @@ export function PrelimsTestSeries() {
       );
     }
 
-
-    /*
-     * PRESERVE TEST ORDER
-     */
 
     const questionMap =
       new Map<
@@ -1143,8 +1498,8 @@ export function PrelimsTestSeries() {
       questionIds.length
     ) {
 
-      setLoadingTest(
-        false
+      setLoadingTestId(
+        null
       );
 
       setMessage(
@@ -1195,8 +1550,8 @@ export function PrelimsTestSeries() {
       'instructions'
     );
 
-    setLoadingTest(
-      false
+    setLoadingTestId(
+      null
     );
 
     setMessage('');
@@ -1353,7 +1708,7 @@ export function PrelimsTestSeries() {
 
 
   /*
-   * SELECT ANSWER
+   * ANSWERS
    */
 
   function selectAnswer(
@@ -1375,10 +1730,6 @@ export function PrelimsTestSeries() {
     );
   }
 
-
-  /*
-   * CLEAR ANSWER
-   */
 
   function clearAnswer(
     questionId:
@@ -1404,10 +1755,6 @@ export function PrelimsTestSeries() {
     );
   }
 
-
-  /*
-   * MARK FOR REVIEW
-   */
 
   function toggleReview(
     questionId:
@@ -1458,9 +1805,7 @@ export function PrelimsTestSeries() {
         );
 
 
-      if (
-        !confirmed
-      ) {
+      if (!confirmed) {
 
         return;
       }
@@ -1503,8 +1848,7 @@ export function PrelimsTestSeries() {
             const isCorrect =
               selected &&
               selectedIndex ===
-                question
-                  .correct_index;
+                question.correct_index;
 
 
             if (
@@ -1682,6 +2026,11 @@ export function PrelimsTestSeries() {
         user
       ) {
 
+        const completedAt =
+          new Date()
+            .toISOString();
+
+
         const {
           error
         } =
@@ -1709,12 +2058,10 @@ export function PrelimsTestSeries() {
                       startedAt
                     )
                       .toISOString()
-                  : new Date()
-                      .toISOString(),
+                  : completedAt,
 
               completed_at:
-                new Date()
-                  .toISOString(),
+                completedAt,
 
               total_questions:
                 questions.length,
@@ -1762,19 +2109,72 @@ export function PrelimsTestSeries() {
             `Result calculated, but saving failed: ${error.message}`
           );
 
-        } else if (
-          automatic
-        ) {
-
-          setMessage(
-            'Time finished. Your test was submitted automatically.'
-          );
-
         } else {
 
-          setMessage(
-            'Test submitted successfully.'
+          setAttemptSummaries(
+            current => {
+
+              const previous =
+                current[
+                  activeTest.id
+                ];
+
+
+              const previousBest =
+                previous
+                  ?.bestScore ??
+                null;
+
+
+              return {
+                ...current,
+
+                [
+                  activeTest.id
+                ]: {
+
+                  attempts:
+                    (
+                      previous
+                        ?.attempts ||
+                      0
+                    ) +
+                    1,
+
+                  bestScore:
+                    previousBest ===
+                      null
+                      ? scorePercent
+                      : Math.max(
+                          previousBest,
+                          scorePercent
+                        ),
+
+                  latestScore:
+                    scorePercent,
+
+                  lastCompletedAt:
+                    completedAt
+                }
+              };
+            }
           );
+
+
+          if (
+            automatic
+          ) {
+
+            setMessage(
+              'Time finished. Your test was submitted automatically.'
+            );
+
+          } else {
+
+            setMessage(
+              'Test submitted successfully.'
+            );
+          }
         }
 
       } else {
@@ -1826,9 +2226,7 @@ export function PrelimsTestSeries() {
         );
 
 
-      if (
-        !confirmed
-      ) {
+      if (!confirmed) {
 
         return;
       }
@@ -1880,19 +2278,11 @@ export function PrelimsTestSeries() {
   }
 
 
-  /*
-   * CURRENT QUESTION
-   */
-
   const currentQuestion =
     questions[
       index
     ];
 
-
-  /*
-   * RESULT LOOKUP
-   */
 
   const resultAnswerMap =
     useMemo(
@@ -1966,12 +2356,75 @@ export function PrelimsTestSeries() {
           </p>
 
 
+          {signedIn && (
+            <div
+              className="metrics-grid"
+              style={{
+                marginTop:
+                  '16px'
+              }}
+            >
+
+              <article
+                className="metric-card"
+              >
+                <div>
+                  <span>
+                    Available Tests
+                  </span>
+
+                  <strong>
+                    {tests.length}
+                  </strong>
+                </div>
+              </article>
+
+
+              <article
+                className="metric-card"
+              >
+                <div>
+                  <span>
+                    Tests Attempted
+                  </span>
+
+                  <strong>
+                    {attemptedTests}
+                  </strong>
+                </div>
+              </article>
+
+
+              <article
+                className="metric-card"
+              >
+                <div>
+                  <span>
+                    Total Attempts
+                  </span>
+
+                  <strong>
+                    {totalStudentAttempts}
+                  </strong>
+                </div>
+              </article>
+
+            </div>
+          )}
+
+
           <button
             type="button"
             className="secondary-btn"
-            onClick={
-              loadTests
+
+            onClick={() =>
+              void loadTests()
             }
+
+            style={{
+              marginTop:
+                '16px'
+            }}
           >
             Refresh Tests
           </button>
@@ -2017,7 +2470,7 @@ export function PrelimsTestSeries() {
                 'grid',
 
               gridTemplateColumns:
-                'repeat(auto-fit, minmax(170px, 1fr))',
+                'repeat(auto-fit, minmax(160px, 1fr))',
 
               gap:
                 '10px',
@@ -2126,6 +2579,44 @@ export function PrelimsTestSeries() {
               </select>
             </label>
 
+
+            <label>
+              Attempt Status
+
+              <select
+                value={
+                  attemptFilter
+                }
+
+                disabled={
+                  !signedIn
+                }
+
+                onChange={
+                  event =>
+                    setAttemptFilter(
+                      event
+                        .target
+                        .value
+                    )
+                }
+              >
+
+                <option value="all">
+                  All Tests
+                </option>
+
+                <option value="attempted">
+                  Attempted
+                </option>
+
+                <option value="not_attempted">
+                  Not Attempted
+                </option>
+
+              </select>
+            </label>
+
           </div>
 
         </section>
@@ -2201,6 +2692,26 @@ export function PrelimsTestSeries() {
                   );
 
 
+                const summary =
+                  attemptSummaries[
+                    test.id
+                  ];
+
+
+                const attempted =
+                  (
+                    summary
+                      ?.attempts ||
+                    0
+                  ) >
+                  0;
+
+
+                const isLoading =
+                  loadingTestId ===
+                  test.id;
+
+
                 return (
 
                   <article
@@ -2269,6 +2780,19 @@ export function PrelimsTestSeries() {
                             }
                           </span>
 
+
+                          {signedIn && (
+                            <span
+                              className="tag"
+                            >
+                              {
+                                attempted
+                                  ? 'Attempted'
+                                  : 'Not Attempted'
+                              }
+                            </span>
+                          )}
+
                         </div>
 
 
@@ -2310,14 +2834,123 @@ export function PrelimsTestSeries() {
                           )}
                         </small>
 
+
+                        {signedIn &&
+                          attempted &&
+                          summary && (
+
+                          <div
+                            style={{
+                              display:
+                                'grid',
+
+                              gridTemplateColumns:
+                                'repeat(auto-fit, minmax(110px, 1fr))',
+
+                              gap:
+                                '10px',
+
+                              marginTop:
+                                '14px'
+                            }}
+                          >
+
+                            <div>
+                              <small>
+                                Attempts
+                              </small>
+
+                              <div>
+                                <strong>
+                                  {
+                                    summary.attempts
+                                  }
+                                </strong>
+                              </div>
+                            </div>
+
+
+                            <div>
+                              <small>
+                                Best Score
+                              </small>
+
+                              <div>
+                                <strong>
+                                  {
+                                    formatScore(
+                                      summary.bestScore
+                                    )
+                                  }
+                                </strong>
+                              </div>
+                            </div>
+
+
+                            <div>
+                              <small>
+                                Latest Score
+                              </small>
+
+                              <div>
+                                <strong>
+                                  {
+                                    formatScore(
+                                      summary.latestScore
+                                    )
+                                  }
+                                </strong>
+                              </div>
+                            </div>
+
+
+                            <div>
+                              <small>
+                                Last Attempt
+                              </small>
+
+                              <div>
+                                <strong>
+                                  {
+                                    formatDate(
+                                      summary.lastCompletedAt
+                                    ) ||
+                                    '—'
+                                  }
+                                </strong>
+                              </div>
+                            </div>
+
+                          </div>
+
+                        )}
+
+
+                        {!signedIn && (
+
+                          <div
+                            className="callout"
+                            style={{
+                              marginTop:
+                                '12px'
+                            }}
+                          >
+                            Sign in to start tests
+                            and track your scores.
+                          </div>
+
+                        )}
+
                       </div>
 
 
                       <button
                         type="button"
                         className="primary-btn"
+
                         disabled={
-                          loadingTest ||
+                          loadingTestId !==
+                            null ||
                           count ===
                             0
                         }
@@ -2330,8 +2963,10 @@ export function PrelimsTestSeries() {
                       >
 
                         {
-                          loadingTest
+                          isLoading
                             ? 'Loading...'
+                            : attempted
+                            ? 'Retake Test'
                             : 'View Test'
                         }
 
@@ -2362,6 +2997,12 @@ export function PrelimsTestSeries() {
     activeTest
   ) {
 
+    const previousSummary =
+      attemptSummaries[
+        activeTest.id
+      ];
+
+
     return (
 
       <div>
@@ -2373,6 +3014,7 @@ export function PrelimsTestSeries() {
           <button
             type="button"
             className="secondary-btn"
+
             onClick={
               backToLibrary
             }
@@ -2407,6 +3049,47 @@ export function PrelimsTestSeries() {
                 activeTest.description
               }
             </p>
+
+          )}
+
+
+          {previousSummary &&
+            previousSummary.attempts >
+              0 && (
+
+            <div
+              className="callout"
+              style={{
+                marginTop:
+                  '14px'
+              }}
+            >
+
+              <strong>
+                Previous Performance
+              </strong>
+
+
+              <p>
+                Attempts:{' '}
+                {previousSummary.attempts}
+                {' • '}
+                Best:{' '}
+                {
+                  formatScore(
+                    previousSummary.bestScore
+                  )
+                }
+                {' • '}
+                Latest:{' '}
+                {
+                  formatScore(
+                    previousSummary.latestScore
+                  )
+                }
+              </p>
+
+            </div>
 
           )}
 
@@ -2570,7 +3253,13 @@ export function PrelimsTestSeries() {
                 '18px'
             }}
           >
-            Start Test
+            {
+              previousSummary &&
+              previousSummary.attempts >
+                0
+                ? 'Retake Test'
+                : 'Start Test'
+            }
           </button>
 
         </section>
@@ -2844,11 +3533,9 @@ export function PrelimsTestSeries() {
 
                     <strong>
                       {
-                        String
-                          .fromCharCode(
-                            65 +
-                            optionIndex
-                          )
+                        optionLetter(
+                          optionIndex
+                        )
                       }.
                     </strong>
                     {' '}
@@ -3201,6 +3888,12 @@ export function PrelimsTestSeries() {
     result
   ) {
 
+    const updatedSummary =
+      attemptSummaries[
+        activeTest.id
+      ];
+
+
     return (
 
       <div>
@@ -3395,6 +4088,49 @@ export function PrelimsTestSeries() {
             </p>
 
           </div>
+
+
+          {updatedSummary &&
+            updatedSummary.attempts >
+              0 && (
+
+            <div
+              className="callout"
+              style={{
+                marginTop:
+                  '14px'
+              }}
+            >
+
+              <strong>
+                Test Series Record
+              </strong>
+
+
+              <p>
+                Attempts:{' '}
+                {
+                  updatedSummary.attempts
+                }
+                {' • '}
+                Best:{' '}
+                {
+                  formatScore(
+                    updatedSummary.bestScore
+                  )
+                }
+                {' • '}
+                Latest:{' '}
+                {
+                  formatScore(
+                    updatedSummary.latestScore
+                  )
+                }
+              </p>
+
+            </div>
+
+          )}
 
 
           <div
@@ -3693,11 +4429,9 @@ export function PrelimsTestSeries() {
 
                               <strong>
                                 {
-                                  String
-                                    .fromCharCode(
-                                      65 +
-                                      optionIndex
-                                    )
+                                  optionLetter(
+                                    optionIndex
+                                  )
                                 }.
                               </strong>
                               {' '}
@@ -3705,19 +4439,23 @@ export function PrelimsTestSeries() {
 
 
                               {isCorrect && (
+
                                 <strong>
                                   {' '}
                                   ✓ Correct
                                 </strong>
+
                               )}
 
 
                               {isSelected &&
                                 !isCorrect && (
+
                                 <strong>
                                   {' '}
                                   Your Answer
                                 </strong>
+
                               )}
 
                             </div>
@@ -3745,7 +4483,8 @@ export function PrelimsTestSeries() {
                     <p>
                       {
                         question
-                          .explanation
+                          .explanation ||
+                        'No explanation available.'
                       }
                     </p>
 
