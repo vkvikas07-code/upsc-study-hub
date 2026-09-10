@@ -64,9 +64,9 @@ type HomePageProps = {
     () => void;
 
   onGoLearn:
-  (
-    subject?: string | null
-  ) => void;
+    (
+      subject?: string | null
+    ) => void;
 
   onGoCurrent:
     () => void;
@@ -184,12 +184,6 @@ function calculateStreak(
     return 0;
   }
 
-
-  /*
-   * Streak remains active
-   * if student practised
-   * today or yesterday.
-   */
 
   const today =
     new Date();
@@ -319,45 +313,69 @@ export function HomePage({
     totalAttempts,
     setTotalAttempts
   ] =
-    useState(0);
+    useState(
+      0
+    );
 
 
   const [
     statsLoading,
     setStatsLoading
   ] =
-    useState(true);
+    useState(
+      true
+    );
 
 
   const [
     signedIn,
     setSignedIn
   ] =
-    useState(false);
+    useState(
+      false
+    );
 
 
   /*
-   * LOAD REAL HOME STATS
+   * LOAD HOME PERFORMANCE
+   *
+   * Includes:
+   * - normal Prelims MCQ practice
+   * - Prelims Test Series attempts
    */
 
   useEffect(
     () => {
 
+      let active =
+        true;
+
+
       async function loadHomeStats() {
 
         if (!supabase) {
 
-          setStatsLoading(
-            false
-          );
+          if (
+            active
+          ) {
+
+            setStatsLoading(
+              false
+            );
+          }
 
           return;
         }
 
 
-        setStatsLoading(
-          true
-        );
+        if (
+          active
+        ) {
+
+          setStatsLoading(
+            true
+          );
+        }
 
 
         const {
@@ -368,6 +386,14 @@ export function HomePage({
           await supabase
             .auth
             .getUser();
+
+
+        if (
+          !active
+        ) {
+
+          return;
+        }
 
 
         if (!user) {
@@ -398,374 +424,291 @@ export function HomePage({
 
 
         /*
- * TOTAL PRELIMS SESSIONS
- *
- * Include both:
- * 1. Normal MCQ practice
- * 2. Prelims Test Series
- */
+         * TOTAL COMPLETED SESSIONS
+         */
 
-const [
-  practiceCountResult,
-  testCountResult
-] =
-  await Promise.all([
+        const [
+          practiceCountResult,
+          testCountResult
+        ] =
+          await Promise.all([
 
-    supabase
-      .from(
-        'practice_attempts'
-      )
-      .select(
-        'id',
-        {
-          count:
-            'exact',
+            supabase
+              .from(
+                'practice_attempts'
+              )
+              .select(
+                'id',
+                {
+                  count:
+                    'exact',
 
-          head:
-            true
-        }
-      )
-      .eq(
-        'user_id',
-        user.id
-      ),
+                  head:
+                    true
+                }
+              )
+              .eq(
+                'user_id',
+                user.id
+              )
+              .not(
+                'completed_at',
+                'is',
+                null
+              ),
 
-    supabase
-      .from(
-        'test_attempts'
-      )
-      .select(
-        'id',
-        {
-          count:
-            'exact',
+            supabase
+              .from(
+                'test_attempts'
+              )
+              .select(
+                'id',
+                {
+                  count:
+                    'exact',
 
-          head:
-            true
-        }
-      )
-      .eq(
-        'user_id',
-        user.id
-      )
-      .not(
-        'completed_at',
-        'is',
-        null
-      )
+                  head:
+                    true
+                }
+              )
+              .eq(
+                'user_id',
+                user.id
+              )
+              .not(
+                'completed_at',
+                'is',
+                null
+              )
 
-  ]);
-
-
-if (
-  practiceCountResult.error
-) {
-
-  console.error(
-    'Unable to count Prelims practice attempts:',
-    practiceCountResult.error
-  );
-}
-
-
-if (
-  testCountResult.error
-) {
-
-  console.error(
-    'Unable to count Test Series attempts:',
-    testCountResult.error
-  );
-}
-
-
-setTotalAttempts(
-  (
-    practiceCountResult.count ||
-    0
-  ) +
-  (
-    testCountResult.count ||
-    0
-  )
-);
-            .select(
-              'id',
-              {
-                count:
-                  'exact',
-
-                head:
-                  true
-              }
-            )
-            .eq(
-              'user_id',
-              user.id
-            );
+          ]);
 
 
         if (
-          countError
+          !active
         ) {
-
-          console.error(
-            'Unable to count Prelims attempts:',
-            countError
-          );
-
-        } else {
-
-          setTotalAttempts(
-            count ||
-            0
-          );
-        }
-
-
-        /*
- * RECENT PERFORMANCE
- *
- * Combine normal Prelims
- * practice and Test Series.
- */
-
-const [
-  practiceResult,
-  testResult
-] =
-  await Promise.all([
-
-    supabase
-      .from(
-        'practice_attempts'
-      )
-      .select(
-        `
-        score_percent,
-        completed_at
-        `
-      )
-      .eq(
-        'user_id',
-        user.id
-      )
-      .not(
-        'completed_at',
-        'is',
-        null
-      )
-      .order(
-        'completed_at',
-        {
-          ascending:
-            false
-        }
-      )
-      .limit(
-        200
-      ),
-
-    supabase
-      .from(
-        'test_attempts'
-      )
-      .select(
-        `
-        score,
-        completed_at
-        `
-      )
-      .eq(
-        'user_id',
-        user.id
-      )
-      .not(
-        'completed_at',
-        'is',
-        null
-      )
-      .order(
-        'completed_at',
-        {
-          ascending:
-            false
-        }
-      )
-      .limit(
-        200
-      )
-
-  ]);
-
-
-if (
-  practiceResult.error
-) {
-
-  console.error(
-    'Unable to load Prelims practice stats:',
-    practiceResult.error
-  );
-}
-
-
-if (
-  testResult.error
-) {
-
-  console.error(
-    'Unable to load Test Series stats:',
-    testResult.error
-  );
-}
-
-
-/*
- * NORMAL PRACTICE ROWS
- */
-
-const practiceRows:
-  AttemptStatRow[] =
-    (
-      practiceResult.data ||
-      []
-    ).map(
-      item => ({
-
-        score_percent:
-          item.score_percent,
-
-        completed_at:
-          item.completed_at
-      })
-    );
-
-
-/*
- * TEST SERIES ROWS
- *
- * test_attempts uses "score"
- * for the percentage result.
- */
-
-const testRows:
-  AttemptStatRow[] =
-    (
-      testResult.data ||
-      []
-    ).map(
-      item => ({
-
-        score_percent:
-          item.score,
-
-        completed_at:
-          item.completed_at
-      })
-    );
-
-
-/*
- * COMBINE AND SORT
- * NEWEST FIRST
- */
-
-const combinedAttempts =
-  [
-    ...practiceRows,
-    ...testRows
-  ]
-    .sort(
-      (
-        first,
-        second
-      ) => {
-
-        const firstTime =
-          first.completed_at
-            ? new Date(
-                first.completed_at
-              ).getTime()
-            : 0;
-
-
-        const secondTime =
-          second.completed_at
-            ? new Date(
-                second.completed_at
-              ).getTime()
-            : 0;
-
-
-        return (
-          secondTime -
-          firstTime
-        );
-      }
-    )
-    .slice(
-      0,
-      200
-    );
-
-
-setAttempts(
-  combinedAttempts
-);
-
-
-setStatsLoading(
-  false
-);
-            .select(
-              `
-              score_percent,
-              completed_at
-              `
-            )
-            .eq(
-              'user_id',
-              user.id
-            )
-            .order(
-              'completed_at',
-              {
-                ascending:
-                  false
-              }
-            )
-            .limit(
-              200
-            );
-
-
-        if (error) {
-
-          console.error(
-            'Unable to load Home performance stats:',
-            error
-          );
-
-
-          setAttempts(
-            []
-          );
-
-          setStatsLoading(
-            false
-          );
 
           return;
         }
 
 
-        setAttempts(
+        if (
+          practiceCountResult.error
+        ) {
+
+          console.error(
+            'Unable to count Prelims practice attempts:',
+            practiceCountResult.error
+          );
+        }
+
+
+        if (
+          testCountResult.error
+        ) {
+
+          console.error(
+            'Unable to count Test Series attempts:',
+            testCountResult.error
+          );
+        }
+
+
+        setTotalAttempts(
           (
-            data ||
-            []
-          ) as
-            AttemptStatRow[]
+            practiceCountResult.count ||
+            0
+          ) +
+          (
+            testCountResult.count ||
+            0
+          )
+        );
+
+
+        /*
+         * RECENT PERFORMANCE
+         *
+         * Combine the latest rows
+         * from both Prelims systems.
+         */
+
+        const [
+          practiceResult,
+          testResult
+        ] =
+          await Promise.all([
+
+            supabase
+              .from(
+                'practice_attempts'
+              )
+              .select(
+                `
+                score_percent,
+                completed_at
+                `
+              )
+              .eq(
+                'user_id',
+                user.id
+              )
+              .not(
+                'completed_at',
+                'is',
+                null
+              )
+              .order(
+                'completed_at',
+                {
+                  ascending:
+                    false
+                }
+              )
+              .limit(
+                200
+              ),
+
+            supabase
+              .from(
+                'test_attempts'
+              )
+              .select(
+                `
+                score,
+                completed_at
+                `
+              )
+              .eq(
+                'user_id',
+                user.id
+              )
+              .not(
+                'completed_at',
+                'is',
+                null
+              )
+              .order(
+                'completed_at',
+                {
+                  ascending:
+                    false
+                }
+              )
+              .limit(
+                200
+              )
+
+          ]);
+
+
+        if (
+          !active
+        ) {
+
+          return;
+        }
+
+
+        if (
+          practiceResult.error
+        ) {
+
+          console.error(
+            'Unable to load Prelims practice stats:',
+            practiceResult.error
+          );
+        }
+
+
+        if (
+          testResult.error
+        ) {
+
+          console.error(
+            'Unable to load Test Series stats:',
+            testResult.error
+          );
+        }
+
+
+        const practiceRows:
+          AttemptStatRow[] =
+            (
+              practiceResult.data ||
+              []
+            ).map(
+              item => ({
+
+                score_percent:
+                  item.score_percent,
+
+                completed_at:
+                  item.completed_at
+              })
+            );
+
+
+        const testRows:
+          AttemptStatRow[] =
+            (
+              testResult.data ||
+              []
+            ).map(
+              item => ({
+
+                score_percent:
+                  item.score,
+
+                completed_at:
+                  item.completed_at
+              })
+            );
+
+
+        const combinedAttempts =
+          [
+            ...practiceRows,
+            ...testRows
+          ]
+            .sort(
+              (
+                first,
+                second
+              ) => {
+
+                const firstTime =
+                  first.completed_at
+                    ? new Date(
+                        first.completed_at
+                      )
+                        .getTime()
+                    : 0;
+
+
+                const secondTime =
+                  second.completed_at
+                    ? new Date(
+                        second.completed_at
+                      )
+                        .getTime()
+                    : 0;
+
+
+                return (
+                  secondTime -
+                  firstTime
+                );
+              }
+            )
+            .slice(
+              0,
+              200
+            );
+
+
+        setAttempts(
+          combinedAttempts
         );
 
 
@@ -777,13 +720,20 @@ setStatsLoading(
 
       void loadHomeStats();
 
+
+      return () => {
+
+        active =
+          false;
+      };
+
     },
     []
   );
 
 
   /*
-   * LAST FIVE AVERAGE
+   * LAST FIVE SESSION AVERAGE
    */
 
   const recentAverage =
@@ -832,7 +782,7 @@ setStatsLoading(
 
 
   /*
-   * CURRENT PRACTICE STREAK
+   * PRACTICE STREAK
    */
 
   const currentStreak =
@@ -848,7 +798,7 @@ setStatsLoading(
 
 
   /*
-   * DAILY TASK TOGGLE
+   * DAILY PLAN TOGGLE
    */
 
   function toggleTask(
@@ -958,7 +908,7 @@ setStatsLoading(
       </section>
 
 
-      {/* REAL PERFORMANCE METRICS */}
+      {/* PERFORMANCE METRICS */}
 
       <section
         className="metrics-grid"
@@ -1267,12 +1217,14 @@ setStatsLoading(
         {/* LIVE SYLLABUS SNAPSHOT */}
 
         <HomeSyllabusSnapshot
-  onOpenSyllabus={() =>
-    onGoLearn(
-      null
-    )
-  }
-/>
+
+          onOpenSyllabus={() =>
+            onGoLearn(
+              null
+            )
+          }
+
+        />
 
       </section>
 
@@ -1304,17 +1256,17 @@ setStatsLoading(
 
 
           <button
-  type="button"
-  className="text-btn"
+            type="button"
+            className="text-btn"
 
-  onClick={() =>
-    onGoLearn(
-      null
-    )
-  }
->
-  View all
-</button>
+            onClick={() =>
+              onGoLearn(
+                null
+              )
+            }
+          >
+            View all
+          </button>
 
         </div>
 
@@ -1334,11 +1286,11 @@ setStatsLoading(
                   subject.name
                 }
 
-               onClick={() =>
-  onGoLearn(
-    subject.name
-  )
-}
+                onClick={() =>
+                  onGoLearn(
+                    subject.name
+                  )
+                }
               >
 
                 <span
