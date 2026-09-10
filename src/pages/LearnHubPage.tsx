@@ -11,14 +11,21 @@ import {
   StudyResources
 } from '../components/StudyResources';
 
+import {
+  BookProgressTracker
+} from '../components/BookProgressTracker';
+
 
 type LearnMode =
   | 'syllabus'
-  | 'resources';
+  | 'resources'
+  | 'book-progress';
 
 
 type LearnHubPageProps = {
-  initialSubject?: string | null;
+  initialSubject?:
+    string |
+    null;
 };
 
 
@@ -30,27 +37,42 @@ export function LearnHubPage({
    * LEARN WORKSPACE
    *
    * syllabus =
-   * live UPSC syllabus tracker
+   * UPSC syllabus tracker
    *
    * resources =
-   * books, official sources,
-   * notes, reports, monthly CA
+   * books, notes, reports,
+   * official sources
+   *
+   * book-progress =
+   * subject -> book ->
+   * topic -> subtopic
+   * reading tracker
    */
 
   const [
     mode,
     setMode
   ] =
-    useState<LearnMode>(
+    useState<
+      LearnMode
+    >(
       'syllabus'
     );
 
 
   /*
-   * WHEN HOME QUICK STUDY
-   * OPENS A SUBJECT,
-   * ALWAYS RETURN TO
-   * SYLLABUS TRACKER.
+   * HOME QUICK STUDY
+   *
+   * When Home sends a subject,
+   * open the Syllabus Tracker
+   * first.
+   *
+   * The same subject is also
+   * passed to Book Progress,
+   * so if the student switches
+   * to Book Progress, that
+   * subject will already be
+   * selected when possible.
    */
 
   useEffect(
@@ -76,7 +98,9 @@ export function LearnHubPage({
 
     <>
 
-      {/* LEARN WORKSPACE SWITCHER */}
+      {/* =====================================
+          LEARN WORKSPACE HEADER
+      ===================================== */}
 
       <div
         className="page-wrap"
@@ -84,6 +108,7 @@ export function LearnHubPage({
 
         <section
           className="panel"
+
           style={{
             marginTop:
               '18px',
@@ -106,21 +131,27 @@ export function LearnHubPage({
 
 
           <p>
-            Track the complete UPSC syllabus
-            and access syllabus-linked study
-            resources from one place.
+            Track the UPSC syllabus, access
+            important study resources and
+            monitor your book-wise reading
+            progress from one place.
           </p>
 
 
+          {/* =================================
+              WORKSPACE SWITCHER
+          ================================= */}
+
           <div
             className="filter-row"
+
             style={{
               marginTop:
                 '16px'
             }}
           >
 
-            {/* SYLLABUS TRACKER */}
+            {/* SYLLABUS */}
 
             <button
               type="button"
@@ -163,6 +194,28 @@ export function LearnHubPage({
               Study Resources
             </button>
 
+
+            {/* BOOK PROGRESS */}
+
+            <button
+              type="button"
+
+              className={
+                mode ===
+                  'book-progress'
+                  ? 'filter active'
+                  : 'filter'
+              }
+
+              onClick={() =>
+                setMode(
+                  'book-progress'
+                )
+              }
+            >
+              Book Progress
+            </button>
+
           </div>
 
         </section>
@@ -170,44 +223,81 @@ export function LearnHubPage({
       </div>
 
 
-      {/* SYLLABUS TRACKER */}
+      {/* =====================================
+          SYLLABUS TRACKER
+      ===================================== */}
 
       {
         mode ===
-        'syllabus'
-          ? (
+        'syllabus' && (
 
-            <LearnPage
+          <LearnPage
+
+            initialSubject={
+              initialSubject
+            }
+
+          />
+
+        )
+      }
+
+
+      {/* =====================================
+          STUDY RESOURCES
+      ===================================== */}
+
+      {
+        mode ===
+        'resources' && (
+
+          <div
+            className="page-wrap"
+          >
+
+            <StudyResources
+
+              initialStage={
+                initialSubject
+                  ? 'prelims'
+                  : 'all'
+              }
+
               initialSubject={
                 initialSubject
               }
+
             />
 
-          )
+          </div>
 
-          : (
+        )
+      }
 
-            <div
-              className="page-wrap"
-            >
 
-              <StudyResources
+      {/* =====================================
+          BOOK PROGRESS TRACKER
+      ===================================== */}
 
-                initialStage={
-                  initialSubject
-                    ? 'prelims'
-                    : 'all'
-                }
+      {
+        mode ===
+        'book-progress' && (
 
-                initialSubject={
-                  initialSubject
-                }
+          <div
+            className="page-wrap"
+          >
 
-              />
+            <BookProgressTracker
 
-            </div>
+              initialSubject={
+                initialSubject
+              }
 
-          )
+            />
+
+          </div>
+
+        )
       }
 
     </>
