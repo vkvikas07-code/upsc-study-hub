@@ -38,6 +38,10 @@ import {
 } from '../components/HomeBookProgressSnapshot';
 
 import {
+  RevisionDueToday
+} from '../components/RevisionDueToday';
+
+import {
   supabase
 } from '../lib/supabase';
 
@@ -61,7 +65,6 @@ type HomeLearnMode =
 
 
 type HomePageProps = {
-
   tasks:
     DailyTask[];
 
@@ -132,21 +135,19 @@ function localDateKey(
     String(
       date.getMonth() +
       1
-    )
-      .padStart(
-        2,
-        '0'
-      );
+    ).padStart(
+      2,
+      '0'
+    );
 
 
   const day =
     String(
       date.getDate()
-    )
-      .padStart(
-        2,
-        '0'
-      );
+    ).padStart(
+      2,
+      '0'
+    );
 
 
   return (
@@ -376,10 +377,6 @@ export function HomePage({
 
   /*
    * LOAD HOME PERFORMANCE
-   *
-   * Includes:
-   * - Prelims Question Bank
-   * - Prelims Test Series
    */
 
   useEffect(
@@ -475,8 +472,7 @@ export function HomePage({
 
 
         /*
-         * TOTAL COMPLETED
-         * PRELIMS SESSIONS
+         * TOTAL PRELIMS SESSIONS
          */
 
         const [
@@ -579,8 +575,7 @@ export function HomePage({
 
 
         /*
-         * LOAD RECENT PRACTICE
-         * AND TEST PERFORMANCE
+         * LOAD RECENT PERFORMANCE
          */
 
         const [
@@ -682,10 +677,6 @@ export function HomePage({
         }
 
 
-        /*
-         * NORMAL PRACTICE ROWS
-         */
-
         const practiceRows:
           AttemptStatRow[] =
             (
@@ -703,13 +694,6 @@ export function HomePage({
               })
             );
 
-
-        /*
-         * TEST SERIES ROWS
-         *
-         * test_attempts.score
-         * already stores percentage
-         */
 
         const testRows:
           AttemptStatRow[] =
@@ -729,10 +713,6 @@ export function HomePage({
             );
 
 
-        /*
-         * COMBINE BOTH
-         */
-
         const combinedAttempts =
           [
             ...practiceRows,
@@ -748,8 +728,7 @@ export function HomePage({
                   first.completed_at
                     ? new Date(
                         first.completed_at
-                      )
-                        .getTime()
+                      ).getTime()
                     : 0;
 
 
@@ -757,8 +736,7 @@ export function HomePage({
                   second.completed_at
                     ? new Date(
                         second.completed_at
-                      )
-                        .getTime()
+                      ).getTime()
                     : 0;
 
 
@@ -1211,9 +1189,7 @@ export function HomePage({
         }}
       >
 
-        {/* =================================
-            DAILY PLAN
-        ================================= */}
+        {/* DAILY PLAN */}
 
         <article
           className="panel"
@@ -1312,9 +1288,7 @@ export function HomePage({
         </article>
 
 
-        {/* =================================
-            LIVE SYLLABUS SNAPSHOT
-        ================================= */}
+        {/* LIVE SYLLABUS */}
 
         <HomeSyllabusSnapshot
 
@@ -1328,9 +1302,7 @@ export function HomePage({
         />
 
 
-        {/* =================================
-            BOOK PROGRESS SNAPSHOT
-        ================================= */}
+        {/* BOOK PROGRESS */}
 
         <HomeBookProgressSnapshot
 
@@ -1344,6 +1316,31 @@ export function HomePage({
         />
 
       </section>
+
+
+      {/* =====================================
+          REVISION DUE TODAY
+      ===================================== */}
+
+      <div
+        style={{
+          marginTop:
+            '18px'
+        }}
+      >
+
+        <RevisionDueToday
+
+          onOpenTracker={() =>
+            onGoLearn(
+              null,
+              'book-progress'
+            )
+          }
+
+        />
+
+      </div>
 
 
       {/* =====================================
