@@ -1717,32 +1717,42 @@ export function AdminPage({
         <MainsQuestionManager />
       </div>
 
-      {/* MAINS EVALUATION TAB */}
+            {/* MAINS EVALUATION TAB */}
+
       <div
         style={{
           display:
-            adminTab === 'evaluation'
+            adminTab ===
+              'evaluation'
               ? 'block'
               : 'none'
         }}
       >
-       {/* MAINS EVALUATION TAB */}
 
-<div
-  style={{
-    display:
-      adminTab ===
-        'evaluation'
-        ? 'block'
-        : 'none'
-  }}
->
+        <MainsEvaluationManager />
 
-  <MainsEvaluationManager />
-
-</div>
+      </div>
 
 
+      {/* STUDY MATERIAL TAB */}
+
+      <div
+        style={{
+          display:
+            adminTab ===
+              'resources'
+              ? 'block'
+              : 'none'
+        }}
+      >
+
+        <ResourceAdminHub />
+
+      </div>
+
+    </div>
+  );
+}
 {/* STUDY MATERIAL TAB */}
 
 <div
