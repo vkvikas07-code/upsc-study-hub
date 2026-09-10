@@ -20,8 +20,8 @@ import {
 } from './pages/HomePage';
 
 import {
-  LearnPage
-} from './pages/LearnPage';
+  LearnHubPage
+} from './pages/LearnHubPage';
 
 import {
   PracticePage
@@ -435,10 +435,9 @@ export default function App() {
   /*
    * MAIN SHELL NAVIGATION
    *
-   * Opening Learn from the
-   * normal navigation should
-   * show the full syllabus,
-   * not an old subject filter.
+   * Opening Learn from normal
+   * navigation clears an old
+   * Home subject filter.
    */
 
   function navigateMain(
@@ -678,7 +677,7 @@ export default function App() {
 
 
   /*
-   * LEARN
+   * LEARN HUB
    */
 
   if (
@@ -688,7 +687,7 @@ export default function App() {
 
     content = (
 
-      <LearnPage
+      <LearnHubPage
 
         initialSubject={
           learnSubject
