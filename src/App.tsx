@@ -748,7 +748,7 @@ export default function App() {
 
   let content = (
 
-    <HomePage
+   <HomePage
 
       tasks={
         tasks
@@ -763,12 +763,7 @@ export default function App() {
       }
 
       onGoLearn={
-        subject =>
-          openLearn(
-            subject ??
-            null,
-            'syllabus'
-          )
+        openLearn
       }
 
       onGoCurrent={() =>
@@ -778,7 +773,6 @@ export default function App() {
       }
 
     />
-
   );
 
 
