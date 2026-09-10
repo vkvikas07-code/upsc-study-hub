@@ -85,13 +85,6 @@ const defaultTasks: DailyTask[] = [
 
 /*
  * LOCAL DATE
- *
- * Example:
- * 2026-09-10
- *
- * Uses the student's device
- * local date so the Daily Plan
- * resets at local midnight.
  */
 
 function getLocalDateKey() {
@@ -190,11 +183,6 @@ function loadTasksForDay(
     }
 
 
-    /*
-     * Merge saved completion
-     * with current default tasks.
-     */
-
     return defaultTasks.map(
       defaultTask => {
 
@@ -244,16 +232,30 @@ export default function App() {
 
 
   /*
+   * SELECTED LEARN SUBJECT
+   *
+   * null =
+   * show complete syllabus
+   *
+   * string =
+   * open selected subject
+   * from Home Quick Study
+   */
+
+  const [
+    learnSubject,
+    setLearnSubject
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
+
+
+  /*
    * PRACTICE WORKSPACE
-   *
-   * prelims =
-   * normal question-bank practice
-   *
-   * tests =
-   * published Test Series
-   *
-   * mains =
-   * answer writing
    */
 
   const [
@@ -333,8 +335,6 @@ export default function App() {
 
   /*
    * AUTO RESET DAILY PLAN
-   *
-   * Check once every minute.
    */
 
   useEffect(
@@ -392,7 +392,6 @@ export default function App() {
 
   /*
    * PUBLISH CURRENT AFFAIR
-   * LOCALLY AFTER ADMIN SAVE
    */
 
   function publish(
@@ -409,10 +408,64 @@ export default function App() {
 
 
   /*
+   * OPEN LEARN
+   *
+   * Home Quick Study can
+   * provide a specific subject.
+   */
+
+  function openLearn(
+    subject:
+      string |
+      null =
+        null
+  ) {
+
+    setLearnSubject(
+      subject
+    );
+
+
+    setActive(
+      'learn'
+    );
+  }
+
+
+  /*
+   * MAIN SHELL NAVIGATION
+   *
+   * Opening Learn from the
+   * normal navigation should
+   * show the full syllabus,
+   * not an old subject filter.
+   */
+
+  function navigateMain(
+    next:
+      NavKey
+  ) {
+
+    if (
+      next ===
+      'learn'
+    ) {
+
+      setLearnSubject(
+        null
+      );
+    }
+
+
+    setActive(
+      next
+    );
+  }
+
+
+  /*
    * OPEN NORMAL PRELIMS
    * QUESTION-BANK PRACTICE
-   *
-   * Used by Home and Smart Study.
    */
 
   function openPrelimsPractice() {
@@ -477,7 +530,8 @@ export default function App() {
             .order(
               'published_at',
               {
-                ascending: false
+                ascending:
+                  false
               }
             );
 
@@ -495,7 +549,8 @@ export default function App() {
 
         if (
           !data ||
-          data.length === 0
+          data.length ===
+            0
         ) {
 
           return;
@@ -570,7 +625,6 @@ export default function App() {
 
   /*
    * SCROLL TO TOP
-   * WHEN MAIN TAB CHANGES
    */
 
   useEffect(
@@ -595,6 +649,7 @@ export default function App() {
   let content = (
 
     <HomePage
+
       tasks={
         tasks
       }
@@ -607,10 +662,8 @@ export default function App() {
         openPrelimsPractice
       }
 
-      onGoLearn={() =>
-        setActive(
-          'learn'
-        )
+      onGoLearn={
+        openLearn
       }
 
       onGoCurrent={() =>
@@ -618,6 +671,7 @@ export default function App() {
           'current'
         )
       }
+
     />
 
   );
@@ -633,7 +687,15 @@ export default function App() {
   ) {
 
     content = (
-      <LearnPage />
+
+      <LearnPage
+
+        initialSubject={
+          learnSubject
+        }
+
+      />
+
     );
   }
 
@@ -659,6 +721,7 @@ export default function App() {
 
           <div
             className="filter-row"
+
             style={{
               paddingTop:
                 '18px',
@@ -668,7 +731,7 @@ export default function App() {
             }}
           >
 
-            {/* NORMAL PRELIMS PRACTICE */}
+            {/* PRELIMS MCQ */}
 
             <button
               type="button"
@@ -744,21 +807,29 @@ export default function App() {
           practiceMode ===
           'prelims'
             ? (
+
               <PracticePage />
+
             )
 
             : practiceMode ===
               'tests'
             ? (
+
               <div
                 className="page-wrap"
               >
+
                 <PrelimsTestSeries />
+
               </div>
+
             )
 
             : (
+
               <MainsPracticePage />
+
             )
         }
 
@@ -801,6 +872,7 @@ export default function App() {
     content = (
 
       <ProfilePage
+
         onAdmin={() =>
           setActive(
             'admin'
@@ -810,6 +882,7 @@ export default function App() {
         onOpenPractice={
           openPrelimsPractice
         }
+
       />
 
     );
@@ -828,6 +901,7 @@ export default function App() {
     content = (
 
       <AdminPage
+
         onPublish={
           item => {
 
@@ -841,6 +915,7 @@ export default function App() {
             );
           }
         }
+
       />
 
     );
@@ -856,13 +931,15 @@ export default function App() {
     <IonApp>
 
       <Shell
+
         active={
           active
         }
 
         onNavigate={
-          setActive
+          navigateMain
         }
+
       >
 
         {content}
