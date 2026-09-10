@@ -15,6 +15,10 @@ import {
   BookProgressTracker
 } from '../components/BookProgressTracker';
 
+import {
+  RevisionScheduleSettings
+} from '../components/RevisionScheduleSettings';
+
 
 export type LearnMode =
   | 'syllabus'
@@ -42,7 +46,9 @@ export function LearnHubPage({
 }: LearnHubPageProps) {
 
   /*
+   * =========================================
    * LEARN WORKSPACE
+   * =========================================
    *
    * syllabus
    * =
@@ -55,11 +61,10 @@ export function LearnHubPage({
    *
    * book-progress
    * =
-   * Subject
-   * → Book
-   * → Topic
-   * → Subtopic
-   * → Completion
+   * Reading
+   * Revision
+   * Revision schedule
+   * Book-wise progress
    */
 
   const [
@@ -74,10 +79,11 @@ export function LearnHubPage({
 
 
   /*
-   * DIRECT WORKSPACE
-   * NAVIGATION
+   * =========================================
+   * DIRECT WORKSPACE NAVIGATION
+   * =========================================
    *
-   * This allows Home to open:
+   * Allows Home to open:
    *
    * Learn
    * → Book Progress
@@ -98,6 +104,12 @@ export function LearnHubPage({
     ]
   );
 
+
+  /*
+   * =========================================
+   * PAGE
+   * =========================================
+   */
 
   return (
 
@@ -137,9 +149,9 @@ export function LearnHubPage({
 
           <p>
             Track the UPSC syllabus,
-            access important study
-            resources and monitor your
-            book-wise reading progress
+            access important study resources,
+            manage your book-wise reading
+            progress and organise revisions
             from one place.
           </p>
 
@@ -282,7 +294,7 @@ export function LearnHubPage({
 
 
       {/* =====================================
-          BOOK PROGRESS
+          BOOK PROGRESS WORKSPACE
       ===================================== */}
 
       {
@@ -293,13 +305,33 @@ export function LearnHubPage({
             className="page-wrap"
           >
 
-            <BookProgressTracker
+            {/* =================================
+                PERSONAL REVISION SETTINGS
+            ================================= */}
 
-              initialSubject={
-                initialSubject
-              }
+            <RevisionScheduleSettings />
 
-            />
+
+            {/* =================================
+                BOOK READING + REVISION TRACKER
+            ================================= */}
+
+            <div
+              style={{
+                marginTop:
+                  '18px'
+              }}
+            >
+
+              <BookProgressTracker
+
+                initialSubject={
+                  initialSubject
+                }
+
+              />
+
+            </div>
 
           </div>
 
