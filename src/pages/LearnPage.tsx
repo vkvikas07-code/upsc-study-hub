@@ -42,6 +42,9 @@ type SubjectGroup = {
   progress: number;
 };
 
+type LearnPageProps = {
+  initialSubject?: string | null;
+};
 
 function clampProgress(
   value:
@@ -149,7 +152,9 @@ function calculateAverage(
 }
 
 
-export function LearnPage() {
+export function LearnPage({
+  initialSubject = null
+}: LearnPageProps) {
 
   /*
    * PAGE STATE
@@ -560,20 +565,65 @@ export function LearnPage() {
    * RESET PAPER FILTER.
    */
 
-  useEffect(
-    () => {
+  /*
+ * IF HOME OPENS A SPECIFIC
+ * SUBJECT, USE PRELIMS VIEW.
+ */
 
-      setPaperFilter(
-        'all'
+useEffect(
+  () => {
+
+    if (
+      initialSubject
+    ) {
+
+      setStage(
+        'prelims'
+      );
+    }
+
+  },
+  [
+    initialSubject
+  ]
+);
+
+
+/*
+ * RESET FILTERS WHEN
+ * STAGE OR HOME SUBJECT
+ * CHANGES.
+ */
+
+useEffect(
+  () => {
+
+    setPaperFilter(
+      'all'
+    );
+
+
+    if (
+      stage ===
+        'prelims' &&
+      initialSubject
+    ) {
+
+      setSearchText(
+        initialSubject
       );
 
-      setSearchText('');
+    } else {
 
-    },
-    [
-      stage
-    ]
-  );
+      setSearchText('');
+    }
+
+  },
+  [
+    stage,
+    initialSubject
+  ]
+);
 
 
   /*
