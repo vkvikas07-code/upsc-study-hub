@@ -35,27 +35,51 @@ type ResourceRow = {
   id: string;
   title: string;
   description: string | null;
-  resource_type: ResourceType;
-  exam_stage: ExamStage;
+
+  resource_type:
+    ResourceType;
+
+  exam_stage:
+    ExamStage;
+
   paper: string | null;
   subject: string;
+
   author: string | null;
   publisher: string | null;
   source_name: string | null;
+
   external_url: string | null;
   file_path: string | null;
+
   language: string;
-  edition_year: number | null;
-  month_year: string | null;
-  is_free: boolean;
-  sort_order: number;
-  created_at: string;
+
+  edition_year:
+    number |
+    null;
+
+  month_year:
+    string |
+    null;
+
+  is_free:
+    boolean;
+
+  sort_order:
+    number;
+
+  created_at:
+    string;
 };
 
 
 type StudyResourcesProps = {
-  initialStage?: StageFilter;
-  initialSubject?: string | null;
+  initialStage?:
+    StageFilter;
+
+  initialSubject?:
+    string |
+    null;
 };
 
 
@@ -81,9 +105,15 @@ const RESOURCE_SELECT = `
 `;
 
 
+/*
+ * SAFE NUMBER
+ */
+
 function safeNumber(
-  value: unknown,
-  fallback = 0
+  value:
+    unknown,
+  fallback =
+    0
 ) {
 
   const number =
@@ -100,8 +130,13 @@ function safeNumber(
 }
 
 
+/*
+ * RESOURCE TYPE LABEL
+ */
+
 function resourceTypeLabel(
-  type: ResourceType
+  type:
+    ResourceType
 ) {
 
   switch (
@@ -132,8 +167,13 @@ function resourceTypeLabel(
 }
 
 
+/*
+ * STAGE LABEL
+ */
+
 function stageLabel(
-  stage: ExamStage
+  stage:
+    ExamStage
 ) {
 
   switch (
@@ -152,8 +192,14 @@ function stageLabel(
 }
 
 
+/*
+ * FORMAT MONTH / YEAR
+ */
+
 function formatMonthYear(
-  value: string | null
+  value:
+    string |
+    null
 ) {
 
   if (!value) {
@@ -195,8 +241,14 @@ function formatMonthYear(
 }
 
 
+/*
+ * SAFE EXTERNAL URL
+ */
+
 function getSafeExternalUrl(
-  value: string | null
+  value:
+    string |
+    null
 ) {
 
   if (!value) {
@@ -233,8 +285,13 @@ function getSafeExternalUrl(
 }
 
 
+/*
+ * DISPLAY SOURCE
+ */
+
 function getPrimarySource(
-  resource: ResourceRow
+  resource:
+    ResourceRow
 ) {
 
   return (
@@ -245,6 +302,10 @@ function getPrimarySource(
   );
 }
 
+
+/*
+ * STUDY RESOURCES
+ */
 
 export function StudyResources({
   initialStage = 'all',
@@ -259,9 +320,9 @@ export function StudyResources({
     resources,
     setResources
   ] =
-    useState<ResourceRow[]>(
-      []
-    );
+    useState<
+      ResourceRow[]
+    >([]);
 
 
   const [
@@ -295,7 +356,9 @@ export function StudyResources({
     stageFilter,
     setStageFilter
   ] =
-    useState<StageFilter>(
+    useState<
+      StageFilter
+    >(
       initialStage
     );
 
@@ -341,8 +404,7 @@ export function StudyResources({
 
 
   /*
-   * KEEP INITIAL STAGE
-   * IN SYNC
+   * SYNC INITIAL STAGE
    */
 
   useEffect(
@@ -360,8 +422,7 @@ export function StudyResources({
 
 
   /*
-   * KEEP INITIAL SUBJECT
-   * IN SYNC
+   * SYNC INITIAL SUBJECT
    */
 
   useEffect(
@@ -380,8 +441,7 @@ export function StudyResources({
 
 
   /*
-   * LOAD PUBLISHED
-   * STUDY RESOURCES
+   * LOAD PUBLISHED RESOURCES
    */
 
   async function loadResources() {
@@ -626,7 +686,7 @@ export function StudyResources({
 
 
   /*
-   * AVAILABLE SUBJECTS
+   * SUBJECT OPTIONS
    */
 
   const subjects =
@@ -665,7 +725,7 @@ export function StudyResources({
 
 
   /*
-   * AVAILABLE LANGUAGES
+   * LANGUAGE OPTIONS
    */
 
   const languages =
@@ -704,7 +764,7 @@ export function StudyResources({
 
 
   /*
-   * FILTERED RESOURCE LIST
+   * FILTERED RESOURCES
    */
 
   const visibleResources =
@@ -721,7 +781,7 @@ export function StudyResources({
           resource => {
 
             /*
-             * EXAM STAGE
+             * STAGE
              */
 
             if (
@@ -751,7 +811,7 @@ export function StudyResources({
 
 
             /*
-             * RESOURCE TYPE
+             * TYPE
              */
 
             if (
@@ -796,7 +856,7 @@ export function StudyResources({
 
 
             /*
-             * FREE RESOURCES
+             * FREE ONLY
              */
 
             if (
@@ -865,40 +925,30 @@ export function StudyResources({
 
 
   /*
-   * TOTAL OFFICIAL SOURCES
+   * SUMMARY COUNTS
    */
 
   const officialCount =
     useMemo(
-      () => {
-
-        return resources.filter(
+      () =>
+        resources.filter(
           resource =>
             resource.resource_type ===
             'official_source'
-        ).length;
-
-      },
+        ).length,
       [
         resources
       ]
     );
 
-
-  /*
-   * TOTAL FREE RESOURCES
-   */
 
   const freeCount =
     useMemo(
-      () => {
-
-        return resources.filter(
+      () =>
+        resources.filter(
           resource =>
             resource.is_free
-        ).length;
-
-      },
+        ).length,
       [
         resources
       ]
@@ -906,7 +956,7 @@ export function StudyResources({
 
 
   /*
-   * OPEN EXTERNAL RESOURCE
+   * OPEN RESOURCE
    */
 
   function openResource(
@@ -972,9 +1022,13 @@ export function StudyResources({
 
   return (
 
-    <div>
+    <div
+      className="study-resources-page"
+    >
 
-      {/* HEADER */}
+      {/* ======================================
+          HEADER
+      ====================================== */}
 
       <section
         className="panel"
@@ -1000,7 +1054,7 @@ export function StudyResources({
         </p>
 
 
-        {/* SUMMARY */}
+        {/* SUMMARY CARDS */}
 
         <div
           className="metrics-grid"
@@ -1118,7 +1172,9 @@ export function StudyResources({
       </section>
 
 
-      {/* FILTERS */}
+      {/* ======================================
+          FILTERS
+      ====================================== */}
 
       <section
         className="panel"
@@ -1163,29 +1219,19 @@ export function StudyResources({
 
 
         <div
-          style={{
-            display:
-              'grid',
-
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(160px, 1fr))',
-
-            gap:
-              '10px',
-
-            marginTop:
-              '12px'
-          }}
+          className="study-resource-filter-grid"
         >
 
           {/* SEARCH */}
 
           <label>
 
-            Search
+            <span>
+              Search
+            </span>
 
             <input
-              type="search"
+              type="text"
 
               value={
                 search
@@ -1210,7 +1256,9 @@ export function StudyResources({
 
           <label>
 
-            Exam Stage
+            <span>
+              Exam Stage
+            </span>
 
             <select
               value={
@@ -1251,7 +1299,9 @@ export function StudyResources({
 
           <label>
 
-            Resource Type
+            <span>
+              Resource Type
+            </span>
 
             <select
               value={
@@ -1318,7 +1368,9 @@ export function StudyResources({
 
           <label>
 
-            Subject
+            <span>
+              Subject
+            </span>
 
             <select
               value={
@@ -1367,7 +1419,9 @@ export function StudyResources({
 
           <label>
 
-            Language
+            <span>
+              Language
+            </span>
 
             <select
               value={
@@ -1416,7 +1470,9 @@ export function StudyResources({
 
           <label>
 
-            Access
+            <span>
+              Access
+            </span>
 
             <select
               value={
@@ -1451,7 +1507,9 @@ export function StudyResources({
       </section>
 
 
-      {/* RESOURCE LIST */}
+      {/* ======================================
+          RESOURCE LIST
+      ====================================== */}
 
       <section
         style={{
@@ -1479,7 +1537,7 @@ export function StudyResources({
         )}
 
 
-        {/* EMPTY RESULT */}
+        {/* EMPTY */}
 
         {!loading &&
           visibleResources.length ===
@@ -1558,8 +1616,7 @@ export function StudyResources({
                     >
                       {
                         resourceTypeLabel(
-                          resource
-                            .resource_type
+                          resource.resource_type
                         )
                       }
                     </span>
@@ -1570,8 +1627,7 @@ export function StudyResources({
                     >
                       {
                         stageLabel(
-                          resource
-                            .exam_stage
+                          resource.exam_stage
                         )
                       }
                     </span>
@@ -1633,7 +1689,7 @@ export function StudyResources({
                   )}
 
 
-                  {/* RESOURCE DETAILS */}
+                  {/* DETAILS */}
 
                   <div
                     style={{
@@ -1711,8 +1767,7 @@ export function StudyResources({
 
                           <strong>
                             {
-                              resource
-                                .edition_year
+                              resource.edition_year
                             }
                           </strong>
 
@@ -1747,7 +1802,7 @@ export function StudyResources({
                   </div>
 
 
-                  {/* RESOURCE ACTION */}
+                  {/* ACTION */}
 
                   <div
                     style={{
@@ -1819,5 +1874,6 @@ export function StudyResources({
       </section>
 
     </div>
+
   );
 }
