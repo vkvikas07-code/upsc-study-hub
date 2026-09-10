@@ -398,18 +398,97 @@ export function HomePage({
 
 
         /*
-         * TOTAL PRELIMS SESSIONS
-         */
+ * TOTAL PRELIMS SESSIONS
+ *
+ * Include both:
+ * 1. Normal MCQ practice
+ * 2. Prelims Test Series
+ */
 
-        const {
-          count,
-          error:
-            countError
-        } =
-          await supabase
-            .from(
-              'practice_attempts'
-            )
+const [
+  practiceCountResult,
+  testCountResult
+] =
+  await Promise.all([
+
+    supabase
+      .from(
+        'practice_attempts'
+      )
+      .select(
+        'id',
+        {
+          count:
+            'exact',
+
+          head:
+            true
+        }
+      )
+      .eq(
+        'user_id',
+        user.id
+      ),
+
+    supabase
+      .from(
+        'test_attempts'
+      )
+      .select(
+        'id',
+        {
+          count:
+            'exact',
+
+          head:
+            true
+        }
+      )
+      .eq(
+        'user_id',
+        user.id
+      )
+      .not(
+        'completed_at',
+        'is',
+        null
+      )
+
+  ]);
+
+
+if (
+  practiceCountResult.error
+) {
+
+  console.error(
+    'Unable to count Prelims practice attempts:',
+    practiceCountResult.error
+  );
+}
+
+
+if (
+  testCountResult.error
+) {
+
+  console.error(
+    'Unable to count Test Series attempts:',
+    testCountResult.error
+  );
+}
+
+
+setTotalAttempts(
+  (
+    practiceCountResult.count ||
+    0
+  ) +
+  (
+    testCountResult.count ||
+    0
+  )
+);
             .select(
               'id',
               {
@@ -445,21 +524,200 @@ export function HomePage({
 
 
         /*
-         * RECENT PERFORMANCE
-         *
-         * We load up to 200 rows
-         * for recent average and
-         * streak calculation.
-         */
+ * RECENT PERFORMANCE
+ *
+ * Combine normal Prelims
+ * practice and Test Series.
+ */
 
-        const {
-          data,
-          error
-        } =
-          await supabase
-            .from(
-              'practice_attempts'
-            )
+const [
+  practiceResult,
+  testResult
+] =
+  await Promise.all([
+
+    supabase
+      .from(
+        'practice_attempts'
+      )
+      .select(
+        `
+        score_percent,
+        completed_at
+        `
+      )
+      .eq(
+        'user_id',
+        user.id
+      )
+      .not(
+        'completed_at',
+        'is',
+        null
+      )
+      .order(
+        'completed_at',
+        {
+          ascending:
+            false
+        }
+      )
+      .limit(
+        200
+      ),
+
+    supabase
+      .from(
+        'test_attempts'
+      )
+      .select(
+        `
+        score,
+        completed_at
+        `
+      )
+      .eq(
+        'user_id',
+        user.id
+      )
+      .not(
+        'completed_at',
+        'is',
+        null
+      )
+      .order(
+        'completed_at',
+        {
+          ascending:
+            false
+        }
+      )
+      .limit(
+        200
+      )
+
+  ]);
+
+
+if (
+  practiceResult.error
+) {
+
+  console.error(
+    'Unable to load Prelims practice stats:',
+    practiceResult.error
+  );
+}
+
+
+if (
+  testResult.error
+) {
+
+  console.error(
+    'Unable to load Test Series stats:',
+    testResult.error
+  );
+}
+
+
+/*
+ * NORMAL PRACTICE ROWS
+ */
+
+const practiceRows:
+  AttemptStatRow[] =
+    (
+      practiceResult.data ||
+      []
+    ).map(
+      item => ({
+
+        score_percent:
+          item.score_percent,
+
+        completed_at:
+          item.completed_at
+      })
+    );
+
+
+/*
+ * TEST SERIES ROWS
+ *
+ * test_attempts uses "score"
+ * for the percentage result.
+ */
+
+const testRows:
+  AttemptStatRow[] =
+    (
+      testResult.data ||
+      []
+    ).map(
+      item => ({
+
+        score_percent:
+          item.score,
+
+        completed_at:
+          item.completed_at
+      })
+    );
+
+
+/*
+ * COMBINE AND SORT
+ * NEWEST FIRST
+ */
+
+const combinedAttempts =
+  [
+    ...practiceRows,
+    ...testRows
+  ]
+    .sort(
+      (
+        first,
+        second
+      ) => {
+
+        const firstTime =
+          first.completed_at
+            ? new Date(
+                first.completed_at
+              ).getTime()
+            : 0;
+
+
+        const secondTime =
+          second.completed_at
+            ? new Date(
+                second.completed_at
+              ).getTime()
+            : 0;
+
+
+        return (
+          secondTime -
+          firstTime
+        );
+      }
+    )
+    .slice(
+      0,
+      200
+    );
+
+
+setAttempts(
+  combinedAttempts
+);
+
+
+setStatsLoading(
+  false
+);
             .select(
               `
               score_percent,
