@@ -34,6 +34,7 @@ import {
 import {
   PendingEvaluationBadge
 } from '../components/PendingEvaluationBadge';
+
 import type {
   CurrentAffair
 } from '../types';
@@ -65,23 +66,17 @@ type AdminArticle = {
   source_url: string | null;
   subject: string;
   summary: string;
-
   body: string | null;
-
   background: string | null;
   key_facts: string | null;
   prelims_points: string | null;
   mains_relevance: string | null;
   issues: string | null;
   way_forward: string | null;
-
   tags: string[];
-
   prelims: boolean;
   mains: boolean;
-
   status: ArticleStatus;
-
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -115,208 +110,93 @@ const ARTICLE_SELECT = `
 export function AdminPage({
   onPublish
 }: {
-  onPublish:
-    (item: CurrentAffair) => void;
+  onPublish: (item: CurrentAffair) => void;
 }) {
-  const [
-    adminTab,
-    setAdminTab
-  ] =
-    useState<AdminTab>(
-      'current'
-    );
+  const [adminTab, setAdminTab] =
+    useState<AdminTab>('current');
 
-
-  const [
-    email,
-    setEmail
-  ] =
+  const [email, setEmail] =
     useState('');
 
-
-  const [
-    password,
-    setPassword
-  ] =
+  const [password, setPassword] =
     useState('');
 
-
-  const [
-    isAdmin,
-    setIsAdmin
-  ] =
+  const [isAdmin, setIsAdmin] =
     useState(false);
 
-
-  const [
-    checkingAuth,
-    setCheckingAuth
-  ] =
+  const [checkingAuth, setCheckingAuth] =
     useState(true);
 
-
-  const [
-    articles,
-    setArticles
-  ] =
+  const [articles, setArticles] =
     useState<AdminArticle[]>([]);
 
-
-  const [
-    loadingArticles,
-    setLoadingArticles
-  ] =
+  const [loadingArticles, setLoadingArticles] =
     useState(false);
 
-
-  const [
-    saving,
-    setSaving
-  ] =
+  const [saving, setSaving] =
     useState(false);
 
-
-  const [
-    message,
-    setMessage
-  ] =
+  const [message, setMessage] =
     useState('');
 
+  const [editingId, setEditingId] =
+    useState<string | null>(null);
 
-  const [
-    editingId,
-    setEditingId
-  ] =
-    useState<string | null>(
-      null
-    );
-
-
-  const [
-    title,
-    setTitle
-  ] =
+  const [title, setTitle] =
     useState('');
 
-
-  const [
-    source,
-    setSource
-  ] =
+  const [source, setSource] =
     useState('PIB');
 
-
-  const [
-    sourceUrl,
-    setSourceUrl
-  ] =
+  const [sourceUrl, setSourceUrl] =
     useState('');
 
+  const [subject, setSubject] =
+    useState('Polity & Governance');
 
-  const [
-    subject,
-    setSubject
-  ] =
-    useState(
-      'Polity & Governance'
-    );
-
-
-  const [
-    summary,
-    setSummary
-  ] =
+  const [summary, setSummary] =
     useState('');
 
-
-  const [
-    background,
-    setBackground
-  ] =
+  const [background, setBackground] =
     useState('');
 
-
-  const [
-    keyFacts,
-    setKeyFacts
-  ] =
+  const [keyFacts, setKeyFacts] =
     useState('');
 
-
-  const [
-    prelimsPoints,
-    setPrelimsPoints
-  ] =
+  const [prelimsPoints, setPrelimsPoints] =
     useState('');
 
-
-  const [
-    mainsRelevance,
-    setMainsRelevance
-  ] =
+  const [mainsRelevance, setMainsRelevance] =
     useState('');
 
-
-  const [
-    issues,
-    setIssues
-  ] =
+  const [issues, setIssues] =
     useState('');
 
-
-  const [
-    wayForward,
-    setWayForward
-  ] =
+  const [wayForward, setWayForward] =
     useState('');
 
+  const [tagsText, setTagsText] =
+    useState('Prelims, Mains');
 
-  const [
-    tagsText,
-    setTagsText
-  ] =
-    useState(
-      'Prelims, Mains'
-    );
-
-
-  const [
-    prelims,
-    setPrelims
-  ] =
+  const [prelims, setPrelims] =
     useState(true);
 
-
-  const [
-    mains,
-    setMains
-  ] =
+  const [mains, setMains] =
     useState(true);
 
-
-  const [
-    status,
-    setStatus
-  ] =
-    useState<ArticleStatus>(
-      'draft'
-    );
+  const [status, setStatus] =
+    useState<ArticleStatus>('draft');
 
 
   function switchAdminTab(
-    tab:
-      AdminTab
+    tab: AdminTab
   ) {
-    setAdminTab(
-      tab
-    );
+    setAdminTab(tab);
 
     window.requestAnimationFrame(
       () => {
         const mainArea =
-          document.querySelector(
-            '.main-area'
-          );
+          document.querySelector('.main-area');
 
         mainArea?.scrollTo({
           top: 0,
@@ -328,32 +208,22 @@ export function AdminPage({
 
 
   async function verifyAdmin(
-    userId:
-      string
+    userId: string
   ) {
     if (!supabase) {
       setIsAdmin(false);
       return false;
     }
 
-
     const {
       data,
       error
     } =
       await supabase
-        .from(
-          'profiles'
-        )
-        .select(
-          'role'
-        )
-        .eq(
-          'id',
-          userId
-        )
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
         .single();
-
 
     if (
       error ||
@@ -365,23 +235,14 @@ export function AdminPage({
       );
 
       setIsAdmin(false);
-
       return false;
     }
 
-
     const allowed =
-      data.role ===
-        'admin' ||
-      data.role ===
-        'editor';
+      data.role === 'admin' ||
+      data.role === 'editor';
 
-
-    setIsAdmin(
-      allowed
-    );
-
-
+    setIsAdmin(allowed);
     return allowed;
   }
 
@@ -391,31 +252,21 @@ export function AdminPage({
       return;
     }
 
-
-    setLoadingArticles(
-      true
-    );
-
+    setLoadingArticles(true);
 
     const {
       data,
       error
     } =
       await supabase
-        .from(
-          'current_affairs'
-        )
-        .select(
-          ARTICLE_SELECT
-        )
+        .from('current_affairs')
+        .select(ARTICLE_SELECT)
         .order(
           'created_at',
           {
-            ascending:
-              false
+            ascending: false
           }
         );
-
 
     if (error) {
       console.error(
@@ -423,33 +274,16 @@ export function AdminPage({
         error
       );
 
-
-      setMessage(
-        error.message
-      );
-
-
-      setLoadingArticles(
-        false
-      );
-
-
+      setMessage(error.message);
+      setLoadingArticles(false);
       return;
     }
 
-
-    const rows =
-      (data || []) as AdminArticle[];
-
-
     setArticles(
-      rows
+      (data || []) as AdminArticle[]
     );
 
-
-    setLoadingArticles(
-      false
-    );
+    setLoadingArticles(false);
   }
 
 
@@ -457,13 +291,9 @@ export function AdminPage({
     () => {
       async function checkSession() {
         if (!supabase) {
-          setCheckingAuth(
-            false
-          );
-
+          setCheckingAuth(false);
           return;
         }
-
 
         const {
           data: {
@@ -474,60 +304,41 @@ export function AdminPage({
             .auth
             .getSession();
 
-
-        if (
-          !session?.user
-        ) {
-          setIsAdmin(
-            false
-          );
-
-          setCheckingAuth(
-            false
-          );
-
+        if (!session?.user) {
+          setIsAdmin(false);
+          setCheckingAuth(false);
           return;
         }
-
 
         const allowed =
           await verifyAdmin(
             session.user.id
           );
 
-
         if (allowed) {
           await loadArticles();
         }
 
-
-        setCheckingAuth(
-          false
-        );
+        setCheckingAuth(false);
       }
 
-
-      checkSession();
+      void checkSession();
     },
     []
   );
 
 
   async function login(
-    event:
-      FormEvent
+    event: FormEvent
   ) {
     event.preventDefault();
-
 
     if (!supabase) {
       setMessage(
         'Supabase is not configured.'
       );
-
       return;
     }
-
 
     if (
       !email.trim() ||
@@ -536,15 +347,10 @@ export function AdminPage({
       setMessage(
         'Enter admin email and password.'
       );
-
       return;
     }
 
-
-    setMessage(
-      'Signing in...'
-    );
-
+    setMessage('Signing in...');
 
     const {
       data,
@@ -553,12 +359,9 @@ export function AdminPage({
       await supabase
         .auth
         .signInWithPassword({
-          email:
-            email.trim(),
-
+          email: email.trim(),
           password
         });
-
 
     if (
       error ||
@@ -568,39 +371,29 @@ export function AdminPage({
         error?.message ||
         'Unable to sign in.'
       );
-
       return;
     }
-
 
     const allowed =
       await verifyAdmin(
         data.user.id
       );
 
-
     if (!allowed) {
       await supabase
         .auth
         .signOut();
 
-
       setMessage(
         'This account does not have Admin or Editor permission.'
       );
-
-
       return;
     }
 
-
     setPassword('');
-
-
     setMessage(
       'Admin login successful.'
     );
-
 
     await loadArticles();
   }
@@ -611,141 +404,64 @@ export function AdminPage({
       return;
     }
 
-
     await supabase
       .auth
       .signOut();
 
-
     setIsAdmin(false);
     setArticles([]);
     setPassword('');
-
-
-    setMessage(
-      'Logged out.'
-    );
+    setMessage('Logged out.');
   }
 
 
   function resetForm() {
-    setEditingId(
-      null
-    );
-
+    setEditingId(null);
     setTitle('');
     setSource('PIB');
     setSourceUrl('');
-
-    setSubject(
-      'Polity & Governance'
-    );
-
+    setSubject('Polity & Governance');
     setSummary('');
-
     setBackground('');
     setKeyFacts('');
     setPrelimsPoints('');
     setMainsRelevance('');
     setIssues('');
     setWayForward('');
-
-    setTagsText(
-      'Prelims, Mains'
-    );
-
+    setTagsText('Prelims, Mains');
     setPrelims(true);
     setMains(true);
-
-    setStatus(
-      'draft'
-    );
+    setStatus('draft');
   }
 
 
   function startEdit(
-    article:
-      AdminArticle
+    article: AdminArticle
   ) {
-    setEditingId(
-      article.id
-    );
-
-    setTitle(
-      article.title
-    );
-
-    setSource(
-      article.source
-    );
-
-    setSourceUrl(
-      article.source_url ||
-      ''
-    );
-
-    setSubject(
-      article.subject
-    );
-
-    setSummary(
-      article.summary
-    );
-
-    setBackground(
-      article.background ||
-      ''
-    );
-
-    setKeyFacts(
-      article.key_facts ||
-      ''
-    );
-
-    setPrelimsPoints(
-      article.prelims_points ||
-      ''
-    );
-
-    setMainsRelevance(
-      article.mains_relevance ||
-      ''
-    );
-
-    setIssues(
-      article.issues ||
-      ''
-    );
-
-    setWayForward(
-      article.way_forward ||
-      ''
-    );
-
+    setEditingId(article.id);
+    setTitle(article.title);
+    setSource(article.source);
+    setSourceUrl(article.source_url || '');
+    setSubject(article.subject);
+    setSummary(article.summary);
+    setBackground(article.background || '');
+    setKeyFacts(article.key_facts || '');
+    setPrelimsPoints(article.prelims_points || '');
+    setMainsRelevance(article.mains_relevance || '');
+    setIssues(article.issues || '');
+    setWayForward(article.way_forward || '');
     setTagsText(
       (article.tags || [])
         .join(', ')
     );
-
-    setPrelims(
-      article.prelims
-    );
-
-    setMains(
-      article.mains
-    );
-
-    setStatus(
-      article.status
-    );
-
+    setPrelims(article.prelims);
+    setMains(article.mains);
+    setStatus(article.status);
     setMessage(
       `Editing: ${article.title}`
     );
 
-    switchAdminTab(
-      'current'
-    );
+    switchAdminTab('current');
   }
 
 
@@ -754,28 +470,22 @@ export function AdminPage({
       background.trim()
         ? `BACKGROUND\n${background.trim()}`
         : '',
-
       keyFacts.trim()
         ? `KEY FACTS\n${keyFacts.trim()}`
         : '',
-
       prelimsPoints.trim()
         ? `PRELIMS POINTS\n${prelimsPoints.trim()}`
         : '',
-
       mainsRelevance.trim()
         ? `MAINS RELEVANCE\n${mainsRelevance.trim()}`
         : '',
-
       issues.trim()
         ? `ISSUES / CHALLENGES\n${issues.trim()}`
         : '',
-
       wayForward.trim()
         ? `WAY FORWARD\n${wayForward.trim()}`
         : ''
     ];
-
 
     return sections
       .filter(Boolean)
@@ -784,35 +494,17 @@ export function AdminPage({
 
 
   function toCurrentAffair(
-    article:
-      AdminArticle
+    article: AdminArticle
   ): CurrentAffair {
     return {
-      id:
-        article.id,
-
-      title:
-        article.title,
-
-      source:
-        article.source,
-
-      subject:
-        article.subject,
-
-      summary:
-        article.summary,
-
-      tags:
-        article.tags ||
-        [],
-
-      prelims:
-        article.prelims,
-
-      mains:
-        article.mains,
-
+      id: article.id,
+      title: article.title,
+      source: article.source,
+      subject: article.subject,
+      summary: article.summary,
+      tags: article.tags || [],
+      prelims: article.prelims,
+      mains: article.mains,
       publishedAt:
         article.published_at
           ? new Date(
@@ -820,14 +512,9 @@ export function AdminPage({
             ).toLocaleDateString(
               'en-IN',
               {
-                day:
-                  '2-digit',
-
-                month:
-                  'short',
-
-                year:
-                  'numeric'
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
               }
             )
           : 'Today'
@@ -836,11 +523,9 @@ export function AdminPage({
 
 
   async function saveArticle(
-    event:
-      FormEvent
+    event: FormEvent
   ) {
     event.preventDefault();
-
 
     if (
       !supabase ||
@@ -849,10 +534,8 @@ export function AdminPage({
       setMessage(
         'Admin login required.'
       );
-
       return;
     }
-
 
     if (
       !title.trim() ||
@@ -863,22 +546,15 @@ export function AdminPage({
       setMessage(
         'Title, source, subject and quick summary are required.'
       );
-
       return;
     }
 
-
-    setSaving(
-      true
-    );
-
-
+    setSaving(true);
     setMessage(
       editingId
         ? 'Updating article...'
         : 'Saving article...'
     );
-
 
     const {
       data: {
@@ -889,20 +565,14 @@ export function AdminPage({
         .auth
         .getUser();
 
-
     if (!user) {
       setSaving(false);
       setIsAdmin(false);
-
-
       setMessage(
         'Session expired. Sign in again.'
       );
-
-
       return;
     }
-
 
     const tags =
       tagsText
@@ -913,86 +583,47 @@ export function AdminPage({
         )
         .filter(Boolean);
 
-
     const oldArticle =
       articles.find(
         article =>
-          article.id ===
-          editingId
+          article.id === editingId
       );
 
-
     const publishedAt =
-      status ===
-        'published'
-        ? oldArticle
-            ?.published_at ||
-          new Date()
-            .toISOString()
+      status === 'published'
+        ? oldArticle?.published_at ||
+          new Date().toISOString()
         : null;
 
-
     const payload = {
-      title:
-        title.trim(),
-
-      source:
-        source.trim(),
-
+      title: title.trim(),
+      source: source.trim(),
       source_url:
-        sourceUrl.trim() ||
-        null,
-
-      subject:
-        subject.trim(),
-
-      summary:
-        summary.trim(),
-
+        sourceUrl.trim() || null,
+      subject: subject.trim(),
+      summary: summary.trim(),
       body:
-        createBody() ||
-        null,
-
+        createBody() || null,
       background:
-        background.trim() ||
-        null,
-
+        background.trim() || null,
       key_facts:
-        keyFacts.trim() ||
-        null,
-
+        keyFacts.trim() || null,
       prelims_points:
-        prelimsPoints.trim() ||
-        null,
-
+        prelimsPoints.trim() || null,
       mains_relevance:
-        mainsRelevance.trim() ||
-        null,
-
+        mainsRelevance.trim() || null,
       issues:
-        issues.trim() ||
-        null,
-
+        issues.trim() || null,
       way_forward:
-        wayForward.trim() ||
-        null,
-
+        wayForward.trim() || null,
       tags,
-
       prelims,
-
       mains,
-
       status,
-
-      published_at:
-        publishedAt,
-
+      published_at: publishedAt,
       updated_at:
-        new Date()
-          .toISOString()
+        new Date().toISOString()
     };
-
 
     if (editingId) {
       const {
@@ -1000,21 +631,11 @@ export function AdminPage({
         error
       } =
         await supabase
-          .from(
-            'current_affairs'
-          )
-          .update(
-            payload
-          )
-          .eq(
-            'id',
-            editingId
-          )
-          .select(
-            ARTICLE_SELECT
-          )
+          .from('current_affairs')
+          .update(payload)
+          .eq('id', editingId)
+          .select(ARTICLE_SELECT)
           .single();
-
 
       if (
         error ||
@@ -1025,81 +646,55 @@ export function AdminPage({
           error
         );
 
-
         setSaving(false);
-
-
         setMessage(
           error?.message ||
           'Unable to update article.'
         );
-
-
         return;
       }
 
-
       const updated =
         data as AdminArticle;
-
 
       setArticles(
         current =>
           current.map(
             article =>
-              article.id ===
-              updated.id
+              article.id === updated.id
                 ? updated
                 : article
           )
       );
 
-
       if (
-        updated.status ===
-        'published'
+        updated.status === 'published'
       ) {
         onPublish(
-          toCurrentAffair(
-            updated
-          )
+          toCurrentAffair(updated)
         );
       }
 
-
       resetForm();
-
       setSaving(false);
-
-
       setMessage(
         'Article updated successfully.'
       );
-
-
       return;
     }
-
 
     const {
       data,
       error
     } =
       await supabase
-        .from(
-          'current_affairs'
-        )
+        .from('current_affairs')
         .insert({
           ...payload,
-
-          created_by:
-            user.id
+          created_by: user.id
         })
-        .select(
-          ARTICLE_SELECT
-        )
+        .select(ARTICLE_SELECT)
         .single();
-
 
     if (
       error ||
@@ -1110,23 +705,16 @@ export function AdminPage({
         error
       );
 
-
       setSaving(false);
-
-
       setMessage(
         error?.message ||
         'Unable to save article.'
       );
-
-
       return;
     }
 
-
     const created =
       data as AdminArticle;
-
 
     setArticles(
       current => [
@@ -1135,27 +723,18 @@ export function AdminPage({
       ]
     );
 
-
     if (
-      created.status ===
-      'published'
+      created.status === 'published'
     ) {
       onPublish(
-        toCurrentAffair(
-          created
-        )
+        toCurrentAffair(created)
       );
     }
 
-
     resetForm();
-
     setSaving(false);
-
-
     setMessage(
-      created.status ===
-        'published'
+      created.status === 'published'
         ? 'Published successfully.'
         : 'Draft saved successfully.'
     );
@@ -1163,55 +742,34 @@ export function AdminPage({
 
 
   async function changeStatus(
-    article:
-      AdminArticle,
-
-    nextStatus:
-      ArticleStatus
+    article: AdminArticle,
+    nextStatus: ArticleStatus
   ) {
     if (!supabase) {
       return;
     }
 
-
     const publishedAt =
-      nextStatus ===
-        'published'
-        ? article
-            .published_at ||
-          new Date()
-            .toISOString()
+      nextStatus === 'published'
+        ? article.published_at ||
+          new Date().toISOString()
         : null;
-
 
     const {
       data,
       error
     } =
       await supabase
-        .from(
-          'current_affairs'
-        )
+        .from('current_affairs')
         .update({
-          status:
-            nextStatus,
-
-          published_at:
-            publishedAt,
-
+          status: nextStatus,
+          published_at: publishedAt,
           updated_at:
-            new Date()
-              .toISOString()
+            new Date().toISOString()
         })
-        .eq(
-          'id',
-          article.id
-        )
-        .select(
-          ARTICLE_SELECT
-        )
+        .eq('id', article.id)
+        .select(ARTICLE_SELECT)
         .single();
-
 
     if (
       error ||
@@ -1221,39 +779,29 @@ export function AdminPage({
         error?.message ||
         'Unable to change status.'
       );
-
-
       return;
     }
 
-
     const updated =
       data as AdminArticle;
-
 
     setArticles(
       current =>
         current.map(
           item =>
-            item.id ===
-            updated.id
+            item.id === updated.id
               ? updated
               : item
         )
     );
 
-
     if (
-      nextStatus ===
-      'published'
+      nextStatus === 'published'
     ) {
       onPublish(
-        toCurrentAffair(
-          updated
-        )
+        toCurrentAffair(updated)
       );
     }
-
 
     setMessage(
       `Status changed to ${nextStatus}.`
@@ -1262,93 +810,65 @@ export function AdminPage({
 
 
   async function deleteArticle(
-    article:
-      AdminArticle
+    article: AdminArticle
   ) {
     if (!supabase) {
       return;
     }
-
 
     const confirmed =
       window.confirm(
         `Delete "${article.title}" permanently?`
       );
 
-
     if (!confirmed) {
       return;
     }
-
 
     const {
       error
     } =
       await supabase
-        .from(
-          'current_affairs'
-        )
+        .from('current_affairs')
         .delete()
-        .eq(
-          'id',
-          article.id
-        );
-
+        .eq('id', article.id);
 
     if (error) {
-      setMessage(
-        error.message
-      );
-
-
+      setMessage(error.message);
       return;
     }
-
 
     setArticles(
       current =>
         current.filter(
           item =>
-            item.id !==
-            article.id
+            item.id !== article.id
         )
     );
 
-
     if (
-      editingId ===
-      article.id
+      editingId === article.id
     ) {
       resetForm();
     }
 
-
-    setMessage(
-      'Article deleted.'
-    );
+    setMessage('Article deleted.');
   }
 
 
-  if (
-    !isSupabaseConfigured
-  ) {
+  if (!isSupabaseConfigured) {
     return (
       <div className="page-wrap">
-
         <TopBar
           title="Admin Studio"
           subtitle="Content management"
         />
 
-
         <section className="panel">
-
           <h2>
             Supabase is not configured
           </h2>
-
         </section>
-
       </div>
     );
   }
@@ -1357,21 +877,16 @@ export function AdminPage({
   if (checkingAuth) {
     return (
       <div className="page-wrap">
-
         <TopBar
           title="Admin Studio"
           subtitle="Checking secure access"
         />
 
-
         <section className="panel">
-
           <h2>
             Checking admin session...
           </h2>
-
         </section>
-
       </div>
     );
   }
@@ -1380,40 +895,30 @@ export function AdminPage({
   if (!isAdmin) {
     return (
       <div className="page-wrap">
-
         <TopBar
           title="Admin Studio"
           subtitle="Secure administrator access"
         />
 
-
         <section className="admin-grid">
-
           <form
             className="panel admin-form"
-            onSubmit={
-              login
-            }
+            onSubmit={login}
           >
-
             <span className="eyebrow">
               ADMIN LOGIN
             </span>
 
-
             <h2>
               Sign in to manage content
             </h2>
-
 
             <label>
               Email
 
               <input
                 type="email"
-                value={
-                  email
-                }
+                value={email}
                 onChange={
                   event =>
                     setEmail(
@@ -1422,18 +927,14 @@ export function AdminPage({
                 }
                 autoComplete="email"
               />
-
             </label>
-
 
             <label>
               Password
 
               <input
                 type="password"
-                value={
-                  password
-                }
+                value={password}
                 onChange={
                   event =>
                     setPassword(
@@ -1442,9 +943,7 @@ export function AdminPage({
                 }
                 autoComplete="current-password"
               />
-
             </label>
-
 
             <button
               type="submit"
@@ -1453,19 +952,13 @@ export function AdminPage({
               Sign in
             </button>
 
-
             {message && (
-
               <p className="form-message">
                 {message}
               </p>
-
             )}
-
           </form>
-
         </section>
-
       </div>
     );
   }
@@ -1473,17 +966,13 @@ export function AdminPage({
 
   return (
     <div className="page-wrap">
-
       <TopBar
         title="Admin Studio"
         subtitle="Professional UPSC content publishing"
       />
 
-
       <section className="admin-status">
-
         <div>
-
           <span
             className="status-dot online"
           />
@@ -1491,244 +980,176 @@ export function AdminPage({
           <strong>
             Secure Admin connected
           </strong>
-
         </div>
 
-
-<p>
-  Manage Current Affairs, Prelims MCQs,
-  Prelims Test Series, Mains questions
-  and student evaluations from separate workspaces.
-</p>
-
+        <p>
+          Manage Current Affairs, Prelims MCQs,
+          Prelims Test Series, Mains questions
+          and student evaluations from separate workspaces.
+        </p>
 
         <div
           style={{
-            display:
-              'flex',
-
-            gap:
-              '10px',
-
-            flexWrap:
-              'wrap'
+            display: 'flex',
+            gap: '10px',
+            flexWrap: 'wrap'
           }}
         >
-
           <button
             type="button"
-            onClick={
-              loadArticles
-            }
+            onClick={loadArticles}
           >
             Refresh
           </button>
 
-
           <button
             type="button"
-            onClick={
-              logout
-            }
+            onClick={logout}
           >
             Log out
           </button>
-
         </div>
-
-       </section>
-
+      </section>
 
       <AdminWorkspaceStats
-  onNavigate={
-    switchAdminTab
-  }
-/>
-
+        onNavigate={switchAdminTab}
+      />
 
       {/* ADMIN WORKSPACE TABS */}
-
       <section
         className="panel"
         style={{
-          marginTop:
-            '16px',
-
-          marginBottom:
-            '22px',
-
-          padding:
-            '14px',
-
-          position:
-            'sticky',
-
-          top:
-            '10px',
-
-          zIndex:
-            20,
-
-          background:
-            '#101a30',
-
+          marginTop: '16px',
+          marginBottom: '22px',
+          padding: '14px',
+          position: 'sticky',
+          top: '10px',
+          zIndex: 20,
+          background: '#101a30',
           boxShadow:
             '0 10px 30px rgba(0,0,0,0.18)'
         }}
       >
-
         <div
           style={{
-            display:
-              'flex',
-
-            gap:
-              '10px',
-
-            flexWrap:
-              'wrap'
+            display: 'flex',
+            gap: '10px',
+            flexWrap: 'wrap'
           }}
         >
-
           <button
             type="button"
             className={
-              adminTab ===
-              'current'
+              adminTab === 'current'
                 ? 'filter active'
                 : 'filter'
             }
             onClick={() =>
-              switchAdminTab(
-                'current'
-              )
+              switchAdminTab('current')
             }
           >
             Current Affairs
           </button>
 
-
-          <button
-  type="button"
-  className={
-    adminTab ===
-    'tests'
-      ? 'filter active'
-      : 'filter'
-  }
-  onClick={() =>
-    switchAdminTab(
-      'tests'
-    )
-  }
->
-  Prelims Test Series
-</button>
-
-
           <button
             type="button"
             className={
-              adminTab ===
-              'mains'
+              adminTab === 'mcq'
                 ? 'filter active'
                 : 'filter'
             }
             onClick={() =>
-              switchAdminTab(
-                'mains'
-              )
+              switchAdminTab('mcq')
+            }
+          >
+            Prelims MCQ
+          </button>
+
+          <button
+            type="button"
+            className={
+              adminTab === 'tests'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              switchAdminTab('tests')
+            }
+          >
+            Prelims Test Series
+          </button>
+
+          <button
+            type="button"
+            className={
+              adminTab === 'mains'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              switchAdminTab('mains')
             }
           >
             Mains Questions
           </button>
 
-
-         <button
-  type="button"
-  className={
-    adminTab ===
-    'evaluation'
-      ? 'filter active'
-      : 'filter'
-  }
-  onClick={() =>
-    switchAdminTab(
-      'evaluation'
-    )
-  }
-  style={{
-    display:
-      'inline-flex',
-
-    alignItems:
-      'center',
-
-    gap:
-      '4px'
-  }}
->
-  Mains Evaluation
-
-  <PendingEvaluationBadge />
-
-</button>
-
+          <button
+            type="button"
+            className={
+              adminTab === 'evaluation'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              switchAdminTab('evaluation')
+            }
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            Mains Evaluation
+            <PendingEvaluationBadge />
+          </button>
         </div>
-
       </section>
 
-
       {/* CURRENT AFFAIRS TAB */}
-
       <div
         style={{
           display:
-            adminTab ===
-            'current'
+            adminTab === 'current'
               ? 'block'
               : 'none'
         }}
       >
-
         <section className="admin-grid">
-
           <form
             className="panel admin-form"
-            onSubmit={
-              saveArticle
-            }
+            onSubmit={saveArticle}
           >
-
             <span className="eyebrow">
-
               {
                 editingId
                   ? 'EDIT CURRENT AFFAIR'
                   : 'NEW CURRENT AFFAIR'
               }
-
             </span>
 
-
             <h2>
-
               {
                 editingId
                   ? 'Update UPSC analysis'
                   : 'Create UPSC analysis'
               }
-
             </h2>
-
 
             <label>
               Title
 
               <input
-                value={
-                  title
-                }
+                value={title}
                 onChange={
                   event =>
                     setTitle(
@@ -1737,19 +1158,14 @@ export function AdminPage({
                 }
                 placeholder="Clear current-affairs headline"
               />
-
             </label>
 
-
             <div className="form-two">
-
               <label>
                 Source
 
                 <input
-                  value={
-                    source
-                  }
+                  value={source}
                   onChange={
                     event =>
                       setSource(
@@ -1758,17 +1174,13 @@ export function AdminPage({
                   }
                   placeholder="PIB / Ministry / RBI"
                 />
-
               </label>
-
 
               <label>
                 Subject
 
                 <input
-                  value={
-                    subject
-                  }
+                  value={subject}
                   onChange={
                     event =>
                       setSubject(
@@ -1777,20 +1189,15 @@ export function AdminPage({
                   }
                   placeholder="Polity & Governance"
                 />
-
               </label>
-
             </div>
-
 
             <label>
               Official Source URL
 
               <input
                 type="url"
-                value={
-                  sourceUrl
-                }
+                value={sourceUrl}
                 onChange={
                   event =>
                     setSourceUrl(
@@ -1799,18 +1206,14 @@ export function AdminPage({
                 }
                 placeholder="https://..."
               />
-
             </label>
-
 
             <label>
               Quick Revision Summary
 
               <textarea
                 rows={4}
-                value={
-                  summary
-                }
+                value={summary}
                 onChange={
                   event =>
                     setSummary(
@@ -1819,18 +1222,14 @@ export function AdminPage({
                 }
                 placeholder="2–4 lines explaining why this matters for UPSC."
               />
-
             </label>
-
 
             <label>
               Background
 
               <textarea
                 rows={5}
-                value={
-                  background
-                }
+                value={background}
                 onChange={
                   event =>
                     setBackground(
@@ -1839,18 +1238,14 @@ export function AdminPage({
                 }
                 placeholder="Context and background of the issue."
               />
-
             </label>
-
 
             <label>
               Key Facts
 
               <textarea
                 rows={5}
-                value={
-                  keyFacts
-                }
+                value={keyFacts}
                 onChange={
                   event =>
                     setKeyFacts(
@@ -1859,18 +1254,14 @@ export function AdminPage({
                 }
                 placeholder="Important facts, institutions, numbers and provisions."
               />
-
             </label>
-
 
             <label>
               Prelims Points
 
               <textarea
                 rows={5}
-                value={
-                  prelimsPoints
-                }
+                value={prelimsPoints}
                 onChange={
                   event =>
                     setPrelimsPoints(
@@ -1879,18 +1270,14 @@ export function AdminPage({
                 }
                 placeholder="Facts, organisations, schemes and likely MCQ points."
               />
-
             </label>
-
 
             <label>
               Mains Relevance
 
               <textarea
                 rows={5}
-                value={
-                  mainsRelevance
-                }
+                value={mainsRelevance}
                 onChange={
                   event =>
                     setMainsRelevance(
@@ -1899,18 +1286,14 @@ export function AdminPage({
                 }
                 placeholder="GS paper, syllabus linkage and analytical dimensions."
               />
-
             </label>
-
 
             <label>
               Issues / Challenges
 
               <textarea
                 rows={5}
-                value={
-                  issues
-                }
+                value={issues}
                 onChange={
                   event =>
                     setIssues(
@@ -1919,18 +1302,14 @@ export function AdminPage({
                 }
                 placeholder="Major concerns, gaps or limitations."
               />
-
             </label>
-
 
             <label>
               Way Forward
 
               <textarea
                 rows={5}
-                value={
-                  wayForward
-                }
+                value={wayForward}
                 onChange={
                   event =>
                     setWayForward(
@@ -1939,17 +1318,13 @@ export function AdminPage({
                 }
                 placeholder="Balanced solutions, reforms and conclusion points."
               />
-
             </label>
-
 
             <label>
               Tags
 
               <input
-                value={
-                  tagsText
-                }
+                value={tagsText}
                 onChange={
                   event =>
                     setTagsText(
@@ -1962,19 +1337,13 @@ export function AdminPage({
               <small>
                 Separate tags using commas.
               </small>
-
             </label>
 
-
             <div className="checkbox-row">
-
               <label>
-
                 <input
                   type="checkbox"
-                  checked={
-                    prelims
-                  }
+                  checked={prelims}
                   onChange={
                     event =>
                       setPrelims(
@@ -1982,19 +1351,13 @@ export function AdminPage({
                       )
                   }
                 />
-
                 Prelims
-
               </label>
 
-
               <label>
-
                 <input
                   type="checkbox"
-                  checked={
-                    mains
-                  }
+                  checked={mains}
                   onChange={
                     event =>
                       setMains(
@@ -2002,30 +1365,22 @@ export function AdminPage({
                       )
                   }
                 />
-
                 Mains
-
               </label>
-
             </div>
-
 
             <label>
               Status
 
               <select
-                value={
-                  status
-                }
+                value={status}
                 onChange={
                   event =>
                     setStatus(
-                      event.target
-                        .value as ArticleStatus
+                      event.target.value as ArticleStatus
                     )
                 }
               >
-
                 <option value="draft">
                   Draft
                 </option>
@@ -2037,330 +1392,215 @@ export function AdminPage({
                 <option value="archived">
                   Archived
                 </option>
-
               </select>
-
             </label>
-
 
             <div
               style={{
-                display:
-                  'flex',
-
-                gap:
-                  '12px',
-
-                flexWrap:
-                  'wrap'
+                display: 'flex',
+                gap: '12px',
+                flexWrap: 'wrap'
               }}
             >
-
               <button
                 type="submit"
                 className="primary-btn"
-                disabled={
-                  saving
-                }
+                disabled={saving}
               >
-
                 {
                   saving
                     ? 'Saving...'
                     : editingId
                     ? 'Save changes'
-                    : status ===
-                      'published'
+                    : status === 'published'
                     ? 'Publish to students'
                     : 'Save draft'
                 }
-
               </button>
 
-
               {editingId && (
-
                 <button
                   type="button"
                   className="secondary-btn"
-                  onClick={
-                    resetForm
-                  }
+                  onClick={resetForm}
                 >
                   Cancel edit
                 </button>
-
               )}
-
             </div>
 
-
             {message && (
-
               <p className="form-message">
                 {message}
               </p>
-
             )}
-
           </form>
 
-
           <aside className="panel admin-side">
-
             <span className="eyebrow">
               UPSC EDITOR CHECKLIST
             </span>
-
 
             <h3>
               Before publishing
             </h3>
 
-
             <ol>
-
               <li>
                 Verify the primary source.
               </li>
-
               <li>
                 Keep the quick summary short.
               </li>
-
               <li>
                 Add only exam-relevant facts.
               </li>
-
               <li>
-                Separate Prelims facts from
-                Mains analysis.
+                Separate Prelims facts from Mains analysis.
               </li>
-
               <li>
-                Mention challenges without
-                exaggeration.
+                Mention challenges without exaggeration.
               </li>
-
               <li>
-                Finish with a balanced way
-                forward.
+                Finish with a balanced way forward.
               </li>
-
               <li>
                 Save as Draft until reviewed.
               </li>
-
             </ol>
 
-
             <div className="callout">
-
               <strong>
                 Recommended workflow
               </strong>
-
 
               <p>
                 Create → Draft → Review → Publish.
                 Students see only Published articles.
               </p>
-
             </div>
-
           </aside>
-
         </section>
-
 
         <section
           className="panel"
           style={{
-            marginTop:
-              '24px'
+            marginTop: '24px'
           }}
         >
-
           <div
             style={{
-              display:
-                'flex',
-
-              justifyContent:
-                'space-between',
-
-              alignItems:
-                'center',
-
-              gap:
-                '12px',
-
-              flexWrap:
-                'wrap'
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap'
             }}
           >
-
             <div>
-
               <span className="eyebrow">
                 CONTENT MANAGER
               </span>
 
-
               <h2>
                 Existing Current Affairs
               </h2>
-
             </div>
-
 
             <button
               type="button"
               className="secondary-btn"
-              onClick={
-                loadArticles
-              }
+              onClick={loadArticles}
             >
               Refresh list
             </button>
-
           </div>
 
-
           {loadingArticles && (
-
             <p>
               Loading articles...
             </p>
-
           )}
-
 
           {!loadingArticles &&
-            articles.length ===
-              0 && (
-
-            <p>
-              No Current Affairs found.
-            </p>
-
-          )}
-
+            articles.length === 0 && (
+              <p>
+                No Current Affairs found.
+              </p>
+            )}
 
           <div
             style={{
-              display:
-                'grid',
-
-              gap:
-                '14px',
-
-              marginTop:
-                '20px'
+              display: 'grid',
+              gap: '14px',
+              marginTop: '20px'
             }}
           >
-
             {articles.map(
               article => (
-
                 <article
-                  key={
-                    article.id
-                  }
+                  key={article.id}
                   style={{
-                    padding:
-                      '18px',
-
+                    padding: '18px',
                     border:
                       '1px solid rgba(255,255,255,0.10)',
-
-                    borderRadius:
-                      '14px'
+                    borderRadius: '14px'
                   }}
                 >
-
                   <div
                     style={{
-                      display:
-                        'flex',
-
-                      justifyContent:
-                        'space-between',
-
-                      gap:
-                        '16px',
-
-                      flexWrap:
-                        'wrap'
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      flexWrap: 'wrap'
                     }}
                   >
-
                     <div>
-
                       <span className="eyebrow">
                         {article.subject}
                       </span>
 
-
                       <h3>
                         {article.title}
                       </h3>
-
 
                       <p>
                         Source:{' '}
                         {article.source}
                       </p>
 
-
                       <p>
                         Status:{' '}
-
                         <strong>
                           {article.status}
                         </strong>
                       </p>
-
                     </div>
-
 
                     <div
                       style={{
-                        display:
-                          'flex',
-
-                        gap:
-                          '8px',
-
-                        flexWrap:
-                          'wrap',
-
-                        alignItems:
-                          'flex-start'
+                        display: 'flex',
+                        gap: '8px',
+                        flexWrap: 'wrap',
+                        alignItems: 'flex-start'
                       }}
                     >
-
                       <button
                         type="button"
                         className="secondary-btn"
                         onClick={() =>
-                          startEdit(
-                            article
-                          )
+                          startEdit(article)
                         }
                       >
                         Edit
                       </button>
 
-
-                      {article.status !==
-                        'published' && (
-
+                      {article.status !== 'published' && (
                         <button
                           type="button"
                           className="secondary-btn"
                           onClick={() =>
-                            changeStatus(
+                            void changeStatus(
                               article,
                               'published'
                             )
@@ -2368,18 +1608,14 @@ export function AdminPage({
                         >
                           Publish
                         </button>
-
                       )}
 
-
-                      {article.status !==
-                        'draft' && (
-
+                      {article.status !== 'draft' && (
                         <button
                           type="button"
                           className="secondary-btn"
                           onClick={() =>
-                            changeStatus(
+                            void changeStatus(
                               article,
                               'draft'
                             )
@@ -2387,18 +1623,14 @@ export function AdminPage({
                         >
                           Move to draft
                         </button>
-
                       )}
 
-
-                      {article.status !==
-                        'archived' && (
-
+                      {article.status !== 'archived' && (
                         <button
                           type="button"
                           className="secondary-btn"
                           onClick={() =>
-                            changeStatus(
+                            void changeStatus(
                               article,
                               'archived'
                             )
@@ -2406,45 +1638,31 @@ export function AdminPage({
                         >
                           Archive
                         </button>
-
                       )}
-
 
                       <button
                         type="button"
                         className="secondary-btn"
                         onClick={() =>
-                          deleteArticle(
-                            article
-                          )
+                          void deleteArticle(article)
                         }
                       >
                         Delete
                       </button>
-
                     </div>
-
                   </div>
-
                 </article>
-
               )
             )}
-
           </div>
-
         </section>
-
       </div>
 
-
       {/* PRELIMS MCQ TAB */}
-
       <div
         style={{
           display:
-            adminTab ===
-            'mcq'
+            adminTab === 'mcq'
               ? 'block'
               : 'none'
         }}
@@ -2453,26 +1671,22 @@ export function AdminPage({
       </div>
 
       {/* PRELIMS TEST SERIES TAB */}
-
-<div
-  style={{
-    display:
-      adminTab ===
-      'tests'
-        ? 'block'
-        : 'none'
-  }}
->
-  <PrelimsTestManager />
-</div>
-
-      {/* MAINS QUESTIONS TAB */}
-
       <div
         style={{
           display:
-            adminTab ===
-            'mains'
+            adminTab === 'tests'
+              ? 'block'
+              : 'none'
+        }}
+      >
+        <PrelimsTestManager />
+      </div>
+
+      {/* MAINS QUESTIONS TAB */}
+      <div
+        style={{
+          display:
+            adminTab === 'mains'
               ? 'block'
               : 'none'
         }}
@@ -2480,22 +1694,17 @@ export function AdminPage({
         <MainsQuestionManager />
       </div>
 
-
       {/* MAINS EVALUATION TAB */}
-
       <div
         style={{
           display:
-            adminTab ===
-            'evaluation'
+            adminTab === 'evaluation'
               ? 'block'
               : 'none'
         }}
       >
         <MainsEvaluationManager />
       </div>
-
-
     </div>
   );
 }
