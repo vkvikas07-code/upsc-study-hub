@@ -16,37 +16,50 @@ import {
 } from '../components/BookProgressTracker';
 
 
-type LearnMode =
+export type LearnMode =
   | 'syllabus'
   | 'resources'
   | 'book-progress';
 
 
 type LearnHubPageProps = {
+
   initialSubject?:
     string |
     null;
+
+  initialMode?:
+    LearnMode;
 };
 
 
 export function LearnHubPage({
-  initialSubject = null
+
+  initialSubject = null,
+
+  initialMode = 'syllabus'
+
 }: LearnHubPageProps) {
 
   /*
    * LEARN WORKSPACE
    *
-   * syllabus =
+   * syllabus
+   * =
    * UPSC syllabus tracker
    *
-   * resources =
-   * books, notes, reports,
-   * official sources
+   * resources
+   * =
+   * books, official sources,
+   * reports, notes and material
    *
-   * book-progress =
-   * subject -> book ->
-   * topic -> subtopic
-   * reading tracker
+   * book-progress
+   * =
+   * Subject
+   * → Book
+   * → Topic
+   * → Subtopic
+   * → Completion
    */
 
   const [
@@ -56,40 +69,32 @@ export function LearnHubPage({
     useState<
       LearnMode
     >(
-      'syllabus'
+      initialMode
     );
 
 
   /*
-   * HOME QUICK STUDY
+   * DIRECT WORKSPACE
+   * NAVIGATION
    *
-   * When Home sends a subject,
-   * open the Syllabus Tracker
-   * first.
+   * This allows Home to open:
    *
-   * The same subject is also
-   * passed to Book Progress,
-   * so if the student switches
-   * to Book Progress, that
-   * subject will already be
-   * selected when possible.
+   * Learn
+   * → Book Progress
+   *
+   * directly.
    */
 
   useEffect(
     () => {
 
-      if (
-        initialSubject
-      ) {
-
-        setMode(
-          'syllabus'
-        );
-      }
+      setMode(
+        initialMode
+      );
 
     },
     [
-      initialSubject
+      initialMode
     ]
   );
 
@@ -131,10 +136,11 @@ export function LearnHubPage({
 
 
           <p>
-            Track the UPSC syllabus, access
-            important study resources and
-            monitor your book-wise reading
-            progress from one place.
+            Track the UPSC syllabus,
+            access important study
+            resources and monitor your
+            book-wise reading progress
+            from one place.
           </p>
 
 
@@ -276,7 +282,7 @@ export function LearnHubPage({
 
 
       {/* =====================================
-          BOOK PROGRESS TRACKER
+          BOOK PROGRESS
       ===================================== */}
 
       {
