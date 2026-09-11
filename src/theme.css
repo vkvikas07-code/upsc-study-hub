@@ -503,3 +503,342 @@ label select {
   }
 
 }
+
+/* =========================================================
+   GLOBAL DARK INPUT + TEXTAREA FIX
+   UPSC STUDY HUB
+
+   Fixes white browser-default fields in:
+   - My Notes
+   - Study Time Settings
+   - Search boxes
+   - Future forms
+
+   Does NOT affect:
+   - checkbox
+   - radio
+   - file input
+   - buttons
+   ========================================================= */
+
+
+/* =========================================================
+   TEXT-BASED INPUTS
+   ========================================================= */
+
+input[type="text"],
+input[type="search"],
+input[type="url"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="month"],
+input[type="week"],
+input[type="tel"],
+textarea {
+
+  width: 100%;
+
+  min-width: 0;
+
+  background-color: #0e1525;
+
+  color: #f8fafc;
+
+  border:
+    1px solid
+    rgba(
+      148,
+      163,
+      184,
+      0.24
+    );
+
+  border-radius: 11px;
+
+  padding: 11px 12px;
+
+  font: inherit;
+
+  outline: none;
+
+  box-shadow: none;
+
+  caret-color: #5eead4;
+
+  color-scheme: dark;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+
+/* =========================================================
+   TEXTAREA
+   ========================================================= */
+
+textarea {
+
+  min-height: 110px;
+
+  line-height: 1.55;
+
+  resize: vertical;
+}
+
+
+/* =========================================================
+   PLACEHOLDER TEXT
+   ========================================================= */
+
+input[type="text"]::placeholder,
+input[type="search"]::placeholder,
+input[type="url"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="number"]::placeholder,
+input[type="tel"]::placeholder,
+textarea::placeholder {
+
+  color: #64748b;
+
+  opacity: 1;
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
+input[type="text"]:hover,
+input[type="search"]:hover,
+input[type="url"]:hover,
+input[type="email"]:hover,
+input[type="password"]:hover,
+input[type="number"]:hover,
+input[type="date"]:hover,
+input[type="time"]:hover,
+input[type="month"]:hover,
+input[type="week"]:hover,
+input[type="tel"]:hover,
+textarea:hover {
+
+  border-color:
+    rgba(
+      148,
+      163,
+      184,
+      0.42
+    );
+}
+
+
+/* =========================================================
+   FOCUS
+   ========================================================= */
+
+input[type="text"]:focus,
+input[type="search"]:focus,
+input[type="url"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="month"]:focus,
+input[type="week"]:focus,
+input[type="tel"]:focus,
+textarea:focus {
+
+  background-color:
+    #10192b;
+
+  border-color:
+    #14b8a6;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      20,
+      184,
+      166,
+      0.14
+    );
+}
+
+
+/* =========================================================
+   DISABLED / READONLY
+   ========================================================= */
+
+input:disabled,
+textarea:disabled {
+
+  background-color:
+    #111827;
+
+  color:
+    #64748b;
+
+  cursor:
+    not-allowed;
+
+  opacity:
+    0.72;
+}
+
+
+input[readonly],
+textarea[readonly] {
+
+  background-color:
+    #111827;
+
+  color:
+    #cbd5e1;
+}
+
+
+/* =========================================================
+   CHROME / EDGE AUTOFILL FIX
+   Prevent browser from turning saved fields white.
+   ========================================================= */
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+
+  -webkit-text-fill-color:
+    #f8fafc;
+
+  -webkit-box-shadow:
+    0 0 0 1000px
+    #0e1525
+    inset;
+
+  caret-color:
+    #5eead4;
+
+  transition:
+    background-color
+    5000s
+    ease-in-out
+    0s;
+}
+
+
+/* =========================================================
+   DATE / TIME ICONS
+   ========================================================= */
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="week"]::-webkit-calendar-picker-indicator {
+
+  filter:
+    invert(0.85);
+
+  cursor:
+    pointer;
+}
+
+
+/* =========================================================
+   SEARCH INPUT
+   ========================================================= */
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+
+  -webkit-appearance:
+    none;
+}
+
+
+/* =========================================================
+   MY NOTES EXTRA READABILITY
+
+   The editor is intentionally a little more visible
+   than the surrounding panel.
+   ========================================================= */
+
+#my-notes-editor
+input[type="text"],
+
+#my-notes-editor
+input[type="url"],
+
+#my-notes-editor
+input[type="search"],
+
+#my-notes-editor
+textarea {
+
+  background-color:
+    #0a1220;
+
+  color:
+    #f8fafc;
+
+  border-color:
+    rgba(
+      94,
+      234,
+      212,
+      0.24
+    );
+}
+
+
+/* =========================================================
+   MY NOTES FOCUS
+   ========================================================= */
+
+#my-notes-editor
+input:focus,
+
+#my-notes-editor
+textarea:focus {
+
+  background-color:
+    #0d1728;
+
+  border-color:
+    #2dd4bf;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      45,
+      212,
+      191,
+      0.13
+    );
+}
+
+
+/* =========================================================
+   MY NOTES PLACEHOLDER
+   ========================================================= */
+
+#my-notes-editor
+input::placeholder,
+
+#my-notes-editor
+textarea::placeholder {
+
+  color:
+    #718096;
+
+  opacity:
+    1;
+}
