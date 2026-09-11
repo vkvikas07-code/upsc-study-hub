@@ -46,8 +46,8 @@ import {
 } from '../components/HomeRevisionWeekPreview';
 
 import {
-  TodayStudyDashboard
-} from '../components/TodayStudyDashboard';
+  TodayTimeStudyPlan
+} from '../components/TodayTimeStudyPlan';
 
 import {
   supabase
@@ -101,7 +101,9 @@ type HomePageProps = {
 
 
 /*
+ * =========================================
  * SAFE NUMBER
+ * =========================================
  */
 
 function safeNumber(
@@ -127,7 +129,9 @@ function safeNumber(
 
 
 /*
+ * =========================================
  * LOCAL DATE KEY
+ * =========================================
  */
 
 function localDateKey(
@@ -165,7 +169,9 @@ function localDateKey(
 
 
 /*
+ * =========================================
  * PRACTICE STREAK
+ * =========================================
  */
 
 function calculateStreak(
@@ -302,7 +308,9 @@ function calculateStreak(
 
 
 /*
+ * =========================================
  * HOME PAGE
+ * =========================================
  */
 
 export function HomePage({
@@ -384,7 +392,9 @@ export function HomePage({
 
 
   /*
+   * =========================================
    * LOAD HOME PERFORMANCE
+   * =========================================
    */
 
   useEffect(
@@ -982,7 +992,7 @@ export function HomePage({
 
 
       {/* =====================================
-          TODAY STUDY DASHBOARD
+          TIME-BASED TODAY STUDY PLAN
       ===================================== */}
 
       <div
@@ -992,7 +1002,7 @@ export function HomePage({
         }}
       >
 
-        <TodayStudyDashboard
+        <TodayTimeStudyPlan
 
           tasks={
             tasks
