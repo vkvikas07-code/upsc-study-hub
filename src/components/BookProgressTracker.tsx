@@ -5,19 +5,49 @@ import {
 } from 'react';
 
 import {
+  QuickNoteComposer
+} from './QuickNoteComposer';
+
+import {
   supabase
 } from '../lib/supabase';
 
 
 type BookRow = {
   id: string;
+
   title: string;
+
   subject: string;
-  description: string | null;
-  author: string | null;
-  publisher: string | null;
-  source_name: string | null;
-  sort_order: number;
+
+  description:
+    string |
+    null;
+
+  author:
+    string |
+    null;
+
+  publisher:
+    string |
+    null;
+
+  source_name:
+    string |
+    null;
+
+  exam_stage:
+    | 'prelims'
+    | 'mains'
+    | 'both'
+    | null;
+
+  external_url:
+    string |
+    null;
+
+  sort_order:
+    number;
 };
 
 
@@ -87,6 +117,8 @@ const BOOK_SELECT = `
   author,
   publisher,
   source_name,
+  exam_stage,
+  external_url,
   sort_order
 `;
 
@@ -613,7 +645,7 @@ export function BookProgressTracker({
     }
 
 
-    const cleanBooks:
+    const :
       BookRow[] =
         (
           bookData || []
@@ -655,16 +687,33 @@ export function BookProgressTracker({
                 : null,
 
             source_name:
-              item.source_name
-                ? String(
-                    item.source_name
-                  )
-                : null,
+  item.source_name
+    ? String(
+        item.source_name
+      )
+    : null,
 
-            sort_order:
-              safeNumber(
-                item.sort_order
-              )
+exam_stage:
+  item.exam_stage ===
+    'prelims' ||
+  item.exam_stage ===
+    'mains' ||
+  item.exam_stage ===
+    'both'
+    ? item.exam_stage
+    : null,
+
+external_url:
+  item.external_url
+    ? String(
+        item.external_url
+      )
+    : null,
+
+sort_order:
+  safeNumber(
+    item.sort_order
+  )
           })
         );
 
@@ -2135,7 +2184,42 @@ export function BookProgressTracker({
 
     const isLeaf =
       children.length === 0;
+const book =
+  books.find(
+    item =>
+      item.id ===
+      topic.book_id
+  );
 
+
+const noteSubject =
+  topic.subject.trim() ||
+  book?.subject ||
+  null;
+
+
+const noteTags:
+  string[] = [
+
+    book?.title ||
+      '',
+
+    noteSubject ||
+      '',
+
+    topic.topic_name,
+
+    'Book Note'
+
+  ].filter(
+    value =>
+      value.length > 0
+  );
+
+
+const noteExamStage =
+  book?.exam_stage ||
+  'general';
 
     const leafIds =
       getLeafIds(
@@ -2831,7 +2915,130 @@ export function BookProgressTracker({
 
         )}
 
+{/* BOOK TOPIC QUICK NOTE */}
 
+{isLeaf &&
+  signedIn && (
+
+  <div
+    style={{
+      marginTop:
+        '14px',
+
+      paddingTop:
+        '13px',
+
+      borderTop:
+        '1px solid rgba(94,234,212,.14)'
+    }}
+  >
+
+    <div
+      style={{
+        display:
+          'flex',
+
+        justifyContent:
+          'space-between',
+
+        alignItems:
+          'center',
+
+        gap:
+          '10px',
+
+        flexWrap:
+          'wrap',
+
+        marginBottom:
+          '8px'
+      }}
+    >
+
+      <div>
+
+        <small
+          style={{
+            display:
+              'block',
+
+            color:
+              '#5eead4',
+
+            fontWeight:
+              800,
+
+            letterSpacing:
+              '.04em'
+          }}
+        >
+          PERSONAL NOTE
+        </small>
+
+
+        <small
+          style={{
+            display:
+              'block',
+
+            marginTop:
+              '3px',
+
+            color:
+              '#94a3b8'
+          }}
+        >
+          Save your own points for this
+          book topic.
+        </small>
+
+      </div>
+
+    </div>
+
+
+    <QuickNoteComposer
+
+      buttonLabel="+ Add Topic Note"
+
+      defaultTitle={
+        book
+          ? `${book.title}: ${topic.topic_name}`
+          : topic.topic_name
+      }
+
+      defaultSubject={
+        noteSubject
+      }
+
+      defaultTopic={
+        topic.topic_name
+      }
+
+      defaultTags={
+        noteTags
+      }
+
+      examStage={
+        noteExamStage
+      }
+
+      noteType="book"
+
+      bookTopicId={
+        topic.id
+      }
+
+      sourceUrl={
+        book?.external_url ||
+        null
+      }
+
+    />
+
+  </div>
+
+)}
         {/* CHILDREN */}
 
         {!isLeaf && (
