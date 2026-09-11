@@ -42,6 +42,10 @@ import {
 } from '../components/RevisionDueToday';
 
 import {
+  HomeRevisionWeekPreview
+} from '../components/HomeRevisionWeekPreview';
+
+import {
   supabase
 } from '../lib/supabase';
 
@@ -1332,6 +1336,31 @@ export function HomePage({
         <RevisionDueToday
 
           onOpenTracker={() =>
+            onGoLearn(
+              null,
+              'book-progress'
+            )
+          }
+
+        />
+
+      </div>
+
+
+      {/* =====================================
+          WEEKLY REVISION PREVIEW
+      ===================================== */}
+
+      <div
+        style={{
+          marginTop:
+            '18px'
+        }}
+      >
+
+        <HomeRevisionWeekPreview
+
+          onOpenCalendar={() =>
             onGoLearn(
               null,
               'book-progress'
