@@ -19,6 +19,10 @@ import {
   RevisionScheduleSettings
 } from '../components/RevisionScheduleSettings';
 
+import {
+  RevisionWeekCalendar
+} from '../components/RevisionWeekCalendar';
+
 
 export type LearnMode =
   | 'syllabus'
@@ -61,10 +65,12 @@ export function LearnHubPage({
    *
    * book-progress
    * =
-   * Reading
-   * Revision
-   * Revision schedule
-   * Book-wise progress
+   * revision settings
+   * 7-day revision calendar
+   * reading
+   * revisions
+   * due dates
+   * book-wise progress
    */
 
   const [
@@ -82,13 +88,6 @@ export function LearnHubPage({
    * =========================================
    * DIRECT WORKSPACE NAVIGATION
    * =========================================
-   *
-   * Allows Home to open:
-   *
-   * Learn
-   * → Book Progress
-   *
-   * directly.
    */
 
   useEffect(
@@ -150,9 +149,9 @@ export function LearnHubPage({
           <p>
             Track the UPSC syllabus,
             access important study resources,
-            manage your book-wise reading
-            progress and organise revisions
-            from one place.
+            manage book-wise reading progress,
+            plan revisions and see upcoming
+            revision workload from one place.
           </p>
 
 
@@ -310,6 +309,22 @@ export function LearnHubPage({
             ================================= */}
 
             <RevisionScheduleSettings />
+
+
+            {/* =================================
+                7-DAY REVISION CALENDAR
+            ================================= */}
+
+            <div
+              style={{
+                marginTop:
+                  '18px'
+              }}
+            >
+
+              <RevisionWeekCalendar />
+
+            </div>
 
 
             {/* =================================
