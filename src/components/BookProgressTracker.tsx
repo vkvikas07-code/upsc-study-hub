@@ -15,9 +15,7 @@ import {
 
 type BookRow = {
   id: string;
-
   title: string;
-
   subject: string;
 
   description:
@@ -56,7 +54,11 @@ type TopicRow = {
   book_id: string;
   subject: string;
   topic_name: string;
-  parent_id: string | null;
+
+  parent_id:
+    string |
+    null;
+
   sort_order: number;
   is_active: boolean;
 };
@@ -65,21 +67,49 @@ type TopicRow = {
 type ProgressRow = {
   book_topic_id: string;
   completed: boolean;
-  revision_count: number | string | null;
-  revision_1_at: string | null;
-  revision_2_at: string | null;
-  final_revision_at: string | null;
-  next_revision_due_at: string | null;
+
+  revision_count:
+    number |
+    string |
+    null;
+
+  revision_1_at:
+    string |
+    null;
+
+  revision_2_at:
+    string |
+    null;
+
+  final_revision_at:
+    string |
+    null;
+
+  next_revision_due_at:
+    string |
+    null;
 };
 
 
 type ProgressState = {
   completed: boolean;
   revisionCount: number;
-  revision1At: string | null;
-  revision2At: string | null;
-  finalRevisionAt: string | null;
-  nextRevisionDueAt: string | null;
+
+  revision1At:
+    string |
+    null;
+
+  revision2At:
+    string |
+    null;
+
+  finalRevisionAt:
+    string |
+    null;
+
+  nextRevisionDueAt:
+    string |
+    null;
 };
 
 
@@ -100,12 +130,17 @@ type DueSummary = {
   overdue: number;
   dueToday: number;
   scheduled: number;
-  earliest: DueInfo | null;
+
+  earliest:
+    DueInfo |
+    null;
 };
 
 
 type BookProgressTrackerProps = {
-  initialSubject?: string | null;
+  initialSubject?:
+    string |
+    null;
 };
 
 
@@ -145,46 +180,79 @@ const PROGRESS_SELECT = `
 `;
 
 
-const EMPTY_PROGRESS: ProgressState = {
-  completed: false,
-  revisionCount: 0,
-  revision1At: null,
-  revision2At: null,
-  finalRevisionAt: null,
-  nextRevisionDueAt: null
+const EMPTY_PROGRESS:
+  ProgressState = {
+
+  completed:
+    false,
+
+  revisionCount:
+    0,
+
+  revision1At:
+    null,
+
+  revision2At:
+    null,
+
+  finalRevisionAt:
+    null,
+
+  nextRevisionDueAt:
+    null
 };
 
 
 const DAY_MS =
-  24 * 60 * 60 * 1000;
+  24 *
+  60 *
+  60 *
+  1000;
 
 
 /*
+ * =========================================
  * HELPERS
+ * =========================================
  */
 
 function safeNumber(
-  value: unknown,
-  fallback = 0
-) {
-  const number =
-    Number(value);
+  value:
+    unknown,
 
-  return Number.isFinite(number)
+  fallback =
+    0
+) {
+
+  const number =
+    Number(
+      value
+    );
+
+
+  return Number.isFinite(
+    number
+  )
     ? number
     : fallback;
 }
 
 
 function cleanRevisionCount(
-  value: unknown
+  value:
+    unknown
 ) {
+
   return Math.min(
     3,
+
     Math.max(
       0,
+
       Math.round(
-        safeNumber(value)
+        safeNumber(
+          value
+        )
       )
     )
   );
@@ -192,8 +260,10 @@ function cleanRevisionCount(
 
 
 function normalise(
-  value: string
+  value:
+    string
 ) {
+
   return value
     .trim()
     .toLowerCase();
@@ -201,39 +271,60 @@ function normalise(
 
 
 function formatDate(
-  value: string | null
+  value:
+    string |
+    null
 ) {
+
   if (!value) {
+
     return '';
   }
 
+
   const date =
-    new Date(value);
+    new Date(
+      value
+    );
+
 
   if (
     Number.isNaN(
       date.getTime()
     )
   ) {
+
     return '';
   }
 
-  return date.toLocaleDateString(
-    'en-IN',
-    {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    }
-  );
+
+  return date
+    .toLocaleDateString(
+      'en-IN',
+      {
+        day:
+          '2-digit',
+
+        month:
+          'short',
+
+        year:
+          'numeric'
+      }
+    );
 }
 
 
 function startOfDay(
-  value: Date
+  value:
+    Date
 ) {
+
   const date =
-    new Date(value);
+    new Date(
+      value
+    );
+
 
   date.setHours(
     0,
@@ -242,59 +333,86 @@ function startOfDay(
     0
   );
 
+
   return date;
 }
 
 
 function nextRevisionLabel(
-  revisionCount: number
+  revisionCount:
+    number
 ) {
+
   if (
-    revisionCount === 0
+    revisionCount ===
+    0
   ) {
+
     return 'Revision 1';
   }
 
+
   if (
-    revisionCount === 1
+    revisionCount ===
+    1
   ) {
+
     return 'Revision 2';
   }
+
 
   return 'Final Revision';
 }
 
 
 function buildDueInfo(
-  dueValue: string | null,
-  revisionCount: number
-): DueInfo | null {
+  dueValue:
+    string |
+    null,
+
+  revisionCount:
+    number
+):
+  DueInfo |
+  null {
 
   if (
     !dueValue ||
-    revisionCount >= 3
+    revisionCount >=
+      3
   ) {
+
     return null;
   }
 
+
   const due =
-    new Date(dueValue);
+    new Date(
+      dueValue
+    );
+
 
   if (
     Number.isNaN(
       due.getTime()
     )
   ) {
+
     return null;
   }
+
 
   const today =
     startOfDay(
       new Date()
     );
 
+
   const dueDay =
-    startOfDay(due);
+    startOfDay(
+      due
+    );
+
 
   const difference =
     Math.round(
@@ -305,24 +423,33 @@ function buildDueInfo(
       DAY_MS
     );
 
+
   let statusLabel =
     '';
+
 
   let color =
     '#5eead4';
 
+
   let borderColor =
     'rgba(20,184,166,.35)';
+
 
   let background =
     'rgba(20,184,166,.08)';
 
 
   if (
-    difference < 0
+    difference <
+    0
   ) {
+
     const days =
-      Math.abs(difference);
+      Math.abs(
+        difference
+      );
+
 
     statusLabel =
       `Overdue by ${days} ${
@@ -331,43 +458,55 @@ function buildDueInfo(
           : 'days'
       }`;
 
+
     color =
       '#fca5a5';
 
+
     borderColor =
       'rgba(248,113,113,.38)';
+
 
     background =
       'rgba(127,29,29,.14)';
 
   } else if (
-    difference === 0
+    difference ===
+    0
   ) {
+
     statusLabel =
       'Due today';
+
 
     color =
       '#fde68a';
 
+
     borderColor =
       'rgba(251,191,36,.38)';
+
 
     background =
       'rgba(120,53,15,.14)';
 
   } else if (
-    difference === 1
+    difference ===
+    1
   ) {
+
     statusLabel =
       'Due tomorrow';
 
   } else {
+
     statusLabel =
       `Due in ${difference} days`;
   }
 
 
   return {
+
     timestamp:
       due.getTime(),
 
@@ -377,7 +516,9 @@ function buildDueInfo(
       ),
 
     dateLabel:
-      formatDate(dueValue),
+      formatDate(
+        dueValue
+      ),
 
     statusLabel,
 
@@ -388,38 +529,49 @@ function buildDueInfo(
     background,
 
     overdue:
-      difference < 0,
+      difference <
+      0,
 
     dueToday:
-      difference === 0
+      difference ===
+      0
   };
 }
 
 
 /*
+ * =========================================
  * BOOK PROGRESS TRACKER
+ * =========================================
  */
 
 export function BookProgressTracker({
-  initialSubject = null
+  initialSubject =
+    null
 }: BookProgressTrackerProps) {
 
   /*
+   * =========================================
    * DATA
+   * =========================================
    */
 
   const [
     books,
     setBooks
   ] =
-    useState<BookRow[]>([]);
+    useState<
+      BookRow[]
+    >([]);
 
 
   const [
     topics,
     setTopics
   ] =
-    useState<TopicRow[]>([]);
+    useState<
+      TopicRow[]
+    >([]);
 
 
   const [
@@ -438,7 +590,9 @@ export function BookProgressTracker({
     savingIds,
     setSavingIds
   ] =
-    useState<Set<string>>(
+    useState<
+      Set<string>
+    >(
       new Set()
     );
 
@@ -459,7 +613,9 @@ export function BookProgressTracker({
     subjectFilter,
     setSubjectFilter
   ] =
-    useState('all');
+    useState(
+      'all'
+    );
 
 
   const [
@@ -473,14 +629,18 @@ export function BookProgressTracker({
     loading,
     setLoading
   ] =
-    useState(true);
+    useState(
+      true
+    );
 
 
   const [
     signedIn,
     setSignedIn
   ] =
-    useState(false);
+    useState(
+      false
+    );
 
 
   const [
@@ -491,12 +651,16 @@ export function BookProgressTracker({
 
 
   /*
+   * =========================================
    * PROGRESS HELPERS
+   * =========================================
    */
 
   function getProgressState(
-    topicId: string
-  ): ProgressState {
+    topicId:
+      string
+  ):
+    ProgressState {
 
     return (
       progressByTopic[
@@ -508,12 +672,16 @@ export function BookProgressTracker({
 
 
   function rowToProgressState(
-    row: ProgressRow
-  ): ProgressState {
+    row:
+      ProgressRow
+  ):
+    ProgressState {
 
     return {
+
       completed:
-        row.completed === true,
+        row.completed ===
+        true,
 
       revisionCount:
         cleanRevisionCount(
@@ -521,41 +689,62 @@ export function BookProgressTracker({
         ),
 
       revision1At:
-        row.revision_1_at || null,
+        row.revision_1_at ||
+        null,
 
       revision2At:
-        row.revision_2_at || null,
+        row.revision_2_at ||
+        null,
 
       finalRevisionAt:
-        row.final_revision_at || null,
+        row.final_revision_at ||
+        null,
 
       nextRevisionDueAt:
-        row.next_revision_due_at || null
+        row.next_revision_due_at ||
+        null
     };
   }
 
 
   function setSaving(
-    ids: string[],
-    saving: boolean
+    ids:
+      string[],
+
+    saving:
+      boolean
   ) {
 
     setSavingIds(
       current => {
 
         const next =
-          new Set(current);
+          new Set(
+            current
+          );
+
 
         ids.forEach(
           id => {
 
-            if (saving) {
-              next.add(id);
+            if (
+              saving
+            ) {
+
+              next.add(
+                id
+              );
+
             } else {
-              next.delete(id);
+
+              next.delete(
+                id
+              );
             }
+
           }
         );
+
 
         return next;
       }
@@ -564,7 +753,9 @@ export function BookProgressTracker({
 
 
   /*
+   * =========================================
    * LOAD TRACKER
+   * =========================================
    */
 
   async function loadTracker() {
@@ -572,27 +763,43 @@ export function BookProgressTracker({
     const client =
       supabase;
 
+
     if (!client) {
+
       setMessage(
         'Supabase is not configured.'
       );
 
-      setLoading(false);
+
+      setLoading(
+        false
+      );
+
 
       return;
     }
 
-    setLoading(true);
+
+    setLoading(
+      true
+    );
+
+
     setMessage('');
 
 
     /*
+     * =====================================
      * BOOKS
+     * =====================================
      */
 
     const {
-      data: bookData,
-      error: bookError
+      data:
+        bookData,
+
+      error:
+        bookError
     } =
       await client
         .from(
@@ -612,51 +819,72 @@ export function BookProgressTracker({
         .order(
           'subject',
           {
-            ascending: true
+            ascending:
+              true
           }
         )
         .order(
           'sort_order',
           {
-            ascending: true
+            ascending:
+              true
           }
         )
         .order(
           'title',
           {
-            ascending: true
+            ascending:
+              true
           }
         );
 
 
-    if (bookError) {
+    if (
+      bookError
+    ) {
+
       console.error(
         'Unable to load books:',
         bookError
       );
 
+
       setMessage(
         bookError.message
       );
 
-      setLoading(false);
+
+      setLoading(
+        false
+      );
+
 
       return;
     }
 
 
-    const :
+    /*
+     * THIS IS THE SECTION THAT WAS BROKEN.
+     * cleanBooks is now correctly declared.
+     */
+
+    const cleanBooks:
       BookRow[] =
         (
-          bookData || []
+          bookData ||
+          []
         ).map(
           item => ({
+
             id:
-              String(item.id),
+              String(
+                item.id
+              ),
 
             title:
               String(
-                item.title || ''
+                item.title ||
+                ''
               ),
 
             subject:
@@ -687,33 +915,34 @@ export function BookProgressTracker({
                 : null,
 
             source_name:
-  item.source_name
-    ? String(
-        item.source_name
-      )
-    : null,
+              item.source_name
+                ? String(
+                    item.source_name
+                  )
+                : null,
 
-exam_stage:
-  item.exam_stage ===
-    'prelims' ||
-  item.exam_stage ===
-    'mains' ||
-  item.exam_stage ===
-    'both'
-    ? item.exam_stage
-    : null,
+            exam_stage:
+              item.exam_stage ===
+                'prelims' ||
+              item.exam_stage ===
+                'mains' ||
+              item.exam_stage ===
+                'both'
+                ? item.exam_stage
+                : null,
 
-external_url:
-  item.external_url
-    ? String(
-        item.external_url
-      )
-    : null,
+            external_url:
+              item.external_url
+                ? String(
+                    item.external_url
+                  )
+                : null,
 
-sort_order:
-  safeNumber(
-    item.sort_order
-  )
+            sort_order:
+              safeNumber(
+                item.sort_order
+              )
+
           })
         );
 
@@ -724,12 +953,17 @@ sort_order:
 
 
     /*
+     * =====================================
      * TOPICS
+     * =====================================
      */
 
     const {
-      data: topicData,
-      error: topicError
+      data:
+        topicData,
+
+      error:
+        topicError
     } =
       await client
         .from(
@@ -745,28 +979,38 @@ sort_order:
         .order(
           'sort_order',
           {
-            ascending: true
+            ascending:
+              true
           }
         )
         .order(
           'topic_name',
           {
-            ascending: true
+            ascending:
+              true
           }
         );
 
 
-    if (topicError) {
+    if (
+      topicError
+    ) {
+
       console.error(
         'Unable to load book topics:',
         topicError
       );
 
+
       setMessage(
         topicError.message
       );
 
-      setLoading(false);
+
+      setLoading(
+        false
+      );
+
 
       return;
     }
@@ -784,12 +1028,16 @@ sort_order:
     const cleanTopics:
       TopicRow[] =
         (
-          topicData || []
+          topicData ||
+          []
         )
           .map(
             item => ({
+
               id:
-                String(item.id),
+                String(
+                  item.id
+                ),
 
               book_id:
                 String(
@@ -798,12 +1046,14 @@ sort_order:
 
               subject:
                 String(
-                  item.subject || ''
+                  item.subject ||
+                  ''
                 ),
 
               topic_name:
                 String(
-                  item.topic_name || ''
+                  item.topic_name ||
+                  ''
                 ),
 
               parent_id:
@@ -819,7 +1069,9 @@ sort_order:
                 ),
 
               is_active:
-                item.is_active !== false
+                item.is_active !==
+                false
+
             })
           )
           .filter(
@@ -836,7 +1088,9 @@ sort_order:
 
 
     /*
+     * =====================================
      * USER
+     * =====================================
      */
 
     const {
@@ -850,24 +1104,43 @@ sort_order:
 
 
     if (!user) {
-      setSignedIn(false);
-      setProgressByTopic({});
-      setLoading(false);
+
+      setSignedIn(
+        false
+      );
+
+
+      setProgressByTopic(
+        {}
+      );
+
+
+      setLoading(
+        false
+      );
+
 
       return;
     }
 
 
-    setSignedIn(true);
+    setSignedIn(
+      true
+    );
 
 
     /*
+     * =====================================
      * PROGRESS
+     * =====================================
      */
 
     const {
-      data: progressData,
-      error: progressError
+      data:
+        progressData,
+
+      error:
+        progressError
     } =
       await client
         .from(
@@ -882,18 +1155,30 @@ sort_order:
         );
 
 
-    if (progressError) {
+    if (
+      progressError
+    ) {
+
       console.error(
         'Unable to load book progress:',
         progressError
       );
 
+
       setMessage(
         progressError.message
       );
 
-      setProgressByTopic({});
-      setLoading(false);
+
+      setProgressByTopic(
+        {}
+      );
+
+
+      setLoading(
+        false
+      );
+
 
       return;
     }
@@ -907,12 +1192,15 @@ sort_order:
 
 
     (
-      progressData || []
+      progressData ||
+      []
     ).forEach(
       item => {
 
         const row =
-          item as ProgressRow;
+          item as
+            ProgressRow;
+
 
         nextProgress[
           String(
@@ -922,6 +1210,7 @@ sort_order:
           rowToProgressState(
             row
           );
+
       }
     );
 
@@ -930,20 +1219,33 @@ sort_order:
       nextProgress
     );
 
-    setLoading(false);
+
+    setLoading(
+      false
+    );
   }
 
 
+  /*
+   * =========================================
+   * INITIAL LOAD
+   * =========================================
+   */
+
   useEffect(
     () => {
+
       void loadTracker();
+
     },
     []
   );
 
 
   /*
+   * =========================================
    * SUBJECTS
+   * =========================================
    */
 
   const subjects =
@@ -956,9 +1258,12 @@ sort_order:
               books
                 .map(
                   book =>
-                    book.subject.trim()
+                    book.subject
+                      .trim()
                 )
-                .filter(Boolean)
+                .filter(
+                  Boolean
+                )
             )
           )
           .sort(
@@ -972,12 +1277,16 @@ sort_order:
           );
 
       },
-      [books]
+      [
+        books
+      ]
     );
 
 
   /*
+   * =========================================
    * INITIAL SUBJECT
+   * =========================================
    */
 
   useEffect(
@@ -985,8 +1294,10 @@ sort_order:
 
       if (
         !initialSubject ||
-        subjects.length === 0
+        subjects.length ===
+          0
       ) {
+
         return;
       }
 
@@ -1002,14 +1313,19 @@ sort_order:
           subject =>
             normalise(
               subject
-            ) === requested
+            ) ===
+            requested
         );
 
 
-      if (exact) {
+      if (
+        exact
+      ) {
+
         setSubjectFilter(
           exact
         );
+
 
         return;
       }
@@ -1020,7 +1336,10 @@ sort_order:
           subject => {
 
             const candidate =
-              normalise(subject);
+              normalise(
+                subject
+              );
+
 
             return (
               candidate.includes(
@@ -1034,7 +1353,10 @@ sort_order:
         );
 
 
-      if (partial) {
+      if (
+        partial
+      ) {
+
         setSubjectFilter(
           partial
         );
@@ -1049,7 +1371,9 @@ sort_order:
 
 
   /*
+   * =========================================
    * TOPIC TREE
+   * =========================================
    */
 
   const childrenMap =
@@ -1069,22 +1393,28 @@ sort_order:
             if (
               !topic.parent_id
             ) {
+
               return;
             }
+
 
             const existing =
               map.get(
                 topic.parent_id
-              ) || [];
+              ) ||
+              [];
+
 
             existing.push(
               topic
             );
 
+
             map.set(
               topic.parent_id,
               existing
             );
+
           }
         );
 
@@ -1102,11 +1432,13 @@ sort_order:
                   first.sort_order !==
                   second.sort_order
                 ) {
+
                   return (
                     first.sort_order -
                     second.sort_order
                   );
                 }
+
 
                 return first
                   .topic_name
@@ -1115,6 +1447,7 @@ sort_order:
                   );
               }
             );
+
           }
         );
 
@@ -1122,7 +1455,9 @@ sort_order:
         return map;
 
       },
-      [topics]
+      [
+        topics
+      ]
     );
 
 
@@ -1148,16 +1483,20 @@ sort_order:
               const existing =
                 map.get(
                   topic.book_id
-                ) || [];
+                ) ||
+                [];
+
 
               existing.push(
                 topic
               );
 
+
               map.set(
                 topic.book_id,
                 existing
               );
+
             }
           );
 
@@ -1175,11 +1514,13 @@ sort_order:
                   first.sort_order !==
                   second.sort_order
                 ) {
+
                   return (
                     first.sort_order -
                     second.sort_order
                   );
                 }
+
 
                 return first
                   .topic_name
@@ -1188,6 +1529,7 @@ sort_order:
                   );
               }
             );
+
           }
         );
 
@@ -1195,29 +1537,42 @@ sort_order:
         return map;
 
       },
-      [topics]
+      [
+        topics
+      ]
     );
 
 
   /*
+   * =========================================
    * LEAF HELPERS
+   * =========================================
    */
 
   function getLeafIds(
-    topicId: string,
+    topicId:
+      string,
+
     visited =
       new Set<string>()
-  ): string[] {
+  ):
+    string[] {
 
     if (
-      visited.has(topicId)
+      visited.has(
+        topicId
+      )
     ) {
+
       return [];
     }
 
 
     const nextVisited =
-      new Set(visited);
+      new Set(
+        visited
+      );
+
 
     nextVisited.add(
       topicId
@@ -1227,49 +1582,57 @@ sort_order:
     const children =
       childrenMap.get(
         topicId
-      ) || [];
+      ) ||
+      [];
 
 
     if (
-      children.length === 0
+      children.length ===
+      0
     ) {
+
       return [
         topicId
       ];
     }
 
 
-    return children.flatMap(
-      child =>
-        getLeafIds(
-          child.id,
-          nextVisited
-        )
-    );
+    return children
+      .flatMap(
+        child =>
+          getLeafIds(
+            child.id,
+            nextVisited
+          )
+      );
   }
 
 
   function getBookLeafIds(
-    bookId: string
+    bookId:
+      string
   ) {
 
     const roots =
       rootTopicsByBook.get(
         bookId
-      ) || [];
+      ) ||
+      [];
 
 
-    return roots.flatMap(
-      topic =>
-        getLeafIds(
-          topic.id
-        )
-    );
+    return roots
+      .flatMap(
+        topic =>
+          getLeafIds(
+            topic.id
+          )
+      );
   }
 
 
   function getSubjectLeafIds(
-    subject: string
+    subject:
+      string
   ) {
 
     return books
@@ -1297,11 +1660,14 @@ sort_order:
 
 
   /*
+   * =========================================
    * PROGRESS CALCULATIONS
+   * =========================================
    */
 
   function getReadCount(
-    ids: string[]
+    ids:
+      string[]
   ) {
 
     return ids.filter(
@@ -1314,9 +1680,13 @@ sort_order:
 
 
   function getRevisionCount(
-    ids: string[],
+    ids:
+      string[],
+
     minimumRevision:
-      1 | 2 | 3
+      1 |
+      2 |
+      3
   ) {
 
     return ids.filter(
@@ -1330,15 +1700,21 @@ sort_order:
 
 
   function getPercent(
-    completed: number,
-    total: number
+    completed:
+      number,
+
+    total:
+      number
   ) {
 
     if (
-      total <= 0
+      total <=
+      0
     ) {
+
       return 0;
     }
+
 
     return Math.round(
       (
@@ -1351,24 +1727,32 @@ sort_order:
 
 
   /*
+   * =========================================
    * DUE SUMMARY
+   * =========================================
    */
 
   function getDueSummary(
-    ids: string[]
-  ): DueSummary {
+    ids:
+      string[]
+  ):
+    DueSummary {
 
     let overdue =
       0;
 
+
     let dueToday =
       0;
+
 
     let scheduled =
       0;
 
+
     let earliest:
-      DueInfo | null =
+      DueInfo |
+      null =
         null;
 
 
@@ -1376,13 +1760,17 @@ sort_order:
       id => {
 
         const progress =
-          getProgressState(id);
+          getProgressState(
+            id
+          );
 
 
         if (
           !progress.completed ||
-          progress.revisionCount >= 3
+          progress.revisionCount >=
+            3
         ) {
+
           return;
         }
 
@@ -1394,36 +1782,46 @@ sort_order:
           );
 
 
-        if (!due) {
+        if (
+          !due
+        ) {
+
           return;
         }
 
 
-        scheduled += 1;
+        scheduled +=
+          1;
 
 
         if (
           due.overdue
         ) {
-          overdue += 1;
+
+          overdue +=
+            1;
         }
 
 
         if (
           due.dueToday
         ) {
-          dueToday += 1;
+
+          dueToday +=
+            1;
         }
 
 
         if (
           !earliest ||
           due.timestamp <
-          earliest.timestamp
+            earliest.timestamp
         ) {
+
           earliest =
             due;
         }
+
       }
     );
 
@@ -1499,7 +1897,9 @@ sort_order:
 
 
   /*
+   * =========================================
    * SEARCH
+   * =========================================
    */
 
   const visibleBooks =
@@ -1507,7 +1907,9 @@ sort_order:
       () => {
 
         const query =
-          normalise(search);
+          normalise(
+            search
+          );
 
 
         return books.filter(
@@ -1519,11 +1921,15 @@ sort_order:
               book.subject !==
                 subjectFilter
             ) {
+
               return false;
             }
 
 
-            if (!query) {
+            if (
+              !query
+            ) {
+
               return true;
             }
 
@@ -1532,12 +1938,18 @@ sort_order:
               [
                 book.title,
                 book.subject,
-                book.description || '',
-                book.author || '',
-                book.publisher || '',
-                book.source_name || ''
+                book.description ||
+                  '',
+                book.author ||
+                  '',
+                book.publisher ||
+                  '',
+                book.source_name ||
+                  ''
               ]
-                .join(' ')
+                .join(
+                  ' '
+                )
                 .toLowerCase();
 
 
@@ -1546,6 +1958,7 @@ sort_order:
                 query
               )
             ) {
+
               return true;
             }
 
@@ -1560,6 +1973,7 @@ sort_order:
                   query
                 )
             );
+
           }
         );
 
@@ -1580,6 +1994,7 @@ sort_order:
         return subjects
           .map(
             subject => ({
+
               subject,
 
               books:
@@ -1588,11 +2003,13 @@ sort_order:
                     book.subject ===
                     subject
                 )
+
             })
           )
           .filter(
             group =>
-              group.books.length > 0
+              group.books.length >
+              0
           );
 
       },
@@ -1604,11 +2021,14 @@ sort_order:
 
 
   /*
+   * =========================================
    * BOOK EXPANSION
+   * =========================================
    */
 
   function toggleBook(
-    bookId: string
+    bookId:
+      string
   ) {
 
     setExpandedBooks(
@@ -1625,23 +2045,31 @@ sort_order:
 
 
   function isSaving(
-    ids: string[]
+    ids:
+      string[]
   ) {
 
     return ids.some(
       id =>
-        savingIds.has(id)
+        savingIds.has(
+          id
+        )
     );
   }
 
 
   /*
+   * =========================================
    * SAVE READ
+   * =========================================
    */
 
   async function saveCompletion(
-    ids: string[],
-    completed: boolean
+    ids:
+      string[],
+
+    completed:
+      boolean
   ) {
 
     const client =
@@ -1649,17 +2077,21 @@ sort_order:
 
 
     if (!client) {
+
       setMessage(
         'Supabase is not configured.'
       );
+
 
       return;
     }
 
 
     if (
-      ids.length === 0
+      ids.length ===
+      0
     ) {
+
       return;
     }
 
@@ -1675,11 +2107,16 @@ sort_order:
 
 
     if (!user) {
-      setSignedIn(false);
+
+      setSignedIn(
+        false
+      );
+
 
       setMessage(
         'Sign in from the Me section to save your reading progress.'
       );
+
 
       return;
     }
@@ -1696,10 +2133,13 @@ sort_order:
         id => {
 
           const current =
-            getProgressState(id);
+            getProgressState(
+              id
+            );
 
 
           return {
+
             user_id:
               user.id,
 
@@ -1712,6 +2152,7 @@ sort_order:
               completed
                 ? current.revisionCount
                 : 0
+
           };
         }
       );
@@ -1737,20 +2178,26 @@ sort_order:
         );
 
 
-    if (error) {
+    if (
+      error
+    ) {
+
       console.error(
         'Unable to save reading progress:',
         error
       );
 
+
       setMessage(
         error.message
       );
+
 
       setSaving(
         ids,
         false
       );
+
 
       return;
     }
@@ -1766,14 +2213,17 @@ sort_order:
 
         if (
           data &&
-          data.length > 0
+          data.length >
+            0
         ) {
 
           data.forEach(
             item => {
 
               const row =
-                item as ProgressRow;
+                item as
+                  ProgressRow;
+
 
               next[
                 String(
@@ -1783,6 +2233,7 @@ sort_order:
                 rowToProgressState(
                   row
                 );
+
             }
           );
 
@@ -1792,11 +2243,16 @@ sort_order:
             id => {
 
               const old =
-                current[id] ||
+                current[
+                  id
+                ] ||
                 EMPTY_PROGRESS;
 
 
-              next[id] = {
+              next[
+                id
+              ] = {
+
                 ...old,
 
                 completed,
@@ -1826,6 +2282,7 @@ sort_order:
                     ? old.nextRevisionDueAt
                     : null
               };
+
             }
           );
         }
@@ -1851,12 +2308,17 @@ sort_order:
 
 
   /*
+   * =========================================
    * SAVE REVISION
+   * =========================================
    */
 
   async function saveRevision(
-    topicId: string,
-    revisionCount: number
+    topicId:
+      string,
+
+    revisionCount:
+      number
   ) {
 
     const client =
@@ -1864,9 +2326,11 @@ sort_order:
 
 
     if (!client) {
+
       setMessage(
         'Supabase is not configured.'
       );
+
 
       return;
     }
@@ -1881,9 +2345,11 @@ sort_order:
     if (
       !current.completed
     ) {
+
       setMessage(
         'Mark this portion as Read before adding a revision.'
       );
+
 
       return;
     }
@@ -1906,18 +2372,25 @@ sort_order:
 
 
     if (!user) {
-      setSignedIn(false);
+
+      setSignedIn(
+        false
+      );
+
 
       setMessage(
         'Sign in from the Me section to save revisions.'
       );
+
 
       return;
     }
 
 
     setSaving(
-      [topicId],
+      [
+        topicId
+      ],
       true
     );
 
@@ -1954,20 +2427,28 @@ sort_order:
         );
 
 
-    if (error) {
+    if (
+      error
+    ) {
+
       console.error(
         'Unable to save revision:',
         error
       );
 
+
       setMessage(
         error.message
       );
 
+
       setSaving(
-        [topicId],
+        [
+          topicId
+        ],
         false
       );
+
 
       return;
     }
@@ -1975,11 +2456,15 @@ sort_order:
 
     if (
       data &&
-      data.length > 0
+      data.length >
+        0
     ) {
 
       const row =
-        data[0] as ProgressRow;
+        data[
+          0
+        ] as
+          ProgressRow;
 
 
       setProgressByTopic(
@@ -2000,6 +2485,7 @@ sort_order:
           ...existing,
 
           [topicId]: {
+
             ...(
               existing[
                 topicId
@@ -2019,33 +2505,42 @@ sort_order:
 
 
     setSaving(
-      [topicId],
+      [
+        topicId
+      ],
       false
     );
 
 
     if (
-      nextRevision === 0
+      nextRevision ===
+      0
     ) {
+
       setMessage(
         'Revision progress reset.'
       );
 
     } else if (
-      nextRevision === 1
+      nextRevision ===
+      1
     ) {
+
       setMessage(
         'Revision 1 completed. Revision 2 has been scheduled automatically.'
       );
 
     } else if (
-      nextRevision === 2
+      nextRevision ===
+      2
     ) {
+
       setMessage(
         'Revision 2 completed. Final Revision has been scheduled automatically.'
       );
 
     } else {
+
       setMessage(
         'Final Revision completed. This portion is fully revised.'
       );
@@ -2054,11 +2549,14 @@ sort_order:
 
 
   /*
+   * =========================================
    * TOGGLE READ
+   * =========================================
    */
 
   async function toggleTopic(
-    topic: TopicRow
+    topic:
+      TopicRow
   ) {
 
     const leafIds =
@@ -2068,8 +2566,10 @@ sort_order:
 
 
     if (
-      leafIds.length === 0
+      leafIds.length ===
+      0
     ) {
+
       return;
     }
 
@@ -2083,18 +2583,23 @@ sort_order:
       );
 
 
-    if (allRead) {
+    if (
+      allRead
+    ) {
 
       const hasRevision =
         leafIds.some(
           id =>
             getProgressState(
               id
-            ).revisionCount > 0
+            ).revisionCount >
+            0
         );
 
 
-      if (hasRevision) {
+      if (
+        hasRevision
+      ) {
 
         const confirmed =
           window.confirm(
@@ -2102,7 +2607,10 @@ sort_order:
           );
 
 
-        if (!confirmed) {
+        if (
+          !confirmed
+        ) {
+
           return;
         }
       }
@@ -2117,7 +2625,9 @@ sort_order:
 
 
   /*
+   * =========================================
    * FILTER RESET
+   * =========================================
    */
 
   function clearFilters() {
@@ -2125,8 +2635,14 @@ sort_order:
     setSearch('');
 
 
-    if (!initialSubject) {
-      setSubjectFilter('all');
+    if (
+      !initialSubject
+    ) {
+
+      setSubjectFilter(
+        'all'
+      );
+
 
       return;
     }
@@ -2149,7 +2665,8 @@ sort_order:
 
 
           return (
-            candidate === requested ||
+            candidate ===
+              requested ||
             candidate.includes(
               requested
             ) ||
@@ -2157,69 +2674,99 @@ sort_order:
               candidate
             )
           );
+
         }
       );
 
 
     setSubjectFilter(
-      match || 'all'
+      match ||
+      'all'
     );
   }
 
 
   /*
+   * =========================================
    * RENDER TOPIC
+   * =========================================
    */
 
   function renderTopic(
-    topic: TopicRow,
-    depth = 0
+    topic:
+      TopicRow,
+
+    depth =
+      0
   ) {
 
     const children =
       childrenMap.get(
         topic.id
-      ) || [];
+      ) ||
+      [];
 
 
     const isLeaf =
-      children.length === 0;
-const book =
-  books.find(
-    item =>
-      item.id ===
-      topic.book_id
-  );
+      children.length ===
+      0;
 
 
-const noteSubject =
-  topic.subject.trim() ||
-  book?.subject ||
-  null;
+    /*
+     * =====================================
+     * BOOK NOTE CONTEXT
+     * =====================================
+     */
+
+    const book =
+      books.find(
+        item =>
+          item.id ===
+          topic.book_id
+      );
 
 
-const noteTags:
-  string[] = [
-
-    book?.title ||
-      '',
-
-    noteSubject ||
-      '',
-
-    topic.topic_name,
-
-    'Book Note'
-
-  ].filter(
-    value =>
-      value.length > 0
-  );
+    const noteSubject =
+      topic.subject
+        .trim() ||
+      book?.subject ||
+      null;
 
 
-const noteExamStage =
-  book?.exam_stage ||
-  'general';
+    const noteTags:
+      string[] = [
+
+      book?.title ||
+        '',
+
+      noteSubject ||
+        '',
+
+      topic.topic_name,
+
+      'Book Note'
+
+    ].filter(
+      value =>
+        value.length >
+        0
+    );
+
+
+    const noteExamStage:
+      'general' |
+      'prelims' |
+      'mains' |
+      'both' =
+        book?.exam_stage ||
+        'general';
+
+
+    /*
+     * =====================================
+     * TOPIC PROGRESS
+     * =====================================
+     */
 
     const leafIds =
       getLeafIds(
@@ -2269,7 +2816,8 @@ const noteExamStage =
 
 
     const fullyRead =
-      leafIds.length > 0 &&
+      leafIds.length >
+        0 &&
       readCount ===
         leafIds.length;
 
@@ -2308,30 +2856,41 @@ const noteExamStage =
       '';
 
 
-    if (isLeaf) {
+    if (
+      isLeaf
+    ) {
 
       if (
-        leafProgress.revisionCount === 3
+        leafProgress.revisionCount ===
+        3
       ) {
+
         latestRevisionDate =
           formatDate(
-            leafProgress.finalRevisionAt
+            leafProgress
+              .finalRevisionAt
           );
 
       } else if (
-        leafProgress.revisionCount === 2
+        leafProgress.revisionCount ===
+        2
       ) {
+
         latestRevisionDate =
           formatDate(
-            leafProgress.revision2At
+            leafProgress
+              .revision2At
           );
 
       } else if (
-        leafProgress.revisionCount === 1
+        leafProgress.revisionCount ===
+        1
       ) {
+
         latestRevisionDate =
           formatDate(
-            leafProgress.revision1At
+            leafProgress
+              .revision1At
           );
       }
     }
@@ -2346,22 +2905,26 @@ const noteExamStage =
 
         style={{
           marginLeft:
-            depth > 0
+            depth >
+              0
               ? '18px'
               : '0',
 
           marginTop:
-            depth > 0
+            depth >
+              0
               ? '8px'
               : '12px',
 
           padding:
-            depth > 0
+            depth >
+              0
               ? '11px 12px'
               : '13px 14px',
 
           border:
-            dueSummary.overdue > 0
+            dueSummary.overdue >
+              0
               ? '1px solid rgba(248,113,113,.30)'
               : '1px solid rgba(255,255,255,.08)',
 
@@ -2369,13 +2932,16 @@ const noteExamStage =
             '12px',
 
           background:
-            depth > 0
+            depth >
+              0
               ? '#0e1525'
               : 'rgba(255,255,255,.025)'
         }}
       >
 
-        {/* TOPIC HEADER */}
+        {/* =================================
+            TOPIC HEADER
+        ================================= */}
 
         <div
           style={{
@@ -2570,7 +3136,9 @@ const noteExamStage =
         </div>
 
 
-        {/* READ BAR */}
+        {/* =================================
+            READ BAR
+        ================================= */}
 
         <div
           className="progress-track"
@@ -2580,16 +3148,20 @@ const noteExamStage =
               '10px'
           }}
         >
+
           <span
             style={{
               width:
                 `${readPercent}%`
             }}
           />
+
         </div>
 
 
-        {/* LEAF REVISION CONTROLS */}
+        {/* =================================
+            LEAF REVISION CONTROLS
+        ================================= */}
 
         {isLeaf && (
 
@@ -2618,7 +3190,8 @@ const noteExamStage =
 
                 style={{
                   opacity:
-                    leafProgress.completed
+                    leafProgress
+                      .completed
                       ? 1
                       : 0.5
                 }}
@@ -2636,13 +3209,17 @@ const noteExamStage =
 
                 style={{
                   opacity:
-                    leafProgress.revisionCount >= 1
+                    leafProgress
+                      .revisionCount >=
+                      1
                       ? 1
                       : 0.5
                 }}
               >
                 {
-                  leafProgress.revisionCount >= 1
+                  leafProgress
+                    .revisionCount >=
+                    1
                     ? '✓ Revision 1'
                     : '○ Revision 1'
                 }
@@ -2654,13 +3231,17 @@ const noteExamStage =
 
                 style={{
                   opacity:
-                    leafProgress.revisionCount >= 2
+                    leafProgress
+                      .revisionCount >=
+                      2
                       ? 1
                       : 0.5
                 }}
               >
                 {
-                  leafProgress.revisionCount >= 2
+                  leafProgress
+                    .revisionCount >=
+                    2
                     ? '✓ Revision 2'
                     : '○ Revision 2'
                 }
@@ -2672,13 +3253,17 @@ const noteExamStage =
 
                 style={{
                   opacity:
-                    leafProgress.revisionCount >= 3
+                    leafProgress
+                      .revisionCount >=
+                      3
                       ? 1
                       : 0.5
                 }}
               >
                 {
-                  leafProgress.revisionCount >= 3
+                  leafProgress
+                    .revisionCount >=
+                    3
                     ? '✓ Final'
                     : '○ Final'
                 }
@@ -2690,7 +3275,8 @@ const noteExamStage =
             {/* NEXT REVISION DATE */}
 
             {leafProgress.completed &&
-              leafProgress.revisionCount < 3 &&
+              leafProgress.revisionCount <
+                3 &&
               leafDue && (
 
               <div
@@ -2749,7 +3335,8 @@ const noteExamStage =
             {/* NEXT REVISION ACTION */}
 
             {leafProgress.completed &&
-              leafProgress.revisionCount < 3 && (
+              leafProgress.revisionCount <
+                3 && (
 
               <button
                 type="button"
@@ -2776,10 +3363,12 @@ const noteExamStage =
                   currentlySaving
                     ? 'Saving...'
 
-                    : leafProgress.revisionCount === 0
+                    : leafProgress.revisionCount ===
+                      0
                     ? 'Mark Revision 1'
 
-                    : leafProgress.revisionCount === 1
+                    : leafProgress.revisionCount ===
+                      1
                     ? 'Mark Revision 2'
 
                     : 'Mark Final Revision'
@@ -2792,7 +3381,8 @@ const noteExamStage =
             {/* FULLY REVISED */}
 
             {leafProgress.completed &&
-              leafProgress.revisionCount === 3 && (
+              leafProgress.revisionCount ===
+                3 && (
 
               <div
                 className="callout"
@@ -2802,6 +3392,7 @@ const noteExamStage =
                     '10px'
                 }}
               >
+
                 <strong>
                   ✓ Fully Revised
                 </strong>
@@ -2833,8 +3424,10 @@ const noteExamStage =
             {/* LATEST REVISION */}
 
             {leafProgress.completed &&
-              leafProgress.revisionCount > 0 &&
-              leafProgress.revisionCount < 3 &&
+              leafProgress.revisionCount >
+                0 &&
+              leafProgress.revisionCount <
+                3 &&
               latestRevisionDate && (
 
               <small
@@ -2860,7 +3453,8 @@ const noteExamStage =
             {/* UNDO */}
 
             {leafProgress.completed &&
-              leafProgress.revisionCount > 0 && (
+              leafProgress.revisionCount >
+                0 && (
 
               <button
                 type="button"
@@ -2915,131 +3509,138 @@ const noteExamStage =
 
         )}
 
-{/* BOOK TOPIC QUICK NOTE */}
 
-{isLeaf &&
-  signedIn && (
+        {/* =================================
+            BOOK TOPIC QUICK NOTE
+        ================================= */}
 
-  <div
-    style={{
-      marginTop:
-        '14px',
+        {isLeaf &&
+          signedIn && (
 
-      paddingTop:
-        '13px',
+          <div
+            style={{
+              marginTop:
+                '14px',
 
-      borderTop:
-        '1px solid rgba(94,234,212,.14)'
-    }}
-  >
+              paddingTop:
+                '13px',
 
-    <div
-      style={{
-        display:
-          'flex',
+              borderTop:
+                '1px solid rgba(94,234,212,.14)'
+            }}
+          >
 
-        justifyContent:
-          'space-between',
+            <div
+              style={{
+                display:
+                  'flex',
 
-        alignItems:
-          'center',
+                justifyContent:
+                  'space-between',
 
-        gap:
-          '10px',
+                alignItems:
+                  'center',
 
-        flexWrap:
-          'wrap',
+                gap:
+                  '10px',
 
-        marginBottom:
-          '8px'
-      }}
-    >
+                flexWrap:
+                  'wrap',
 
-      <div>
+                marginBottom:
+                  '8px'
+              }}
+            >
 
-        <small
-          style={{
-            display:
-              'block',
+              <div>
 
-            color:
-              '#5eead4',
+                <small
+                  style={{
+                    display:
+                      'block',
 
-            fontWeight:
-              800,
+                    color:
+                      '#5eead4',
 
-            letterSpacing:
-              '.04em'
-          }}
-        >
-          PERSONAL NOTE
-        </small>
+                    fontWeight:
+                      800,
 
-
-        <small
-          style={{
-            display:
-              'block',
-
-            marginTop:
-              '3px',
-
-            color:
-              '#94a3b8'
-          }}
-        >
-          Save your own points for this
-          book topic.
-        </small>
-
-      </div>
-
-    </div>
+                    letterSpacing:
+                      '.04em'
+                  }}
+                >
+                  PERSONAL NOTE
+                </small>
 
 
-    <QuickNoteComposer
+                <small
+                  style={{
+                    display:
+                      'block',
 
-      buttonLabel="+ Add Topic Note"
+                    marginTop:
+                      '3px',
 
-      defaultTitle={
-        book
-          ? `${book.title}: ${topic.topic_name}`
-          : topic.topic_name
-      }
+                    color:
+                      '#94a3b8'
+                  }}
+                >
+                  Save your own points for this
+                  book topic.
+                </small>
 
-      defaultSubject={
-        noteSubject
-      }
+              </div>
 
-      defaultTopic={
-        topic.topic_name
-      }
+            </div>
 
-      defaultTags={
-        noteTags
-      }
 
-      examStage={
-        noteExamStage
-      }
+            <QuickNoteComposer
 
-      noteType="book"
+              buttonLabel="+ Add Topic Note"
 
-      bookTopicId={
-        topic.id
-      }
+              defaultTitle={
+                book
+                  ? `${book.title}: ${topic.topic_name}`
+                  : topic.topic_name
+              }
 
-      sourceUrl={
-        book?.external_url ||
-        null
-      }
+              defaultSubject={
+                noteSubject
+              }
 
-    />
+              defaultTopic={
+                topic.topic_name
+              }
 
-  </div>
+              defaultTags={
+                noteTags
+              }
 
-)}
-        {/* CHILDREN */}
+              examStage={
+                noteExamStage
+              }
+
+              noteType="book"
+
+              bookTopicId={
+                topic.id
+              }
+
+              sourceUrl={
+                book?.external_url ||
+                null
+              }
+
+            />
+
+          </div>
+
+        )}
+
+
+        {/* =================================
+            CHILDREN
+        ================================= */}
 
         {!isLeaf && (
 
@@ -3057,7 +3658,8 @@ const noteExamStage =
               child =>
                 renderTopic(
                   child,
-                  depth + 1
+                  depth +
+                    1
                 )
             )}
 
@@ -3066,12 +3668,15 @@ const noteExamStage =
         )}
 
       </div>
+
     );
   }
 
 
   /*
+   * =========================================
    * PAGE
+   * =========================================
    */
 
   return (
@@ -3080,7 +3685,9 @@ const noteExamStage =
       className="study-resources-page"
     >
 
-      {/* HEADER */}
+      {/* =====================================
+          HEADER
+      ===================================== */}
 
       <section
         className="panel"
@@ -3120,10 +3727,13 @@ const noteExamStage =
           <article
             className="metric-card"
           >
+
             <div>
+
               <span>
                 Read
               </span>
+
 
               <strong>
                 {
@@ -3135,20 +3745,28 @@ const noteExamStage =
                 }
               </strong>
 
+
               <small>
-                {overallReadCount}/{allLeafIds.length} portions
+                {overallReadCount}/{allLeafIds.length}
+                {' '}
+                portions
               </small>
+
             </div>
+
           </article>
 
 
           <article
             className="metric-card"
           >
+
             <div>
+
               <span>
                 Revision 1
               </span>
+
 
               <strong>
                 {
@@ -3160,20 +3778,28 @@ const noteExamStage =
                 }
               </strong>
 
+
               <small>
-                {overallRevision1Count}/{allLeafIds.length} portions
+                {overallRevision1Count}/{allLeafIds.length}
+                {' '}
+                portions
               </small>
+
             </div>
+
           </article>
 
 
           <article
             className="metric-card"
           >
+
             <div>
+
               <span>
                 Revision 2
               </span>
+
 
               <strong>
                 {
@@ -3185,20 +3811,28 @@ const noteExamStage =
                 }
               </strong>
 
+
               <small>
-                {overallRevision2Count}/{allLeafIds.length} portions
+                {overallRevision2Count}/{allLeafIds.length}
+                {' '}
+                portions
               </small>
+
             </div>
+
           </article>
 
 
           <article
             className="metric-card"
           >
+
             <div>
+
               <span>
                 Final Revision
               </span>
+
 
               <strong>
                 {
@@ -3210,19 +3844,27 @@ const noteExamStage =
                 }
               </strong>
 
+
               <small>
-                {overallFinalCount}/{allLeafIds.length} portions
+                {overallFinalCount}/{allLeafIds.length}
+                {' '}
+                portions
               </small>
+
             </div>
+
           </article>
 
         </div>
 
 
-        {/* DUE SUMMARY */}
+        {/* =================================
+            DUE SUMMARY
+        ================================= */}
 
         {signedIn &&
-          allLeafIds.length > 0 && (
+          allLeafIds.length >
+            0 && (
 
           <div
             style={{
@@ -3344,10 +3986,13 @@ const noteExamStage =
         )}
 
 
-        {/* READING BAR */}
+        {/* =================================
+            READING BAR
+        ================================= */}
 
         {signedIn &&
-          allLeafIds.length > 0 && (
+          allLeafIds.length >
+            0 && (
 
           <div
             style={{
@@ -3371,25 +4016,30 @@ const noteExamStage =
                   '7px'
               }}
             >
+
               <strong>
                 Reading Progress
               </strong>
 
+
               <strong>
                 {overallReadPercent}%
               </strong>
+
             </div>
 
 
             <div
               className="progress-track"
             >
+
               <span
                 style={{
                   width:
                     `${overallReadPercent}%`
                 }}
               />
+
             </div>
 
           </div>
@@ -3397,10 +4047,13 @@ const noteExamStage =
         )}
 
 
-        {/* FINAL BAR */}
+        {/* =================================
+            FINAL REVISION BAR
+        ================================= */}
 
         {signedIn &&
-          allLeafIds.length > 0 && (
+          allLeafIds.length >
+            0 && (
 
           <div
             style={{
@@ -3424,31 +4077,40 @@ const noteExamStage =
                   '7px'
               }}
             >
+
               <strong>
                 Final Revision Progress
               </strong>
 
+
               <strong>
                 {overallFinalPercent}%
               </strong>
+
             </div>
 
 
             <div
               className="progress-track"
             >
+
               <span
                 style={{
                   width:
                     `${overallFinalPercent}%`
                 }}
               />
+
             </div>
 
           </div>
 
         )}
 
+
+        {/* =================================
+            SIGNED OUT
+        ================================= */}
 
         {!signedIn &&
           !loading && (
@@ -3461,19 +4123,26 @@ const noteExamStage =
                 '16px'
             }}
           >
+
             <strong>
               Sign in to track preparation
             </strong>
+
 
             <p>
               Books and topics are visible without
               signing in, but personal progress and
               revision dates require an account.
             </p>
+
           </div>
 
         )}
 
+
+        {/* =================================
+            MESSAGE
+        ================================= */}
 
         {message && (
 
@@ -3510,7 +4179,9 @@ const noteExamStage =
       </section>
 
 
-      {/* FILTER */}
+      {/* =====================================
+          FILTER
+      ===================================== */}
 
       <section
         className="panel"
@@ -3524,16 +4195,20 @@ const noteExamStage =
         <div
           className="panel-head"
         >
+
           <div>
+
             <span
               className="eyebrow"
             >
               FIND YOUR BOOK
             </span>
 
+
             <h3>
               Subject and Book Filter
             </h3>
+
           </div>
 
 
@@ -3547,6 +4222,7 @@ const noteExamStage =
           >
             Clear
           </button>
+
         </div>
 
 
@@ -3555,9 +4231,11 @@ const noteExamStage =
         >
 
           <label>
+
             <span>
               Subject
             </span>
+
 
             <select
               value={
@@ -3571,12 +4249,17 @@ const noteExamStage =
                   )
               }
             >
-              <option value="all">
+
+              <option
+                value="all"
+              >
                 All Subjects
               </option>
 
+
               {subjects.map(
                 subject => (
+
                   <option
                     key={
                       subject
@@ -3588,16 +4271,21 @@ const noteExamStage =
                   >
                     {subject}
                   </option>
+
                 )
               )}
+
             </select>
+
           </label>
 
 
           <label>
+
             <span>
               Search
             </span>
+
 
             <input
               type="text"
@@ -3615,6 +4303,7 @@ const noteExamStage =
 
               placeholder="Book, topic, subtopic..."
             />
+
           </label>
 
         </div>
@@ -3622,7 +4311,9 @@ const noteExamStage =
       </section>
 
 
-      {/* LOADING */}
+      {/* =====================================
+          LOADING
+      ===================================== */}
 
       {loading && (
 
@@ -3640,10 +4331,13 @@ const noteExamStage =
       )}
 
 
-      {/* NO BOOKS */}
+      {/* =====================================
+          NO BOOKS
+      ===================================== */}
 
       {!loading &&
-        books.length === 0 && (
+        books.length ===
+          0 && (
 
         <section
           className="panel"
@@ -3653,25 +4347,32 @@ const noteExamStage =
               '18px'
           }}
         >
+
           <h3>
             No published books yet
           </h3>
+
 
           <p>
             Add Standard Book resources from
             Admin Studio and create their topics
             in Book Structure.
           </p>
+
         </section>
 
       )}
 
 
-      {/* NO FILTER RESULT */}
+      {/* =====================================
+          NO FILTER RESULT
+      ===================================== */}
 
       {!loading &&
-        books.length > 0 &&
-        subjectGroups.length === 0 && (
+        books.length >
+          0 &&
+        subjectGroups.length ===
+          0 && (
 
         <section
           className="panel"
@@ -3681,19 +4382,24 @@ const noteExamStage =
               '18px'
           }}
         >
+
           <h3>
             No matching books
           </h3>
 
+
           <p>
             Try another subject or search term.
           </p>
+
         </section>
 
       )}
 
 
-      {/* SUBJECTS */}
+      {/* =====================================
+          SUBJECT GROUPS
+      ===================================== */}
 
       {!loading &&
         subjectGroups.map(
@@ -3753,22 +4459,27 @@ const noteExamStage =
                 }}
               >
 
-                {/* SUBJECT HEADER */}
+                {/* =============================
+                    SUBJECT HEADER
+                ============================= */}
 
                 <div
                   className="panel-head"
                 >
 
                   <div>
+
                     <span
                       className="eyebrow"
                     >
                       SUBJECT
                     </span>
 
+
                     <h2>
                       {group.subject}
                     </h2>
+
 
                     <small
                       style={{
@@ -3779,7 +4490,8 @@ const noteExamStage =
                       {group.books.length}
                       {' '}
                       book{
-                        group.books.length === 1
+                        group.books.length ===
+                          1
                           ? ''
                           : 's'
                       }
@@ -3883,6 +4595,7 @@ const noteExamStage =
                       '12px'
                   }}
                 >
+
                   <span
                     style={{
                       width:
@@ -3891,11 +4604,13 @@ const noteExamStage =
                           : '0%'
                     }}
                   />
+
                 </div>
 
 
                 {signedIn &&
-                  subjectLeafIds.length > 0 && (
+                  subjectLeafIds.length >
+                    0 && (
 
                   <div
                     style={{
@@ -3912,23 +4627,28 @@ const noteExamStage =
                         '10px'
                     }}
                   >
+
                     <span
                       className="tag"
                     >
                       Due today {subjectDue.dueToday}
                     </span>
 
+
                     <span
                       className="tag"
                     >
                       Overdue {subjectDue.overdue}
                     </span>
+
                   </div>
 
                 )}
 
 
-                {/* BOOKS */}
+                {/* =============================
+                    BOOKS
+                ============================= */}
 
                 <div
                   style={{
@@ -3988,13 +4708,15 @@ const noteExamStage =
                       const rootTopics =
                         rootTopicsByBook.get(
                           book.id
-                        ) || [];
+                        ) ||
+                        [];
 
 
                       const expanded =
                         expandedBooks[
                           book.id
-                        ] === true;
+                        ] ===
+                        true;
 
 
                       const source =
@@ -4013,7 +4735,8 @@ const noteExamStage =
 
                           style={{
                             border:
-                              bookDue.overdue > 0
+                              bookDue.overdue >
+                                0
                                 ? '1px solid rgba(248,113,113,.28)'
                                 : '1px solid rgba(255,255,255,.08)',
 
@@ -4028,7 +4751,9 @@ const noteExamStage =
                           }}
                         >
 
-                          {/* BOOK HEADER */}
+                          {/* =====================
+                              BOOK HEADER
+                          ===================== */}
 
                           <div
                             style={{
@@ -4055,11 +4780,13 @@ const noteExamStage =
                                   '1 1 260px'
                               }}
                             >
+
                               <span
                                 className="tag"
                               >
                                 Standard Book
                               </span>
+
 
                               <h3
                                 style={{
@@ -4070,7 +4797,9 @@ const noteExamStage =
                                 {book.title}
                               </h3>
 
+
                               {source && (
+
                                 <small
                                   style={{
                                     color:
@@ -4079,12 +4808,16 @@ const noteExamStage =
                                 >
                                   {source}
                                 </small>
+
                               )}
 
+
                               {book.description && (
+
                                 <p>
                                   {book.description}
                                 </p>
+
                               )}
 
 
@@ -4137,6 +4870,7 @@ const noteExamStage =
                                   'right'
                               }}
                             >
+
                               <strong
                                 style={{
                                   display:
@@ -4153,7 +4887,9 @@ const noteExamStage =
                                 }
                               </strong>
 
+
                               {signedIn && (
+
                                 <small
                                   style={{
                                     display:
@@ -4168,7 +4904,9 @@ const noteExamStage =
                                 >
                                   {bookFinalPercent}% Final
                                 </small>
+
                               )}
+
 
                               <small
                                 style={{
@@ -4182,14 +4920,19 @@ const noteExamStage =
                                     '3px'
                                 }}
                               >
-                                {bookReadCount}/{bookLeafIds.length} portions
+                                {bookReadCount}/{bookLeafIds.length}
+                                {' '}
+                                portions
                               </small>
+
                             </div>
 
                           </div>
 
 
-                          {/* BOOK BAR */}
+                          {/* =====================
+                              BOOK BAR
+                          ===================== */}
 
                           <div
                             className="progress-track"
@@ -4199,6 +4942,7 @@ const noteExamStage =
                                 '12px'
                             }}
                           >
+
                             <span
                               style={{
                                 width:
@@ -4207,13 +4951,17 @@ const noteExamStage =
                                     : '0%'
                               }}
                             />
+
                           </div>
 
 
-                          {/* BOOK SUMMARY */}
+                          {/* =====================
+                              BOOK SUMMARY
+                          ===================== */}
 
                           {signedIn &&
-                            bookLeafIds.length > 0 && (
+                            bookLeafIds.length >
+                              0 && (
 
                             <div
                               style={{
@@ -4242,6 +4990,7 @@ const noteExamStage =
                                 }/{bookLeafIds.length}
                               </span>
 
+
                               <span
                                 className="tag"
                               >
@@ -4253,17 +5002,20 @@ const noteExamStage =
                                 }/{bookLeafIds.length}
                               </span>
 
+
                               <span
                                 className="tag"
                               >
                                 Final {bookFinalCount}/{bookLeafIds.length}
                               </span>
 
+
                               <span
                                 className="tag"
                               >
                                 Due today {bookDue.dueToday}
                               </span>
+
 
                               <span
                                 className="tag"
@@ -4304,6 +5056,10 @@ const noteExamStage =
                           </button>
 
 
+                          {/* =====================
+                              TOPICS
+                          ===================== */}
+
                           {expanded && (
 
                             <div
@@ -4313,13 +5069,16 @@ const noteExamStage =
                               }}
                             >
 
-                              {rootTopics.length === 0 && (
+                              {rootTopics.length ===
+                                0 && (
+
                                 <div
                                   className="callout"
                                 >
                                   No topics have been added
                                   to this book yet.
                                 </div>
+
                               )}
 
 
@@ -4349,5 +5108,6 @@ const noteExamStage =
         )}
 
     </div>
+
   );
 }
