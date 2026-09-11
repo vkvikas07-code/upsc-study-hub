@@ -46,6 +46,10 @@ import {
 } from '../components/HomeRevisionWeekPreview';
 
 import {
+  TodayStudyDashboard
+} from '../components/TodayStudyDashboard';
+
+import {
   supabase
 } from '../lib/supabase';
 
@@ -975,6 +979,47 @@ export function HomePage({
         </div>
 
       </section>
+
+
+      {/* =====================================
+          TODAY STUDY DASHBOARD
+      ===================================== */}
+
+      <div
+        style={{
+          marginTop:
+            '18px'
+        }}
+      >
+
+        <TodayStudyDashboard
+
+          tasks={
+            tasks
+          }
+
+          setTasks={
+            setTasks
+          }
+
+          onOpenCurrent={
+            onGoCurrent
+          }
+
+          onOpenPractice={
+            onGoPractice
+          }
+
+          onOpenBookProgress={() =>
+            onGoLearn(
+              null,
+              'book-progress'
+            )
+          }
+
+        />
+
+      </div>
 
 
       {/* =====================================
