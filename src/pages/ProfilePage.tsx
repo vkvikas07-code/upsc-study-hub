@@ -47,8 +47,13 @@ import {
   PrelimsMistakePractice
 } from '../components/PrelimsMistakePractice';
 
+import {
+  StudyTimeSettings
+} from '../components/StudyTimeSettings';
+
 
 type OpenTool =
+  | 'studyTime'
   | 'performance'
   | 'weak'
   | 'mistakeBook'
@@ -68,17 +73,22 @@ type ToolButtonProps = {
 type ProfilePageProps = {
   onAdmin: () => void;
 
-  /*
-   * Optional for now.
-   *
-   * In the next step App.tsx
-   * will supply this function
-   * so Smart Study can open
-   * the main Prelims Practice tab.
-   */
   onOpenPractice?: () => void;
 };
 
+
+type SectionRef = {
+  current:
+    HTMLDivElement |
+    null;
+};
+
+
+/*
+ * =========================================
+ * STUDY TOOL BUTTON
+ * =========================================
+ */
 
 function StudyToolButton({
   title,
@@ -91,6 +101,7 @@ function StudyToolButton({
 
     <button
       type="button"
+
       onClick={
         onClick
       }
@@ -138,14 +149,21 @@ function StudyToolButton({
 }
 
 
+/*
+ * =========================================
+ * PROFILE PAGE
+ * =========================================
+ */
+
 export function ProfilePage({
   onAdmin,
   onOpenPractice
 }: ProfilePageProps) {
 
   /*
-   * ONLY ONE LARGE STUDY TOOL
-   * REMAINS OPEN AT A TIME
+   * =========================================
+   * OPEN STUDY TOOL
+   * =========================================
    */
 
   const [
@@ -158,8 +176,16 @@ export function ProfilePage({
 
 
   /*
-   * SECTION REFERENCES
+   * =========================================
+   * REFERENCES
+   * =========================================
    */
+
+  const studyTimeRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
 
   const performanceTrendRef =
     useRef<HTMLDivElement | null>(
@@ -191,44 +217,51 @@ export function ProfilePage({
     );
 
 
- const prelimsHistoryRef =
-  useRef<HTMLDivElement | null>(
-    null
-  );
+  const prelimsHistoryRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
 
 
-const testSeriesHistoryRef =
-  useRef<HTMLDivElement | null>(
-    null
-  );
+  const testSeriesHistoryRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
 
 
-const mainsEvaluationRef =
+  const mainsEvaluationRef =
     useRef<HTMLDivElement | null>(
       null
     );
 
 
   /*
-   * SCROLL HELPER
+   * =========================================
+   * SCROLL TO REF
+   * =========================================
    */
 
-  function scrollToSection(
-    element:
-      HTMLDivElement | null,
-    delay = 150
+  function scrollToRef(
+    ref:
+      SectionRef,
+
+    delay =
+      150
   ) {
 
     window.setTimeout(
       () => {
 
-        element?.scrollIntoView({
-          behavior:
-            'smooth',
+        ref.current
+          ?.scrollIntoView({
 
-          block:
-            'start'
-        });
+            behavior:
+              'smooth',
+
+            block:
+              'start'
+
+          });
 
       },
       delay
@@ -237,7 +270,9 @@ const mainsEvaluationRef =
 
 
   /*
-   * TOGGLE EXPANDABLE TOOL
+   * =========================================
+   * TOGGLE STUDY TOOL
+   * =========================================
    */
 
   function toggleTool(
@@ -247,8 +282,8 @@ const mainsEvaluationRef =
         null
       >,
 
-    element:
-      HTMLDivElement | null
+    ref:
+      SectionRef
   ) {
 
     if (
@@ -260,6 +295,7 @@ const mainsEvaluationRef =
         null
       );
 
+
       return;
     }
 
@@ -269,15 +305,16 @@ const mainsEvaluationRef =
     );
 
 
-    scrollToSection(
-      element
+    scrollToRef(
+      ref
     );
   }
 
 
   /*
-   * SMART STUDY:
-   * OPEN WEAK AREAS
+   * =========================================
+   * SMART STUDY ACTIONS
+   * =========================================
    */
 
   function openWeakAreas() {
@@ -287,16 +324,11 @@ const mainsEvaluationRef =
     );
 
 
-    scrollToSection(
-      weakAnalysisRef.current
+    scrollToRef(
+      weakAnalysisRef
     );
   }
 
-
-  /*
-   * SMART STUDY:
-   * OPEN MISTAKE PRACTICE
-   */
 
   function openMistakePractice() {
 
@@ -305,16 +337,11 @@ const mainsEvaluationRef =
     );
 
 
-    scrollToSection(
-      mistakePracticeRef.current
+    scrollToRef(
+      mistakePracticeRef
     );
   }
 
-
-  /*
-   * SMART STUDY:
-   * OPEN REVISION BANK
-   */
 
   function openRevisionBank() {
 
@@ -323,20 +350,11 @@ const mainsEvaluationRef =
     );
 
 
-    scrollToSection(
-      revisionBankRef.current
+    scrollToRef(
+      revisionBankRef
     );
   }
 
-
-  /*
-   * SMART STUDY:
-   * OPEN MAIN PRELIMS PRACTICE
-   *
-   * App.tsx will connect the
-   * actual navigation in the
-   * next step.
-   */
 
   function openMainPractice() {
 
@@ -345,7 +363,9 @@ const mainsEvaluationRef =
 
 
   /*
-   * PRELIMS HISTORY
+   * =========================================
+   * HISTORY NAVIGATION
+   * =========================================
    */
 
   function openPrelimsHistory() {
@@ -355,31 +375,26 @@ const mainsEvaluationRef =
     );
 
 
-    scrollToSection(
-      prelimsHistoryRef.current,
+    scrollToRef(
+      prelimsHistoryRef,
       100
     );
   }
-/*
- * TEST SERIES HISTORY
- */
-
-function openTestSeriesHistory() {
-
-  setOpenTool(
-    null
-  );
 
 
-  scrollToSection(
-    testSeriesHistoryRef.current,
-    100
-  );
-}
+  function openTestSeriesHistory() {
 
-  /*
-   * MAINS EVALUATIONS
-   */
+    setOpenTool(
+      null
+    );
+
+
+    scrollToRef(
+      testSeriesHistoryRef,
+      100
+    );
+  }
+
 
   function openMainsEvaluations() {
 
@@ -388,15 +403,17 @@ function openTestSeriesHistory() {
     );
 
 
-    scrollToSection(
-      mainsEvaluationRef.current,
+    scrollToRef(
+      mainsEvaluationRef,
       100
     );
   }
 
 
   /*
-   * RETURN TO PAGE TOP
+   * =========================================
+   * RETURN TO TOP
+   * =========================================
    */
 
   function returnToTop() {
@@ -412,7 +429,9 @@ function openTestSeriesHistory() {
 
 
   /*
-   * CLOSE ACTIVE TOOL
+   * =========================================
+   * CLOSE TOOL
+   * =========================================
    */
 
   function closeTool() {
@@ -426,13 +445,21 @@ function openTestSeriesHistory() {
   }
 
 
+  /*
+   * =========================================
+   * PAGE
+   * =========================================
+   */
+
   return (
 
     <div
       className="page-wrap"
     >
 
-      {/* TOP BAR */}
+      {/* =====================================
+          TOP BAR
+      ===================================== */}
 
       <TopBar
         title="My Study"
@@ -440,7 +467,9 @@ function openTestSeriesHistory() {
       />
 
 
-      {/* PROFILE */}
+      {/* =====================================
+          PROFILE
+      ===================================== */}
 
       <section
         className="profile-card"
@@ -469,12 +498,16 @@ function openTestSeriesHistory() {
       </section>
 
 
-      {/* STUDY OVERVIEW */}
+      {/* =====================================
+          STUDY OVERVIEW
+      ===================================== */}
 
       <StudyOverview />
 
 
-      {/* SMART NEXT ACTION */}
+      {/* =====================================
+          SMART NEXT ACTION
+      ===================================== */}
 
       <PrelimsNextAction
 
@@ -497,10 +530,13 @@ function openTestSeriesHistory() {
       />
 
 
-      {/* STUDY TOOLS */}
+      {/* =====================================
+          STUDY TOOLS
+      ===================================== */}
 
       <section
         className="panel"
+
         style={{
           marginTop:
             '22px'
@@ -520,10 +556,9 @@ function openTestSeriesHistory() {
 
 
         <p>
-          Track improvement,
-          identify weak areas,
-          practise mistakes
-          and build focused revision.
+          Personalise your study routine,
+          track improvement, identify weak
+          areas and review your preparation.
         </p>
 
 
@@ -531,7 +566,31 @@ function openTestSeriesHistory() {
           className="settings-list"
         >
 
-          {/* PERFORMANCE TREND */}
+          {/* =================================
+              STUDY TIME SETTINGS
+          ================================= */}
+
+          <StudyToolButton
+            title="⏰ Study Time Settings"
+            subtitle="Set your Morning, Afternoon and Evening study hours"
+
+            open={
+              openTool ===
+              'studyTime'
+            }
+
+            onClick={() =>
+              toggleTool(
+                'studyTime',
+                studyTimeRef
+              )
+            }
+          />
+
+
+          {/* =================================
+              PERFORMANCE TREND
+          ================================= */}
 
           <StudyToolButton
             title="📈 Prelims Performance Trend"
@@ -545,13 +604,15 @@ function openTestSeriesHistory() {
             onClick={() =>
               toggleTool(
                 'performance',
-                performanceTrendRef.current
+                performanceTrendRef
               )
             }
           />
 
 
-          {/* WEAK AREAS */}
+          {/* =================================
+              WEAK AREAS
+          ================================= */}
 
           <StudyToolButton
             title="📊 Prelims Weak Areas"
@@ -565,13 +626,15 @@ function openTestSeriesHistory() {
             onClick={() =>
               toggleTool(
                 'weak',
-                weakAnalysisRef.current
+                weakAnalysisRef
               )
             }
           />
 
 
-          {/* MISTAKE BOOK */}
+          {/* =================================
+              MISTAKE BOOK
+          ================================= */}
 
           <StudyToolButton
             title="✕ Prelims Mistake Book"
@@ -585,13 +648,15 @@ function openTestSeriesHistory() {
             onClick={() =>
               toggleTool(
                 'mistakeBook',
-                mistakeBookRef.current
+                mistakeBookRef
               )
             }
           />
 
 
-          {/* PRACTICE MISTAKES */}
+          {/* =================================
+              PRACTICE MISTAKES
+          ================================= */}
 
           <StudyToolButton
             title="🎯 Practice Your Mistakes"
@@ -605,13 +670,15 @@ function openTestSeriesHistory() {
             onClick={() =>
               toggleTool(
                 'mistakePractice',
-                mistakePracticeRef.current
+                mistakePracticeRef
               )
             }
           />
 
 
-          {/* REVISION BANK */}
+          {/* =================================
+              REVISION BANK
+          ================================= */}
 
           <StudyToolButton
             title="★ Revision Bank"
@@ -625,35 +692,43 @@ function openTestSeriesHistory() {
             onClick={() =>
               toggleTool(
                 'revision',
-                revisionBankRef.current
+                revisionBankRef
               )
             }
           />
 
 
-          {/* PRELIMS HISTORY */}
+          {/* =================================
+              PRELIMS HISTORY
+          ================================= */}
 
           <StudyToolButton
-  title="Prelims History"
-  subtitle="Practice and Exam results"
+            title="Prelims History"
+            subtitle="Practice and Exam results"
 
-  onClick={
-    openPrelimsHistory
-  }
-/>
-
-
-<StudyToolButton
-  title="📝 Test Series History"
-  subtitle="Mock tests, scores and marks"
-
-  onClick={
-    openTestSeriesHistory
-  }
-/>
+            onClick={
+              openPrelimsHistory
+            }
+          />
 
 
-{/* MAINS EVALUATIONS */}
+          {/* =================================
+              TEST SERIES HISTORY
+          ================================= */}
+
+          <StudyToolButton
+            title="📝 Test Series History"
+            subtitle="Mock tests, scores and marks"
+
+            onClick={
+              openTestSeriesHistory
+            }
+          />
+
+
+          {/* =================================
+              MAINS EVALUATIONS
+          ================================= */}
 
           <StudyToolButton
             title="Mains Evaluations"
@@ -665,12 +740,15 @@ function openTestSeriesHistory() {
           />
 
 
-          {/* NOTES */}
+          {/* =================================
+              NOTES
+          ================================= */}
 
           <button
             type="button"
             disabled
             title="Coming soon"
+
             style={{
               opacity:
                 0.55,
@@ -715,12 +793,15 @@ function openTestSeriesHistory() {
           </button>
 
 
-          {/* OFFLINE STUDY */}
+          {/* =================================
+              OFFLINE STUDY
+          ================================= */}
 
           <button
             type="button"
             disabled
             title="Coming soon"
+
             style={{
               opacity:
                 0.55,
@@ -765,10 +846,13 @@ function openTestSeriesHistory() {
           </button>
 
 
-          {/* ADMIN STUDIO */}
+          {/* =================================
+              ADMIN STUDIO
+          ================================= */}
 
           <button
             type="button"
+
             onClick={
               onAdmin
             }
@@ -813,7 +897,61 @@ function openTestSeriesHistory() {
       </section>
 
 
-      {/* PERFORMANCE TREND */}
+      {/* =====================================
+          STUDY TIME SETTINGS
+      ===================================== */}
+
+      {openTool ===
+        'studyTime' && (
+
+        <div
+          ref={
+            studyTimeRef
+          }
+
+          style={{
+            scrollMarginTop:
+              '20px'
+          }}
+        >
+
+          <StudyTimeSettings />
+
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              justifyContent:
+                'center',
+
+              marginTop:
+                '12px'
+            }}
+          >
+
+            <button
+              type="button"
+              className="secondary-btn"
+
+              onClick={
+                closeTool
+              }
+            >
+              Close Study Time Settings
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* =====================================
+          PERFORMANCE TREND
+      ===================================== */}
 
       {openTool ===
         'performance' && (
@@ -822,6 +960,7 @@ function openTestSeriesHistory() {
           ref={
             performanceTrendRef
           }
+
           style={{
             scrollMarginTop:
               '20px'
@@ -847,6 +986,7 @@ function openTestSeriesHistory() {
             <button
               type="button"
               className="secondary-btn"
+
               onClick={
                 closeTool
               }
@@ -861,7 +1001,9 @@ function openTestSeriesHistory() {
       )}
 
 
-      {/* WEAK AREA ANALYSIS */}
+      {/* =====================================
+          WEAK AREA ANALYSIS
+      ===================================== */}
 
       {openTool ===
         'weak' && (
@@ -870,6 +1012,7 @@ function openTestSeriesHistory() {
           ref={
             weakAnalysisRef
           }
+
           style={{
             scrollMarginTop:
               '20px'
@@ -895,6 +1038,7 @@ function openTestSeriesHistory() {
             <button
               type="button"
               className="secondary-btn"
+
               onClick={
                 closeTool
               }
@@ -909,7 +1053,9 @@ function openTestSeriesHistory() {
       )}
 
 
-      {/* MISTAKE BOOK */}
+      {/* =====================================
+          MISTAKE BOOK
+      ===================================== */}
 
       {openTool ===
         'mistakeBook' && (
@@ -918,6 +1064,7 @@ function openTestSeriesHistory() {
           ref={
             mistakeBookRef
           }
+
           style={{
             scrollMarginTop:
               '20px'
@@ -943,6 +1090,7 @@ function openTestSeriesHistory() {
             <button
               type="button"
               className="secondary-btn"
+
               onClick={
                 closeTool
               }
@@ -957,7 +1105,9 @@ function openTestSeriesHistory() {
       )}
 
 
-      {/* MISTAKE PRACTICE */}
+      {/* =====================================
+          MISTAKE PRACTICE
+      ===================================== */}
 
       {openTool ===
         'mistakePractice' && (
@@ -966,6 +1116,7 @@ function openTestSeriesHistory() {
           ref={
             mistakePracticeRef
           }
+
           style={{
             scrollMarginTop:
               '20px'
@@ -991,6 +1142,7 @@ function openTestSeriesHistory() {
             <button
               type="button"
               className="secondary-btn"
+
               onClick={
                 closeTool
               }
@@ -1005,7 +1157,9 @@ function openTestSeriesHistory() {
       )}
 
 
-      {/* REVISION BANK */}
+      {/* =====================================
+          REVISION BANK
+      ===================================== */}
 
       {openTool ===
         'revision' && (
@@ -1014,6 +1168,7 @@ function openTestSeriesHistory() {
           ref={
             revisionBankRef
           }
+
           style={{
             scrollMarginTop:
               '20px'
@@ -1039,6 +1194,7 @@ function openTestSeriesHistory() {
             <button
               type="button"
               className="secondary-btn"
+
               onClick={
                 closeTool
               }
@@ -1053,46 +1209,55 @@ function openTestSeriesHistory() {
       )}
 
 
-      {/* PRELIMS HISTORY */}
+      {/* =====================================
+          PRELIMS HISTORY
+      ===================================== */}
 
-<div
-  ref={
-    prelimsHistoryRef
-  }
-  style={{
-    scrollMarginTop:
-      '20px'
-  }}
->
+      <div
+        ref={
+          prelimsHistoryRef
+        }
 
-  <MyPrelimsHistory />
+        style={{
+          scrollMarginTop:
+            '20px'
+        }}
+      >
 
-</div>
+        <MyPrelimsHistory />
 
-
-{/* PRELIMS TEST SERIES HISTORY */}
-
-<div
-  ref={
-    testSeriesHistoryRef
-  }
-  style={{
-    scrollMarginTop:
-      '20px'
-  }}
->
-
-  <MyPrelimsTestHistory />
-
-</div>
+      </div>
 
 
-{/* MAINS EVALUATIONS */}
+      {/* =====================================
+          TEST SERIES HISTORY
+      ===================================== */}
+
+      <div
+        ref={
+          testSeriesHistoryRef
+        }
+
+        style={{
+          scrollMarginTop:
+            '20px'
+        }}
+      >
+
+        <MyPrelimsTestHistory />
+
+      </div>
+
+
+      {/* =====================================
+          MAINS EVALUATIONS
+      ===================================== */}
 
       <div
         ref={
           mainsEvaluationRef
         }
+
         style={{
           scrollMarginTop:
             '20px'
@@ -1104,5 +1269,6 @@ function openTestSeriesHistory() {
       </div>
 
     </div>
+
   );
 }
