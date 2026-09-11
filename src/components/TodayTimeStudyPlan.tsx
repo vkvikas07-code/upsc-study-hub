@@ -26,6 +26,45 @@ type ProgressRow = {
 };
 
 
+type StudyTimeRow = {
+  morning_start:
+    string |
+    null;
+
+  morning_end:
+    string |
+    null;
+
+  afternoon_start:
+    string |
+    null;
+
+  afternoon_end:
+    string |
+    null;
+
+  evening_start:
+    string |
+    null;
+
+  evening_end:
+    string |
+    null;
+};
+
+
+type StudyTimeValues = {
+  morningStart: string;
+  morningEnd: string;
+
+  afternoonStart: string;
+  afternoonEnd: string;
+
+  eveningStart: string;
+  eveningEnd: string;
+};
+
+
 type PlanItem = {
   id: string;
 
@@ -39,7 +78,6 @@ type PlanItem = {
     null;
 
   done: boolean;
-
   urgent: boolean;
 
   actionLabel:
@@ -92,9 +130,32 @@ type TodayTimeStudyPlanProps = {
 };
 
 
+const DEFAULT_TIMES:
+  StudyTimeValues = {
+
+  morningStart:
+    '06:00',
+
+  morningEnd:
+    '11:30',
+
+  afternoonStart:
+    '12:00',
+
+  afternoonEnd:
+    '17:00',
+
+  eveningStart:
+    '17:00',
+
+  eveningEnd:
+    '23:59'
+};
+
+
 /*
  * =========================================
- * LOCAL DAY
+ * DATE HELPERS
  * =========================================
  */
 
@@ -123,23 +184,250 @@ function startOfLocalDay(
 
 /*
  * =========================================
+ * NORMALISE DATABASE TIME
+ * =========================================
+ */
+
+function normalizeTime(
+  value:
+    string |
+    null |
+    undefined,
+
+  fallback:
+    string
+) {
+
+  if (!value) {
+
+    return fallback;
+  }
+
+
+  const match =
+    value.match(
+      /^(\d{2}):(\d{2})/
+    );
+
+
+  if (!match) {
+
+    return fallback;
+  }
+
+
+  return (
+    `${match[1]}:${match[2]}`
+  );
+}
+
+
+/*
+ * =========================================
+ * TIME TO MINUTES
+ * =========================================
+ */
+
+function timeToMinutes(
+  value:
+    string
+) {
+
+  const parts =
+    value.split(':');
+
+
+  if (
+    parts.length <
+    2
+  ) {
+
+    return -1;
+  }
+
+
+  const hours =
+    Number(
+      parts[0]
+    );
+
+
+  const minutes =
+    Number(
+      parts[1]
+    );
+
+
+  if (
+    !Number.isFinite(
+      hours
+    ) ||
+    !Number.isFinite(
+      minutes
+    )
+  ) {
+
+    return -1;
+  }
+
+
+  return (
+    hours *
+    60 +
+    minutes
+  );
+}
+
+
+/*
+ * =========================================
+ * FRIENDLY TIME
+ * =========================================
+ */
+
+function friendlyTime(
+  value:
+    string
+) {
+
+  const minutes =
+    timeToMinutes(
+      value
+    );
+
+
+  if (
+    minutes <
+    0
+  ) {
+
+    return value;
+  }
+
+
+  const hour24 =
+    Math.floor(
+      minutes /
+      60
+    );
+
+
+  const minute =
+    minutes %
+    60;
+
+
+  const period =
+    hour24 >=
+      12
+      ? 'PM'
+      : 'AM';
+
+
+  const hour12 =
+    hour24 %
+      12 ||
+    12;
+
+
+  return (
+    `${hour12}:${String(
+      minute
+    ).padStart(
+      2,
+      '0'
+    )} ${period}`
+  );
+}
+
+
+/*
+ * =========================================
+ * FRIENDLY RANGE
+ * =========================================
+ */
+
+function friendlyRange(
+  start:
+    string,
+
+  end:
+    string
+) {
+
+  return (
+    `${friendlyTime(
+      start
+    )} – ${friendlyTime(
+      end
+    )}`
+  );
+}
+
+
+/*
+ * =========================================
  * CURRENT STUDY PERIOD
  * =========================================
  */
 
 function getCurrentPeriod(
   date:
-    Date
-):
-  StudyPeriod {
+    Date,
 
-  const hour =
-    date.getHours();
+  times:
+    StudyTimeValues
+):
+  StudyPeriod |
+  null {
+
+  const currentMinutes =
+    date.getHours() *
+      60 +
+    date.getMinutes();
+
+
+  const morningStart =
+    timeToMinutes(
+      times.morningStart
+    );
+
+
+  const morningEnd =
+    timeToMinutes(
+      times.morningEnd
+    );
+
+
+  const afternoonStart =
+    timeToMinutes(
+      times.afternoonStart
+    );
+
+
+  const afternoonEnd =
+    timeToMinutes(
+      times.afternoonEnd
+    );
+
+
+  const eveningStart =
+    timeToMinutes(
+      times.eveningStart
+    );
+
+
+  const eveningEnd =
+    timeToMinutes(
+      times.eveningEnd
+    );
 
 
   if (
-    hour <
-    12
+    currentMinutes >=
+      morningStart &&
+    currentMinutes <
+      morningEnd
   ) {
 
     return 'morning';
@@ -147,15 +435,28 @@ function getCurrentPeriod(
 
 
   if (
-    hour <
-    17
+    currentMinutes >=
+      afternoonStart &&
+    currentMinutes <
+      afternoonEnd
   ) {
 
     return 'afternoon';
   }
 
 
-  return 'evening';
+  if (
+    currentMinutes >=
+      eveningStart &&
+    currentMinutes <
+      eveningEnd
+  ) {
+
+    return 'evening';
+  }
+
+
+  return null;
 }
 
 
@@ -177,7 +478,7 @@ export function TodayTimeStudyPlan({
 
   /*
    * =========================================
-   * CURRENT TIME
+   * CURRENT DEVICE TIME
    * =========================================
    */
 
@@ -187,6 +488,23 @@ export function TodayTimeStudyPlan({
   ] =
     useState(
       new Date()
+    );
+
+
+  /*
+   * =========================================
+   * PERSONAL STUDY TIMES
+   * =========================================
+   */
+
+  const [
+    studyTimes,
+    setStudyTimes
+  ] =
+    useState<
+      StudyTimeValues
+    >(
+      DEFAULT_TIMES
     );
 
 
@@ -247,7 +565,7 @@ export function TodayTimeStudyPlan({
 
   /*
    * =========================================
-   * UPDATE CURRENT TIME
+   * UPDATE CURRENT DEVICE TIME
    * =========================================
    */
 
@@ -281,11 +599,11 @@ export function TodayTimeStudyPlan({
 
   /*
    * =========================================
-   * LOAD REVISION PRIORITIES
+   * LOAD PERSONAL PLAN
    * =========================================
    */
 
-  async function loadRevisionPlan() {
+  async function loadPlan() {
 
     const client =
       supabase;
@@ -315,6 +633,10 @@ export function TodayTimeStudyPlan({
     setError('');
 
 
+    /*
+     * CURRENT USER
+     */
+
     const {
       data: {
         user
@@ -325,10 +647,21 @@ export function TodayTimeStudyPlan({
         .getUser();
 
 
+    /*
+     * SIGNED OUT
+     *
+     * Use default times.
+     */
+
     if (!user) {
 
       setSignedIn(
         false
+      );
+
+
+      setStudyTimes(
+        DEFAULT_TIMES
       );
 
 
@@ -356,51 +689,85 @@ export function TodayTimeStudyPlan({
     );
 
 
-    const {
-      data,
-      error:
-        loadError
-    } =
-      await client
-        .from(
-          'book_topic_progress'
-        )
-        .select(
-          `
-          next_revision_due_at
-          `
-        )
-        .eq(
-          'user_id',
-          user.id
-        )
-        .eq(
-          'completed',
-          true
-        )
-        .lt(
-          'revision_count',
-          3
-        )
-        .not(
-          'next_revision_due_at',
-          'is',
-          null
-        );
+    /*
+     * LOAD:
+     *
+     * 1. Personal study time settings
+     * 2. Revision schedule
+     */
 
+    const [
+      timeResult,
+      progressResult
+    ] =
+      await Promise.all([
+
+        client
+          .from(
+            'study_time_preferences'
+          )
+          .select(
+            `
+            morning_start,
+            morning_end,
+            afternoon_start,
+            afternoon_end,
+            evening_start,
+            evening_end
+            `
+          )
+          .eq(
+            'user_id',
+            user.id
+          )
+          .maybeSingle(),
+
+        client
+          .from(
+            'book_topic_progress'
+          )
+          .select(
+            `
+            next_revision_due_at
+            `
+          )
+          .eq(
+            'user_id',
+            user.id
+          )
+          .eq(
+            'completed',
+            true
+          )
+          .lt(
+            'revision_count',
+            3
+          )
+          .not(
+            'next_revision_due_at',
+            'is',
+            null
+          )
+
+      ]);
+
+
+    /*
+     * PERSONAL TIMES
+     */
 
     if (
-      loadError
+      timeResult.error
     ) {
 
       console.error(
-        'Unable to load time-based revision plan:',
-        loadError
+        'Unable to load study time preferences:',
+        timeResult.error
       );
 
 
       setError(
-        loadError.message
+        timeResult.error.message
       );
 
 
@@ -413,10 +780,106 @@ export function TodayTimeStudyPlan({
     }
 
 
-    const rows:
+    if (
+      timeResult.data
+    ) {
+
+      const row =
+        timeResult.data as
+          StudyTimeRow;
+
+
+      setStudyTimes({
+
+        morningStart:
+          normalizeTime(
+            row.morning_start,
+            DEFAULT_TIMES
+              .morningStart
+          ),
+
+        morningEnd:
+          normalizeTime(
+            row.morning_end,
+            DEFAULT_TIMES
+              .morningEnd
+          ),
+
+        afternoonStart:
+          normalizeTime(
+            row.afternoon_start,
+            DEFAULT_TIMES
+              .afternoonStart
+          ),
+
+        afternoonEnd:
+          normalizeTime(
+            row.afternoon_end,
+            DEFAULT_TIMES
+              .afternoonEnd
+          ),
+
+        eveningStart:
+          normalizeTime(
+            row.evening_start,
+            DEFAULT_TIMES
+              .eveningStart
+          ),
+
+        eveningEnd:
+          normalizeTime(
+            row.evening_end,
+            DEFAULT_TIMES
+              .eveningEnd
+          )
+
+      });
+
+    } else {
+
+      /*
+       * No saved settings yet.
+       * Continue with defaults.
+       */
+
+      setStudyTimes(
+        DEFAULT_TIMES
+      );
+    }
+
+
+    /*
+     * REVISION DATA
+     */
+
+    if (
+      progressResult.error
+    ) {
+
+      console.error(
+        'Unable to load revision priorities:',
+        progressResult.error
+      );
+
+
+      setError(
+        progressResult.error.message
+      );
+
+
+      setLoading(
+        false
+      );
+
+
+      return;
+    }
+
+
+    const progressRows:
       ProgressRow[] =
         (
-          data ||
+          progressResult.data ||
           []
         ).map(
           item => ({
@@ -438,15 +901,15 @@ export function TodayTimeStudyPlan({
       );
 
 
-    let overdueCount =
-      0;
-
-
     let dueTodayCount =
       0;
 
 
-    rows.forEach(
+    let overdueCount =
+      0;
+
+
+    progressRows.forEach(
       row => {
 
         if (
@@ -504,13 +967,13 @@ export function TodayTimeStudyPlan({
     );
 
 
-    setOverdue(
-      overdueCount
+    setDueToday(
+      dueTodayCount
     );
 
 
-    setDueToday(
-      dueTodayCount
+    setOverdue(
+      overdueCount
     );
 
 
@@ -521,13 +984,15 @@ export function TodayTimeStudyPlan({
 
 
   /*
+   * =========================================
    * INITIAL LOAD
+   * =========================================
    */
 
   useEffect(
     () => {
 
-      void loadRevisionPlan();
+      void loadPlan();
 
     },
     []
@@ -584,7 +1049,7 @@ export function TodayTimeStudyPlan({
 
   /*
    * =========================================
-   * CURRENT PERIOD
+   * CURRENT PERSONAL STUDY PERIOD
    * =========================================
    */
 
@@ -592,10 +1057,12 @@ export function TodayTimeStudyPlan({
     useMemo(
       () =>
         getCurrentPeriod(
-          now
+          now,
+          studyTimes
         ),
       [
-        now
+        now,
+        studyTimes
       ]
     );
 
@@ -630,7 +1097,7 @@ export function TodayTimeStudyPlan({
 
   /*
    * =========================================
-   * BUILD TIME BLOCKS
+   * BUILD PERSONAL TIME BLOCKS
    * =========================================
    */
 
@@ -653,10 +1120,10 @@ export function TodayTimeStudyPlan({
         /*
          * =====================================
          * MORNING
-         * =====================================
          *
-         * 1. Clear overdue revisions
-         * 2. Current Affairs
+         * Overdue revision
+         * Current Affairs
+         * =====================================
          */
 
         if (
@@ -679,7 +1146,7 @@ export function TodayTimeStudyPlan({
               }`,
 
             detail:
-              'Start with old pending revision work before adding new material.',
+              'Start with pending revision work before adding too much new material.',
 
             badge:
               'PRIORITY',
@@ -724,7 +1191,7 @@ export function TodayTimeStudyPlan({
             detail:
               currentTask.done
                 ? 'Current Affairs task completed for today.'
-                : 'Read and understand the important issues before moving to practice.',
+                : 'Read and understand important issues before moving to practice.',
 
             badge:
               'CURRENT AFFAIRS',
@@ -755,9 +1222,9 @@ export function TodayTimeStudyPlan({
         /*
          * =====================================
          * AFTERNOON
-         * =====================================
          *
-         * MCQ practice
+         * MCQ Practice
+         * =====================================
          */
 
         const mcqTask =
@@ -781,7 +1248,7 @@ export function TodayTimeStudyPlan({
             detail:
               mcqTask.done
                 ? 'Today’s MCQ practice is completed.'
-                : 'Use practice to check recall and identify weak topics.',
+                : 'Use practice to check recall and identify weak areas.',
 
             badge:
               'PRELIMS PRACTICE',
@@ -812,11 +1279,9 @@ export function TodayTimeStudyPlan({
         /*
          * =====================================
          * EVENING
-         * =====================================
          *
-         * Scheduled revisions first.
-         * General revision only when there
-         * is no real scheduled revision.
+         * Scheduled revision first.
+         * =====================================
          */
 
         if (
@@ -839,7 +1304,7 @@ export function TodayTimeStudyPlan({
               } due today`,
 
             detail:
-              'Complete the actual scheduled revision stages in Book Progress.',
+              'Complete the scheduled revision stages in Book Progress.',
 
             badge:
               'REVISION DUE',
@@ -914,10 +1379,11 @@ export function TodayTimeStudyPlan({
 
 
         /*
-         * OTHER DAILY TASKS
+         * =====================================
+         * OTHER / FUTURE DAILY TASKS
          *
-         * Future custom tasks are placed
-         * in the evening by default.
+         * Put them in Evening by default.
+         * =====================================
          */
 
         tasks
@@ -982,7 +1448,13 @@ export function TodayTimeStudyPlan({
               'Morning',
 
             time:
-              '6:00 AM – 11:30 AM',
+              friendlyRange(
+                studyTimes
+                  .morningStart,
+
+                studyTimes
+                  .morningEnd
+              ),
 
             description:
               'Fresh learning and important pending work.',
@@ -999,7 +1471,13 @@ export function TodayTimeStudyPlan({
               'Afternoon',
 
             time:
-              '12:00 PM – 5:00 PM',
+              friendlyRange(
+                studyTimes
+                  .afternoonStart,
+
+                studyTimes
+                  .afternoonEnd
+              ),
 
             description:
               'Practice, testing and active recall.',
@@ -1016,7 +1494,13 @@ export function TodayTimeStudyPlan({
               'Evening',
 
             time:
-              '5:00 PM onward',
+              friendlyRange(
+                studyTimes
+                  .eveningStart,
+
+                studyTimes
+                  .eveningEnd
+              ),
 
             description:
               'Revision and consolidation of the day.',
@@ -1036,11 +1520,34 @@ export function TodayTimeStudyPlan({
         signedIn,
         overdue,
         dueToday,
+        studyTimes,
         onOpenCurrent,
         onOpenPractice,
         onOpenBookProgress
       ]
     );
+
+
+  /*
+   * =========================================
+   * CURRENT BLOCK LABEL
+   * =========================================
+   */
+
+  const currentBlockLabel =
+    currentPeriod ===
+      'morning'
+      ? 'Morning'
+
+      : currentPeriod ===
+        'afternoon'
+      ? 'Afternoon'
+
+      : currentPeriod ===
+        'evening'
+      ? 'Evening'
+
+      : 'Outside study window';
 
 
   /*
@@ -1055,9 +1562,7 @@ export function TodayTimeStudyPlan({
       className="panel"
     >
 
-      {/* =====================================
-          HEADER
-      ===================================== */}
+      {/* HEADER */}
 
       <div
         className="panel-head"
@@ -1068,7 +1573,7 @@ export function TodayTimeStudyPlan({
           <span
             className="eyebrow"
           >
-            TODAY'S SCHEDULE
+            TODAY'S STUDY PLAN
           </span>
 
 
@@ -1078,9 +1583,8 @@ export function TodayTimeStudyPlan({
 
 
           <p>
-            A flexible study rhythm built from
-            the same Daily Plan and revision
-            schedule already used in the app.
+            Your daily tasks are arranged around
+            your own saved study hours.
           </p>
 
         </div>
@@ -1090,19 +1594,21 @@ export function TodayTimeStudyPlan({
           type="button"
           className="text-btn"
 
+          disabled={
+            loading
+          }
+
           onClick={() =>
-            void loadRevisionPlan()
+            void loadPlan()
           }
         >
-          Refresh
+          Refresh Plan
         </button>
 
       </div>
 
 
-      {/* =====================================
-          DAILY PROGRESS
-      ===================================== */}
+      {/* DAILY PROGRESS */}
 
       <div
         style={{
@@ -1129,7 +1635,7 @@ export function TodayTimeStudyPlan({
         <div>
 
           <strong>
-            Daily essentials
+            Daily progress
           </strong>
 
 
@@ -1138,11 +1644,11 @@ export function TodayTimeStudyPlan({
               display:
                 'block',
 
-              marginTop:
-                '3px',
-
               color:
-                '#94a3b8'
+                '#94a3b8',
+
+              marginTop:
+                '3px'
             }}
           >
             {completedTasks}/{tasks.length}
@@ -1182,9 +1688,7 @@ export function TodayTimeStudyPlan({
       </div>
 
 
-      {/* =====================================
-          REVISION SUMMARY
-      ===================================== */}
+      {/* STATUS */}
 
       {!loading && (
 
@@ -1209,17 +1713,7 @@ export function TodayTimeStudyPlan({
           >
             Current block:
             {' '}
-            {
-              currentPeriod ===
-                'morning'
-                ? 'Morning'
-
-                : currentPeriod ===
-                  'afternoon'
-                ? 'Afternoon'
-
-                : 'Evening'
-            }
+            {currentBlockLabel}
           </span>
 
 
@@ -1253,9 +1747,7 @@ export function TodayTimeStudyPlan({
       )}
 
 
-      {/* =====================================
-          LOADING
-      ===================================== */}
+      {/* LOADING */}
 
       {loading && (
 
@@ -1265,15 +1757,13 @@ export function TodayTimeStudyPlan({
               '16px'
           }}
         >
-          Preparing today’s time-based study plan...
+          Preparing your personal study plan...
         </p>
 
       )}
 
 
-      {/* =====================================
-          ERROR
-      ===================================== */}
+      {/* ERROR */}
 
       {!loading &&
         error && (
@@ -1292,9 +1782,7 @@ export function TodayTimeStudyPlan({
       )}
 
 
-      {/* =====================================
-          SIGNED OUT NOTE
-      ===================================== */}
+      {/* SIGNED OUT */}
 
       {!loading &&
         !signedIn && (
@@ -1309,14 +1797,13 @@ export function TodayTimeStudyPlan({
         >
 
           <strong>
-            Sign in for scheduled revision priorities
+            Using default study hours
           </strong>
 
 
           <p>
-            Your Daily Plan still works while
-            signed out, but revision due dates
-            require your account.
+            Sign in to use your personal Morning,
+            Afternoon and Evening study settings.
           </p>
 
         </div>
@@ -1324,9 +1811,7 @@ export function TodayTimeStudyPlan({
       )}
 
 
-      {/* =====================================
-          TIME BLOCKS
-      ===================================== */}
+      {/* PERSONAL TIME BLOCKS */}
 
       {!loading && (
 
@@ -1374,7 +1859,7 @@ export function TodayTimeStudyPlan({
 
                     border:
                       isCurrent
-                        ? '1px solid rgba(45,212,191,.52)'
+                        ? '1px solid rgba(45,212,191,.55)'
                         : '1px solid rgba(255,255,255,.08)',
 
                     borderRadius:
@@ -1382,7 +1867,7 @@ export function TodayTimeStudyPlan({
 
                     background:
                       isCurrent
-                        ? 'rgba(20,184,166,.07)'
+                        ? 'rgba(20,184,166,.08)'
                         : 'rgba(255,255,255,.025)'
                   }}
                 >
@@ -1437,6 +1922,7 @@ export function TodayTimeStudyPlan({
 
                           <span
                             className="tag"
+
                             style={{
                               color:
                                 '#5eead4'
@@ -1518,8 +2004,7 @@ export function TodayTimeStudyPlan({
 
                       <p>
                         Use this block for optional
-                        reading, rest or unfinished
-                        study work.
+                        study, rest or unfinished work.
                       </p>
 
                     </div>
@@ -1527,7 +2012,7 @@ export function TodayTimeStudyPlan({
                   )}
 
 
-                  {/* BLOCK ITEMS */}
+                  {/* TASKS */}
 
                   {block.items.length >
                     0 && (
@@ -1560,8 +2045,10 @@ export function TodayTimeStudyPlan({
                               border:
                                 item.urgent
                                   ? '1px solid rgba(248,113,113,.35)'
+
                                   : item.done
                                   ? '1px solid rgba(45,212,191,.25)'
+
                                   : '1px solid rgba(255,255,255,.08)',
 
                               borderRadius:
@@ -1570,8 +2057,10 @@ export function TodayTimeStudyPlan({
                               background:
                                 item.urgent
                                   ? 'rgba(127,29,29,.12)'
+
                                   : item.done
                                   ? 'rgba(20,184,166,.06)'
+
                                   : 'rgba(255,255,255,.025)'
                             }}
                           >
@@ -1744,9 +2233,56 @@ export function TodayTimeStudyPlan({
       )}
 
 
-      {/* =====================================
-          EXPLANATION
-      ===================================== */}
+      {/* PERSONAL SCHEDULE SUMMARY */}
+
+      {!loading &&
+        signedIn && (
+
+        <div
+          className="callout"
+
+          style={{
+            marginTop:
+              '16px'
+          }}
+        >
+
+          <strong>
+            Personal study schedule active
+          </strong>
+
+
+          <p>
+            Morning:
+            {' '}
+            {friendlyRange(
+              studyTimes.morningStart,
+              studyTimes.morningEnd
+            )}
+            <br />
+
+            Afternoon:
+            {' '}
+            {friendlyRange(
+              studyTimes.afternoonStart,
+              studyTimes.afternoonEnd
+            )}
+            <br />
+
+            Evening:
+            {' '}
+            {friendlyRange(
+              studyTimes.eveningStart,
+              studyTimes.eveningEnd
+            )}
+          </p>
+
+        </div>
+
+      )}
+
+
+      {/* FLEXIBLE EXPLANATION */}
 
       {!loading && (
 
@@ -1765,10 +2301,10 @@ export function TodayTimeStudyPlan({
 
 
           <p>
-            These time blocks are suggested study
-            windows. Students can study at different
-            times without losing task or revision
-            progress.
+            Your personal study hours only decide
+            which block is highlighted as NOW.
+            You can open and complete any task at
+            any time.
           </p>
 
         </div>
