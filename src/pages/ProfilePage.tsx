@@ -51,9 +51,14 @@ import {
   StudyTimeSettings
 } from '../components/StudyTimeSettings';
 
+import {
+  MyNotes
+} from '../components/MyNotes';
+
 
 type OpenTool =
   | 'studyTime'
+  | 'notes'
   | 'performance'
   | 'weak'
   | 'mistakeBook'
@@ -182,6 +187,12 @@ export function ProfilePage({
    */
 
   const studyTimeRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
+
+  const notesRef =
     useRef<HTMLDivElement | null>(
       null
     );
@@ -463,7 +474,7 @@ export function ProfilePage({
 
       <TopBar
         title="My Study"
-        subtitle="Your progress, revision and evaluations"
+        subtitle="Your progress, notes, revision and evaluations"
       />
 
 
@@ -556,7 +567,8 @@ export function ProfilePage({
 
 
         <p>
-          Personalise your study routine,
+          Create personal notes,
+          customise your study routine,
           track improvement, identify weak
           areas and review your preparation.
         </p>
@@ -565,6 +577,28 @@ export function ProfilePage({
         <div
           className="settings-list"
         >
+
+          {/* =================================
+              MY NOTES
+          ================================= */}
+
+          <StudyToolButton
+            title="📝 My Notes"
+            subtitle="Create, search, organise and revise personal notes"
+
+            open={
+              openTool ===
+              'notes'
+            }
+
+            onClick={() =>
+              toggleTool(
+                'notes',
+                notesRef
+              )
+            }
+          />
+
 
           {/* =================================
               STUDY TIME SETTINGS
@@ -741,59 +775,6 @@ export function ProfilePage({
 
 
           {/* =================================
-              NOTES
-          ================================= */}
-
-          <button
-            type="button"
-            disabled
-            title="Coming soon"
-
-            style={{
-              opacity:
-                0.55,
-
-              cursor:
-                'not-allowed'
-            }}
-          >
-
-            <span
-              style={{
-                display:
-                  'flex',
-
-                flexDirection:
-                  'column',
-
-                alignItems:
-                  'flex-start',
-
-                gap:
-                  '3px'
-              }}
-            >
-
-              <strong>
-                My Notes
-              </strong>
-
-
-              <small>
-                Coming soon
-              </small>
-
-            </span>
-
-
-            <span>
-              ›
-            </span>
-
-          </button>
-
-
-          {/* =================================
               OFFLINE STUDY
           ================================= */}
 
@@ -895,6 +876,58 @@ export function ProfilePage({
         </div>
 
       </section>
+
+
+      {/* =====================================
+          MY NOTES
+      ===================================== */}
+
+      {openTool ===
+        'notes' && (
+
+        <div
+          ref={
+            notesRef
+          }
+
+          style={{
+            scrollMarginTop:
+              '20px'
+          }}
+        >
+
+          <MyNotes />
+
+
+          <div
+            style={{
+              display:
+                'flex',
+
+              justifyContent:
+                'center',
+
+              marginTop:
+                '12px'
+            }}
+          >
+
+            <button
+              type="button"
+              className="secondary-btn"
+
+              onClick={
+                closeTool
+              }
+            >
+              Close My Notes
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
 
 
       {/* =====================================
