@@ -156,6 +156,7 @@ function loadTasksForDay(
         )
       );
 
+
     if (!stored) {
 
       return defaultTasks.map(
@@ -165,10 +166,12 @@ function loadTasksForDay(
       );
     }
 
+
     const parsed =
       JSON.parse(
         stored
       );
+
 
     if (!Array.isArray(parsed)) {
 
@@ -178,6 +181,7 @@ function loadTasksForDay(
         })
       );
     }
+
 
     return defaultTasks.map(
       defaultTask => {
@@ -189,6 +193,7 @@ function loadTasksForDay(
               item.id ===
                 defaultTask.id
           );
+
 
         return {
           ...defaultTask,
@@ -223,6 +228,7 @@ function normalizeRole(
     return value;
   }
 
+
   return 'student';
 }
 
@@ -235,6 +241,7 @@ function getFallbackName(
     session.user.user_metadata
       ?.display_name;
 
+
   if (
     typeof metadataName ===
       'string' &&
@@ -244,12 +251,15 @@ function getFallbackName(
     return metadataName.trim();
   }
 
+
   const email =
     session.user.email ||
     '';
 
+
   const prefix =
     email.split('@')[0];
+
 
   return prefix ||
     'Aspirant';
@@ -335,6 +345,7 @@ function AccountStatusCard({
             SIGNED IN
           </span>
 
+
           <h3
             style={{
               marginBottom:
@@ -343,6 +354,7 @@ function AccountStatusCard({
           >
             {profile.displayName}
           </h3>
+
 
           <p
             style={{
@@ -354,6 +366,7 @@ function AccountStatusCard({
           </p>
 
         </div>
+
 
         <button
           type="button"
@@ -401,15 +414,18 @@ function AccessDenied({
           PROTECTED AREA
         </span>
 
+
         <h2>
           Editor access required
         </h2>
+
 
         <p>
           Your account is signed in as a student.
           Admin Studio is available only to approved
           editor or admin accounts.
         </p>
+
 
         <button
           type="button"
@@ -523,14 +539,27 @@ export default function SecureApp() {
     );
 
 
+  /*
+   * =========================================
+   * DAILY TASK SAVE
+   * =========================================
+   */
+
   function setTasks(
     next: DailyTask[]
   ) {
 
+    /*
+     * Update screen immediately.
+     */
     setTasksState(
       next
     );
 
+
+    /*
+     * Always keep offline/local backup.
+     */
     localStorage.setItem(
       getTaskStorageKey(
         taskDay
@@ -539,6 +568,81 @@ export default function SecureApp() {
         next
       )
     );
+
+
+    const client =
+      supabase;
+
+
+    const userId =
+      session?.user.id;
+
+
+    /*
+     * Signed-out/offline mode:
+     * localStorage remains available.
+     */
+    if (
+      !client ||
+      !userId
+    ) {
+
+      return;
+    }
+
+
+    const rows =
+      next.map(
+        task => ({
+
+          user_id:
+            userId,
+
+          task_date:
+            taskDay,
+
+          task_id:
+            task.id,
+
+          done:
+            task.done,
+
+          updated_at:
+            new Date()
+              .toISOString()
+
+        })
+      );
+
+
+    /*
+     * Cloud save.
+     */
+    void client
+      .from(
+        'daily_task_progress'
+      )
+      .upsert(
+        rows,
+        {
+          onConflict:
+            'user_id,task_date,task_id'
+        }
+      )
+      .then(
+        ({
+          error
+        }) => {
+
+          if (error) {
+
+            console.error(
+              'Unable to sync daily tasks:',
+              error
+            );
+          }
+        }
+      );
   }
 
 
@@ -570,9 +674,11 @@ export default function SecureApp() {
       subject
     );
 
+
     setLearnMode(
       mode
     );
+
 
     setActive(
       'learn'
@@ -593,10 +699,12 @@ export default function SecureApp() {
         null
       );
 
+
       setLearnMode(
         'syllabus'
       );
     }
+
 
     setActive(
       next
@@ -609,6 +717,7 @@ export default function SecureApp() {
     setPracticeMode(
       'prelims'
     );
+
 
     setActive(
       'practice'
@@ -624,6 +733,7 @@ export default function SecureApp() {
         .signOut();
     }
 
+
     setActive(
       'home'
     );
@@ -634,25 +744,14 @@ export default function SecureApp() {
    * =========================================
    * AUTHENTICATION
    * =========================================
-   *
-   * IMPORTANT FIX:
-   *
-   * We DO NOT set authReady=false every time
-   * Supabase refreshes the existing session.
-   *
-   * This keeps ProfilePage/MyNotes mounted
-   * when the browser tab loses and regains focus.
-   *
-   * Therefore:
-   * - note editor remains open
-   * - typed text remains present
-   * - scroll position does not jump to the top
    */
+
   useEffect(
     () => {
 
       const client =
         supabase;
+
 
       if (!client) {
 
@@ -660,8 +759,10 @@ export default function SecureApp() {
           true
         );
 
+
         return;
       }
+
 
       let mounted =
         true;
@@ -680,9 +781,13 @@ export default function SecureApp() {
 
 
         /*
-         * Keep current screen mounted.
-         * Do not set authReady(false)
-         * during normal token/session refresh.
+         * Keep existing page mounted.
+         *
+         * Do NOT set authReady false during
+         * ordinary token/session refresh.
+         *
+         * This helps protect My Notes from
+         * resetting when changing browser tabs.
          */
         setSession(
           nextSession
@@ -695,9 +800,11 @@ export default function SecureApp() {
             null
           );
 
+
           setAuthReady(
             true
           );
+
 
           return;
         }
@@ -707,7 +814,7 @@ export default function SecureApp() {
           data,
           error
         } =
-          await client!
+          await client
             .from(
               'profiles'
             )
@@ -766,7 +873,10 @@ export default function SecureApp() {
       void client.auth
         .getSession()
         .then(
-          ({ data }) =>
+          ({
+            data
+          }) =>
+
             loadAccount(
               data.session
             )
@@ -796,6 +906,7 @@ export default function SecureApp() {
         mounted =
           false;
 
+
         authListener
           .subscription
           .unsubscribe();
@@ -808,9 +919,248 @@ export default function SecureApp() {
 
   /*
    * =========================================
+   * DAILY TASK CLOUD LOAD
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+
+      const client =
+        supabase;
+
+
+      const userId =
+        session?.user.id;
+
+
+      /*
+       * If user is signed out,
+       * use offline/local task data.
+       */
+      if (
+        !client ||
+        !userId
+      ) {
+
+        setTasksState(
+          loadTasksForDay(
+            taskDay
+          )
+        );
+
+
+        return;
+      }
+
+
+      let cancelled =
+        false;
+
+
+      async function loadDailyTasksFromCloud() {
+
+        /*
+         * Keep local copy ready as fallback.
+         */
+        const localTasks =
+          loadTasksForDay(
+            taskDay
+          );
+
+
+        const {
+          data,
+          error
+        } =
+          await client
+            .from(
+              'daily_task_progress'
+            )
+            .select(
+              'task_id, done'
+            )
+            .eq(
+              'user_id',
+              userId
+            )
+            .eq(
+              'task_date',
+              taskDay
+            );
+
+
+        if (cancelled) {
+
+          return;
+        }
+
+
+        /*
+         * Cloud unavailable:
+         * use local/offline copy.
+         */
+        if (error) {
+
+          console.error(
+            'Unable to load cloud daily tasks:',
+            error
+          );
+
+
+          setTasksState(
+            localTasks
+          );
+
+
+          return;
+        }
+
+
+        /*
+         * Existing cloud data found.
+         */
+        if (
+          data &&
+          data.length >
+            0
+        ) {
+
+          const cloudTasks =
+            defaultTasks.map(
+              defaultTask => {
+
+                const cloudTask =
+                  data.find(
+                    item =>
+                      item.task_id ===
+                      defaultTask.id
+                  );
+
+
+                return {
+
+                  ...defaultTask,
+
+                  done:
+                    cloudTask?.done ===
+                    true
+
+                };
+              }
+            );
+
+
+          /*
+           * Show cloud state.
+           */
+          setTasksState(
+            cloudTasks
+          );
+
+
+          /*
+           * Update offline copy too.
+           */
+          localStorage.setItem(
+            getTaskStorageKey(
+              taskDay
+            ),
+            JSON.stringify(
+              cloudTasks
+            )
+          );
+
+
+          return;
+        }
+
+
+        /*
+         * No cloud row exists yet.
+         *
+         * Keep existing local progress and
+         * upload it to the cloud once.
+         */
+        setTasksState(
+          localTasks
+        );
+
+
+        const rows =
+          localTasks.map(
+            task => ({
+
+              user_id:
+                userId,
+
+              task_date:
+                taskDay,
+
+              task_id:
+                task.id,
+
+              done:
+                task.done,
+
+              updated_at:
+                new Date()
+                  .toISOString()
+
+            })
+          );
+
+
+        const {
+          error:
+            seedError
+        } =
+          await client
+            .from(
+              'daily_task_progress'
+            )
+            .upsert(
+              rows,
+              {
+                onConflict:
+                  'user_id,task_date,task_id'
+              }
+            );
+
+
+        if (seedError) {
+
+          console.error(
+            'Unable to create cloud daily tasks:',
+            seedError
+          );
+        }
+      }
+
+
+      void loadDailyTasksFromCloud();
+
+
+      return () => {
+
+        cancelled =
+          true;
+      };
+
+    },
+    [
+      session?.user.id,
+      taskDay
+    ]
+  );
+
+
+  /*
+   * =========================================
    * DAILY TASK DATE CHANGE
    * =========================================
    */
+
   useEffect(
     () => {
 
@@ -821,6 +1171,7 @@ export default function SecureApp() {
             const currentDay =
               getLocalDateKey();
 
+
             if (
               currentDay !==
               taskDay
@@ -830,6 +1181,12 @@ export default function SecureApp() {
                 currentDay
               );
 
+
+              /*
+               * Show local data immediately.
+               * Cloud effect above will then
+               * refresh it if signed in.
+               */
               setTasksState(
                 loadTasksForDay(
                   currentDay
@@ -859,6 +1216,7 @@ export default function SecureApp() {
    * CURRENT AFFAIRS
    * =========================================
    */
+
   useEffect(
     () => {
 
@@ -911,6 +1269,7 @@ export default function SecureApp() {
             'Unable to load current affairs:',
             error
           );
+
 
           return;
         }
@@ -992,9 +1351,10 @@ export default function SecureApp() {
 
   /*
    * =========================================
-   * SCROLL TO TOP ONLY ON REAL NAVIGATION
+   * SCROLL TO TOP ONLY ON REAL APP NAVIGATION
    * =========================================
    */
+
   useEffect(
     () => {
 
@@ -1025,6 +1385,7 @@ export default function SecureApp() {
    * HOME
    * =========================================
    */
+
   let content = (
 
     <HomePage
@@ -1058,6 +1419,7 @@ export default function SecureApp() {
    * LEARN
    * =========================================
    */
+
   if (
     active ===
     'learn'
@@ -1083,6 +1445,7 @@ export default function SecureApp() {
    * PRACTICE
    * =========================================
    */
+
   if (
     active ===
     'practice'
@@ -1217,6 +1580,7 @@ export default function SecureApp() {
    * CURRENT AFFAIRS
    * =========================================
    */
+
   if (
     active ===
     'current'
@@ -1238,6 +1602,7 @@ export default function SecureApp() {
    * PROFILE / MY STUDY
    * =========================================
    */
+
   if (
     active ===
     'profile'
@@ -1314,6 +1679,7 @@ export default function SecureApp() {
    * ADMIN
    * =========================================
    */
+
   if (
     active ===
     'admin'
@@ -1372,6 +1738,7 @@ export default function SecureApp() {
                 item
               );
 
+
               setActive(
                 'current'
               );
@@ -1388,6 +1755,7 @@ export default function SecureApp() {
    * APP
    * =========================================
    */
+
   return (
 
     <IonApp>
