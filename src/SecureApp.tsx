@@ -717,7 +717,7 @@ export default function SecureApp() {
           data,
           error
         } =
-          await client
+          await client!
             .from(
               'profiles'
             )
