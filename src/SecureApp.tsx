@@ -814,7 +814,7 @@ export default function SecureApp() {
           data,
           error
         } =
-          await client
+          await client!
             .from(
               'profiles'
             )
@@ -973,7 +973,7 @@ export default function SecureApp() {
           data,
           error
         } =
-          await client
+          await client!
             .from(
               'daily_task_progress'
             )
@@ -1115,7 +1115,7 @@ export default function SecureApp() {
           error:
             seedError
         } =
-          await client
+          await client!
             .from(
               'daily_task_progress'
             )
