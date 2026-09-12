@@ -13,7 +13,7 @@ import '@ionic/react/css/flex-utils.css';
 import './theme.css';
 import './admin-fixes.css';
 
-import App from './App';
+import SecureApp from './SecureApp';
 
 setupIonicReact();
 
@@ -23,7 +23,7 @@ ReactDOM
   )
   .render(
     <React.StrictMode>
-      <App />
+      <SecureApp />
     </React.StrictMode>
   );
 
