@@ -88,27 +88,22 @@ type UserProfile = {
 };
 
 
-const defaultTasks:
-  DailyTask[] = [
-
+const defaultTasks: DailyTask[] = [
   {
     id: 'ca',
     label: 'Read today’s current affairs brief',
     done: false
   },
-
   {
     id: 'mcq',
     label: 'Attempt at least 10 MCQs',
     done: false
   },
-
   {
     id: 'rev',
     label: 'Revise one saved topic',
     done: false
   }
-
 ];
 
 
@@ -117,10 +112,8 @@ function getLocalDateKey() {
   const now =
     new Date();
 
-
   const year =
     now.getFullYear();
-
 
   const month =
     String(
@@ -130,7 +123,6 @@ function getLocalDateKey() {
       '0'
     );
 
-
   const day =
     String(
       now.getDate()
@@ -138,7 +130,6 @@ function getLocalDateKey() {
       2,
       '0'
     );
-
 
   return `${year}-${month}-${day}`;
 }
@@ -165,7 +156,6 @@ function loadTasksForDay(
         )
       );
 
-
     if (!stored) {
 
       return defaultTasks.map(
@@ -175,12 +165,10 @@ function loadTasksForDay(
       );
     }
 
-
     const parsed =
       JSON.parse(
         stored
       );
-
 
     if (!Array.isArray(parsed)) {
 
@@ -190,7 +178,6 @@ function loadTasksForDay(
         })
       );
     }
-
 
     return defaultTasks.map(
       defaultTask => {
@@ -203,9 +190,9 @@ function loadTasksForDay(
                 defaultTask.id
           );
 
-
         return {
           ...defaultTask,
+
           done:
             storedTask?.done ===
             true
@@ -232,9 +219,9 @@ function normalizeRole(
     value === 'admin' ||
     value === 'editor'
   ) {
+
     return value;
   }
-
 
   return 'student';
 }
@@ -248,24 +235,21 @@ function getFallbackName(
     session.user.user_metadata
       ?.display_name;
 
-
   if (
     typeof metadataName ===
       'string' &&
     metadataName.trim()
   ) {
+
     return metadataName.trim();
   }
-
 
   const email =
     session.user.email ||
     '';
 
-
   const prefix =
     email.split('@')[0];
-
 
   return prefix ||
     'Aspirant';
@@ -291,9 +275,11 @@ function LoadingCard({
             '20px'
         }}
       >
+
         <h2>
           {text}
         </h2>
+
       </section>
 
     </div>
@@ -349,7 +335,6 @@ function AccountStatusCard({
             SIGNED IN
           </span>
 
-
           <h3
             style={{
               marginBottom:
@@ -358,7 +343,6 @@ function AccountStatusCard({
           >
             {profile.displayName}
           </h3>
-
 
           <p
             style={{
@@ -370,7 +354,6 @@ function AccountStatusCard({
           </p>
 
         </div>
-
 
         <button
           type="button"
@@ -418,17 +401,15 @@ function AccessDenied({
           PROTECTED AREA
         </span>
 
-
         <h2>
           Editor access required
         </h2>
 
-
         <p>
           Your account is signed in as a student.
-          Admin Studio is available only to approved editor or admin accounts.
+          Admin Studio is available only to approved
+          editor or admin accounts.
         </p>
-
 
         <button
           type="button"
@@ -550,7 +531,6 @@ export default function SecureApp() {
       next
     );
 
-
     localStorage.setItem(
       getTaskStorageKey(
         taskDay
@@ -590,11 +570,9 @@ export default function SecureApp() {
       subject
     );
 
-
     setLearnMode(
       mode
     );
-
 
     setActive(
       'learn'
@@ -615,12 +593,10 @@ export default function SecureApp() {
         null
       );
 
-
       setLearnMode(
         'syllabus'
       );
     }
-
 
     setActive(
       next
@@ -634,7 +610,6 @@ export default function SecureApp() {
       'prelims'
     );
 
-
     setActive(
       'practice'
     );
@@ -644,9 +619,10 @@ export default function SecureApp() {
   async function signOut() {
 
     if (supabase) {
-      await supabase.auth.signOut();
-    }
 
+      await supabase.auth
+        .signOut();
+    }
 
     setActive(
       'home'
@@ -654,12 +630,29 @@ export default function SecureApp() {
   }
 
 
+  /*
+   * =========================================
+   * AUTHENTICATION
+   * =========================================
+   *
+   * IMPORTANT FIX:
+   *
+   * We DO NOT set authReady=false every time
+   * Supabase refreshes the existing session.
+   *
+   * This keeps ProfilePage/MyNotes mounted
+   * when the browser tab loses and regains focus.
+   *
+   * Therefore:
+   * - note editor remains open
+   * - typed text remains present
+   * - scroll position does not jump to the top
+   */
   useEffect(
     () => {
 
       const client =
         supabase;
-
 
       if (!client) {
 
@@ -667,10 +660,8 @@ export default function SecureApp() {
           true
         );
 
-
         return;
       }
-
 
       let mounted =
         true;
@@ -683,10 +674,16 @@ export default function SecureApp() {
       ) {
 
         if (!mounted) {
+
           return;
         }
 
 
+        /*
+         * Keep current screen mounted.
+         * Do not set authReady(false)
+         * during normal token/session refresh.
+         */
         setSession(
           nextSession
         );
@@ -698,19 +695,12 @@ export default function SecureApp() {
             null
           );
 
-
           setAuthReady(
             true
           );
 
-
           return;
         }
-
-
-        setAuthReady(
-          false
-        );
 
 
         const {
@@ -732,6 +722,7 @@ export default function SecureApp() {
 
 
         if (!mounted) {
+
           return;
         }
 
@@ -751,7 +742,9 @@ export default function SecureApp() {
             typeof data?.display_name ===
               'string' &&
             data.display_name.trim()
+
               ? data.display_name.trim()
+
               : getFallbackName(
                   nextSession
                 ),
@@ -784,14 +777,18 @@ export default function SecureApp() {
         data:
           authListener
       } =
-        client.auth.onAuthStateChange(
-          (_event, nextSession) => {
-
-            void loadAccount(
+        client.auth
+          .onAuthStateChange(
+            (
+              _event,
               nextSession
-            );
-          }
-        );
+            ) => {
+
+              void loadAccount(
+                nextSession
+              );
+            }
+          );
 
 
       return () => {
@@ -799,8 +796,9 @@ export default function SecureApp() {
         mounted =
           false;
 
-
-        authListener.subscription.unsubscribe();
+        authListener
+          .subscription
+          .unsubscribe();
       };
 
     },
@@ -808,6 +806,11 @@ export default function SecureApp() {
   );
 
 
+  /*
+   * =========================================
+   * DAILY TASK DATE CHANGE
+   * =========================================
+   */
   useEffect(
     () => {
 
@@ -818,7 +821,6 @@ export default function SecureApp() {
             const currentDay =
               getLocalDateKey();
 
-
             if (
               currentDay !==
               taskDay
@@ -827,7 +829,6 @@ export default function SecureApp() {
               setTaskDay(
                 currentDay
               );
-
 
               setTasksState(
                 loadTasksForDay(
@@ -853,12 +854,18 @@ export default function SecureApp() {
   );
 
 
+  /*
+   * =========================================
+   * CURRENT AFFAIRS
+   * =========================================
+   */
   useEffect(
     () => {
 
       async function loadCurrentAffairs() {
 
         if (!supabase) {
+
           return;
         }
 
@@ -905,7 +912,6 @@ export default function SecureApp() {
             error
           );
 
-
           return;
         }
 
@@ -915,6 +921,7 @@ export default function SecureApp() {
           data.length ===
             0
         ) {
+
           return;
         }
 
@@ -950,16 +957,24 @@ export default function SecureApp() {
 
               publishedAt:
                 item.published_at
+
                   ? new Date(
                       item.published_at
-                    ).toLocaleDateString(
-                      'en-IN',
-                      {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric'
-                      }
                     )
+                      .toLocaleDateString(
+                        'en-IN',
+                        {
+                          day:
+                            '2-digit',
+
+                          month:
+                            'short',
+
+                          year:
+                            'numeric'
+                        }
+                      )
+
                   : ''
 
             })
@@ -975,12 +990,20 @@ export default function SecureApp() {
   );
 
 
+  /*
+   * =========================================
+   * SCROLL TO TOP ONLY ON REAL NAVIGATION
+   * =========================================
+   */
   useEffect(
     () => {
 
       window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
+        top:
+          0,
+
+        behavior:
+          'smooth'
       });
 
     },
@@ -997,21 +1020,30 @@ export default function SecureApp() {
       'admin';
 
 
+  /*
+   * =========================================
+   * HOME
+   * =========================================
+   */
   let content = (
 
     <HomePage
       tasks={
         tasks
       }
+
       setTasks={
         setTasks
       }
+
       onGoPractice={
         openPrelimsPractice
       }
+
       onGoLearn={
         openLearn
       }
+
       onGoCurrent={() =>
         setActive(
           'current'
@@ -1021,6 +1053,11 @@ export default function SecureApp() {
   );
 
 
+  /*
+   * =========================================
+   * LEARN
+   * =========================================
+   */
   if (
     active ===
     'learn'
@@ -1032,6 +1069,7 @@ export default function SecureApp() {
         initialSubject={
           learnSubject
         }
+
         initialMode={
           learnMode
         }
@@ -1040,6 +1078,11 @@ export default function SecureApp() {
   }
 
 
+  /*
+   * =========================================
+   * PRACTICE
+   * =========================================
+   */
   if (
     active ===
     'practice'
@@ -1056,19 +1099,26 @@ export default function SecureApp() {
           <div
             className="filter-row"
             style={{
-              paddingTop: '18px',
-              paddingBottom: 0
+              paddingTop:
+                '18px',
+
+              paddingBottom:
+                0
             }}
           >
 
             <button
               type="button"
+
               className={
                 practiceMode ===
                   'prelims'
+
                   ? 'filter active'
+
                   : 'filter'
               }
+
               onClick={() =>
                 setPracticeMode(
                   'prelims'
@@ -1081,12 +1131,16 @@ export default function SecureApp() {
 
             <button
               type="button"
+
               className={
                 practiceMode ===
                   'tests'
+
                   ? 'filter active'
+
                   : 'filter'
               }
+
               onClick={() =>
                 setPracticeMode(
                   'tests'
@@ -1099,12 +1153,16 @@ export default function SecureApp() {
 
             <button
               type="button"
+
               className={
                 practiceMode ===
                   'mains'
+
                   ? 'filter active'
+
                   : 'filter'
               }
+
               onClick={() =>
                 setPracticeMode(
                   'mains'
@@ -1119,35 +1177,46 @@ export default function SecureApp() {
         </div>
 
 
-        {practiceMode ===
-          'prelims'
-          ? (
+        {
+          practiceMode ===
+            'prelims'
 
-            <PracticePage />
+            ? (
 
-          )
-          : practiceMode ===
-            'tests'
-          ? (
+              <PracticePage />
 
-            <div
-              className="page-wrap"
-            >
-              <PrelimsTestSeries />
-            </div>
+            )
 
-          )
-          : (
+            : practiceMode ===
+              'tests'
 
-            <MainsPracticePage />
+            ? (
 
-          )}
+              <div
+                className="page-wrap"
+              >
+                <PrelimsTestSeries />
+              </div>
+
+            )
+
+            : (
+
+              <MainsPracticePage />
+
+            )
+        }
 
       </>
     );
   }
 
 
+  /*
+   * =========================================
+   * CURRENT AFFAIRS
+   * =========================================
+   */
   if (
     active ===
     'current'
@@ -1164,6 +1233,11 @@ export default function SecureApp() {
   }
 
 
+  /*
+   * =========================================
+   * PROFILE / MY STUDY
+   * =========================================
+   */
   if (
     active ===
     'profile'
@@ -1172,6 +1246,7 @@ export default function SecureApp() {
     if (!authReady) {
 
       content = (
+
         <LoadingCard
           text="Loading your account…"
         />
@@ -1186,6 +1261,7 @@ export default function SecureApp() {
 
         <AccountPage
           intent="study"
+
           onBack={() =>
             setActive(
               'home'
@@ -1204,9 +1280,11 @@ export default function SecureApp() {
             session={
               session
             }
+
             profile={
               profile
             }
+
             onSignOut={() => {
               void signOut();
             }}
@@ -1219,6 +1297,7 @@ export default function SecureApp() {
                 'admin'
               )
             }
+
             onOpenPractice={
               openPrelimsPractice
             }
@@ -1230,6 +1309,11 @@ export default function SecureApp() {
   }
 
 
+  /*
+   * =========================================
+   * ADMIN
+   * =========================================
+   */
   if (
     active ===
     'admin'
@@ -1238,6 +1322,7 @@ export default function SecureApp() {
     if (!authReady) {
 
       content = (
+
         <LoadingCard
           text="Checking editor access…"
         />
@@ -1251,6 +1336,7 @@ export default function SecureApp() {
 
         <AccountPage
           intent="admin"
+
           onBack={() =>
             setActive(
               'home'
@@ -1286,7 +1372,6 @@ export default function SecureApp() {
                 item
               );
 
-
               setActive(
                 'current'
               );
@@ -1298,6 +1383,11 @@ export default function SecureApp() {
   }
 
 
+  /*
+   * =========================================
+   * APP
+   * =========================================
+   */
   return (
 
     <IonApp>
@@ -1306,11 +1396,14 @@ export default function SecureApp() {
         active={
           active
         }
+
         onNavigate={
           navigateMain
         }
       >
+
         {content}
+
       </Shell>
 
     </IonApp>
