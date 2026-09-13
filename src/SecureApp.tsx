@@ -503,13 +503,16 @@ export default function SecureApp() {
     );
 
 
-  const [
-    articles,
-    setArticles
-  ] =
-    useState<CurrentAffair[]>(
-      initialCurrentAffairs
-    );
+ const [
+  articles,
+  setArticles
+] =
+  useState<CurrentAffair[]>(
+    () =>
+      supabase
+        ? []
+        : initialCurrentAffairs
+  );
 
 
   const [
