@@ -1,6 +1,4 @@
 import {
-  useEffect,
-  useMemo,
   useState
 } from 'react';
 
@@ -10,11 +8,15 @@ import {
 
 import {
   arrowForwardOutline,
+  bookOutline,
+  calendarOutline,
   checkmarkCircle,
+  chevronDownOutline,
+  chevronUpOutline,
   ellipseOutline,
-  flameOutline,
-  statsChartOutline,
-  trophyOutline
+  newspaperOutline,
+  schoolOutline,
+  statsChartOutline
 } from 'ionicons/icons';
 
 import type {
@@ -30,46 +32,25 @@ import {
 } from '../components/TopBar';
 
 import {
-  HomeSyllabusSnapshot
-} from '../components/HomeSyllabusSnapshot';
-
-import {
-  HomeBookProgressSnapshot
-} from '../components/HomeBookProgressSnapshot';
-
-import {
-  RevisionDueToday
-} from '../components/RevisionDueToday';
-
-import {
-  HomeRevisionWeekPreview
-} from '../components/HomeRevisionWeekPreview';
-
-import {
   TodayTimeStudyPlan
 } from '../components/TodayTimeStudyPlan';
 
 import {
-  supabase
-} from '../lib/supabase';
-
-
-type AttemptStatRow = {
-  score_percent:
-    number |
-    string |
-    null;
-
-  completed_at:
-    string |
-    null;
-};
+  RevisionDueToday
+} from '../components/RevisionDueToday';
 
 
 type HomeLearnMode =
   | 'syllabus'
   | 'resources'
   | 'book-progress';
+
+
+type HomePanel =
+  | 'none'
+  | 'schedule'
+  | 'revision'
+  | 'subjects';
 
 
 type HomePageProps = {
@@ -102,214 +83,12 @@ type HomePageProps = {
 
 /*
  * =========================================
- * SAFE NUMBER
- * =========================================
- */
-
-function safeNumber(
-  value:
-    number |
-    string |
-    null |
-    undefined
-) {
-
-  const number =
-    Number(
-      value
-    );
-
-
-  return Number.isFinite(
-    number
-  )
-    ? number
-    : 0;
-}
-
-
-/*
- * =========================================
- * LOCAL DATE KEY
- * =========================================
- */
-
-function localDateKey(
-  date:
-    Date
-) {
-
-  const year =
-    date.getFullYear();
-
-
-  const month =
-    String(
-      date.getMonth() +
-      1
-    ).padStart(
-      2,
-      '0'
-    );
-
-
-  const day =
-    String(
-      date.getDate()
-    ).padStart(
-      2,
-      '0'
-    );
-
-
-  return (
-    `${year}-${month}-${day}`
-  );
-}
-
-
-/*
- * =========================================
- * PRACTICE STREAK
- * =========================================
- */
-
-function calculateStreak(
-  attempts:
-    AttemptStatRow[]
-) {
-
-  const dateSet =
-    new Set<string>();
-
-
-  attempts.forEach(
-    attempt => {
-
-      if (
-        !attempt.completed_at
-      ) {
-
-        return;
-      }
-
-
-      const date =
-        new Date(
-          attempt.completed_at
-        );
-
-
-      if (
-        Number.isNaN(
-          date.getTime()
-        )
-      ) {
-
-        return;
-      }
-
-
-      dateSet.add(
-        localDateKey(
-          date
-        )
-      );
-    }
-  );
-
-
-  if (
-    dateSet.size ===
-    0
-  ) {
-
-    return 0;
-  }
-
-
-  const today =
-    new Date();
-
-
-  const yesterday =
-    new Date(
-      today
-    );
-
-
-  yesterday.setDate(
-    yesterday.getDate() -
-    1
-  );
-
-
-  let cursor:
-    Date;
-
-
-  if (
-    dateSet.has(
-      localDateKey(
-        today
-      )
-    )
-  ) {
-
-    cursor =
-      new Date(
-        today
-      );
-
-  } else if (
-    dateSet.has(
-      localDateKey(
-        yesterday
-      )
-    )
-  ) {
-
-    cursor =
-      new Date(
-        yesterday
-      );
-
-  } else {
-
-    return 0;
-  }
-
-
-  let streak =
-    0;
-
-
-  while (
-    dateSet.has(
-      localDateKey(
-        cursor
-      )
-    )
-  ) {
-
-    streak +=
-      1;
-
-
-    cursor.setDate(
-      cursor.getDate() -
-      1
-    );
-  }
-
-
-  return streak;
-}
-
-
-/*
- * =========================================
  * HOME PAGE
+ *
+ * Purpose:
+ * Keep the home screen short, calm and
+ * action-focused. Detailed information lives
+ * inside the proper Learn / Practice sections.
  * =========================================
  */
 
@@ -323,11 +102,14 @@ export function HomePage({
 
 }: HomePageProps) {
 
-  /*
-   * =========================================
-   * DAILY PLAN
-   * =========================================
-   */
+  const [
+    openPanel,
+    setOpenPanel
+  ] =
+    useState<HomePanel>(
+      'none'
+    );
+
 
   const completed =
     tasks.filter(
@@ -338,7 +120,7 @@ export function HomePage({
 
   const taskPct =
     tasks.length >
-    0
+      0
       ? Math.round(
           (
             completed /
@@ -349,528 +131,6 @@ export function HomePage({
       : 0;
 
 
-  /*
-   * =========================================
-   * PRELIMS PERFORMANCE
-   * =========================================
-   */
-
-  const [
-    attempts,
-    setAttempts
-  ] =
-    useState<
-      AttemptStatRow[]
-    >([]);
-
-
-  const [
-    totalAttempts,
-    setTotalAttempts
-  ] =
-    useState(
-      0
-    );
-
-
-  const [
-    statsLoading,
-    setStatsLoading
-  ] =
-    useState(
-      true
-    );
-
-
-  const [
-    signedIn,
-    setSignedIn
-  ] =
-    useState(
-      false
-    );
-
-
-  /*
-   * =========================================
-   * LOAD HOME PERFORMANCE
-   * =========================================
-   */
-
-  useEffect(
-    () => {
-
-      let active =
-        true;
-
-
-      async function loadHomeStats() {
-
-        const client =
-          supabase;
-
-
-        if (!client) {
-
-          if (
-            active
-          ) {
-
-            setStatsLoading(
-              false
-            );
-          }
-
-
-          return;
-        }
-
-
-        if (
-          active
-        ) {
-
-          setStatsLoading(
-            true
-          );
-        }
-
-
-        /*
-         * CURRENT USER
-         */
-
-        const {
-          data: {
-            user
-          }
-        } =
-          await client
-            .auth
-            .getUser();
-
-
-        if (
-          !active
-        ) {
-
-          return;
-        }
-
-
-        if (!user) {
-
-          setSignedIn(
-            false
-          );
-
-
-          setAttempts(
-            []
-          );
-
-
-          setTotalAttempts(
-            0
-          );
-
-
-          setStatsLoading(
-            false
-          );
-
-
-          return;
-        }
-
-
-        setSignedIn(
-          true
-        );
-
-
-        /*
-         * TOTAL PRELIMS SESSIONS
-         */
-
-        const [
-          practiceCountResult,
-          testCountResult
-        ] =
-          await Promise.all([
-
-            client
-              .from(
-                'practice_attempts'
-              )
-              .select(
-                'id',
-                {
-                  count:
-                    'exact',
-
-                  head:
-                    true
-                }
-              )
-              .eq(
-                'user_id',
-                user.id
-              )
-              .not(
-                'completed_at',
-                'is',
-                null
-              ),
-
-            client
-              .from(
-                'test_attempts'
-              )
-              .select(
-                'id',
-                {
-                  count:
-                    'exact',
-
-                  head:
-                    true
-                }
-              )
-              .eq(
-                'user_id',
-                user.id
-              )
-              .not(
-                'completed_at',
-                'is',
-                null
-              )
-
-          ]);
-
-
-        if (
-          !active
-        ) {
-
-          return;
-        }
-
-
-        if (
-          practiceCountResult.error
-        ) {
-
-          console.error(
-            'Unable to count Prelims practice attempts:',
-            practiceCountResult.error
-          );
-        }
-
-
-        if (
-          testCountResult.error
-        ) {
-
-          console.error(
-            'Unable to count Test Series attempts:',
-            testCountResult.error
-          );
-        }
-
-
-        setTotalAttempts(
-          (
-            practiceCountResult.count ||
-            0
-          ) +
-          (
-            testCountResult.count ||
-            0
-          )
-        );
-
-
-        /*
-         * LOAD RECENT PERFORMANCE
-         */
-
-        const [
-          practiceResult,
-          testResult
-        ] =
-          await Promise.all([
-
-            client
-              .from(
-                'practice_attempts'
-              )
-              .select(
-                `
-                score_percent,
-                completed_at
-                `
-              )
-              .eq(
-                'user_id',
-                user.id
-              )
-              .not(
-                'completed_at',
-                'is',
-                null
-              )
-              .order(
-                'completed_at',
-                {
-                  ascending:
-                    false
-                }
-              )
-              .limit(
-                200
-              ),
-
-            client
-              .from(
-                'test_attempts'
-              )
-              .select(
-                `
-                score,
-                completed_at
-                `
-              )
-              .eq(
-                'user_id',
-                user.id
-              )
-              .not(
-                'completed_at',
-                'is',
-                null
-              )
-              .order(
-                'completed_at',
-                {
-                  ascending:
-                    false
-                }
-              )
-              .limit(
-                200
-              )
-
-          ]);
-
-
-        if (
-          !active
-        ) {
-
-          return;
-        }
-
-
-        if (
-          practiceResult.error
-        ) {
-
-          console.error(
-            'Unable to load Prelims practice stats:',
-            practiceResult.error
-          );
-        }
-
-
-        if (
-          testResult.error
-        ) {
-
-          console.error(
-            'Unable to load Test Series stats:',
-            testResult.error
-          );
-        }
-
-
-        const practiceRows:
-          AttemptStatRow[] =
-            (
-              practiceResult.data ||
-              []
-            ).map(
-              item => ({
-
-                score_percent:
-                  item.score_percent,
-
-                completed_at:
-                  item.completed_at
-
-              })
-            );
-
-
-        const testRows:
-          AttemptStatRow[] =
-            (
-              testResult.data ||
-              []
-            ).map(
-              item => ({
-
-                score_percent:
-                  item.score,
-
-                completed_at:
-                  item.completed_at
-
-              })
-            );
-
-
-        const combinedAttempts =
-          [
-            ...practiceRows,
-            ...testRows
-          ]
-            .sort(
-              (
-                first,
-                second
-              ) => {
-
-                const firstTime =
-                  first.completed_at
-                    ? new Date(
-                        first.completed_at
-                      ).getTime()
-                    : 0;
-
-
-                const secondTime =
-                  second.completed_at
-                    ? new Date(
-                        second.completed_at
-                      ).getTime()
-                    : 0;
-
-
-                return (
-                  secondTime -
-                  firstTime
-                );
-              }
-            )
-            .slice(
-              0,
-              200
-            );
-
-
-        setAttempts(
-          combinedAttempts
-        );
-
-
-        setStatsLoading(
-          false
-        );
-      }
-
-
-      void loadHomeStats();
-
-
-      return () => {
-
-        active =
-          false;
-      };
-
-    },
-    []
-  );
-
-
-  /*
-   * =========================================
-   * LAST FIVE SESSION AVERAGE
-   * =========================================
-   */
-
-  const recentAverage =
-    useMemo(
-      () => {
-
-        const recent =
-          attempts.slice(
-            0,
-            5
-          );
-
-
-        if (
-          recent.length ===
-          0
-        ) {
-
-          return 0;
-        }
-
-
-        const total =
-          recent.reduce(
-            (
-              sum,
-              attempt
-            ) =>
-              sum +
-              safeNumber(
-                attempt.score_percent
-              ),
-            0
-          );
-
-
-        return Math.round(
-          total /
-          recent.length
-        );
-
-      },
-      [
-        attempts
-      ]
-    );
-
-
-  /*
-   * =========================================
-   * PRACTICE STREAK
-   * =========================================
-   */
-
-  const currentStreak =
-    useMemo(
-      () =>
-        calculateStreak(
-          attempts
-        ),
-      [
-        attempts
-      ]
-    );
-
-
-  /*
-   * =========================================
-   * DAILY PLAN TOGGLE
-   * =========================================
-   */
-
   function toggleTask(
     id:
       string
@@ -879,28 +139,105 @@ export function HomePage({
     setTasks(
       tasks.map(
         task =>
-
           task.id ===
-          id
-
+            id
             ? {
                 ...task,
-
                 done:
                   !task.done
               }
-
             : task
       )
     );
   }
 
 
-  /*
-   * =========================================
-   * PAGE
-   * =========================================
-   */
+  function togglePanel(
+    panel:
+      Exclude<
+        HomePanel,
+        'none'
+      >
+  ) {
+
+    setOpenPanel(
+      current =>
+        current ===
+          panel
+          ? 'none'
+          : panel
+    );
+  }
+
+
+  const quickCardStyle = {
+    width:
+      '100%',
+
+    minWidth:
+      0,
+
+    minHeight:
+      '86px',
+
+    padding:
+      '14px',
+
+    border:
+      '1px solid rgba(255,255,255,.08)',
+
+    borderRadius:
+      '16px',
+
+    background:
+      'rgba(255,255,255,.035)',
+
+    color:
+      '#f8fafc',
+
+    textAlign:
+      'left' as const,
+
+    display:
+      'flex',
+
+    flexDirection:
+      'column' as const,
+
+    justifyContent:
+      'space-between',
+
+    gap:
+      '10px',
+
+    whiteSpace:
+      'normal' as const
+  };
+
+
+  const toolButtonStyle = {
+    minHeight:
+      '46px',
+
+    width:
+      '100%',
+
+    minWidth:
+      0,
+
+    padding:
+      '10px 11px',
+
+    whiteSpace:
+      'normal' as const,
+
+    textAlign:
+      'center' as const,
+
+    lineHeight:
+      1.2
+  };
+
 
   return (
 
@@ -916,17 +253,31 @@ export function HomePage({
 
         title="UPSC Study Hub"
 
-        subtitle="Preparation that moves with you"
+        subtitle="Your preparation dashboard"
 
       />
 
 
       {/* =====================================
-          TODAY'S FOCUS
+          COMPACT TODAY CARD
       ===================================== */}
 
       <section
         className="hero-card"
+
+        style={{
+          padding:
+            '18px',
+
+          marginTop:
+            '4px',
+
+          gridTemplateColumns:
+            '1fr auto',
+
+          gap:
+            '14px'
+        }}
       >
 
         <div>
@@ -934,19 +285,32 @@ export function HomePage({
           <span
             className="eyebrow"
           >
-            TODAY'S FOCUS
+            TODAY
           </span>
 
 
-          <h2>
-            Small steps. Strong preparation.
+          <h2
+            style={{
+              margin:
+                '6px 0 7px',
+
+              fontSize:
+                'clamp(1.35rem, 5vw, 2rem)'
+            }}
+          >
+            Focus on the next useful step.
           </h2>
 
 
-          <p>
-            Finish the essential work first.
-            Your consistency matters more
-            than a crowded timetable.
+          <p
+            style={{
+              margin:
+                '0 0 10px'
+            }}
+          >
+            {completed}/{tasks.length}
+            {' '}
+            daily essentials completed.
           </p>
 
 
@@ -958,16 +322,13 @@ export function HomePage({
               onGoCurrent
             }
           >
-
-            Start today's study
-
+            Start studying
 
             <IonIcon
               icon={
                 arrowForwardOutline
               }
             />
-
           </button>
 
         </div>
@@ -981,9 +342,8 @@ export function HomePage({
             {taskPct}%
           </strong>
 
-
           <span>
-            tasks
+            today
           </span>
 
         </div>
@@ -992,447 +352,251 @@ export function HomePage({
 
 
       {/* =====================================
-          TIME-BASED TODAY STUDY PLAN
+          QUICK ACTIONS
       ===================================== */}
 
-      <div
+      <section
         style={{
+          display:
+            'grid',
+
+          gridTemplateColumns:
+            'repeat(2, minmax(0, 1fr))',
+
+          gap:
+            '10px',
+
           marginTop:
-            '18px'
+            '14px'
         }}
       >
 
-        <TodayTimeStudyPlan
+        <button
+          type="button"
 
-          tasks={
-            tasks
+          style={
+            quickCardStyle
           }
 
-          setTasks={
-            setTasks
-          }
-
-          onOpenCurrent={
+          onClick={
             onGoCurrent
           }
+        >
 
-          onOpenPractice={
+          <IonIcon
+            icon={
+              newspaperOutline
+            }
+
+            style={{
+              fontSize:
+                '1.4rem',
+
+              color:
+                '#5eead4'
+            }}
+          />
+
+          <span>
+
+            <strong
+              style={{
+                display:
+                  'block'
+              }}
+            >
+              Current Affairs
+            </strong>
+
+            <small
+              style={{
+                color:
+                  '#94a3b8'
+              }}
+            >
+              Read today's analysis
+            </small>
+
+          </span>
+
+        </button>
+
+
+        <button
+          type="button"
+
+          style={
+            quickCardStyle
+          }
+
+          onClick={
             onGoPractice
           }
+        >
 
-          onOpenBookProgress={() =>
-            onGoLearn(
-              null,
-              'book-progress'
-            )
+          <IonIcon
+            icon={
+              statsChartOutline
+            }
+
+            style={{
+              fontSize:
+                '1.4rem',
+
+              color:
+                '#5eead4'
+            }}
+          />
+
+          <span>
+
+            <strong
+              style={{
+                display:
+                  'block'
+              }}
+            >
+              Practice
+            </strong>
+
+            <small
+              style={{
+                color:
+                  '#94a3b8'
+              }}
+            >
+              MCQ and test series
+            </small>
+
+          </span>
+
+        </button>
+
+
+        <button
+          type="button"
+
+          style={
+            quickCardStyle
           }
 
-        />
-
-      </div>
-
-
-      {/* =====================================
-          PERFORMANCE METRICS
-      ===================================== */}
-
-      <section
-        className="metrics-grid"
-      >
-
-        {/* AVERAGE SCORE */}
-
-        <article
-          className="metric-card"
-        >
-
-          <div
-            className="metric-icon"
-          >
-
-            <IonIcon
-              icon={
-                statsChartOutline
-              }
-            />
-
-          </div>
-
-
-          <div>
-
-            <span>
-              Average score
-            </span>
-
-
-            <strong>
-
-              {
-                statsLoading
-                  ? '...'
-
-                  : signedIn &&
-                    attempts.length >
-                      0
-                  ? `${recentAverage}%`
-
-                  : '—'
-              }
-
-            </strong>
-
-
-            <small>
-
-              {
-                signedIn
-                  ? attempts.length >
-                    0
-                    ? `Last ${Math.min(
-                        5,
-                        attempts.length
-                      )} sessions`
-
-                    : 'Complete your first practice'
-
-                  : 'Sign in to track'
-              }
-
-            </small>
-
-          </div>
-
-        </article>
-
-
-        {/* PRELIMS SESSIONS */}
-
-        <article
-          className="metric-card"
-        >
-
-          <div
-            className="metric-icon coral"
-          >
-
-            <IonIcon
-              icon={
-                trophyOutline
-              }
-            />
-
-          </div>
-
-
-          <div>
-
-            <span>
-              Prelims sessions
-            </span>
-
-
-            <strong>
-
-              {
-                statsLoading
-                  ? '...'
-
-                  : signedIn
-                  ? totalAttempts
-
-                  : '—'
-              }
-
-            </strong>
-
-
-            <small>
-
-              {
-                signedIn
-                  ? totalAttempts ===
-                    1
-                    ? '1 session completed'
-
-                    : `${totalAttempts} sessions completed`
-
-                  : 'Sign in to track'
-              }
-
-            </small>
-
-          </div>
-
-        </article>
-
-
-        {/* PRACTICE STREAK */}
-
-        <article
-          className="metric-card"
-        >
-
-          <div
-            className="metric-icon amber"
-          >
-
-            <IonIcon
-              icon={
-                flameOutline
-              }
-            />
-
-          </div>
-
-
-          <div>
-
-            <span>
-              Practice streak
-            </span>
-
-
-            <strong>
-
-              {
-                statsLoading
-                  ? '...'
-
-                  : signedIn
-                  ? `${currentStreak} ${
-                      currentStreak ===
-                      1
-                        ? 'day'
-                        : 'days'
-                    }`
-
-                  : '—'
-              }
-
-            </strong>
-
-
-            <small>
-
-              {
-                signedIn
-                  ? currentStreak >
-                    0
-                    ? 'Keep the momentum going'
-
-                    : 'Practise today to start a streak'
-
-                  : 'Sign in to track'
-              }
-
-            </small>
-
-          </div>
-
-        </article>
-
-      </section>
-
-
-      {/* =====================================
-          DAILY PLAN + STUDY PROGRESS
-      ===================================== */}
-
-      <section
-        className="content-grid"
-
-        style={{
-          gridTemplateColumns:
-            'repeat(auto-fit, minmax(280px, 1fr))'
-        }}
-      >
-
-        {/* DAILY PLAN */}
-
-        <article
-          className="panel"
-        >
-
-          <div
-            className="panel-head"
-          >
-
-            <div>
-
-              <span
-                className="eyebrow"
-              >
-                DAILY PLAN
-              </span>
-
-
-              <h3>
-                Complete your essentials
-              </h3>
-
-            </div>
-
-
-            <span
-              className="pill"
-            >
-              {completed}/{tasks.length}
-            </span>
-
-          </div>
-
-
-          <div
-            className="task-list"
-          >
-
-            {tasks.map(
-              task => (
-
-                <button
-                  type="button"
-
-                  className={
-                    task.done
-                      ? 'task done'
-                      : 'task'
-                  }
-
-                  key={
-                    task.id
-                  }
-
-                  onClick={() =>
-                    toggleTask(
-                      task.id
-                    )
-                  }
-                >
-
-                  <IonIcon
-                    icon={
-                      task.done
-                        ? checkmarkCircle
-                        : ellipseOutline
-                    }
-                  />
-
-
-                  <span>
-                    {task.label}
-                  </span>
-
-                </button>
-
-              )
-            )}
-
-          </div>
-
-
-          <div
-            className="progress-track"
-          >
-
-            <span
-              style={{
-                width:
-                  `${taskPct}%`
-              }}
-            />
-
-          </div>
-
-        </article>
-
-
-        {/* LIVE SYLLABUS */}
-
-        <HomeSyllabusSnapshot
-
-          onOpenSyllabus={() =>
+          onClick={() =>
             onGoLearn(
               null,
               'syllabus'
             )
           }
+        >
 
-        />
+          <IonIcon
+            icon={
+              schoolOutline
+            }
+
+            style={{
+              fontSize:
+                '1.4rem',
+
+              color:
+                '#5eead4'
+            }}
+          />
+
+          <span>
+
+            <strong
+              style={{
+                display:
+                  'block'
+              }}
+            >
+              Syllabus
+            </strong>
+
+            <small
+              style={{
+                color:
+                  '#94a3b8'
+              }}
+            >
+              Continue your tracker
+            </small>
+
+          </span>
+
+        </button>
 
 
-        {/* BOOK PROGRESS */}
+        <button
+          type="button"
 
-        <HomeBookProgressSnapshot
+          style={
+            quickCardStyle
+          }
 
-          onOpenTracker={() =>
+          onClick={() =>
             onGoLearn(
               null,
               'book-progress'
             )
           }
+        >
 
-        />
+          <IonIcon
+            icon={
+              bookOutline
+            }
+
+            style={{
+              fontSize:
+                '1.4rem',
+
+              color:
+                '#5eead4'
+            }}
+          />
+
+          <span>
+
+            <strong
+              style={{
+                display:
+                  'block'
+              }}
+            >
+              My Books
+            </strong>
+
+            <small
+              style={{
+                color:
+                  '#94a3b8'
+              }}
+            >
+              Reading and revision
+            </small>
+
+          </span>
+
+        </button>
 
       </section>
 
 
       {/* =====================================
-          REVISION DUE TODAY
-      ===================================== */}
-
-      <div
-        style={{
-          marginTop:
-            '18px'
-        }}
-      >
-
-        <RevisionDueToday
-
-          onOpenTracker={() =>
-            onGoLearn(
-              null,
-              'book-progress'
-            )
-          }
-
-        />
-
-      </div>
-
-
-      {/* =====================================
-          WEEKLY REVISION PREVIEW
-      ===================================== */}
-
-      <div
-        style={{
-          marginTop:
-            '18px'
-        }}
-      >
-
-        <HomeRevisionWeekPreview
-
-          onOpenCalendar={() =>
-            onGoLearn(
-              null,
-              'book-progress'
-            )
-          }
-
-        />
-
-      </div>
-
-
-      {/* =====================================
-          QUICK STUDY
+          DAILY ESSENTIALS
       ===================================== */}
 
       <section
         className="panel"
+
+        style={{
+          marginTop:
+            '14px',
+
+          padding:
+            '16px'
+        }}
       >
 
         <div
@@ -1444,72 +608,79 @@ export function HomePage({
             <span
               className="eyebrow"
             >
-              QUICK STUDY
+              DAILY ESSENTIALS
             </span>
 
-
-            <h3>
-              Continue by subject
+            <h3
+              style={{
+                marginBottom:
+                  '4px'
+              }}
+            >
+              Today's checklist
             </h3>
 
           </div>
 
 
-          <button
-            type="button"
-            className="text-btn"
-
-            onClick={() =>
-              onGoLearn(
-                null,
-                'syllabus'
-              )
-            }
+          <span
+            className="pill"
           >
-            View all
-          </button>
+            {completed}/{tasks.length}
+          </span>
 
         </div>
 
 
         <div
-          className="subject-grid"
+          className="task-list"
+
+          style={{
+            margin:
+              '12px 0 10px'
+          }}
         >
 
-          {subjects.map(
-            subject => (
+          {tasks.map(
+            task => (
 
               <button
                 type="button"
-                className="subject-tile"
+
+                className={
+                  task.done
+                    ? 'task done'
+                    : 'task'
+                }
 
                 key={
-                  subject.name
+                  task.id
                 }
 
                 onClick={() =>
-                  onGoLearn(
-                    subject.name,
-                    'syllabus'
+                  toggleTask(
+                    task.id
                   )
                 }
+
+                style={{
+                  padding:
+                    '10px 11px'
+                }}
               >
 
-                <span
-                  className="subject-emoji"
-                >
-                  {subject.icon}
+                <IonIcon
+                  icon={
+                    task.done
+                      ? checkmarkCircle
+                      : ellipseOutline
+                  }
+                />
+
+
+                <span>
+                  {task.label}
                 </span>
-
-
-                <strong>
-                  {subject.name}
-                </strong>
-
-
-                <small>
-                  Open syllabus
-                </small>
 
               </button>
 
@@ -1518,51 +689,473 @@ export function HomePage({
 
         </div>
 
+
+        <div
+          className="progress-track"
+        >
+
+          <span
+            style={{
+              width:
+                `${taskPct}%`
+            }}
+          />
+
+        </div>
+
       </section>
 
 
       {/* =====================================
-          DAILY PRELIMS PRACTICE
+          OPTIONAL TOOLS
       ===================================== */}
 
       <section
-        className="test-banner"
+        className="panel"
+
+        style={{
+          marginTop:
+            '14px',
+
+          padding:
+            '16px'
+        }}
       >
 
-        <div>
+        <div
+          className="panel-head"
 
-          <span
-            className="eyebrow"
-          >
-            PRACTICE
-          </span>
+          style={{
+            alignItems:
+              'center'
+          }}
+        >
 
+          <div>
 
-          <h3>
-            Daily Prelims practice
-          </h3>
+            <span
+              className="eyebrow"
+            >
+              MORE
+            </span>
 
+            <h3
+              style={{
+                marginBottom:
+                  '2px'
+              }}
+            >
+              Open only when needed
+            </h3>
 
-          <p>
-            Short enough to finish.
-            Useful enough to learn from.
-          </p>
+          </div>
 
         </div>
 
 
-        <button
-          type="button"
-          className="primary-btn"
+        <div
+          style={{
+            display:
+              'grid',
 
-          onClick={
-            onGoPractice
-          }
+            gridTemplateColumns:
+              'repeat(3, minmax(0, 1fr))',
+
+            gap:
+              '8px',
+
+            marginTop:
+              '12px'
+          }}
         >
-          Start practice
-        </button>
+
+          <button
+            type="button"
+
+            className={
+              openPanel ===
+                'schedule'
+                ? 'primary-btn'
+                : 'secondary-btn'
+            }
+
+            style={
+              toolButtonStyle
+            }
+
+            onClick={() =>
+              togglePanel(
+                'schedule'
+              )
+            }
+          >
+            Schedule
+          </button>
+
+
+          <button
+            type="button"
+
+            className={
+              openPanel ===
+                'revision'
+                ? 'primary-btn'
+                : 'secondary-btn'
+            }
+
+            style={
+              toolButtonStyle
+            }
+
+            onClick={() =>
+              togglePanel(
+                'revision'
+              )
+            }
+          >
+            Revisions
+          </button>
+
+
+          <button
+            type="button"
+
+            className={
+              openPanel ===
+                'subjects'
+                ? 'primary-btn'
+                : 'secondary-btn'
+            }
+
+            style={
+              toolButtonStyle
+            }
+
+            onClick={() =>
+              togglePanel(
+                'subjects'
+              )
+            }
+          >
+            Subjects
+          </button>
+
+        </div>
+
+
+        {openPanel !==
+          'none' && (
+
+          <button
+            type="button"
+
+            className="text-btn"
+
+            onClick={() =>
+              setOpenPanel(
+                'none'
+              )
+            }
+
+            style={{
+              width:
+                '100%',
+
+              marginTop:
+                '8px',
+
+              display:
+                'flex',
+
+              alignItems:
+                'center',
+
+              justifyContent:
+                'center',
+
+              gap:
+                '5px'
+            }}
+          >
+
+            Collapse
+
+            <IonIcon
+              icon={
+                chevronUpOutline
+              }
+            />
+
+          </button>
+
+        )}
+
+
+        {openPanel ===
+          'none' && (
+
+          <div
+            style={{
+              marginTop:
+                '9px',
+
+              textAlign:
+                'center',
+
+              color:
+                '#64748b',
+
+              fontSize:
+                '.75rem'
+            }}
+          >
+
+            Tap a tool to expand it here.
+
+            <IonIcon
+              icon={
+                chevronDownOutline
+              }
+
+              style={{
+                marginLeft:
+                  '4px'
+              }}
+            />
+
+          </div>
+
+        )}
 
       </section>
+
+
+      {/* =====================================
+          OPTIONAL: SCHEDULE
+      ===================================== */}
+
+      {openPanel ===
+        'schedule' && (
+
+        <div
+          style={{
+            marginTop:
+              '12px'
+          }}
+        >
+
+          <TodayTimeStudyPlan
+
+            tasks={
+              tasks
+            }
+
+            setTasks={
+              setTasks
+            }
+
+            onOpenCurrent={
+              onGoCurrent
+            }
+
+            onOpenPractice={
+              onGoPractice
+            }
+
+            onOpenBookProgress={() =>
+              onGoLearn(
+                null,
+                'book-progress'
+              )
+            }
+
+          />
+
+        </div>
+
+      )}
+
+
+      {/* =====================================
+          OPTIONAL: REVISION DUE
+      ===================================== */}
+
+      {openPanel ===
+        'revision' && (
+
+        <div
+          style={{
+            marginTop:
+              '12px'
+          }}
+        >
+
+          <RevisionDueToday
+
+            onOpenTracker={() =>
+              onGoLearn(
+                null,
+                'book-progress'
+              )
+            }
+
+          />
+
+        </div>
+
+      )}
+
+
+      {/* =====================================
+          OPTIONAL: SUBJECTS
+      ===================================== */}
+
+      {openPanel ===
+        'subjects' && (
+
+        <section
+          className="panel"
+
+          style={{
+            marginTop:
+              '12px',
+
+            padding:
+              '16px'
+          }}
+        >
+
+          <div
+            className="panel-head"
+          >
+
+            <div>
+
+              <span
+                className="eyebrow"
+              >
+                SUBJECTS
+              </span>
+
+              <h3>
+                Open syllabus by subject
+              </h3>
+
+            </div>
+
+          </div>
+
+
+          <div
+            className="subject-grid"
+
+            style={{
+              marginTop:
+                '10px'
+            }}
+          >
+
+            {subjects.map(
+              subject => (
+
+                <button
+                  type="button"
+
+                  className="subject-tile"
+
+                  key={
+                    subject.name
+                  }
+
+                  onClick={() =>
+                    onGoLearn(
+                      subject.name,
+                      'syllabus'
+                    )
+                  }
+                >
+
+                  <span
+                    className="subject-emoji"
+                  >
+                    {subject.icon}
+                  </span>
+
+                  <strong>
+                    {subject.name}
+                  </strong>
+
+                  <small>
+                    Open
+                  </small>
+
+                </button>
+
+              )
+            )}
+
+          </div>
+
+        </section>
+
+      )}
+
+
+      {/* =====================================
+          BOTTOM QUICK CTA
+      ===================================== */}
+
+      <button
+        type="button"
+
+        className="secondary-btn"
+
+        onClick={() =>
+          togglePanel(
+            'schedule'
+          )
+        }
+
+        style={{
+          width:
+            '100%',
+
+          marginTop:
+            '14px',
+
+          marginBottom:
+            '8px',
+
+          minHeight:
+            '46px',
+
+          justifyContent:
+            'center',
+
+          whiteSpace:
+            'normal'
+        }}
+      >
+
+        <IonIcon
+          icon={
+            calendarOutline
+          }
+
+          style={{
+            marginRight:
+              '6px'
+          }}
+        />
+
+        {
+          openPanel ===
+            'schedule'
+            ? 'Hide today’s schedule'
+            : 'View today’s full schedule'
+        }
+
+      </button>
 
     </div>
 
