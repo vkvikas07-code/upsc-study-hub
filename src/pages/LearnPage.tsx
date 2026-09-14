@@ -32,23 +32,13 @@ type ProgressRow = {
 };
 
 
-type SubjectGroup = {
-  subject: string;
-  topics: SyllabusTopic[];
-  progress: number;
-};
-
-
 type LearnPageProps = {
-  initialSubject?:
-    string |
-    null;
+  initialSubject?: string | null;
 };
 
 
 function clampProgress(
-  value:
-    number
+  value: number
 ) {
 
   if (
@@ -56,14 +46,11 @@ function clampProgress(
       value
     )
   ) {
-
     return 0;
   }
 
-
   return Math.min(
     100,
-
     Math.max(
       0,
       Math.round(
@@ -74,98 +61,36 @@ function clampProgress(
 }
 
 
-function getProgressLabel(
-  value:
-    number
+function average(
+  values: number[]
 ) {
 
   if (
-    value >=
-    100
-  ) {
-
-    return 'Completed';
-  }
-
-
-  if (
-    value >=
-    75
-  ) {
-
-    return 'Revision';
-  }
-
-
-  if (
-    value >=
-    50
-  ) {
-
-    return 'Studied';
-  }
-
-
-  if (
-    value >
+    values.length ===
     0
   ) {
-
-    return 'Started';
-  }
-
-
-  return 'Not started';
-}
-
-
-function calculateAverage(
-  topics:
-    SyllabusTopic[],
-
-  progressMap:
-    Record<
-      string,
-      number
-    >
-) {
-
-  if (
-    topics.length ===
-    0
-  ) {
-
     return 0;
   }
 
-
   const total =
-    topics.reduce(
+    values.reduce(
       (
         sum,
-        topic
+        value
       ) =>
-        sum +
-        (
-          progressMap[
-            topic.id
-          ] ||
-          0
-        ),
+        sum + value,
       0
     );
 
-
   return Math.round(
     total /
-    topics.length
+    values.length
   );
 }
 
 
 export function LearnPage({
-  initialSubject =
-    null
+  initialSubject = null
 }: LearnPageProps) {
 
   const [
@@ -176,20 +101,17 @@ export function LearnPage({
       true
     );
 
-
   const [
     error,
     setError
   ] =
     useState('');
 
-
   const [
     message,
     setMessage
   ] =
     useState('');
-
 
   const [
     topics,
@@ -198,7 +120,6 @@ export function LearnPage({
     useState<
       SyllabusTopic[]
     >([]);
-
 
   const [
     progressMap,
@@ -211,7 +132,6 @@ export function LearnPage({
       >
     >({});
 
-
   const [
     userId,
     setUserId
@@ -223,7 +143,6 @@ export function LearnPage({
       null
     );
 
-
   const [
     signedIn,
     setSignedIn
@@ -232,6 +151,35 @@ export function LearnPage({
       false
     );
 
+  const [
+    stage,
+    setStage
+  ] =
+    useState<ExamStage>(
+      'prelims'
+    );
+
+  const [
+    expandedSubject,
+    setExpandedSubject
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
+
+  const [
+    expandedTopic,
+    setExpandedTopic
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
 
   const [
     savingTopicId,
@@ -245,61 +193,6 @@ export function LearnPage({
     );
 
 
-  const [
-    stage,
-    setStage
-  ] =
-    useState<ExamStage>(
-      'prelims'
-    );
-
-
-  const [
-    paperFilter,
-    setPaperFilter
-  ] =
-    useState(
-      'all'
-    );
-
-
-  const [
-    searchText,
-    setSearchText
-  ] =
-    useState('');
-
-
-  const [
-    filtersOpen,
-    setFiltersOpen
-  ] =
-    useState(
-      false
-    );
-
-
-  const [
-    expandedSubject,
-    setExpandedSubject
-  ] =
-    useState<
-      string |
-      null
-    >(
-      null
-    );
-
-
-  const [
-    showCompleted,
-    setShowCompleted
-  ] =
-    useState(
-      false
-    );
-
-
   async function loadSyllabus() {
 
     if (!supabase) {
@@ -308,11 +201,9 @@ export function LearnPage({
         'Supabase is not configured.'
       );
 
-
       setLoading(
         false
       );
-
 
       return;
     }
@@ -321,7 +212,6 @@ export function LearnPage({
     setLoading(
       true
     );
-
 
     setError('');
     setMessage('');
@@ -362,76 +252,69 @@ export function LearnPage({
       topicError
     ) {
 
-      console.error(
-        'Unable to load syllabus:',
-        topicError
-      );
-
-
       setError(
         topicError.message
       );
-
 
       setLoading(
         false
       );
 
-
       return;
     }
 
 
-    const cleanTopics =
-      (
-        topicData ||
-        []
-      ).map(
-        item => ({
+    const cleanTopics:
+      SyllabusTopic[] =
+        (
+          topicData ||
+          []
+        ).map(
+          item => ({
 
-          id:
-            String(
-              item.id
-            ),
+            id:
+              String(
+                item.id
+              ),
 
-          exam_stage:
-            item.exam_stage as
-              ExamStage,
+            exam_stage:
+              item.exam_stage as
+                ExamStage,
 
-          paper:
-            item.paper
-              ? String(
-                  item.paper
-                )
-              : null,
+            paper:
+              item.paper
+                ? String(
+                    item.paper
+                  )
+                : null,
 
-          subject:
-            String(
-              item.subject ||
-              'Other'
-            ),
+            subject:
+              String(
+                item.subject ||
+                'Other'
+              ),
 
-          topic:
-            String(
-              item.topic ||
-              ''
-            ),
+            topic:
+              String(
+                item.topic ||
+                ''
+              ),
 
-          parent_id:
-            item.parent_id
-              ? String(
-                  item.parent_id
-                )
-              : null,
+            parent_id:
+              item.parent_id
+                ? String(
+                    item.parent_id
+                  )
+                : null,
 
-          sort_order:
-            Number(
-              item.sort_order ||
-              0
-            )
+            sort_order:
+              Number(
+                item.sort_order ||
+                0
+              )
 
-        })
-      );
+          })
+        );
 
 
     setTopics(
@@ -455,21 +338,17 @@ export function LearnPage({
         false
       );
 
-
       setUserId(
         null
       );
-
 
       setProgressMap(
         {}
       );
 
-
       setLoading(
         false
       );
-
 
       return;
     }
@@ -478,7 +357,6 @@ export function LearnPage({
     setSignedIn(
       true
     );
-
 
     setUserId(
       user.id
@@ -513,37 +391,16 @@ export function LearnPage({
       progressError
     ) {
 
-      console.error(
-        'Unable to load syllabus progress:',
-        progressError
-      );
-
-
       setError(
         progressError.message
       );
-
-
-      setProgressMap(
-        {}
-      );
-
 
       setLoading(
         false
       );
 
-
       return;
     }
-
-
-    const rows =
-      (
-        progressData ||
-        []
-      ) as
-        ProgressRow[];
 
 
     const nextMap:
@@ -553,8 +410,15 @@ export function LearnPage({
       > = {};
 
 
-    rows.forEach(
-      row => {
+    (
+      progressData ||
+      []
+    ).forEach(
+      item => {
+
+        const row =
+          item as
+            ProgressRow;
 
         nextMap[
           row.topic_id
@@ -573,7 +437,6 @@ export function LearnPage({
     setProgressMap(
       nextMap
     );
-
 
     setLoading(
       false
@@ -602,25 +465,10 @@ export function LearnPage({
           'prelims'
         );
 
-
-        setSearchText(
+        setExpandedSubject(
           initialSubject
         );
-
-
-        setFiltersOpen(
-          true
-        );
-
-      } else {
-
-        setSearchText('');
       }
-
-
-      setPaperFilter(
-        'all'
-      );
 
     },
     [
@@ -632,18 +480,8 @@ export function LearnPage({
   useEffect(
     () => {
 
-      setPaperFilter(
-        'all'
-      );
-
-
-      setExpandedSubject(
+      setExpandedTopic(
         null
-      );
-
-
-      setShowCompleted(
-        false
       );
 
     },
@@ -654,11 +492,8 @@ export function LearnPage({
 
 
   async function saveProgress(
-    topicId:
-      string,
-
-    newValue:
-      number
+    topicId: string,
+    newValue: number
   ) {
 
     if (
@@ -667,9 +502,8 @@ export function LearnPage({
     ) {
 
       setMessage(
-        'Sign in to save your syllabus progress.'
+        'Sign in to save progress.'
       );
-
 
       return;
     }
@@ -691,10 +525,7 @@ export function LearnPage({
     setProgressMap(
       current => ({
         ...current,
-
-        [
-          topicId
-        ]:
+        [topicId]:
           value
       })
     );
@@ -703,9 +534,6 @@ export function LearnPage({
     setSavingTopicId(
       topicId
     );
-
-
-    setMessage('');
 
 
     const {
@@ -742,42 +570,29 @@ export function LearnPage({
       saveError
     ) {
 
-      console.error(
-        'Unable to save syllabus progress:',
-        saveError
-      );
-
-
       setProgressMap(
         current => ({
           ...current,
-
-          [
-            topicId
-          ]:
+          [topicId]:
             previousValue
         })
       );
-
 
       setMessage(
         `Unable to save: ${saveError.message}`
       );
 
-
       setSavingTopicId(
         null
       );
-
 
       return;
     }
 
 
     setMessage(
-      'Progress saved.'
+      `${value}% completed saved.`
     );
-
 
     setSavingTopicId(
       null
@@ -800,108 +615,8 @@ export function LearnPage({
     );
 
 
-  const paperOptions =
+  const childrenMap =
     useMemo(
-      () => {
-
-        const values =
-          new Set<string>();
-
-
-        stageTopics.forEach(
-          topic => {
-
-            values.add(
-              topic.paper ||
-              'Other'
-            );
-
-          }
-        );
-
-
-        return Array.from(
-          values
-        );
-
-      },
-      [
-        stageTopics
-      ]
-    );
-
-
-  const visibleTopics =
-    useMemo(
-      () => {
-
-        const query =
-          searchText
-            .trim()
-            .toLowerCase();
-
-
-        return stageTopics.filter(
-          topic => {
-
-            const paper =
-              topic.paper ||
-              'Other';
-
-
-            if (
-              paperFilter !==
-                'all' &&
-              paper !==
-                paperFilter
-            ) {
-
-              return false;
-            }
-
-
-            if (!query) {
-
-              return true;
-            }
-
-
-            return (
-              topic.subject
-                .toLowerCase()
-                .includes(
-                  query
-                ) ||
-
-              topic.topic
-                .toLowerCase()
-                .includes(
-                  query
-                ) ||
-
-              paper
-                .toLowerCase()
-                .includes(
-                  query
-                )
-            );
-
-          }
-        );
-
-      },
-      [
-        stageTopics,
-        paperFilter,
-        searchText
-      ]
-    );
-
-
-  const subjectGroups =
-    useMemo<
-      SubjectGroup[]
-    >(
       () => {
 
         const map =
@@ -911,12 +626,19 @@ export function LearnPage({
           >();
 
 
-        visibleTopics.forEach(
+        stageTopics.forEach(
           topic => {
+
+            if (
+              !topic.parent_id
+            ) {
+              return;
+            }
+
 
             const existing =
               map.get(
-                topic.subject
+                topic.parent_id
               ) ||
               [];
 
@@ -926,8 +648,18 @@ export function LearnPage({
             );
 
 
+            existing.sort(
+              (
+                first,
+                second
+              ) =>
+                first.sort_order -
+                second.sort_order
+            );
+
+
             map.set(
-              topic.subject,
+              topic.parent_id,
               existing
             );
 
@@ -935,129 +667,605 @@ export function LearnPage({
         );
 
 
-        return Array
-          .from(
-            map.entries()
-          )
-          .map(
-            (
-              [
-                subject,
-                subjectTopics
-              ]
-            ) => ({
-
-              subject,
-
-              topics:
-                subjectTopics,
-
-              progress:
-                calculateAverage(
-                  subjectTopics,
-                  progressMap
-                )
-
-            })
-          )
-          .sort(
-            (
-              first,
-              second
-            ) =>
-              first.subject
-                .localeCompare(
-                  second.subject
-                )
-          );
+        return map;
 
       },
       [
-        visibleTopics,
-        progressMap
+        stageTopics
       ]
     );
 
 
-  const overallProgress =
+  function getLeafIds(
+    topicId: string,
+    visited =
+      new Set<string>()
+  ):
+    string[] {
+
+    if (
+      visited.has(
+        topicId
+      )
+    ) {
+      return [];
+    }
+
+
+    const nextVisited =
+      new Set(
+        visited
+      );
+
+
+    nextVisited.add(
+      topicId
+    );
+
+
+    const children =
+      childrenMap.get(
+        topicId
+      ) ||
+      [];
+
+
+    if (
+      children.length ===
+      0
+    ) {
+
+      return [
+        topicId
+      ];
+    }
+
+
+    return children.flatMap(
+      child =>
+        getLeafIds(
+          child.id,
+          nextVisited
+        )
+    );
+  }
+
+
+  function topicProgress(
+    topicId: string
+  ) {
+
+    const leafIds =
+      getLeafIds(
+        topicId
+      );
+
+
+    return average(
+      leafIds.map(
+        id =>
+          progressMap[
+            id
+          ] ||
+          0
+      )
+    );
+  }
+
+
+  const subjectNames =
     useMemo(
-      () =>
-        calculateAverage(
-          stageTopics,
-          progressMap
-        ),
+      () => {
+
+        return Array.from(
+          new Set(
+            stageTopics.map(
+              topic =>
+                topic.subject
+            )
+          )
+        ).sort();
+
+      },
       [
-        stageTopics,
-        progressMap
+        stageTopics
       ]
     );
 
 
-  const completedTopics =
-    useMemo(
-      () =>
-        stageTopics.filter(
-          topic =>
-            (
-              progressMap[
-                topic.id
-              ] ||
-              0
-            ) >=
-            100
-        ).length,
-      [
-        stageTopics,
-        progressMap
-      ]
-    );
+  function rootTopicsForSubject(
+    subject: string
+  ) {
+
+    const ids =
+      new Set(
+        stageTopics
+          .filter(
+            item =>
+              item.subject ===
+              subject
+          )
+          .map(
+            item =>
+              item.id
+          )
+      );
 
 
-  const startedTopics =
-    useMemo(
-      () =>
-        stageTopics.filter(
-          topic => {
+    return stageTopics
+      .filter(
+        topic =>
+          topic.subject ===
+            subject &&
+          (
+            !topic.parent_id ||
+            !ids.has(
+              topic.parent_id
+            )
+          )
+      )
+      .sort(
+        (
+          first,
+          second
+        ) =>
+          first.sort_order -
+          second.sort_order
+      );
+  }
 
-            const value =
-              progressMap[
-                topic.id
-              ] ||
+
+  function renderSubtypes(
+    parent:
+      SyllabusTopic
+  ) {
+
+    const children =
+      childrenMap.get(
+        parent.id
+      ) ||
+      [];
+
+
+    if (
+      children.length ===
+      0
+    ) {
+
+      return null;
+    }
+
+
+    return (
+
+      <div
+        style={{
+          marginTop:
+            '10px',
+
+          display:
+            'grid',
+
+          gap:
+            '8px'
+        }}
+      >
+
+        {children.map(
+          child => {
+
+            const grandchildren =
+              childrenMap.get(
+                child.id
+              ) ||
+              [];
+
+
+            const hasNested =
+              grandchildren.length >
               0;
 
 
+            const progress =
+              topicProgress(
+                child.id
+              );
+
+
             return (
-              value >
-                0 &&
-              value <
-                100
+
+              <div
+                key={
+                  child.id
+                }
+
+                style={{
+                  border:
+                    '1px solid rgba(255,255,255,.08)',
+
+                  borderRadius:
+                    '12px',
+
+                  background:
+                    '#0e1525',
+
+                  padding:
+                    '11px 12px'
+                }}
+              >
+
+                <div
+                  style={{
+                    display:
+                      'grid',
+
+                    gridTemplateColumns:
+                      'minmax(0,1fr) auto',
+
+                    gap:
+                      '10px',
+
+                    alignItems:
+                      'center'
+                  }}
+                >
+
+                  <div
+                    style={{
+                      minWidth:
+                        0
+                    }}
+                  >
+
+                    <strong
+                      style={{
+                        display:
+                          'block',
+
+                        overflowWrap:
+                          'anywhere'
+                      }}
+                    >
+                      {child.topic}
+                    </strong>
+
+
+                    <small
+                      style={{
+                        display:
+                          'block',
+
+                        marginTop:
+                          '4px',
+
+                        color:
+                          '#5eead4',
+
+                        fontWeight:
+                          700
+                      }}
+                    >
+                      {progress}% completed
+                    </small>
+
+                  </div>
+
+
+                  {!hasNested && (
+
+                    <select
+                      value={
+                        progress
+                      }
+
+                      disabled={
+                        !signedIn ||
+                        savingTopicId ===
+                          child.id
+                      }
+
+                      onChange={
+                        event => {
+
+                          void saveProgress(
+                            child.id,
+                            Number(
+                              event
+                                .target
+                                .value
+                            )
+                          );
+
+                        }
+                      }
+                    >
+
+                      <option value="0">
+                        0%
+                      </option>
+
+                      <option value="10">
+                        10%
+                      </option>
+
+                      <option value="20">
+                        20%
+                      </option>
+
+                      <option value="30">
+                        30%
+                      </option>
+
+                      <option value="40">
+                        40%
+                      </option>
+
+                      <option value="50">
+                        50%
+                      </option>
+
+                      <option value="60">
+                        60%
+                      </option>
+
+                      <option value="70">
+                        70%
+                      </option>
+
+                      <option value="80">
+                        80%
+                      </option>
+
+                      <option value="90">
+                        90%
+                      </option>
+
+                      <option value="100">
+                        100%
+                      </option>
+
+                    </select>
+
+                  )}
+
+                </div>
+
+
+                {hasNested &&
+                  renderSubtypes(
+                    child
+                  )}
+
+              </div>
+
             );
 
           }
-        ).length,
-      [
-        stageTopics,
-        progressMap
-      ]
+        )}
+
+      </div>
+
     );
+  }
 
 
-  function toggleSubject(
-    subject:
-      string
+  function renderMainTopic(
+    topic:
+      SyllabusTopic
   ) {
 
-    setExpandedSubject(
-      current =>
-        current ===
-          subject
-          ? null
-          : subject
-    );
+    const children =
+      childrenMap.get(
+        topic.id
+      ) ||
+      [];
 
 
-    setShowCompleted(
-      false
+    const hasChildren =
+      children.length >
+      0;
+
+
+    const progress =
+      topicProgress(
+        topic.id
+      );
+
+
+    const expanded =
+      expandedTopic ===
+      topic.id;
+
+
+    return (
+
+      <article
+        key={
+          topic.id
+        }
+
+        style={{
+          border:
+            '1px solid rgba(255,255,255,.08)',
+
+          borderRadius:
+            '14px',
+
+          background:
+            'rgba(255,255,255,.025)',
+
+          padding:
+            '13px'
+        }}
+      >
+
+        <div
+          style={{
+            display:
+              'grid',
+
+            gridTemplateColumns:
+              'minmax(0,1fr) auto',
+
+            gap:
+              '12px',
+
+            alignItems:
+              'center'
+          }}
+        >
+
+          <div
+            style={{
+              minWidth:
+                0
+            }}
+          >
+
+            <strong
+              style={{
+                display:
+                  'block',
+
+                fontSize:
+                  '1rem'
+              }}
+            >
+              {topic.topic}
+            </strong>
+
+
+            <small
+              style={{
+                display:
+                  'block',
+
+                marginTop:
+                  '4px',
+
+                color:
+                  '#5eead4',
+
+                fontWeight:
+                  700
+              }}
+            >
+              {progress}% completed
+            </small>
+
+          </div>
+
+
+          {hasChildren ? (
+
+            <button
+              type="button"
+
+              className="secondary-btn"
+
+              onClick={() =>
+                setExpandedTopic(
+                  current =>
+                    current ===
+                      topic.id
+                      ? null
+                      : topic.id
+                )
+              }
+            >
+              {expanded
+                ? 'Hide'
+                : 'Subtypes'}
+            </button>
+
+          ) : (
+
+            <select
+              value={
+                progress
+              }
+
+              disabled={
+                !signedIn ||
+                savingTopicId ===
+                  topic.id
+              }
+
+              onChange={
+                event => {
+
+                  void saveProgress(
+                    topic.id,
+                    Number(
+                      event
+                        .target
+                        .value
+                    )
+                  );
+
+                }
+              }
+            >
+
+              <option value="0">
+                0%
+              </option>
+
+              <option value="10">
+                10%
+              </option>
+
+              <option value="20">
+                20%
+              </option>
+
+              <option value="30">
+                30%
+              </option>
+
+              <option value="40">
+                40%
+              </option>
+
+              <option value="50">
+                50%
+              </option>
+
+              <option value="60">
+                60%
+              </option>
+
+              <option value="70">
+                70%
+              </option>
+
+              <option value="80">
+                80%
+              </option>
+
+              <option value="90">
+                90%
+              </option>
+
+              <option value="100">
+                100%
+              </option>
+
+            </select>
+
+          )}
+
+        </div>
+
+
+        {hasChildren &&
+          expanded &&
+          renderSubtypes(
+            topic
+          )}
+
+      </article>
+
     );
   }
 
@@ -1065,10 +1273,6 @@ export function LearnPage({
   return (
 
     <>
-
-      {/* =====================================
-          COMPACT STAGE + PROGRESS
-      ===================================== */}
 
       <section
         className="panel"
@@ -1082,137 +1286,13 @@ export function LearnPage({
         <div
           style={{
             display:
-              'flex',
-
-            justifyContent:
-              'space-between',
-
-            alignItems:
-              'center',
-
-            gap:
-              '12px',
-
-            flexWrap:
-              'wrap'
-          }}
-        >
-
-          <div>
-
-            <span
-              className="eyebrow"
-            >
-              SYLLABUS TRACKER
-            </span>
-
-
-            <h3
-              style={{
-                margin:
-                  '5px 0 2px'
-              }}
-            >
-              {stage ===
-                'prelims'
-                ? 'Prelims'
-                : 'Mains'}
-              {' '}
-              Progress
-            </h3>
-
-          </div>
-
-
-          <strong
-            style={{
-              fontSize:
-                '1.6rem',
-
-              color:
-                '#5eead4'
-            }}
-          >
-            {
-              loading
-                ? '...'
-                : `${overallProgress}%`
-            }
-          </strong>
-
-        </div>
-
-
-        <div
-          className="progress-track"
-
-          style={{
-            marginTop:
-              '10px'
-          }}
-        >
-
-          <span
-            style={{
-              width:
-                `${overallProgress}%`
-            }}
-          />
-
-        </div>
-
-
-        <div
-          style={{
-            display:
-              'flex',
-
-            gap:
-              '10px',
-
-            flexWrap:
-              'wrap',
-
-            marginTop:
-              '9px',
-
-            color:
-              '#94a3b8',
-
-            fontSize:
-              '.78rem'
-          }}
-        >
-
-          <span>
-            {completedTopics}/{stageTopics.length}
-            {' '}
-            completed
-          </span>
-
-
-          <span>
-            {startedTopics}
-            {' '}
-            in progress
-          </span>
-
-        </div>
-
-
-        <div
-          style={{
-            display:
               'grid',
 
             gridTemplateColumns:
-              'repeat(2, minmax(0, 1fr))',
+              'repeat(2,minmax(0,1fr))',
 
             gap:
-              '8px',
-
-            marginTop:
-              '12px'
+              '8px'
           }}
         >
 
@@ -1225,14 +1305,6 @@ export function LearnPage({
                 ? 'filter active'
                 : 'filter'
             }
-
-            style={{
-              width:
-                '100%',
-
-              minWidth:
-                0
-            }}
 
             onClick={() =>
               setStage(
@@ -1254,14 +1326,6 @@ export function LearnPage({
                 : 'filter'
             }
 
-            style={{
-              width:
-                '100%',
-
-              minWidth:
-                0
-            }}
-
             onClick={() =>
               setStage(
                 'mains'
@@ -1276,246 +1340,6 @@ export function LearnPage({
       </section>
 
 
-      {/* =====================================
-          FILTER BAR
-      ===================================== */}
-
-      <section
-        className="panel"
-
-        style={{
-          marginTop:
-            '10px',
-
-          padding:
-            '13px 14px'
-        }}
-      >
-
-        <button
-          type="button"
-
-          className="secondary-btn"
-
-          style={{
-            width:
-              '100%',
-
-            minHeight:
-              '42px',
-
-            justifyContent:
-              'space-between'
-          }}
-
-          onClick={() =>
-            setFiltersOpen(
-              current =>
-                !current
-            )
-          }
-        >
-
-          <span>
-            Filter / Search
-          </span>
-
-          <span>
-            {filtersOpen
-              ? 'Hide'
-              : 'Open'}
-          </span>
-
-        </button>
-
-
-        {filtersOpen && (
-
-          <div
-            style={{
-              display:
-                'grid',
-
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(180px, 1fr))',
-
-              gap:
-                '10px',
-
-              marginTop:
-                '12px'
-            }}
-          >
-
-            <label>
-
-              <span
-                style={{
-                  display:
-                    'block',
-
-                  marginBottom:
-                    '6px',
-
-                  fontSize:
-                    '.78rem',
-
-                  fontWeight:
-                    700
-                }}
-              >
-                Paper
-              </span>
-
-
-              <select
-                value={
-                  paperFilter
-                }
-
-                onChange={
-                  event =>
-                    setPaperFilter(
-                      event
-                        .target
-                        .value
-                    )
-                }
-              >
-
-                <option
-                  value="all"
-                >
-                  All Papers
-                </option>
-
-
-                {paperOptions.map(
-                  paper => (
-
-                    <option
-                      key={
-                        paper
-                      }
-
-                      value={
-                        paper
-                      }
-                    >
-                      {paper}
-                    </option>
-
-                  )
-                )}
-
-              </select>
-
-            </label>
-
-
-            <label>
-
-              <span
-                style={{
-                  display:
-                    'block',
-
-                  marginBottom:
-                    '6px',
-
-                  fontSize:
-                    '.78rem',
-
-                  fontWeight:
-                    700
-                }}
-              >
-                Search
-              </span>
-
-
-              <input
-                type="search"
-
-                value={
-                  searchText
-                }
-
-                onChange={
-                  event =>
-                    setSearchText(
-                      event
-                        .target
-                        .value
-                    )
-                }
-
-                placeholder="Subject or topic"
-
-                style={{
-                  width:
-                    '100%',
-
-                  minHeight:
-                    '44px',
-
-                  padding:
-                    '10px 12px',
-
-                  borderRadius:
-                    '11px',
-
-                  border:
-                    '1px solid rgba(255,255,255,.12)',
-
-                  background:
-                    '#0e1525',
-
-                  color:
-                    '#f8fafc',
-
-                  font:
-                    'inherit'
-                }}
-              />
-
-            </label>
-
-
-            <button
-              type="button"
-
-              className="text-btn"
-
-              onClick={() => {
-
-                setPaperFilter(
-                  'all'
-                );
-
-                setSearchText('');
-
-              }}
-
-              style={{
-                alignSelf:
-                  'end'
-              }}
-            >
-              Clear filters
-            </button>
-
-          </div>
-
-        )}
-
-      </section>
-
-
-      {/* =====================================
-          STATUS MESSAGES
-      ===================================== */}
-
       {!loading &&
         !signedIn && (
 
@@ -1527,7 +1351,7 @@ export function LearnPage({
               '10px'
           }}
         >
-          Sign in to save personal syllabus progress.
+          Sign in to save progress percentages.
         </div>
 
       )}
@@ -1559,9 +1383,7 @@ export function LearnPage({
               '10px'
           }}
         >
-          <strong>
-            {error}
-          </strong>
+          {error}
         </div>
 
       )}
@@ -1584,573 +1406,184 @@ export function LearnPage({
 
 
       {!loading &&
-        visibleTopics.length ===
-          0 && (
+        subjectNames.map(
+          subject => {
 
-        <section
-          className="panel"
-
-          style={{
-            marginTop:
-              '10px'
-          }}
-        >
-
-          <h3>
-            No syllabus topics found
-          </h3>
+            const expanded =
+              expandedSubject ===
+              subject;
 
 
-          <p
-            style={{
-              marginBottom:
-                0
-            }}
-          >
-            Change the paper filter or search text.
-          </p>
-
-        </section>
-
-      )}
+            const rootTopics =
+              rootTopicsForSubject(
+                subject
+              );
 
 
-      {/* =====================================
-          SUBJECT ACCORDION
-      ===================================== */}
-
-      {!loading &&
-        subjectGroups.length >
-          0 && (
-
-        <section
-          style={{
-            display:
-              'grid',
-
-            gap:
-              '9px',
-
-            marginTop:
-              '10px'
-          }}
-        >
-
-          {subjectGroups.map(
-            group => {
-
-              const expanded =
-                expandedSubject ===
-                group.subject;
-
-
-              const completedInGroup =
-                group.topics.filter(
+            const subjectProgress =
+              average(
+                rootTopics.flatMap(
                   topic =>
-                    (
-                      progressMap[
-                        topic.id
-                      ] ||
-                      0
-                    ) >=
-                    100
-                ).length;
+                    getLeafIds(
+                      topic.id
+                    )
+                ).map(
+                  id =>
+                    progressMap[
+                      id
+                    ] ||
+                    0
+                )
+              );
 
 
-              const activeTopics =
-                group.topics.filter(
-                  topic =>
-                    (
-                      progressMap[
-                        topic.id
-                      ] ||
-                      0
-                    ) <
-                    100
-                );
+            return (
 
+              <section
+                className="panel"
 
-              const completedGroupTopics =
-                group.topics.filter(
-                  topic =>
-                    (
-                      progressMap[
-                        topic.id
-                      ] ||
-                      0
-                    ) >=
-                    100
-                );
+                key={
+                  subject
+                }
 
+                style={{
+                  marginTop:
+                    '10px',
 
-              const topicsToShow =
-                showCompleted
-                  ? [
-                      ...activeTopics,
-                      ...completedGroupTopics
-                    ]
-                  : activeTopics;
+                  padding:
+                    '14px'
+                }}
+              >
 
+                <button
+                  type="button"
 
-              return (
-
-                <article
-                  className="panel"
-
-                  key={
-                    group.subject
+                  onClick={() =>
+                    setExpandedSubject(
+                      current =>
+                        current ===
+                          subject
+                          ? null
+                          : subject
+                    )
                   }
 
                   style={{
-                    padding:
-                      '14px'
+                    width:
+                      '100%',
+
+                    border:
+                      0,
+
+                    background:
+                      'transparent',
+
+                    color:
+                      'inherit',
+
+                    display:
+                      'grid',
+
+                    gridTemplateColumns:
+                      'minmax(0,1fr) auto',
+
+                    gap:
+                      '12px',
+
+                    alignItems:
+                      'center',
+
+                    textAlign:
+                      'left',
+
+                    cursor:
+                      'pointer',
+
+                    whiteSpace:
+                      'normal'
                   }}
                 >
 
-                  <button
-                    type="button"
+                  <div>
 
-                    onClick={() =>
-                      toggleSubject(
-                        group.subject
-                      )
-                    }
+                    <strong>
+                      {subject}
+                    </strong>
 
+
+                    <small
+                      style={{
+                        display:
+                          'block',
+
+                        marginTop:
+                          '4px',
+
+                        color:
+                          '#94a3b8'
+                      }}
+                    >
+                      {subjectProgress}% completed
+                    </small>
+
+                  </div>
+
+
+                  <span
                     style={{
-                      width:
-                        '100%',
-
-                      padding:
-                        0,
-
-                      border:
-                        0,
-
-                      background:
-                        'transparent',
-
                       color:
-                        'inherit',
+                        '#5eead4',
 
+                      fontWeight:
+                        700
+                    }}
+                  >
+                    {expanded
+                      ? 'Close'
+                      : 'Open'}
+                  </span>
+
+                </button>
+
+
+                {expanded && (
+
+                  <div
+                    style={{
                       display:
                         'grid',
 
-                      gridTemplateColumns:
-                        '1fr auto',
-
                       gap:
+                        '9px',
+
+                      marginTop:
                         '12px',
 
-                      alignItems:
-                        'center',
+                      paddingTop:
+                        '12px',
 
-                      textAlign:
-                        'left',
-
-                      cursor:
-                        'pointer',
-
-                      whiteSpace:
-                        'normal'
+                      borderTop:
+                        '1px solid rgba(255,255,255,.08)'
                     }}
                   >
 
-                    <div
-                      style={{
-                        minWidth:
-                          0
-                      }}
-                    >
+                    {rootTopics.map(
+                      topic =>
+                        renderMainTopic(
+                          topic
+                        )
+                    )}
 
-                      <strong
-                        style={{
-                          display:
-                            'block',
+                  </div>
 
-                          fontSize:
-                            '1rem'
-                        }}
-                      >
-                        {group.subject}
-                      </strong>
+                )}
 
+              </section>
 
-                      <small
-                        style={{
-                          display:
-                            'block',
+            );
 
-                          marginTop:
-                            '4px',
-
-                          color:
-                            '#94a3b8'
-                        }}
-                      >
-                        {completedInGroup}/{group.topics.length}
-                        {' '}
-                        completed
-                      </small>
-
-
-                      <div
-                        className="progress-track"
-
-                        style={{
-                          marginTop:
-                            '8px'
-                        }}
-                      >
-
-                        <span
-                          style={{
-                            width:
-                              `${group.progress}%`
-                          }}
-                        />
-
-                      </div>
-
-                    </div>
-
-
-                    <div
-                      style={{
-                        textAlign:
-                          'right',
-
-                        minWidth:
-                          '56px'
-                      }}
-                    >
-
-                      <strong
-                        style={{
-                          display:
-                            'block',
-
-                          color:
-                            '#5eead4'
-                        }}
-                      >
-                        {group.progress}%
-                      </strong>
-
-
-                      <small
-                        style={{
-                          color:
-                            '#94a3b8'
-                        }}
-                      >
-                        {expanded
-                          ? 'Close'
-                          : 'Open'}
-                      </small>
-
-                    </div>
-
-                  </button>
-
-
-                  {expanded && (
-
-                    <div
-                      style={{
-                        marginTop:
-                          '12px',
-
-                        paddingTop:
-                          '12px',
-
-                        borderTop:
-                          '1px solid rgba(255,255,255,.08)'
-                      }}
-                    >
-
-                      {activeTopics.length ===
-                        0 &&
-                        !showCompleted && (
-
-                        <div
-                          className="callout"
-                        >
-                          All topics in this subject are completed.
-                        </div>
-
-                      )}
-
-
-                      <div
-                        style={{
-                          display:
-                            'grid',
-
-                          gap:
-                            '8px'
-                        }}
-                      >
-
-                        {topicsToShow.map(
-                          topic => {
-
-                            const progress =
-                              progressMap[
-                                topic.id
-                              ] ||
-                              0;
-
-
-                            const saving =
-                              savingTopicId ===
-                              topic.id;
-
-
-                            return (
-
-                              <div
-                                key={
-                                  topic.id
-                                }
-
-                                style={{
-                                  display:
-                                    'grid',
-
-                                  gridTemplateColumns:
-                                    'minmax(0, 1fr) minmax(120px, 160px)',
-
-                                  gap:
-                                    '10px',
-
-                                  alignItems:
-                                    'center',
-
-                                  padding:
-                                    '11px 12px',
-
-                                  borderRadius:
-                                    '12px',
-
-                                  border:
-                                    '1px solid rgba(255,255,255,.07)',
-
-                                  background:
-                                    '#0e1525'
-                                }}
-                              >
-
-                                <div
-                                  style={{
-                                    minWidth:
-                                      0
-                                  }}
-                                >
-
-                                  <strong
-                                    style={{
-                                      display:
-                                        'block',
-
-                                      overflowWrap:
-                                        'anywhere'
-                                    }}
-                                  >
-                                    {topic.topic}
-                                  </strong>
-
-
-                                  <small
-                                    style={{
-                                      display:
-                                        'block',
-
-                                      marginTop:
-                                        '4px',
-
-                                      color:
-                                        '#94a3b8'
-                                    }}
-                                  >
-                                    {topic.paper ||
-                                      'General'}
-                                    {' • '}
-                                    {getProgressLabel(
-                                      progress
-                                    )}
-                                  </small>
-
-                                </div>
-
-
-                                <div>
-
-                                  <select
-                                    aria-label={
-                                      `Progress for ${topic.topic}`
-                                    }
-
-                                    value={
-                                      progress
-                                    }
-
-                                    disabled={
-                                      !signedIn ||
-                                      saving
-                                    }
-
-                                    onChange={
-                                      event => {
-
-                                        void saveProgress(
-                                          topic.id,
-
-                                          Number(
-                                            event
-                                              .target
-                                              .value
-                                          )
-                                        );
-
-                                      }
-                                    }
-
-                                    style={{
-                                      width:
-                                        '100%'
-                                    }}
-                                  >
-
-                                    <option value="0">
-                                      0%
-                                    </option>
-
-                                    <option value="10">
-                                      10%
-                                    </option>
-
-                                    <option value="20">
-                                      20%
-                                    </option>
-
-                                    <option value="30">
-                                      30%
-                                    </option>
-
-                                    <option value="40">
-                                      40%
-                                    </option>
-
-                                    <option value="50">
-                                      50%
-                                    </option>
-
-                                    <option value="60">
-                                      60%
-                                    </option>
-
-                                    <option value="70">
-                                      70%
-                                    </option>
-
-                                    <option value="80">
-                                      80%
-                                    </option>
-
-                                    <option value="90">
-                                      90%
-                                    </option>
-
-                                    <option value="100">
-                                      100%
-                                    </option>
-
-                                  </select>
-
-
-                                  <small
-                                    style={{
-                                      display:
-                                        'block',
-
-                                      marginTop:
-                                        '4px',
-
-                                      textAlign:
-                                        'right',
-
-                                      color:
-                                        saving
-                                          ? '#5eead4'
-                                          : '#64748b'
-                                    }}
-                                  >
-                                    {saving
-                                      ? 'Saving...'
-                                      : `${progress}%`}
-                                  </small>
-
-                                </div>
-
-                              </div>
-
-                            );
-
-                          }
-                        )}
-
-                      </div>
-
-
-                      {completedGroupTopics.length >
-                        0 && (
-
-                        <button
-                          type="button"
-
-                          className="text-btn"
-
-                          onClick={() =>
-                            setShowCompleted(
-                              current =>
-                                !current
-                            )
-                          }
-
-                          style={{
-                            width:
-                              '100%',
-
-                            marginTop:
-                              '10px',
-
-                            textAlign:
-                              'center'
-                          }}
-                        >
-
-                          {showCompleted
-                            ? 'Hide completed topics'
-                            : `Show completed (${completedGroupTopics.length})`}
-
-                        </button>
-
-                      )}
-
-                    </div>
-
-                  )}
-
-                </article>
-
-              );
-
-            }
-          )}
-
-        </section>
-
-      )}
+          }
+        )}
 
     </>
 
