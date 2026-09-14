@@ -107,6 +107,12 @@ const defaultTasks: DailyTask[] = [
 ];
 
 
+/*
+ * =========================================
+ * LOCAL DATE
+ * =========================================
+ */
+
 function getLocalDateKey() {
 
   const now =
@@ -134,6 +140,12 @@ function getLocalDateKey() {
   return `${year}-${month}-${day}`;
 }
 
+
+/*
+ * =========================================
+ * DAILY TASK STORAGE
+ * =========================================
+ */
 
 function getTaskStorageKey(
   day: string
@@ -196,11 +208,13 @@ function loadTasksForDay(
 
 
         return {
+
           ...defaultTask,
 
           done:
             storedTask?.done ===
             true
+
         };
       }
     );
@@ -215,6 +229,12 @@ function loadTasksForDay(
   }
 }
 
+
+/*
+ * =========================================
+ * ACCOUNT HELPERS
+ * =========================================
+ */
 
 function normalizeRole(
   value: unknown
@@ -266,6 +286,12 @@ function getFallbackName(
 }
 
 
+/*
+ * =========================================
+ * LOADING CARD
+ * =========================================
+ */
+
 function LoadingCard({
   text
 }: {
@@ -297,6 +323,12 @@ function LoadingCard({
 }
 
 
+/*
+ * =========================================
+ * ACCOUNT STATUS
+ * =========================================
+ */
+
 function AccountStatusCard({
   session,
   profile,
@@ -320,6 +352,7 @@ function AccountStatusCard({
       <section
         className="panel"
         style={{
+
           display:
             'flex',
 
@@ -334,6 +367,7 @@ function AccountStatusCard({
 
           flexWrap:
             'wrap'
+
         }}
       >
 
@@ -362,7 +396,9 @@ function AccountStatusCard({
                 0
             }}
           >
-            {session.user.email || 'Account'} · {profile.role}
+            {session.user.email || 'Account'}
+            {' · '}
+            {profile.role}
           </p>
 
         </div>
@@ -385,6 +421,12 @@ function AccountStatusCard({
 }
 
 
+/*
+ * =========================================
+ * ACCESS DENIED
+ * =========================================
+ */
+
 function AccessDenied({
   onBack
 }: {
@@ -400,11 +442,13 @@ function AccessDenied({
       <section
         className="panel"
         style={{
+
           maxWidth:
             '680px',
 
           margin:
             '20px auto 0'
+
         }}
       >
 
@@ -444,7 +488,17 @@ function AccessDenied({
 }
 
 
+/*
+ * =========================================
+ * APPLICATION
+ * =========================================
+ */
+
 export default function SecureApp() {
+
+  /*
+   * MAIN NAVIGATION
+   */
 
   const [
     active,
@@ -454,6 +508,10 @@ export default function SecureApp() {
       'home'
     );
 
+
+  /*
+   * LEARN
+   */
 
   const [
     learnSubject,
@@ -473,6 +531,10 @@ export default function SecureApp() {
     );
 
 
+  /*
+   * PRACTICE
+   */
+
   const [
     practiceMode,
     setPracticeMode
@@ -482,6 +544,10 @@ export default function SecureApp() {
     );
 
 
+  /*
+   * DAILY TASK DATE
+   */
+
   const [
     taskDay,
     setTaskDay
@@ -490,6 +556,10 @@ export default function SecureApp() {
       getLocalDateKey
     );
 
+
+  /*
+   * DAILY TASKS
+   */
 
   const [
     tasks,
@@ -503,17 +573,25 @@ export default function SecureApp() {
     );
 
 
- const [
-  articles,
-  setArticles
-] =
-  useState<CurrentAffair[]>(
-    () =>
-      supabase
-        ? []
-        : initialCurrentAffairs
-  );
+  /*
+   * CURRENT AFFAIRS
+   */
 
+  const [
+    articles,
+    setArticles
+  ] =
+    useState<CurrentAffair[]>(
+      () =>
+        supabase
+          ? []
+          : initialCurrentAffairs
+    );
+
+
+  /*
+   * ACCOUNT
+   */
 
   const [
     session,
@@ -555,21 +633,26 @@ export default function SecureApp() {
     /*
      * Update screen immediately.
      */
+
     setTasksState(
       next
     );
 
 
     /*
-     * Always keep offline/local backup.
+     * Keep offline backup.
      */
+
     localStorage.setItem(
+
       getTaskStorageKey(
         taskDay
       ),
+
       JSON.stringify(
         next
       )
+
     );
 
 
@@ -582,9 +665,9 @@ export default function SecureApp() {
 
 
     /*
-     * Signed-out/offline mode:
-     * localStorage remains available.
+     * Signed out/offline.
      */
+
     if (
       !client ||
       !userId
@@ -621,6 +704,7 @@ export default function SecureApp() {
     /*
      * Cloud save.
      */
+
     void client
       .from(
         'daily_task_progress'
@@ -649,6 +733,12 @@ export default function SecureApp() {
   }
 
 
+  /*
+   * =========================================
+   * CURRENT AFFAIR LOCAL UPDATE
+   * =========================================
+   */
+
   function publish(
     item: CurrentAffair
   ) {
@@ -662,7 +752,14 @@ export default function SecureApp() {
   }
 
 
+  /*
+   * =========================================
+   * OPEN LEARN
+   * =========================================
+   */
+
   function openLearn(
+
     subject:
       string |
       null =
@@ -671,6 +768,7 @@ export default function SecureApp() {
     mode:
       LearnMode =
         'syllabus'
+
   ) {
 
     setLearnSubject(
@@ -688,6 +786,12 @@ export default function SecureApp() {
     );
   }
 
+
+  /*
+   * =========================================
+   * MAIN NAVIGATION
+   * =========================================
+   */
 
   function navigateMain(
     next: NavKey
@@ -715,6 +819,12 @@ export default function SecureApp() {
   }
 
 
+  /*
+   * =========================================
+   * OPEN PRELIMS
+   * =========================================
+   */
+
   function openPrelimsPractice() {
 
     setPracticeMode(
@@ -727,6 +837,12 @@ export default function SecureApp() {
     );
   }
 
+
+  /*
+   * =========================================
+   * SIGN OUT
+   * =========================================
+   */
 
   async function signOut() {
 
@@ -784,14 +900,10 @@ export default function SecureApp() {
 
 
         /*
-         * Keep existing page mounted.
-         *
-         * Do NOT set authReady false during
-         * ordinary token/session refresh.
-         *
-         * This helps protect My Notes from
-         * resetting when changing browser tabs.
+         * Do not unmount the current page during
+         * ordinary Supabase token refresh.
          */
+
         setSession(
           nextSession
         );
@@ -849,6 +961,7 @@ export default function SecureApp() {
         setProfile({
 
           displayName:
+
             typeof data?.display_name ===
               'string' &&
             data.display_name.trim()
@@ -860,6 +973,7 @@ export default function SecureApp() {
                 ),
 
           role:
+
             normalizeRole(
               data?.role
             )
@@ -937,10 +1051,6 @@ export default function SecureApp() {
         session?.user.id;
 
 
-      /*
-       * If user is signed out,
-       * use offline/local task data.
-       */
       if (
         !client ||
         !userId
@@ -963,9 +1073,6 @@ export default function SecureApp() {
 
       async function loadDailyTasksFromCloud() {
 
-        /*
-         * Keep local copy ready as fallback.
-         */
         const localTasks =
           loadTasksForDay(
             taskDay
@@ -1000,9 +1107,9 @@ export default function SecureApp() {
 
 
         /*
-         * Cloud unavailable:
-         * use local/offline copy.
+         * Cloud unavailable.
          */
+
         if (error) {
 
           console.error(
@@ -1021,8 +1128,9 @@ export default function SecureApp() {
 
 
         /*
-         * Existing cloud data found.
+         * Existing cloud state.
          */
+
         if (
           data &&
           data.length >
@@ -1054,24 +1162,21 @@ export default function SecureApp() {
             );
 
 
-          /*
-           * Show cloud state.
-           */
           setTasksState(
             cloudTasks
           );
 
 
-          /*
-           * Update offline copy too.
-           */
           localStorage.setItem(
+
             getTaskStorageKey(
               taskDay
             ),
+
             JSON.stringify(
               cloudTasks
             )
+
           );
 
 
@@ -1080,11 +1185,10 @@ export default function SecureApp() {
 
 
         /*
-         * No cloud row exists yet.
-         *
-         * Keep existing local progress and
-         * upload it to the cloud once.
+         * No cloud rows yet.
+         * Keep local state and seed cloud.
          */
+
         setTasksState(
           localTasks
         );
@@ -1160,7 +1264,7 @@ export default function SecureApp() {
 
   /*
    * =========================================
-   * DAILY TASK DATE CHANGE
+   * DAILY DATE CHANGE
    * =========================================
    */
 
@@ -1185,11 +1289,6 @@ export default function SecureApp() {
               );
 
 
-              /*
-               * Show local data immediately.
-               * Cloud effect above will then
-               * refresh it if signed in.
-               */
               setTasksState(
                 loadTasksForDay(
                   currentDay
@@ -1216,7 +1315,7 @@ export default function SecureApp() {
 
   /*
    * =========================================
-   * CURRENT AFFAIRS
+   * LOAD CURRENT AFFAIRS
    * =========================================
    */
 
@@ -1289,6 +1388,7 @@ export default function SecureApp() {
 
 
         setArticles(
+
           data.map(
             item => ({
 
@@ -1318,6 +1418,7 @@ export default function SecureApp() {
                 item.mains,
 
               publishedAt:
+
                 item.published_at
 
                   ? new Date(
@@ -1341,6 +1442,7 @@ export default function SecureApp() {
 
             })
           )
+
         );
       }
 
@@ -1354,7 +1456,7 @@ export default function SecureApp() {
 
   /*
    * =========================================
-   * SCROLL TO TOP ONLY ON REAL APP NAVIGATION
+   * SCROLL TO TOP ON REAL NAVIGATION
    * =========================================
    */
 
@@ -1362,11 +1464,13 @@ export default function SecureApp() {
     () => {
 
       window.scrollTo({
+
         top:
           0,
 
         behavior:
           'smooth'
+
       });
 
     },
@@ -1376,9 +1480,17 @@ export default function SecureApp() {
   );
 
 
+  /*
+   * =========================================
+   * EDITOR ACCESS
+   * =========================================
+   */
+
   const isEditor =
+
     profile?.role ===
       'editor' ||
+
     profile?.role ===
       'admin';
 
@@ -1392,6 +1504,7 @@ export default function SecureApp() {
   let content = (
 
     <HomePage
+
       tasks={
         tasks
       }
@@ -1413,6 +1526,7 @@ export default function SecureApp() {
           'current'
         )
       }
+
     />
   );
 
@@ -1431,6 +1545,7 @@ export default function SecureApp() {
     content = (
 
       <LearnHubPage
+
         initialSubject={
           learnSubject
         }
@@ -1438,6 +1553,7 @@ export default function SecureApp() {
         initialMode={
           learnMode
         }
+
       />
     );
   }
@@ -1446,6 +1562,13 @@ export default function SecureApp() {
   /*
    * =========================================
    * PRACTICE
+   *
+   * Android/mobile fix:
+   * - all 3 tabs remain inside screen
+   * - equal-width columns
+   * - long titles wrap
+   * - no horizontal overflow
+   * - extra top safe spacing
    * =========================================
    */
 
@@ -1464,14 +1587,40 @@ export default function SecureApp() {
 
           <div
             className="filter-row"
+
             style={{
+
               paddingTop:
-                '18px',
+                'max(env(safe-area-inset-top, 0px), 32px)',
 
               paddingBottom:
-                0
+                0,
+
+              display:
+                'grid',
+
+              gridTemplateColumns:
+                'repeat(3, minmax(0, 1fr))',
+
+              gap:
+                '8px',
+
+              overflow:
+                'visible',
+
+              width:
+                '100%',
+
+              maxWidth:
+                '720px',
+
+              margin:
+                '0 auto'
+
             }}
           >
+
+            {/* PRELIMS MCQ */}
 
             <button
               type="button"
@@ -1484,6 +1633,46 @@ export default function SecureApp() {
 
                   : 'filter'
               }
+
+              style={{
+
+                width:
+                  '100%',
+
+                minWidth:
+                  0,
+
+                minHeight:
+                  '52px',
+
+                whiteSpace:
+                  'normal',
+
+                textAlign:
+                  'center',
+
+                lineHeight:
+                  1.2,
+
+                padding:
+                  '9px 5px',
+
+                fontSize:
+                  'clamp(0.68rem, 2.6vw, 0.8rem)',
+
+                display:
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                justifyContent:
+                  'center',
+
+                overflowWrap:
+                  'anywhere'
+
+              }}
 
               onClick={() =>
                 setPracticeMode(
@@ -1495,6 +1684,8 @@ export default function SecureApp() {
             </button>
 
 
+            {/* PRELIMS TEST SERIES */}
+
             <button
               type="button"
 
@@ -1507,6 +1698,46 @@ export default function SecureApp() {
                   : 'filter'
               }
 
+              style={{
+
+                width:
+                  '100%',
+
+                minWidth:
+                  0,
+
+                minHeight:
+                  '52px',
+
+                whiteSpace:
+                  'normal',
+
+                textAlign:
+                  'center',
+
+                lineHeight:
+                  1.2,
+
+                padding:
+                  '9px 5px',
+
+                fontSize:
+                  'clamp(0.68rem, 2.6vw, 0.8rem)',
+
+                display:
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                justifyContent:
+                  'center',
+
+                overflowWrap:
+                  'anywhere'
+
+              }}
+
               onClick={() =>
                 setPracticeMode(
                   'tests'
@@ -1516,6 +1747,8 @@ export default function SecureApp() {
               Prelims Test Series
             </button>
 
+
+            {/* MAINS ANSWER WRITING */}
 
             <button
               type="button"
@@ -1528,6 +1761,46 @@ export default function SecureApp() {
 
                   : 'filter'
               }
+
+              style={{
+
+                width:
+                  '100%',
+
+                minWidth:
+                  0,
+
+                minHeight:
+                  '52px',
+
+                whiteSpace:
+                  'normal',
+
+                textAlign:
+                  'center',
+
+                lineHeight:
+                  1.2,
+
+                padding:
+                  '9px 5px',
+
+                fontSize:
+                  'clamp(0.68rem, 2.6vw, 0.8rem)',
+
+                display:
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                justifyContent:
+                  'center',
+
+                overflowWrap:
+                  'anywhere'
+
+              }}
 
               onClick={() =>
                 setPracticeMode(
@@ -1542,6 +1815,8 @@ export default function SecureApp() {
 
         </div>
 
+
+        {/* PRACTICE CONTENT */}
 
         {
           practiceMode ===
@@ -1592,9 +1867,11 @@ export default function SecureApp() {
     content = (
 
       <CurrentPage
+
         items={
           articles
         }
+
       />
     );
   }
@@ -1628,6 +1905,7 @@ export default function SecureApp() {
       content = (
 
         <AccountPage
+
           intent="study"
 
           onBack={() =>
@@ -1635,6 +1913,7 @@ export default function SecureApp() {
               'home'
             )
           }
+
         />
       );
 
@@ -1645,6 +1924,7 @@ export default function SecureApp() {
         <>
 
           <AccountStatusCard
+
             session={
               session
             }
@@ -1656,10 +1936,12 @@ export default function SecureApp() {
             onSignOut={() => {
               void signOut();
             }}
+
           />
 
 
           <ProfilePage
+
             onAdmin={() =>
               setActive(
                 'admin'
@@ -1669,6 +1951,7 @@ export default function SecureApp() {
             onOpenPractice={
               openPrelimsPractice
             }
+
           />
 
         </>
@@ -1704,6 +1987,7 @@ export default function SecureApp() {
       content = (
 
         <AccountPage
+
           intent="admin"
 
           onBack={() =>
@@ -1711,6 +1995,7 @@ export default function SecureApp() {
               'home'
             )
           }
+
         />
       );
 
@@ -1721,11 +2006,13 @@ export default function SecureApp() {
       content = (
 
         <AccessDenied
+
           onBack={() =>
             setActive(
               'profile'
             )
           }
+
         />
       );
 
@@ -1734,6 +2021,7 @@ export default function SecureApp() {
       content = (
 
         <AdminPage
+
           onPublish={
             item => {
 
@@ -1747,6 +2035,7 @@ export default function SecureApp() {
               );
             }
           }
+
         />
       );
     }
@@ -1764,6 +2053,7 @@ export default function SecureApp() {
     <IonApp>
 
       <Shell
+
         active={
           active
         }
@@ -1771,6 +2061,7 @@ export default function SecureApp() {
         onNavigate={
           navigateMain
         }
+
       >
 
         {content}
