@@ -1,28 +1,59 @@
 /* =========================================================
    UPSC STUDY HUB
-   Dark-theme fix for plain action buttons
+   UI fixes + Android mobile safe-area protection
+   ========================================================= */
+
+
+/* =========================================================
+   DARK-THEME FIX FOR PLAIN ACTION BUTTONS
    ========================================================= */
 
 .admin-status button,
 .panel button:not(.primary-btn):not(.secondary-btn):not(.text-btn):not(.option):not(.task):not(.filter):not(.icon-button) {
+
   min-height: 40px;
-  padding: 9px 14px;
 
-  border: 1px solid rgba(45, 212, 191, 0.42);
-  border-radius: 10px;
+  padding:
+    9px 14px;
 
-  background: #101827;
-  color: #e6fffb;
+  border:
+    1px solid
+    rgba(
+      45,
+      212,
+      191,
+      0.42
+    );
 
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1.2;
+  border-radius:
+    10px;
 
-  cursor: pointer;
+  background:
+    #101827;
 
-  appearance: none;
-  -webkit-appearance: none;
+  color:
+    #e6fffb;
+
+  font:
+    inherit;
+
+  font-size:
+    0.82rem;
+
+  font-weight:
+    700;
+
+  line-height:
+    1.2;
+
+  cursor:
+    pointer;
+
+  appearance:
+    none;
+
+  -webkit-appearance:
+    none;
 
   transition:
     background 0.18s ease,
@@ -32,63 +63,323 @@
 }
 
 
-/* Hover */
+/* =========================================================
+   HOVER
+   ========================================================= */
 
 .admin-status button:hover,
 .panel button:not(.primary-btn):not(.secondary-btn):not(.text-btn):not(.option):not(.task):not(.filter):not(.icon-button):hover {
-  background: rgba(20, 184, 166, 0.12);
-  border-color: rgba(45, 212, 191, 0.75);
-  color: #5eead4;
+
+  background:
+    rgba(
+      20,
+      184,
+      166,
+      0.12
+    );
+
+  border-color:
+    rgba(
+      45,
+      212,
+      191,
+      0.75
+    );
+
+  color:
+    #5eead4;
 }
 
 
-/* Keyboard / accessibility focus */
+/* =========================================================
+   ACCESSIBILITY FOCUS
+   ========================================================= */
 
 .admin-status button:focus-visible,
 .panel button:not(.primary-btn):not(.secondary-btn):not(.text-btn):not(.option):not(.task):not(.filter):not(.icon-button):focus-visible {
-  outline: 3px solid rgba(20, 184, 166, 0.20);
-  outline-offset: 2px;
+
+  outline:
+    3px solid
+    rgba(
+      20,
+      184,
+      166,
+      0.20
+    );
+
+  outline-offset:
+    2px;
 }
 
 
-/* Button click feedback */
+/* =========================================================
+   CLICK FEEDBACK
+   ========================================================= */
 
 .admin-status button:active,
 .panel button:not(.primary-btn):not(.secondary-btn):not(.text-btn):not(.option):not(.task):not(.filter):not(.icon-button):active {
-  transform: translateY(1px);
+
+  transform:
+    translateY(
+      1px
+    );
 }
 
 
-/* Space below Secure Admin information */
+/* =========================================================
+   ADMIN INFORMATION SPACING
+   ========================================================= */
 
-.admin-status > div:last-child {
-  margin-top: 10px;
+.admin-status
+> div:last-child {
+
+  margin-top:
+    10px;
 }
 
 
-/* Preserve teal primary buttons */
+/* =========================================================
+   PRESERVE PRIMARY BUTTON COLOUR
+   ========================================================= */
 
-.panel .primary-btn {
-  color: #062b27;
+.panel
+.primary-btn {
+
+  color:
+    #062b27;
 }
 
 
-/* Prevent buttons from becoming squeezed */
+/* =========================================================
+   DEFAULT BUTTON PROTECTION
+   ========================================================= */
 
 .panel button {
-  white-space: nowrap;
+
+  white-space:
+    nowrap;
 }
 
 
-/* Better mobile tap size */
+/* =========================================================
+   ANDROID / MOBILE SAFE AREA
+   ========================================================= */
 
-@media (max-width: 700px) {
+@media (
+  max-width: 999px
+) {
+
+  /*
+   * Some Android WebViews report
+   * safe-area-inset-top as zero.
+   *
+   * Therefore we keep a minimum
+   * 28px protection for the
+   * Android status bar.
+   */
+
+  :root {
+
+    --app-top-safe:
+      max(
+        env(
+          safe-area-inset-top,
+          0px
+        ),
+        28px
+      );
+
+  }
+
+
+  /*
+   * GLOBAL TOP HEADER FIX
+   *
+   * Applies automatically to:
+   * Home
+   * Learn
+   * Practice internal pages
+   * Current Affairs
+   * My Account
+   * Profile
+   * Admin
+   */
+
+  .topbar {
+
+    min-height:
+      calc(
+        84px +
+        var(
+          --app-top-safe
+        )
+      );
+
+    padding-top:
+      calc(
+        14px +
+        var(
+          --app-top-safe
+        )
+      );
+
+    padding-bottom:
+      10px;
+
+  }
+
+
+  /*
+   * Prevent title from forcing
+   * horizontal overflow.
+   */
+
+  .topbar-title {
+
+    min-width:
+      0;
+
+    overflow:
+      hidden;
+
+  }
+
+
+  .topbar h1 {
+
+    max-width:
+      100%;
+
+    line-height:
+      1.15;
+
+    overflow-wrap:
+      anywhere;
+
+    word-break:
+      normal;
+
+  }
+
+
+  .topbar p {
+
+    max-width:
+      100%;
+
+    line-height:
+      1.35;
+
+    overflow-wrap:
+      anywhere;
+
+  }
+
+
+  /*
+   * Keep hamburger and
+   * notification buttons fixed-size.
+   */
+
+  .topbar
+  .icon-button {
+
+    flex:
+      0 0 42px;
+
+  }
+
+}
+
+
+/* =========================================================
+   SMALL ANDROID PHONE FITTING
+   ========================================================= */
+
+@media (
+  max-width: 700px
+) {
 
   .admin-status button,
   .panel button:not(.primary-btn):not(.secondary-btn):not(.text-btn):not(.option):not(.task):not(.filter):not(.icon-button) {
-    min-height: 42px;
-    padding: 10px 13px;
-    font-size: 0.8rem;
+
+    min-height:
+      42px;
+
+    padding:
+      10px 13px;
+
+    font-size:
+      0.8rem;
+
+  }
+
+}
+
+
+/* =========================================================
+   VERY NARROW PHONE SCREEN
+   ========================================================= */
+
+@media (
+  max-width: 380px
+) {
+
+  /*
+   * Slightly reduce page side spacing.
+   */
+
+  .page-wrap {
+
+    padding-left:
+      14px;
+
+    padding-right:
+      14px;
+
+  }
+
+
+  /*
+   * Reduce top-header spacing.
+   */
+
+  .topbar {
+
+    gap:
+      10px;
+
+  }
+
+
+  .topbar
+  .icon-button {
+
+    width:
+      40px;
+
+    height:
+      40px;
+
+    flex:
+      0 0 40px;
+
+  }
+
+
+  .topbar h1 {
+
+    font-size:
+      1.2rem;
+
+  }
+
+
+  .topbar p {
+
+    font-size:
+      0.78rem;
+
   }
 
 }
