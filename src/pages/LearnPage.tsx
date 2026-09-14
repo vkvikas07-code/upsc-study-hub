@@ -5,10 +5,6 @@ import {
 } from 'react';
 
 import {
-  TopBar
-} from '../components/TopBar';
-
-import {
   supabase
 } from '../lib/supabase';
 
@@ -42,9 +38,13 @@ type SubjectGroup = {
   progress: number;
 };
 
+
 type LearnPageProps = {
-  initialSubject?: string | null;
+  initialSubject?:
+    string |
+    null;
 };
+
 
 function clampProgress(
   value:
@@ -56,12 +56,14 @@ function clampProgress(
       value
     )
   ) {
+
     return 0;
   }
 
 
   return Math.min(
     100,
+
     Math.max(
       0,
       Math.round(
@@ -81,6 +83,7 @@ function getProgressLabel(
     value >=
     100
   ) {
+
     return 'Completed';
   }
 
@@ -89,6 +92,7 @@ function getProgressLabel(
     value >=
     75
   ) {
+
     return 'Revision';
   }
 
@@ -97,6 +101,7 @@ function getProgressLabel(
     value >=
     50
   ) {
+
     return 'Studied';
   }
 
@@ -105,6 +110,7 @@ function getProgressLabel(
     value >
     0
   ) {
+
     return 'Started';
   }
 
@@ -116,14 +122,19 @@ function getProgressLabel(
 function calculateAverage(
   topics:
     SyllabusTopic[],
+
   progressMap:
-    Record<string, number>
+    Record<
+      string,
+      number
+    >
 ) {
 
   if (
     topics.length ===
     0
   ) {
+
     return 0;
   }
 
@@ -153,18 +164,17 @@ function calculateAverage(
 
 
 export function LearnPage({
-  initialSubject = null
+  initialSubject =
+    null
 }: LearnPageProps) {
-
-  /*
-   * PAGE STATE
-   */
 
   const [
     loading,
     setLoading
   ] =
-    useState(true);
+    useState(
+      true
+    );
 
 
   const [
@@ -181,10 +191,6 @@ export function LearnPage({
     useState('');
 
 
-  /*
-   * SYLLABUS DATA
-   */
-
   const [
     topics,
     setTopics
@@ -193,10 +199,6 @@ export function LearnPage({
       SyllabusTopic[]
     >([]);
 
-
-  /*
-   * STUDENT PROGRESS
-   */
 
   const [
     progressMap,
@@ -226,7 +228,9 @@ export function LearnPage({
     signedIn,
     setSignedIn
   ] =
-    useState(false);
+    useState(
+      false
+    );
 
 
   const [
@@ -240,10 +244,6 @@ export function LearnPage({
       null
     );
 
-
-  /*
-   * FILTERS
-   */
 
   const [
     stage,
@@ -270,10 +270,35 @@ export function LearnPage({
     useState('');
 
 
-  /*
-   * LOAD SYLLABUS
-   * AND USER PROGRESS
-   */
+  const [
+    filtersOpen,
+    setFiltersOpen
+  ] =
+    useState(
+      false
+    );
+
+
+  const [
+    expandedSubject,
+    setExpandedSubject
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
+
+
+  const [
+    showCompleted,
+    setShowCompleted
+  ] =
+    useState(
+      false
+    );
+
 
   async function loadSyllabus() {
 
@@ -283,9 +308,11 @@ export function LearnPage({
         'Supabase is not configured.'
       );
 
+
       setLoading(
         false
       );
+
 
       return;
     }
@@ -295,13 +322,10 @@ export function LearnPage({
       true
     );
 
+
     setError('');
     setMessage('');
 
-
-    /*
-     * LOAD ALL SYLLABUS TOPICS
-     */
 
     const {
       data:
@@ -348,9 +372,11 @@ export function LearnPage({
         topicError.message
       );
 
+
       setLoading(
         false
       );
+
 
       return;
     }
@@ -403,6 +429,7 @@ export function LearnPage({
               item.sort_order ||
               0
             )
+
         })
       );
 
@@ -411,10 +438,6 @@ export function LearnPage({
       cleanTopics
     );
 
-
-    /*
-     * CHECK CURRENT USER
-     */
 
     const {
       data: {
@@ -432,17 +455,21 @@ export function LearnPage({
         false
       );
 
+
       setUserId(
         null
       );
+
 
       setProgressMap(
         {}
       );
 
+
       setLoading(
         false
       );
+
 
       return;
     }
@@ -452,15 +479,11 @@ export function LearnPage({
       true
     );
 
+
     setUserId(
       user.id
     );
 
-
-    /*
-     * LOAD THIS USER'S
-     * SAVED PROGRESS
-     */
 
     const {
       data:
@@ -500,9 +523,16 @@ export function LearnPage({
         progressError.message
       );
 
+
+      setProgressMap(
+        {}
+      );
+
+
       setLoading(
         false
       );
+
 
       return;
     }
@@ -535,6 +565,7 @@ export function LearnPage({
               0
             )
           );
+
       }
     );
 
@@ -560,79 +591,72 @@ export function LearnPage({
   );
 
 
-  /*
-   * WHEN EXAM STAGE CHANGES,
-   * RESET PAPER FILTER.
-   */
+  useEffect(
+    () => {
 
-  /*
- * IF HOME OPENS A SPECIFIC
- * SUBJECT, USE PRELIMS VIEW.
- */
-
-useEffect(
-  () => {
-
-    if (
-      initialSubject
-    ) {
-
-      setStage(
-        'prelims'
-      );
-    }
-
-  },
-  [
-    initialSubject
-  ]
-);
-
-
-/*
- * RESET FILTERS WHEN
- * STAGE OR HOME SUBJECT
- * CHANGES.
- */
-
-useEffect(
-  () => {
-
-    setPaperFilter(
-      'all'
-    );
-
-
-    if (
-      stage ===
-        'prelims' &&
-      initialSubject
-    ) {
-
-      setSearchText(
+      if (
         initialSubject
+      ) {
+
+        setStage(
+          'prelims'
+        );
+
+
+        setSearchText(
+          initialSubject
+        );
+
+
+        setFiltersOpen(
+          true
+        );
+
+      } else {
+
+        setSearchText('');
+      }
+
+
+      setPaperFilter(
+        'all'
       );
 
-    } else {
-
-      setSearchText('');
-    }
-
-  },
-  [
-    stage,
-    initialSubject
-  ]
-);
+    },
+    [
+      initialSubject
+    ]
+  );
 
 
-  /*
-   * SAVE ONE TOPIC
-   */
+  useEffect(
+    () => {
+
+      setPaperFilter(
+        'all'
+      );
+
+
+      setExpandedSubject(
+        null
+      );
+
+
+      setShowCompleted(
+        false
+      );
+
+    },
+    [
+      stage
+    ]
+  );
+
 
   async function saveProgress(
     topicId:
       string,
+
     newValue:
       number
   ) {
@@ -645,6 +669,7 @@ useEffect(
       setMessage(
         'Sign in to save your syllabus progress.'
       );
+
 
       return;
     }
@@ -663,11 +688,6 @@ useEffect(
       0;
 
 
-    /*
-     * UPDATE SCREEN
-     * IMMEDIATELY
-     */
-
     setProgressMap(
       current => ({
         ...current,
@@ -683,6 +703,7 @@ useEffect(
     setSavingTopicId(
       topicId
     );
+
 
     setMessage('');
 
@@ -727,11 +748,6 @@ useEffect(
       );
 
 
-      /*
-       * RESTORE PREVIOUS
-       * VALUE IF SAVE FAILS
-       */
-
       setProgressMap(
         current => ({
           ...current,
@@ -748,9 +764,11 @@ useEffect(
         `Unable to save: ${saveError.message}`
       );
 
+
       setSavingTopicId(
         null
       );
+
 
       return;
     }
@@ -767,11 +785,6 @@ useEffect(
   }
 
 
-  /*
-   * TOPICS FOR CURRENT
-   * EXAM STAGE
-   */
-
   const stageTopics =
     useMemo(
       () =>
@@ -786,10 +799,6 @@ useEffect(
       ]
     );
 
-
-  /*
-   * PAPER OPTIONS
-   */
 
   const paperOptions =
     useMemo(
@@ -806,6 +815,7 @@ useEffect(
               topic.paper ||
               'Other'
             );
+
           }
         );
 
@@ -820,10 +830,6 @@ useEffect(
       ]
     );
 
-
-  /*
-   * FILTER TOPICS
-   */
 
   const visibleTopics =
     useMemo(
@@ -879,6 +885,7 @@ useEffect(
                   query
                 )
             );
+
           }
         );
 
@@ -890,10 +897,6 @@ useEffect(
       ]
     );
 
-
-  /*
-   * GROUP BY SUBJECT
-   */
 
   const subjectGroups =
     useMemo<
@@ -927,6 +930,7 @@ useEffect(
               topic.subject,
               existing
             );
+
           }
         );
 
@@ -953,7 +957,18 @@ useEffect(
                   subjectTopics,
                   progressMap
                 )
+
             })
+          )
+          .sort(
+            (
+              first,
+              second
+            ) =>
+              first.subject
+                .localeCompare(
+                  second.subject
+                )
           );
 
       },
@@ -963,10 +978,6 @@ useEffect(
       ]
     );
 
-
-  /*
-   * OVERALL STAGE PROGRESS
-   */
 
   const overallProgress =
     useMemo(
@@ -1021,6 +1032,7 @@ useEffect(
               value <
                 100
             );
+
           }
         ).length,
       [
@@ -1030,67 +1042,175 @@ useEffect(
     );
 
 
+  function toggleSubject(
+    subject:
+      string
+  ) {
+
+    setExpandedSubject(
+      current =>
+        current ===
+          subject
+          ? null
+          : subject
+    );
+
+
+    setShowCompleted(
+      false
+    );
+  }
+
+
   return (
 
-    <div
-      className="page-wrap"
-    >
+    <>
 
-      {/* HEADER */}
-
-      <TopBar
-        title="Learn"
-        subtitle="Syllabus-first UPSC preparation"
-      />
-
-
-      {/* INTRODUCTION */}
-
-      <section
-        className="panel intro-strip"
-      >
-
-        <span
-          className="eyebrow"
-        >
-          LIVE SYLLABUS TRACKER
-        </span>
-
-
-        <h2>
-          Know exactly what you have studied.
-        </h2>
-
-
-        <p>
-          Track every Prelims and Mains topic.
-          Your progress is stored in your account
-          and remains available across sessions.
-        </p>
-
-      </section>
-
-
-      {/* EXAM STAGE SWITCHER */}
+      {/* =====================================
+          COMPACT STAGE + PROGRESS
+      ===================================== */}
 
       <section
         className="panel"
+
         style={{
-          marginTop:
-            '18px'
+          padding:
+            '16px'
         }}
       >
 
-        <span
-          className="eyebrow"
+        <div
+          style={{
+            display:
+              'flex',
+
+            justifyContent:
+              'space-between',
+
+            alignItems:
+              'center',
+
+            gap:
+              '12px',
+
+            flexWrap:
+              'wrap'
+          }}
         >
-          EXAM STAGE
-        </span>
+
+          <div>
+
+            <span
+              className="eyebrow"
+            >
+              SYLLABUS TRACKER
+            </span>
+
+
+            <h3
+              style={{
+                margin:
+                  '5px 0 2px'
+              }}
+            >
+              {stage ===
+                'prelims'
+                ? 'Prelims'
+                : 'Mains'}
+              {' '}
+              Progress
+            </h3>
+
+          </div>
+
+
+          <strong
+            style={{
+              fontSize:
+                '1.6rem',
+
+              color:
+                '#5eead4'
+            }}
+          >
+            {
+              loading
+                ? '...'
+                : `${overallProgress}%`
+            }
+          </strong>
+
+        </div>
 
 
         <div
-          className="filter-row"
+          className="progress-track"
+
           style={{
+            marginTop:
+              '10px'
+          }}
+        >
+
+          <span
+            style={{
+              width:
+                `${overallProgress}%`
+            }}
+          />
+
+        </div>
+
+
+        <div
+          style={{
+            display:
+              'flex',
+
+            gap:
+              '10px',
+
+            flexWrap:
+              'wrap',
+
+            marginTop:
+              '9px',
+
+            color:
+              '#94a3b8',
+
+            fontSize:
+              '.78rem'
+          }}
+        >
+
+          <span>
+            {completedTopics}/{stageTopics.length}
+            {' '}
+            completed
+          </span>
+
+
+          <span>
+            {startedTopics}
+            {' '}
+            in progress
+          </span>
+
+        </div>
+
+
+        <div
+          style={{
+            display:
+              'grid',
+
+            gridTemplateColumns:
+              'repeat(2, minmax(0, 1fr))',
+
+            gap:
+              '8px',
+
             marginTop:
               '12px'
           }}
@@ -1105,6 +1225,14 @@ useEffect(
                 ? 'filter active'
                 : 'filter'
             }
+
+            style={{
+              width:
+                '100%',
+
+              minWidth:
+                0
+            }}
 
             onClick={() =>
               setStage(
@@ -1126,6 +1254,14 @@ useEffect(
                 : 'filter'
             }
 
+            style={{
+              width:
+                '100%',
+
+              minWidth:
+                0
+            }}
+
             onClick={() =>
               setStage(
                 'mains'
@@ -1140,178 +1276,271 @@ useEffect(
       </section>
 
 
-      {/* OVERALL PROGRESS */}
+      {/* =====================================
+          FILTER BAR
+      ===================================== */}
 
       <section
+        className="panel"
+
         style={{
           marginTop:
-            '18px'
+            '10px',
+
+          padding:
+            '13px 14px'
         }}
       >
 
-        <div
-          className="metrics-grid"
-        >
+        <button
+          type="button"
 
-          <article
-            className="metric-card"
-          >
+          className="secondary-btn"
 
-            <div>
-
-              <span>
-                Overall Progress
-              </span>
-
-
-              <strong>
-                {
-                  loading
-                    ? '...'
-                    : `${overallProgress}%`
-                }
-              </strong>
-
-
-              <small>
-                {
-                  stage ===
-                    'prelims'
-                    ? 'Prelims syllabus'
-                    : 'Mains syllabus'
-                }
-              </small>
-
-            </div>
-
-          </article>
-
-
-          <article
-            className="metric-card"
-          >
-
-            <div>
-
-              <span>
-                Completed
-              </span>
-
-
-              <strong>
-                {
-                  loading
-                    ? '...'
-                    : completedTopics
-                }
-              </strong>
-
-
-              <small>
-                of {stageTopics.length} topics
-              </small>
-
-            </div>
-
-          </article>
-
-
-          <article
-            className="metric-card"
-          >
-
-            <div>
-
-              <span>
-                In Progress
-              </span>
-
-
-              <strong>
-                {
-                  loading
-                    ? '...'
-                    : startedTopics
-                }
-              </strong>
-
-
-              <small>
-                Topics currently studied
-              </small>
-
-            </div>
-
-          </article>
-
-        </div>
-
-
-        <div
-          className="progress-track"
           style={{
-            marginTop:
-              '12px'
+            width:
+              '100%',
+
+            minHeight:
+              '42px',
+
+            justifyContent:
+              'space-between'
           }}
+
+          onClick={() =>
+            setFiltersOpen(
+              current =>
+                !current
+            )
+          }
         >
 
-          <span
-            style={{
-              width:
-                `${overallProgress}%`
-            }}
-          />
+          <span>
+            Filter / Search
+          </span>
 
-        </div>
+          <span>
+            {filtersOpen
+              ? 'Hide'
+              : 'Open'}
+          </span>
+
+        </button>
+
+
+        {filtersOpen && (
+
+          <div
+            style={{
+              display:
+                'grid',
+
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(180px, 1fr))',
+
+              gap:
+                '10px',
+
+              marginTop:
+                '12px'
+            }}
+          >
+
+            <label>
+
+              <span
+                style={{
+                  display:
+                    'block',
+
+                  marginBottom:
+                    '6px',
+
+                  fontSize:
+                    '.78rem',
+
+                  fontWeight:
+                    700
+                }}
+              >
+                Paper
+              </span>
+
+
+              <select
+                value={
+                  paperFilter
+                }
+
+                onChange={
+                  event =>
+                    setPaperFilter(
+                      event
+                        .target
+                        .value
+                    )
+                }
+              >
+
+                <option
+                  value="all"
+                >
+                  All Papers
+                </option>
+
+
+                {paperOptions.map(
+                  paper => (
+
+                    <option
+                      key={
+                        paper
+                      }
+
+                      value={
+                        paper
+                      }
+                    >
+                      {paper}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+
+            <label>
+
+              <span
+                style={{
+                  display:
+                    'block',
+
+                  marginBottom:
+                    '6px',
+
+                  fontSize:
+                    '.78rem',
+
+                  fontWeight:
+                    700
+                }}
+              >
+                Search
+              </span>
+
+
+              <input
+                type="search"
+
+                value={
+                  searchText
+                }
+
+                onChange={
+                  event =>
+                    setSearchText(
+                      event
+                        .target
+                        .value
+                    )
+                }
+
+                placeholder="Subject or topic"
+
+                style={{
+                  width:
+                    '100%',
+
+                  minHeight:
+                    '44px',
+
+                  padding:
+                    '10px 12px',
+
+                  borderRadius:
+                    '11px',
+
+                  border:
+                    '1px solid rgba(255,255,255,.12)',
+
+                  background:
+                    '#0e1525',
+
+                  color:
+                    '#f8fafc',
+
+                  font:
+                    'inherit'
+                }}
+              />
+
+            </label>
+
+
+            <button
+              type="button"
+
+              className="text-btn"
+
+              onClick={() => {
+
+                setPaperFilter(
+                  'all'
+                );
+
+                setSearchText('');
+
+              }}
+
+              style={{
+                alignSelf:
+                  'end'
+              }}
+            >
+              Clear filters
+            </button>
+
+          </div>
+
+        )}
 
       </section>
 
 
-      {/* SIGN-IN STATUS */}
+      {/* =====================================
+          STATUS MESSAGES
+      ===================================== */}
 
       {!loading &&
         !signedIn && (
 
-        <section
-          className="panel"
+        <div
+          className="callout"
+
           style={{
             marginTop:
-              '18px',
-
-            border:
-              '1px solid rgba(245,158,11,.30)'
+              '10px'
           }}
         >
-
-          <strong>
-            Viewing syllabus only
-          </strong>
-
-
-          <p
-            style={{
-              marginBottom:
-                0
-            }}
-          >
-            Sign in to save your personal
-            syllabus progress.
-          </p>
-
-        </section>
+          Sign in to save personal syllabus progress.
+        </div>
 
       )}
 
-
-      {/* MESSAGE */}
 
       {message && (
 
         <div
           className="callout"
+
           style={{
             marginTop:
-              '16px'
+              '10px'
           }}
         >
           {message}
@@ -1320,237 +1549,32 @@ useEffect(
       )}
 
 
-      {/* ERROR */}
-
       {error && (
 
         <div
           className="callout"
+
           style={{
             marginTop:
-              '16px'
+              '10px'
           }}
         >
-
           <strong>
             {error}
           </strong>
-
         </div>
 
       )}
 
 
-      {/* FILTERS */}
-
-      <section
-        className="panel"
-        style={{
-          marginTop:
-            '18px'
-        }}
-      >
-
-        <div
-          className="panel-head"
-        >
-
-          <div>
-
-            <span
-              className="eyebrow"
-            >
-              FILTER SYLLABUS
-            </span>
-
-
-            <h3>
-              Find a paper or topic
-            </h3>
-
-          </div>
-
-
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={
-              loadSyllabus
-            }
-          >
-            Refresh
-          </button>
-
-        </div>
-
-
-        <div
-          style={{
-            display:
-              'grid',
-
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(190px, 1fr))',
-
-            gap:
-              '12px',
-
-            marginTop:
-              '14px'
-          }}
-        >
-
-          {/* PAPER */}
-
-          <label>
-
-            <span
-              style={{
-                display:
-                  'block',
-
-                marginBottom:
-                  '7px',
-
-                fontSize:
-                  '0.8rem',
-
-                fontWeight:
-                  700
-              }}
-            >
-              Paper
-            </span>
-
-
-            <select
-              value={
-                paperFilter
-              }
-
-              onChange={
-                event =>
-                  setPaperFilter(
-                    event
-                      .target
-                      .value
-                  )
-              }
-            >
-
-              <option
-                value="all"
-              >
-                All Papers
-              </option>
-
-
-              {paperOptions.map(
-                paper => (
-
-                  <option
-                    key={
-                      paper
-                    }
-                    value={
-                      paper
-                    }
-                  >
-                    {paper}
-                  </option>
-
-                )
-              )}
-
-            </select>
-
-          </label>
-
-
-          {/* SEARCH */}
-
-          <label>
-
-            <span
-              style={{
-                display:
-                  'block',
-
-                marginBottom:
-                  '7px',
-
-                fontSize:
-                  '0.8rem',
-
-                fontWeight:
-                  700
-              }}
-            >
-              Search
-            </span>
-
-
-            <input
-              type="search"
-
-              value={
-                searchText
-              }
-
-              onChange={
-                event =>
-                  setSearchText(
-                    event
-                      .target
-                      .value
-                  )
-              }
-
-              placeholder="Search subject or topic"
-
-              style={{
-                width:
-                  '100%',
-
-                minHeight:
-                  '44px',
-
-                padding:
-                  '10px 12px',
-
-                borderRadius:
-                  '11px',
-
-                border:
-                  '1px solid rgba(255,255,255,.12)',
-
-                background:
-                  '#0e1525',
-
-                color:
-                  '#f8fafc',
-
-                font:
-                  'inherit'
-              }}
-            />
-
-          </label>
-
-        </div>
-
-      </section>
-
-
-      {/* LOADING */}
-
       {loading && (
 
         <section
           className="panel"
+
           style={{
             marginTop:
-              '18px'
+              '10px'
           }}
         >
           Loading syllabus...
@@ -1559,17 +1583,16 @@ useEffect(
       )}
 
 
-      {/* EMPTY */}
-
       {!loading &&
         visibleTopics.length ===
           0 && (
 
         <section
           className="panel"
+
           style={{
             marginTop:
-              '18px'
+              '10px'
           }}
         >
 
@@ -1578,9 +1601,13 @@ useEffect(
           </h3>
 
 
-          <p>
-            Try changing the paper filter
-            or search text.
+          <p
+            style={{
+              marginBottom:
+                0
+            }}
+          >
+            Change the paper filter or search text.
           </p>
 
         </section>
@@ -1588,373 +1615,544 @@ useEffect(
       )}
 
 
-      {/* SUBJECT GROUPS */}
+      {/* =====================================
+          SUBJECT ACCORDION
+      ===================================== */}
 
       {!loading &&
-        subjectGroups.map(
-          group => (
+        subjectGroups.length >
+          0 && (
 
-            <section
-              className="panel"
-              key={
-                group.subject
-              }
-              style={{
-                marginTop:
-                  '18px'
-              }}
-            >
+        <section
+          style={{
+            display:
+              'grid',
 
-              {/* SUBJECT HEADER */}
+            gap:
+              '9px',
 
-              <div
-                className="panel-head"
-              >
+            marginTop:
+              '10px'
+          }}
+        >
 
-                <div>
+          {subjectGroups.map(
+            group => {
 
-                  <span
-                    className="eyebrow"
-                  >
-                    SUBJECT
-                  </span>
+              const expanded =
+                expandedSubject ===
+                group.subject;
 
 
-                  <h3>
-                    {group.subject}
-                  </h3>
-
-
-                  <small
-                    style={{
-                      color:
-                        '#94a3b8'
-                    }}
-                  >
-                    {
-                      group.topics
-                        .length
-                    }{' '}
-                    {
-                      group.topics
-                        .length ===
-                        1
-                        ? 'topic'
-                        : 'topics'
-                    }
-                  </small>
-
-                </div>
-
-
-                <strong
-                  style={{
-                    fontSize:
-                      '1.2rem'
-                  }}
-                >
-                  {group.progress}%
-                </strong>
-
-              </div>
-
-
-              <div
-                className="progress-track"
-                style={{
-                  marginBottom:
-                    '16px'
-                }}
-              >
-
-                <span
-                  style={{
-                    width:
-                      `${group.progress}%`
-                  }}
-                />
-
-              </div>
-
-
-              {/* TOPICS */}
-
-              <div
-                style={{
-                  display:
-                    'grid',
-
-                  gap:
-                    '10px'
-                }}
-              >
-
-                {group.topics.map(
-                  topic => {
-
-                    const progress =
+              const completedInGroup =
+                group.topics.filter(
+                  topic =>
+                    (
                       progressMap[
                         topic.id
                       ] ||
-                      0;
+                      0
+                    ) >=
+                    100
+                ).length;
 
 
-                    const saving =
-                      savingTopicId ===
-                      topic.id;
+              const activeTopics =
+                group.topics.filter(
+                  topic =>
+                    (
+                      progressMap[
+                        topic.id
+                      ] ||
+                      0
+                    ) <
+                    100
+                );
 
 
-                    return (
+              const completedGroupTopics =
+                group.topics.filter(
+                  topic =>
+                    (
+                      progressMap[
+                        topic.id
+                      ] ||
+                      0
+                    ) >=
+                    100
+                );
 
-                      <article
-                        key={
-                          topic.id
-                        }
+
+              const topicsToShow =
+                showCompleted
+                  ? [
+                      ...activeTopics,
+                      ...completedGroupTopics
+                    ]
+                  : activeTopics;
+
+
+              return (
+
+                <article
+                  className="panel"
+
+                  key={
+                    group.subject
+                  }
+
+                  style={{
+                    padding:
+                      '14px'
+                  }}
+                >
+
+                  <button
+                    type="button"
+
+                    onClick={() =>
+                      toggleSubject(
+                        group.subject
+                      )
+                    }
+
+                    style={{
+                      width:
+                        '100%',
+
+                      padding:
+                        0,
+
+                      border:
+                        0,
+
+                      background:
+                        'transparent',
+
+                      color:
+                        'inherit',
+
+                      display:
+                        'grid',
+
+                      gridTemplateColumns:
+                        '1fr auto',
+
+                      gap:
+                        '12px',
+
+                      alignItems:
+                        'center',
+
+                      textAlign:
+                        'left',
+
+                      cursor:
+                        'pointer',
+
+                      whiteSpace:
+                        'normal'
+                    }}
+                  >
+
+                    <div
+                      style={{
+                        minWidth:
+                          0
+                      }}
+                    >
+
+                      <strong
                         style={{
-                          padding:
-                            '14px',
+                          display:
+                            'block',
 
-                          borderRadius:
-                            '14px',
+                          fontSize:
+                            '1rem'
+                        }}
+                      >
+                        {group.subject}
+                      </strong>
 
-                          border:
-                            '1px solid rgba(255,255,255,.08)',
 
-                          background:
-                            '#0e1525'
+                      <small
+                        style={{
+                          display:
+                            'block',
+
+                          marginTop:
+                            '4px',
+
+                          color:
+                            '#94a3b8'
+                        }}
+                      >
+                        {completedInGroup}/{group.topics.length}
+                        {' '}
+                        completed
+                      </small>
+
+
+                      <div
+                        className="progress-track"
+
+                        style={{
+                          marginTop:
+                            '8px'
                         }}
                       >
 
-                        {/* TOPIC INFO */}
+                        <span
+                          style={{
+                            width:
+                              `${group.progress}%`
+                          }}
+                        />
+
+                      </div>
+
+                    </div>
+
+
+                    <div
+                      style={{
+                        textAlign:
+                          'right',
+
+                        minWidth:
+                          '56px'
+                      }}
+                    >
+
+                      <strong
+                        style={{
+                          display:
+                            'block',
+
+                          color:
+                            '#5eead4'
+                        }}
+                      >
+                        {group.progress}%
+                      </strong>
+
+
+                      <small
+                        style={{
+                          color:
+                            '#94a3b8'
+                        }}
+                      >
+                        {expanded
+                          ? 'Close'
+                          : 'Open'}
+                      </small>
+
+                    </div>
+
+                  </button>
+
+
+                  {expanded && (
+
+                    <div
+                      style={{
+                        marginTop:
+                          '12px',
+
+                        paddingTop:
+                          '12px',
+
+                        borderTop:
+                          '1px solid rgba(255,255,255,.08)'
+                      }}
+                    >
+
+                      {activeTopics.length ===
+                        0 &&
+                        !showCompleted && (
 
                         <div
-                          style={{
-                            display:
-                              'flex',
-
-                            justifyContent:
-                              'space-between',
-
-                            alignItems:
-                              'flex-start',
-
-                            gap:
-                              '12px',
-
-                            flexWrap:
-                              'wrap'
-                          }}
+                          className="callout"
                         >
-
-                          <div
-                            style={{
-                              flex:
-                                '1 1 240px'
-                            }}
-                          >
-
-                            <span
-                              className="tag"
-                            >
-                              {
-                                topic.paper ||
-                                'General'
-                              }
-                            </span>
-
-
-                            <h4
-                              style={{
-                                margin:
-                                  '10px 0 5px'
-                              }}
-                            >
-                              {topic.topic}
-                            </h4>
-
-
-                            <small
-                              style={{
-                                color:
-                                  '#94a3b8'
-                              }}
-                            >
-                              {
-                                getProgressLabel(
-                                  progress
-                                )
-                              }
-                            </small>
-
-                          </div>
-
-
-                          <strong
-                            style={{
-                              fontSize:
-                                '1.05rem'
-                            }}
-                          >
-                            {progress}%
-                          </strong>
-
+                          All topics in this subject are completed.
                         </div>
 
+                      )}
 
-                        {/* TOPIC PROGRESS BAR */}
 
-                        <div
-                          className="progress-track"
+                      <div
+                        style={{
+                          display:
+                            'grid',
+
+                          gap:
+                            '8px'
+                        }}
+                      >
+
+                        {topicsToShow.map(
+                          topic => {
+
+                            const progress =
+                              progressMap[
+                                topic.id
+                              ] ||
+                              0;
+
+
+                            const saving =
+                              savingTopicId ===
+                              topic.id;
+
+
+                            return (
+
+                              <div
+                                key={
+                                  topic.id
+                                }
+
+                                style={{
+                                  display:
+                                    'grid',
+
+                                  gridTemplateColumns:
+                                    'minmax(0, 1fr) minmax(120px, 160px)',
+
+                                  gap:
+                                    '10px',
+
+                                  alignItems:
+                                    'center',
+
+                                  padding:
+                                    '11px 12px',
+
+                                  borderRadius:
+                                    '12px',
+
+                                  border:
+                                    '1px solid rgba(255,255,255,.07)',
+
+                                  background:
+                                    '#0e1525'
+                                }}
+                              >
+
+                                <div
+                                  style={{
+                                    minWidth:
+                                      0
+                                  }}
+                                >
+
+                                  <strong
+                                    style={{
+                                      display:
+                                        'block',
+
+                                      overflowWrap:
+                                        'anywhere'
+                                    }}
+                                  >
+                                    {topic.topic}
+                                  </strong>
+
+
+                                  <small
+                                    style={{
+                                      display:
+                                        'block',
+
+                                      marginTop:
+                                        '4px',
+
+                                      color:
+                                        '#94a3b8'
+                                    }}
+                                  >
+                                    {topic.paper ||
+                                      'General'}
+                                    {' • '}
+                                    {getProgressLabel(
+                                      progress
+                                    )}
+                                  </small>
+
+                                </div>
+
+
+                                <div>
+
+                                  <select
+                                    aria-label={
+                                      `Progress for ${topic.topic}`
+                                    }
+
+                                    value={
+                                      progress
+                                    }
+
+                                    disabled={
+                                      !signedIn ||
+                                      saving
+                                    }
+
+                                    onChange={
+                                      event => {
+
+                                        void saveProgress(
+                                          topic.id,
+
+                                          Number(
+                                            event
+                                              .target
+                                              .value
+                                          )
+                                        );
+
+                                      }
+                                    }
+
+                                    style={{
+                                      width:
+                                        '100%'
+                                    }}
+                                  >
+
+                                    <option value="0">
+                                      0%
+                                    </option>
+
+                                    <option value="10">
+                                      10%
+                                    </option>
+
+                                    <option value="20">
+                                      20%
+                                    </option>
+
+                                    <option value="30">
+                                      30%
+                                    </option>
+
+                                    <option value="40">
+                                      40%
+                                    </option>
+
+                                    <option value="50">
+                                      50%
+                                    </option>
+
+                                    <option value="60">
+                                      60%
+                                    </option>
+
+                                    <option value="70">
+                                      70%
+                                    </option>
+
+                                    <option value="80">
+                                      80%
+                                    </option>
+
+                                    <option value="90">
+                                      90%
+                                    </option>
+
+                                    <option value="100">
+                                      100%
+                                    </option>
+
+                                  </select>
+
+
+                                  <small
+                                    style={{
+                                      display:
+                                        'block',
+
+                                      marginTop:
+                                        '4px',
+
+                                      textAlign:
+                                        'right',
+
+                                      color:
+                                        saving
+                                          ? '#5eead4'
+                                          : '#64748b'
+                                    }}
+                                  >
+                                    {saving
+                                      ? 'Saving...'
+                                      : `${progress}%`}
+                                  </small>
+
+                                </div>
+
+                              </div>
+
+                            );
+
+                          }
+                        )}
+
+                      </div>
+
+
+                      {completedGroupTopics.length >
+                        0 && (
+
+                        <button
+                          type="button"
+
+                          className="text-btn"
+
+                          onClick={() =>
+                            setShowCompleted(
+                              current =>
+                                !current
+                            )
+                          }
+
                           style={{
+                            width:
+                              '100%',
+
                             marginTop:
-                              '12px'
-                          }}
-                        >
-
-                          <span
-                            style={{
-                              width:
-                                `${progress}%`
-                            }}
-                          />
-
-                        </div>
-
-
-                        {/* PROGRESS SELECT */}
-
-                        <div
-                          style={{
-                            marginTop:
-                              '12px',
-
-                            display:
-                              'grid',
-
-                            gridTemplateColumns:
-                              'minmax(160px, 240px) auto',
-
-                            gap:
                               '10px',
 
-                            alignItems:
+                            textAlign:
                               'center'
                           }}
                         >
 
-                          <select
-                            aria-label={
-                              `Progress for ${topic.topic}`
-                            }
+                          {showCompleted
+                            ? 'Hide completed topics'
+                            : `Show completed (${completedGroupTopics.length})`}
 
-                            value={
-                              progress
-                            }
+                        </button>
 
-                            disabled={
-                              !signedIn ||
-                              saving
-                            }
+                      )}
 
-                            onChange={
-                              event => {
+                    </div>
 
-                                void saveProgress(
-                                  topic.id,
-                                  Number(
-                                    event
-                                      .target
-                                      .value
-                                  )
-                                );
-                              }
-                            }
-                          >
+                  )}
 
-                            <option value="0">
-                              0% - Not started
-                            </option>
+                </article>
 
-                            <option value="10">
-                              10%
-                            </option>
+              );
 
-                            <option value="20">
-                              20%
-                            </option>
+            }
+          )}
 
-                            <option value="30">
-                              30%
-                            </option>
+        </section>
 
-                            <option value="40">
-                              40%
-                            </option>
+      )}
 
-                            <option value="50">
-                              50% - Studied
-                            </option>
+    </>
 
-                            <option value="60">
-                              60%
-                            </option>
-
-                            <option value="70">
-                              70%
-                            </option>
-
-                            <option value="80">
-                              80%
-                            </option>
-
-                            <option value="90">
-                              90%
-                            </option>
-
-                            <option value="100">
-                              100% - Completed
-                            </option>
-
-                          </select>
-
-
-                          <small
-                            style={{
-                              color:
-                                saving
-                                  ? '#14b8a6'
-                                  : '#94a3b8',
-
-                              whiteSpace:
-                                'nowrap'
-                            }}
-                          >
-
-                            {
-                              saving
-                                ? 'Saving...'
-                                : signedIn
-                                ? 'Saved online'
-                                : 'Sign in'
-                            }
-
-                          </small>
-
-                        </div>
-
-                      </article>
-
-                    );
-                  }
-                )}
-
-              </div>
-
-            </section>
-
-          )
-        )}
-
-    </div>
   );
 }
