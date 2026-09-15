@@ -312,24 +312,27 @@ export function VisitorPreviewPage({
     () => {
 
       const client =
-        supabase;
+  supabase;
 
 
-      if (
-        !client
-      ) {
+if (
+  !client
+) {
 
-        setSyllabusError(
-          'Study database is not configured.'
-        );
+  setSyllabusError(
+    'Study database is not configured.'
+  );
 
-        setSyllabusLoading(
-          false
-        );
+  setSyllabusLoading(
+    false
+  );
 
-        return;
-      }
+  return;
+}
 
+
+const safeClient =
+  client;
 
       let cancelled =
         false;
@@ -348,10 +351,10 @@ export function VisitorPreviewPage({
           data,
           error
         } =
-          await client
-            .from(
-              'syllabus_topics'
-            )
+          await safeClient
+  .from(
+    'syllabus_topics'
+  )
             .select(
               `
               id,
@@ -487,24 +490,27 @@ export function VisitorPreviewPage({
     () => {
 
       const client =
-        supabase;
+  supabase;
 
 
-      if (
-        !client
-      ) {
+if (
+  !client
+) {
 
-        setPyqError(
-          'Study database is not configured.'
-        );
+  setPyqError(
+    'Study database is not configured.'
+  );
 
-        setPyqLoading(
-          false
-        );
+  setPyqLoading(
+    false
+  );
 
-        return;
-      }
+  return;
+}
 
+
+const safeClient =
+  client;
 
       let cancelled =
         false;
@@ -525,10 +531,10 @@ export function VisitorPreviewPage({
         ] =
           await Promise.all([
 
-            client
-              .from(
-                'preview_prelims_pyqs'
-              )
+            safeClient
+  .from(
+    'preview_prelims_pyqs'
+  )
               .select(
                 `
                 id,
@@ -559,10 +565,10 @@ export function VisitorPreviewPage({
               ),
 
 
-            client
-              .from(
-                'preview_mains_pyqs'
-              )
+            safeClient
+  .from(
+    'preview_mains_pyqs'
+  )
               .select(
                 `
                 id,
