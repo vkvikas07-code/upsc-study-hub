@@ -60,6 +60,10 @@ import {
 } from './pages/VisitorPreviewPage';
 
 import {
+  SeriousLearnerActivationPage
+} from './pages/SeriousLearnerActivationPage';
+
+import {
   initialCurrentAffairs
 } from './data/mock';
 
@@ -86,9 +90,23 @@ type UserRole =
   | 'admin';
 
 
+type LearnerStatus =
+  | 'basic'
+  | 'serious';
+
+
+type AccessPlan =
+  | 'preview'
+  | 'free_full'
+  | 'paid_full'
+  | 'scholarship';
+
+
 type UserProfile = {
   displayName: string;
   role: UserRole;
+  learnerStatus: LearnerStatus;
+  accessPlan: AccessPlan;
 };
 
 
@@ -256,6 +274,39 @@ function normalizeRole(
   return 'student';
 }
 
+function normalizeLearnerStatus(
+  value: unknown
+): LearnerStatus {
+
+  if (
+    value ===
+      'serious'
+  ) {
+
+    return 'serious';
+  }
+
+
+  return 'basic';
+}
+
+
+function normalizeAccessPlan(
+  value: unknown
+): AccessPlan {
+
+  if (
+    value === 'free_full' ||
+    value === 'paid_full' ||
+    value === 'scholarship'
+  ) {
+
+    return value;
+  }
+
+
+  return 'preview';
+}
 
 function getFallbackName(
   session: Session
@@ -947,9 +998,14 @@ export default function SecureApp() {
             .from(
               'profiles'
             )
-            .select(
-              'display_name, role'
-            )
+           .select(
+  `
+  display_name,
+  role,
+  learner_status,
+  access_plan
+  `
+)
             .eq(
               'id',
               nextSession.user.id
@@ -974,25 +1030,37 @@ export default function SecureApp() {
 
         setProfile({
 
-          displayName:
+  displayName:
 
-            typeof data?.display_name ===
-              'string' &&
-            data.display_name.trim()
+    typeof data?.display_name ===
+      'string' &&
+    data.display_name.trim()
 
-              ? data.display_name.trim()
+      ? data.display_name.trim()
 
-              : getFallbackName(
-                  nextSession
-                ),
+      : getFallbackName(
+          nextSession
+        ),
 
-          role:
+  role:
 
-            normalizeRole(
-              data?.role
-            )
+    normalizeRole(
+      data?.role
+    ),
 
-        });
+  learnerStatus:
+
+    normalizeLearnerStatus(
+      data?.learner_status
+    ),
+
+  accessPlan:
+
+    normalizeAccessPlan(
+      data?.access_plan
+    )
+
+});
 
 
         setAuthReady(
@@ -1611,6 +1679,78 @@ if (
   );
 }
 
+  /*
+ * =========================================
+ * FULL STUDY ACCESS
+ * =========================================
+ */
+
+const hasFullStudyAccess =
+
+  isEditor ||
+
+  (
+    profile.learnerStatus ===
+      'serious' &&
+
+    (
+      profile.accessPlan ===
+        'free_full' ||
+
+      profile.accessPlan ===
+        'scholarship' ||
+
+      profile.accessPlan ===
+        'paid_full'
+    )
+  );
+
+
+/*
+ * =========================================
+ * BASIC REGISTERED STUDENT
+ * =========================================
+ *
+ * Signed in, but Serious Learner activation
+ * has not been completed yet.
+ */
+
+if (
+  !hasFullStudyAccess
+) {
+
+  return (
+
+    <IonApp>
+
+      <SeriousLearnerActivationPage
+
+        displayName={
+          profile.displayName
+        }
+
+        onActivated={() => {
+
+          /*
+           * Reload account state after the secure
+           * Supabase RPC changes learner_status
+           * and access_plan.
+           */
+
+          window.location.reload();
+
+        }}
+
+        onSignOut={
+          signOut
+        }
+
+      />
+
+    </IonApp>
+
+  );
+}
   /*
    * =========================================
    * HOME
