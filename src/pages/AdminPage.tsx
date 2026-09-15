@@ -28,6 +28,10 @@ import {
 } from '../components/MainsPyqManager';
 
 import {
+  MainsPyqBulkImporter
+} from '../components/MainsPyqBulkImporter';
+
+import {
   MainsEvaluationManager
 } from '../components/MainsEvaluationManager';
 
@@ -3143,7 +3147,7 @@ export function AdminPage({
 
       </div>
 
-      {/* =====================================
+     {/* =====================================
     MAINS PYQ ARCHIVE TAB
 ===================================== */}
 
@@ -3157,7 +3161,30 @@ export function AdminPage({
   }}
 >
 
-  <MainsPyqManager />
+  <div
+    style={{
+      display:
+        'grid',
+
+      gap:
+        '20px'
+    }}
+  >
+
+    {/* =====================================
+        BULK CSV IMPORT
+    ===================================== */}
+
+    <MainsPyqBulkImporter />
+
+
+    {/* =====================================
+        MANUAL PYQ ENTRY + ARCHIVE
+    ===================================== */}
+
+    <MainsPyqManager />
+
+  </div>
 
 </div>
 
