@@ -56,6 +56,10 @@ import {
 } from './pages/AccountPage';
 
 import {
+  VisitorPreviewPage
+} from './pages/VisitorPreviewPage';
+
+import {
   initialCurrentAffairs
 } from './data/mock';
 
@@ -619,6 +623,13 @@ export default function SecureApp() {
       !supabase
     );
 
+  const [
+  visitorAccountOpen,
+  setVisitorAccountOpen
+] =
+  useState(
+    false
+  );
 
   /*
    * =========================================
@@ -856,6 +867,9 @@ export default function SecureApp() {
     setActive(
       'home'
     );
+    setVisitorAccountOpen(
+  false
+);
   }
 
 
@@ -1494,6 +1508,108 @@ export default function SecureApp() {
     profile?.role ===
       'admin';
 
+  /*
+ * =========================================
+ * VISITOR / AUTH ACCESS GATE
+ * =========================================
+ */
+
+if (
+  !authReady
+) {
+
+  return (
+
+    <IonApp>
+
+      <LoadingCard
+        text="Checking your account…"
+      />
+
+    </IonApp>
+
+  );
+}
+
+
+/*
+ * Signed-out users can only access:
+ * - public syllabus
+ * - latest 10 years Prelims PYQs
+ * - latest 10 years Mains PYQs
+ * - account sign in / registration
+ *
+ * Normal app navigation is not rendered.
+ */
+
+if (
+  !session
+) {
+
+  return (
+
+    <IonApp>
+
+      {
+        visitorAccountOpen
+
+          ? (
+
+            <AccountPage
+
+              intent="study"
+
+              onBack={() =>
+                setVisitorAccountOpen(
+                  false
+                )
+              }
+
+            />
+
+          )
+
+          : (
+
+            <VisitorPreviewPage
+
+              onOpenAccount={() =>
+                setVisitorAccountOpen(
+                  true
+                )
+              }
+
+            />
+
+          )
+      }
+
+    </IonApp>
+
+  );
+}
+
+
+/*
+ * Session exists but profile is still loading.
+ */
+
+if (
+  !profile
+) {
+
+  return (
+
+    <IonApp>
+
+      <LoadingCard
+        text="Loading your study account…"
+      />
+
+    </IonApp>
+
+  );
+}
 
   /*
    * =========================================
