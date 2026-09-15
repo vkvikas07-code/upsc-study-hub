@@ -807,6 +807,91 @@ export function MainsPyqManager() {
       return;
     }
 
+    async function changeQuestionStatus(
+  item:
+    PyqRow,
+  nextStatus:
+    'draft' |
+    'published' |
+    'archived'
+) {
+
+  if (!supabase) {
+
+    setMessage(
+      'Supabase is not configured.'
+    );
+
+    return;
+  }
+
+
+  setMessage(
+    `Changing question to ${nextStatus}...`
+  );
+
+
+  const {
+    data,
+    error
+  } =
+    await supabase
+      .from(
+        'mains_questions'
+      )
+      .update({
+        status:
+          nextStatus
+      })
+      .eq(
+        'id',
+        item.id
+      )
+      .select(
+        PYQ_SELECT
+      )
+      .single();
+
+
+  if (
+    error ||
+    !data
+  ) {
+
+    setMessage(
+      error?.message ||
+      'Unable to change question status.'
+    );
+
+    return;
+  }
+
+
+  const updated = {
+    ...data,
+
+    relevant_gs_papers:
+      data.relevant_gs_papers ||
+      []
+  } as PyqRow;
+
+
+  setQuestions(
+    current =>
+      current.map(
+        question =>
+          question.id ===
+            updated.id
+            ? updated
+            : question
+      )
+  );
+
+
+  setMessage(
+    `Question moved to ${nextStatus}.`
+  );
+}
 
     const numericYear =
       Number(
@@ -2077,6 +2162,79 @@ export function MainsPyqManager() {
                         : ''}
                     </small>
 
+                    <div
+  style={{
+    display:
+      'flex',
+
+    gap:
+      '8px',
+
+    flexWrap:
+      'wrap',
+
+    marginTop:
+      '12px'
+  }}
+>
+
+  {item.status !==
+    'published' && (
+
+    <button
+      type="button"
+      className="primary-btn"
+      onClick={() =>
+        void changeQuestionStatus(
+          item,
+          'published'
+        )
+      }
+    >
+      Publish
+    </button>
+
+  )}
+
+
+  {item.status !==
+    'draft' && (
+
+    <button
+      type="button"
+      className="secondary-btn"
+      onClick={() =>
+        void changeQuestionStatus(
+          item,
+          'draft'
+        )
+      }
+    >
+      Move to Draft
+    </button>
+
+  )}
+
+
+  {item.status !==
+    'archived' && (
+
+    <button
+      type="button"
+      className="secondary-btn"
+      onClick={() =>
+        void changeQuestionStatus(
+          item,
+          'archived'
+        )
+      }
+    >
+      Archive
+    </button>
+
+  )}
+
+</div>
                   </article>
 
                 )
