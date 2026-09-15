@@ -979,10 +979,57 @@ export function AccountPage({
           {/* MAIN BUTTON */}
 
           <button
+  type="submit"
+  className="primary-btn"
 
-            type="submit"
+  style={{
 
-            className="primary-btn"
+    width:
+      '100%',
+
+    display:
+      'flex',
+
+    alignItems:
+      'center',
+
+    justifyContent:
+      'center',
+
+    textAlign:
+      'center'
+
+  }}
+
+  disabled={
+
+    busy ||
+    !isSupabaseConfigured
+
+  }
+>
+
+  {
+
+    busy
+
+      ? 'Please wait…'
+
+      : mode ===
+        'signin'
+
+      ? 'Sign In'
+
+      : mode ===
+        'signup'
+
+      ? 'Create Account'
+
+      : 'Send Reset Link'
+
+  }
+
+</button>
 
             disabled={
 
