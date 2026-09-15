@@ -13,6 +13,10 @@ import {
 } from '../components/TopBar';
 
 import {
+  MainsPyqArchive
+} from '../components/MainsPyqArchive';
+
+import {
   supabase
 } from '../lib/supabase';
 
@@ -29,10 +33,12 @@ type QuestionType =
   | 'practice'
   | 'pyq';
 
+
 type SectionFilter =
   | 'all'
   | 'gs'
   | 'optional';
+
 
 type QuestionTypeFilter =
   | 'all'
@@ -40,8 +46,14 @@ type QuestionTypeFilter =
   | 'pyq';
 
 
+type WorkspaceView =
+  | 'practice'
+  | 'pyq';
+
+
 type MainsQuestion =
   MainsWorkspaceQuestion & {
+
     question_type:
       QuestionType;
 
@@ -59,59 +71,204 @@ type MainsQuestion =
   };
 
 
-const controlStyle: CSSProperties = {
-  width: '100%',
-  minHeight: '48px',
-  padding: '0 14px',
-  borderRadius: '12px',
-  border:
-    '1px solid rgba(255,255,255,0.12)',
-  background: '#0e1525',
-  color: '#f8fafc',
-  fontSize: '0.92rem',
-  outline: 'none',
-  colorScheme: 'dark'
-};
+const controlStyle:
+  CSSProperties = {
+
+    width:
+      '100%',
+
+    minHeight:
+      '48px',
+
+    padding:
+      '0 14px',
+
+    borderRadius:
+      '12px',
+
+    border:
+      '1px solid rgba(255,255,255,0.12)',
+
+    background:
+      '#0e1525',
+
+    color:
+      '#f8fafc',
+
+    fontSize:
+      '0.92rem',
+
+    outline:
+      'none',
+
+    colorScheme:
+      'dark'
+  };
 
 
-const labelStyle: CSSProperties = {
-  display: 'grid',
-  gap: '7px',
-  marginBottom: '14px',
-  color: '#cbd5e1',
-  fontSize: '0.82rem',
-  fontWeight: 700
-};
+const labelStyle:
+  CSSProperties = {
+
+    display:
+      'grid',
+
+    gap:
+      '7px',
+
+    marginBottom:
+      '14px',
+
+    color:
+      '#cbd5e1',
+
+    fontSize:
+      '0.82rem',
+
+    fontWeight:
+      700
+  };
 
 
 const outlineButtonStyle:
   CSSProperties = {
-    minHeight: '44px',
-    padding: '0 16px',
-    borderRadius: '12px',
+
+    minHeight:
+      '44px',
+
+    padding:
+      '0 16px',
+
+    borderRadius:
+      '12px',
+
     border:
       '1px solid rgba(45,212,191,0.55)',
+
     background:
       'rgba(20,184,166,0.04)',
-    color: '#5eead4',
-    fontWeight: 750
+
+    color:
+      '#5eead4',
+
+    fontWeight:
+      750
   };
 
 
+function WorkspaceTabs({
+  active,
+  onChange
+}: {
+  active:
+    WorkspaceView;
+
+  onChange:
+    (
+      value:
+        WorkspaceView
+    ) => void;
+}) {
+
+  return (
+
+    <section
+      className="panel"
+      style={{
+        marginBottom:
+          '16px',
+
+        padding:
+          '12px'
+      }}
+    >
+
+      <div
+        style={{
+          display:
+            'grid',
+
+          gridTemplateColumns:
+            'repeat(2, minmax(0, 1fr))',
+
+          gap:
+            '8px'
+        }}
+      >
+
+        <button
+          type="button"
+          className={
+            active ===
+              'practice'
+              ? 'filter active'
+              : 'filter'
+          }
+          onClick={() =>
+            onChange(
+              'practice'
+            )
+          }
+        >
+          Answer Practice
+        </button>
+
+
+        <button
+          type="button"
+          className={
+            active ===
+              'pyq'
+              ? 'filter active'
+              : 'filter'
+          }
+          onClick={() =>
+            onChange(
+              'pyq'
+            )
+          }
+        >
+          Previous Year Papers
+        </button>
+
+      </div>
+
+    </section>
+
+  );
+}
+
+
 export function MainsPracticePage() {
+
   const [
     questions,
     setQuestions
   ] =
-    useState<MainsQuestion[]>([]);
+    useState<
+      MainsQuestion[]
+    >([]);
 
 
   const [
     selectedQuestion,
     setSelectedQuestion
   ] =
-    useState<MainsQuestion | null>(
+    useState<
+      MainsQuestion |
       null
+    >(
+      null
+    );
+
+
+  const [
+    workspaceView,
+    setWorkspaceView
+  ] =
+    useState<
+      WorkspaceView
+    >(
+      'practice'
     );
 
 
@@ -119,7 +276,9 @@ export function MainsPracticePage() {
     loading,
     setLoading
   ] =
-    useState(true);
+    useState(
+      true
+    );
 
 
   const [
@@ -133,7 +292,9 @@ export function MainsPracticePage() {
     sectionFilter,
     setSectionFilter
   ] =
-    useState<SectionFilter>(
+    useState<
+      SectionFilter
+    >(
       'all'
     );
 
@@ -142,7 +303,9 @@ export function MainsPracticePage() {
     typeFilter,
     setTypeFilter
   ] =
-    useState<QuestionTypeFilter>(
+    useState<
+      QuestionTypeFilter
+    >(
       'all'
     );
 
@@ -151,35 +314,45 @@ export function MainsPracticePage() {
     gsFilter,
     setGsFilter
   ] =
-    useState('all');
+    useState(
+      'all'
+    );
 
 
   const [
     optionalSubjectFilter,
     setOptionalSubjectFilter
   ] =
-    useState('all');
+    useState(
+      'all'
+    );
 
 
   const [
     optionalPaperFilter,
     setOptionalPaperFilter
   ] =
-    useState('all');
+    useState(
+      'all'
+    );
 
 
   const [
     marksFilter,
     setMarksFilter
   ] =
-    useState('all');
+    useState(
+      'all'
+    );
 
 
   const [
     yearFilter,
     setYearFilter
   ] =
-    useState('all');
+    useState(
+      'all'
+    );
 
 
   const [
@@ -193,30 +366,41 @@ export function MainsPracticePage() {
     expandedId,
     setExpandedId
   ] =
-    useState<string | null>(
+    useState<
+      string |
+      null
+    >(
       null
     );
 
 
   async function loadQuestions() {
+
     if (!supabase) {
+
       setError(
         'Mains question database is not configured.'
       );
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
       return;
     }
 
 
-    setLoading(true);
+    setLoading(
+      true
+    );
+
     setError('');
 
 
     const {
       data,
-      error: loadError
+      error:
+        loadError
     } =
       await supabase
         .from(
@@ -247,57 +431,92 @@ export function MainsPracticePage() {
           difficulty,
           created_at
         `)
+
         .eq(
           'status',
           'published'
         )
+
+        /*
+         * The present answer-writing workspace
+         * supports GS + Optional.
+         *
+         * Essay PYQs remain available in the
+         * dedicated Previous Year Papers archive.
+         */
+        .in(
+          'section_type',
+          [
+            'gs',
+            'optional'
+          ]
+        )
+
         .order(
           'created_at',
           {
-            ascending: false
+            ascending:
+              false
           }
         );
 
 
-    if (loadError) {
+    if (
+      loadError
+    ) {
+
       console.error(
         'Unable to load Mains questions:',
         loadError
       );
 
+
       setError(
         loadError.message
       );
 
-      setLoading(false);
+
+      setLoading(
+        false
+      );
 
       return;
     }
 
 
     const formatted =
-      (data || []).map(
+      (
+        data ||
+        []
+      ).map(
         item => ({
+
           ...item,
 
           tags:
             item.tags ||
             []
         })
-      ) as MainsQuestion[];
+      ) as
+        MainsQuestion[];
 
 
     setQuestions(
       formatted
     );
 
-    setLoading(false);
+
+    setLoading(
+      false
+    );
   }
 
 
   useEffect(
     () => {
-      loadQuestions();
+
+      void loadQuestions();
+
     },
     []
   );
@@ -306,6 +525,7 @@ export function MainsPracticePage() {
   const optionalSubjects =
     useMemo(
       () => {
+
         const values =
           questions
             .filter(
@@ -320,14 +540,20 @@ export function MainsPracticePage() {
             .filter(
               (
                 value
-              ): value is string =>
-                Boolean(value)
+              ):
+                value is string =>
+                Boolean(
+                  value
+                )
             );
 
 
         return Array.from(
-          new Set(values)
+          new Set(
+            values
+          )
         ).sort();
+
       },
       [
         questions
@@ -338,6 +564,7 @@ export function MainsPracticePage() {
   const years =
     useMemo(
       () => {
+
         const values =
           questions
             .filter(
@@ -347,16 +574,24 @@ export function MainsPracticePage() {
             )
             .map(
               item =>
-                item.pyq_year as number
+                item.pyq_year as
+                  number
             );
 
 
         return Array.from(
-          new Set(values)
+          new Set(
+            values
+          )
         ).sort(
-          (a, b) =>
-            b - a
+          (
+            first,
+            second
+          ) =>
+            second -
+            first
         );
+
       },
       [
         questions
@@ -367,6 +602,7 @@ export function MainsPracticePage() {
   const filteredQuestions =
     useMemo(
       () => {
+
         const search =
           searchText
             .trim()
@@ -382,6 +618,7 @@ export function MainsPracticePage() {
               item.section_type !==
                 sectionFilter
             ) {
+
               return false;
             }
 
@@ -392,6 +629,7 @@ export function MainsPracticePage() {
               item.question_type !==
                 typeFilter
             ) {
+
               return false;
             }
 
@@ -404,6 +642,7 @@ export function MainsPracticePage() {
               item.gs_paper !==
                 gsFilter
             ) {
+
               return false;
             }
 
@@ -416,6 +655,7 @@ export function MainsPracticePage() {
               item.optional_subject !==
                 optionalSubjectFilter
             ) {
+
               return false;
             }
 
@@ -428,6 +668,7 @@ export function MainsPracticePage() {
               item.optional_paper !==
                 optionalPaperFilter
             ) {
+
               return false;
             }
 
@@ -440,6 +681,7 @@ export function MainsPracticePage() {
               ) !==
                 marksFilter
             ) {
+
               return false;
             }
 
@@ -452,11 +694,15 @@ export function MainsPracticePage() {
               ) !==
                 yearFilter
             ) {
+
               return false;
             }
 
 
-            if (search) {
+            if (
+              search
+            ) {
+
               const searchable =
                 [
                   item.question,
@@ -466,10 +712,18 @@ export function MainsPracticePage() {
                   item.gs_paper,
                   item.optional_subject,
                   item.optional_paper,
-                  ...(item.tags || [])
+                  ...(item.tags ||
+                    [])
                 ]
-                  .filter(Boolean)
-                  .join(' ')
+
+                  .filter(
+                    Boolean
+                  )
+
+                  .join(
+                    ' '
+                  )
+
                   .toLowerCase();
 
 
@@ -478,14 +732,17 @@ export function MainsPracticePage() {
                   search
                 )
               ) {
+
                 return false;
               }
             }
 
 
             return true;
+
           }
         );
+
       },
       [
         questions,
@@ -502,37 +759,43 @@ export function MainsPracticePage() {
 
 
   function clearFilters() {
+
     setSectionFilter(
       'all'
     );
+
 
     setTypeFilter(
       'all'
     );
 
+
     setGsFilter(
       'all'
     );
+
 
     setOptionalSubjectFilter(
       'all'
     );
 
+
     setOptionalPaperFilter(
       'all'
     );
+
 
     setMarksFilter(
       'all'
     );
 
+
     setYearFilter(
       'all'
     );
 
-    setSearchText(
-      ''
-    );
+
+    setSearchText('');
   }
 
 
@@ -540,6 +803,7 @@ export function MainsPracticePage() {
     item:
       MainsQuestion
   ) {
+
     setSelectedQuestion(
       item
     );
@@ -552,13 +816,17 @@ export function MainsPracticePage() {
 
 
     mainArea?.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+      top:
+        0,
+
+      behavior:
+        'smooth'
     });
   }
 
 
   function closeAnswerWorkspace() {
+
     setSelectedQuestion(
       null
     );
@@ -571,18 +839,27 @@ export function MainsPracticePage() {
 
 
     mainArea?.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+      top:
+        0,
+
+      behavior:
+        'smooth'
     });
   }
 
 
   /*
-   * OPEN ANSWER-WRITING WORKSPACE
+   * =====================================
+   * ANSWER-WRITING WORKSPACE
+   * =====================================
    */
 
-  if (selectedQuestion) {
+  if (
+    selectedQuestion
+  ) {
+
     return (
+
       <MainsAnswerWorkspace
         question={
           selectedQuestion
@@ -591,13 +868,67 @@ export function MainsPracticePage() {
           closeAnswerWorkspace
         }
       />
+
     );
   }
 
 
-  if (loading) {
+  /*
+   * =====================================
+   * PREVIOUS YEAR PAPERS WORKSPACE
+   * =====================================
+   */
+
+  if (
+    workspaceView ===
+    'pyq'
+  ) {
+
     return (
-      <div className="page-wrap mains-practice-page">
+
+      <div
+        className="page-wrap mains-practice-page"
+      >
+
+        <TopBar
+          title="Mains Practice"
+          subtitle="Previous Year Papers, Essay, GS and Optional"
+        />
+
+
+        <WorkspaceTabs
+          active={
+            workspaceView
+          }
+          onChange={
+            setWorkspaceView
+          }
+        />
+
+
+        <MainsPyqArchive />
+
+      </div>
+
+    );
+  }
+
+
+  /*
+   * =====================================
+   * LOADING
+   * =====================================
+   */
+
+  if (
+    loading
+  ) {
+
+    return (
+
+      <div
+        className="page-wrap mains-practice-page"
+      >
 
         <TopBar
           title="Mains Practice"
@@ -605,7 +936,19 @@ export function MainsPracticePage() {
         />
 
 
-        <section className="panel">
+        <WorkspaceTabs
+          active={
+            workspaceView
+          }
+          onChange={
+            setWorkspaceView
+          }
+        />
+
+
+        <section
+          className="panel"
+        >
 
           <h2>
             Loading Mains questions...
@@ -614,13 +957,26 @@ export function MainsPracticePage() {
         </section>
 
       </div>
+
     );
   }
 
 
-  if (error) {
+  /*
+   * =====================================
+   * ERROR
+   * =====================================
+   */
+
+  if (
+    error
+  ) {
+
     return (
-      <div className="page-wrap mains-practice-page">
+
+      <div
+        className="page-wrap mains-practice-page"
+      >
 
         <TopBar
           title="Mains Practice"
@@ -628,7 +984,19 @@ export function MainsPracticePage() {
         />
 
 
-        <section className="panel">
+        <WorkspaceTabs
+          active={
+            workspaceView
+          }
+          onChange={
+            setWorkspaceView
+          }
+        />
+
+
+        <section
+          className="panel"
+        >
 
           <h2>
             Unable to load Mains questions
@@ -643,8 +1011,8 @@ export function MainsPracticePage() {
           <button
             type="button"
             className="primary-btn"
-            onClick={
-              loadQuestions
+            onClick={() =>
+              void loadQuestions()
             }
           >
             Try again
@@ -653,18 +1021,42 @@ export function MainsPracticePage() {
         </section>
 
       </div>
+
     );
   }
 
 
+  /*
+   * =====================================
+   * MAIN ANSWER PRACTICE PAGE
+   * =====================================
+   */
+
   return (
-    <div className="page-wrap mains-practice-page">
+
+    <div
+      className="page-wrap mains-practice-page"
+    >
 
       <TopBar
         title="Mains Practice"
         subtitle="GS-I to GS-IV, PYQs, practice questions and optionals"
       />
 
+
+      <WorkspaceTabs
+        active={
+          workspaceView
+        }
+        onChange={
+          setWorkspaceView
+        }
+      />
+
+
+      {/* =====================================
+          QUESTION FILTERS
+      ===================================== */}
 
       <section
         className="panel"
@@ -674,7 +1066,9 @@ export function MainsPracticePage() {
         }}
       >
 
-        <span className="eyebrow">
+        <span
+          className="eyebrow"
+        >
           MAINS QUESTION BANK
         </span>
 
@@ -685,9 +1079,9 @@ export function MainsPracticePage() {
 
 
         <p>
-          Choose a question and practise
-          answer writing directly in the app,
-          or upload a handwritten PDF.
+          Choose a question and practise answer
+          writing directly in the app, or upload
+          a handwritten PDF.
         </p>
 
 
@@ -709,7 +1103,9 @@ export function MainsPracticePage() {
             onChange={
               event =>
                 setSearchText(
-                  event.target.value
+                  event
+                    .target
+                    .value
                 )
             }
             placeholder="Search topic, subject, directive or keyword..."
@@ -718,7 +1114,9 @@ export function MainsPracticePage() {
         </label>
 
 
-        <div className="form-two">
+        <div
+          className="form-two"
+        >
 
           <label
             style={
@@ -738,21 +1136,31 @@ export function MainsPracticePage() {
               onChange={
                 event =>
                   setSectionFilter(
-                    event.target
-                      .value as SectionFilter
+                    event
+                      .target
+                      .value as
+                        SectionFilter
                   )
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Sections
               </option>
 
-              <option value="gs">
+
+              <option
+                value="gs"
+              >
                 General Studies
               </option>
 
-              <option value="optional">
+
+              <option
+                value="optional"
+              >
                 Optional Subject
               </option>
 
@@ -779,21 +1187,31 @@ export function MainsPracticePage() {
               onChange={
                 event =>
                   setTypeFilter(
-                    event.target
-                      .value as QuestionTypeFilter
+                    event
+                      .target
+                      .value as
+                        QuestionTypeFilter
                   )
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Question Types
               </option>
 
-              <option value="practice">
+
+              <option
+                value="practice"
+              >
                 Practice Question
               </option>
 
-              <option value="pyq">
+
+              <option
+                value="pyq"
+              >
                 Previous Year Question
               </option>
 
@@ -804,7 +1222,9 @@ export function MainsPracticePage() {
         </div>
 
 
-        <div className="form-two">
+        <div
+          className="form-two"
+        >
 
           <label
             style={
@@ -824,28 +1244,44 @@ export function MainsPracticePage() {
               onChange={
                 event =>
                   setGsFilter(
-                    event.target.value
+                    event
+                      .target
+                      .value
                   )
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All GS Papers
               </option>
 
-              <option value="GS-I">
+
+              <option
+                value="GS-I"
+              >
                 GS-I
               </option>
 
-              <option value="GS-II">
+
+              <option
+                value="GS-II"
+              >
                 GS-II
               </option>
 
-              <option value="GS-III">
+
+              <option
+                value="GS-III"
+              >
                 GS-III
               </option>
 
-              <option value="GS-IV">
+
+              <option
+                value="GS-IV"
+              >
                 GS-IV
               </option>
 
@@ -872,24 +1308,37 @@ export function MainsPracticePage() {
               onChange={
                 event =>
                   setMarksFilter(
-                    event.target.value
+                    event
+                      .target
+                      .value
                   )
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Marks
               </option>
 
-              <option value="10">
+
+              <option
+                value="10"
+              >
                 10 Marks
               </option>
 
-              <option value="15">
+
+              <option
+                value="15"
+              >
                 15 Marks
               </option>
 
-              <option value="20">
+
+              <option
+                value="20"
+              >
                 20 Marks
               </option>
 
@@ -900,7 +1349,9 @@ export function MainsPracticePage() {
         </div>
 
 
-        <div className="form-two">
+        <div
+          className="form-two"
+        >
 
           <label
             style={
@@ -920,18 +1371,23 @@ export function MainsPracticePage() {
               onChange={
                 event =>
                   setOptionalSubjectFilter(
-                    event.target.value
+                    event
+                      .target
+                      .value
                   )
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Optional Subjects
               </option>
 
 
               {optionalSubjects.map(
                 subject => (
+
                   <option
                     key={
                       subject
@@ -942,6 +1398,7 @@ export function MainsPracticePage() {
                   >
                     {subject}
                   </option>
+
                 )
               )}
 
@@ -968,20 +1425,30 @@ export function MainsPracticePage() {
               onChange={
                 event =>
                   setOptionalPaperFilter(
-                    event.target.value
+                    event
+                      .target
+                      .value
                   )
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 Both Papers
               </option>
 
-              <option value="Paper-I">
+
+              <option
+                value="Paper-I"
+              >
                 Paper-I
               </option>
 
-              <option value="Paper-II">
+
+              <option
+                value="Paper-II"
+              >
                 Paper-II
               </option>
 
@@ -992,7 +1459,9 @@ export function MainsPracticePage() {
         </div>
 
 
-        <div className="form-two">
+        <div
+          className="form-two"
+        >
 
           <label
             style={
@@ -1012,28 +1481,36 @@ export function MainsPracticePage() {
               onChange={
                 event =>
                   setYearFilter(
-                    event.target.value
+                    event
+                      .target
+                      .value
                   )
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Years
               </option>
 
 
               {years.map(
                 year => (
+
                   <option
                     key={
                       year
                     }
                     value={
-                      year
+                      String(
+                        year
+                      )
                     }
                   >
                     {year}
                   </option>
+
                 )
               )}
 
@@ -1074,10 +1551,17 @@ export function MainsPracticePage() {
       </section>
 
 
+      {/* =====================================
+          QUESTION RESULTS
+      ===================================== */}
+
       <section
         style={{
-          display: 'grid',
-          gap: '18px'
+          display:
+            'grid',
+
+          gap:
+            '18px'
         }}
       >
 
@@ -1102,21 +1586,28 @@ export function MainsPracticePage() {
 
           <div>
 
-            <span className="eyebrow">
+            <span
+              className="eyebrow"
+            >
               RESULTS
             </span>
 
 
             <h2>
+
               {
-                filteredQuestions.length
+                filteredQuestions
+                  .length
               }{' '}
+
               {
-                filteredQuestions.length ===
+                filteredQuestions
+                  .length ===
                 1
                   ? 'question'
                   : 'questions'
               }
+
             </h2>
 
           </div>
@@ -1127,8 +1618,8 @@ export function MainsPracticePage() {
             style={
               outlineButtonStyle
             }
-            onClick={
-              loadQuestions
+            onClick={() =>
+              void loadQuestions()
             }
           >
             Refresh questions
@@ -1140,7 +1631,9 @@ export function MainsPracticePage() {
         {filteredQuestions.length ===
           0 && (
 
-          <div className="panel">
+          <div
+            className="panel"
+          >
 
             <h3>
               No published Mains questions found
@@ -1167,6 +1660,7 @@ export function MainsPracticePage() {
 
 
             return (
+
               <article
                 key={
                   item.id
@@ -1190,19 +1684,24 @@ export function MainsPracticePage() {
                   }}
                 >
 
-                  <span className="eyebrow">
+                  <span
+                    className="eyebrow"
+                  >
 
                     {
                       item.section_type ===
-                      'gs'
+                        'gs'
+
                         ? item.gs_paper
-                        : `${item.optional_subject} • ${item.optional_paper}`
+
+                        : `${item.optional_subject || 'Optional'} • ${item.optional_paper || ''}`
                     }
 
                   </span>
 
 
                   {item.directive && (
+
                     <strong
                       style={{
                         color:
@@ -1211,6 +1710,7 @@ export function MainsPracticePage() {
                     >
                       {item.directive}
                     </strong>
+
                   )}
 
                 </div>
@@ -1224,35 +1724,55 @@ export function MainsPracticePage() {
                   }}
                 >
 
-                  <span className="tag">
+                  <span
+                    className="tag"
+                  >
 
                     {
                       item.question_type ===
-                      'pyq'
+                        'pyq'
+
                         ? `PYQ ${item.pyq_year || ''}`
+
                         : 'Practice'
                     }
 
                   </span>
 
 
-                  {item.marks && (
-                    <span className="tag">
+                  {item.marks !==
+                    null && (
+
+                    <span
+                      className="tag"
+                    >
                       {item.marks} marks
                     </span>
+
                   )}
 
 
-                  {item.word_limit && (
-                    <span className="tag">
+                  {item.word_limit !==
+                    null && (
+
+                    <span
+                      className="tag"
+                    >
                       {item.word_limit} words
                     </span>
+
                   )}
 
 
-                  <span className="tag">
-                    {item.difficulty}
-                  </span>
+                  {item.difficulty && (
+
+                    <span
+                      className="tag"
+                    >
+                      {item.difficulty}
+                    </span>
+
+                  )}
 
                 </div>
 
@@ -1271,30 +1791,41 @@ export function MainsPracticePage() {
 
 
                 <p>
+
                   <strong>
                     Subject:
                   </strong>{' '}
+
                   {item.subject}
+
                 </p>
 
 
                 {item.topic && (
+
                   <p>
+
                     <strong>
                       Topic:
                     </strong>{' '}
+
                     {item.topic}
+
                   </p>
+
                 )}
 
 
                 {item.tags.length >
                   0 && (
 
-                  <div className="tag-row">
+                  <div
+                    className="tag-row"
+                  >
 
                     {item.tags.map(
                       tag => (
+
                         <span
                           key={
                             tag
@@ -1303,6 +1834,7 @@ export function MainsPracticePage() {
                         >
                           {tag}
                         </span>
+
                       )
                     )}
 
@@ -1363,6 +1895,10 @@ export function MainsPracticePage() {
                 </div>
 
 
+                {/* =====================================
+                    ANSWER GUIDANCE
+                ===================================== */}
+
                 {expanded && (
 
                   <div
@@ -1379,26 +1915,39 @@ export function MainsPracticePage() {
                   >
 
                     {item.syllabus_link && (
-                      <div className="panel">
 
-                        <span className="eyebrow">
+                      <div
+                        className="panel"
+                      >
+
+                        <span
+                          className="eyebrow"
+                        >
                           UPSC SYLLABUS LINKAGE
                         </span>
+
 
                         <p>
                           {item.syllabus_link}
                         </p>
 
                       </div>
+
                     )}
 
 
                     {item.introduction_hint && (
-                      <div className="panel">
 
-                        <span className="eyebrow">
+                      <div
+                        className="panel"
+                      >
+
+                        <span
+                          className="eyebrow"
+                        >
                           INTRODUCTION HINT
                         </span>
+
 
                         <p
                           style={{
@@ -1412,15 +1961,22 @@ export function MainsPracticePage() {
                         </p>
 
                       </div>
+
                     )}
 
 
                     {item.answer_framework && (
-                      <div className="panel">
 
-                        <span className="eyebrow">
+                      <div
+                        className="panel"
+                      >
+
+                        <span
+                          className="eyebrow"
+                        >
                           ANSWER FRAMEWORK
                         </span>
+
 
                         <p
                           style={{
@@ -1437,15 +1993,22 @@ export function MainsPracticePage() {
                         </p>
 
                       </div>
+
                     )}
 
 
                     {item.key_points && (
-                      <div className="panel">
 
-                        <span className="eyebrow">
+                      <div
+                        className="panel"
+                      >
+
+                        <span
+                          className="eyebrow"
+                        >
                           KEY POINTS
                         </span>
+
 
                         <p
                           style={{
@@ -1457,15 +2020,22 @@ export function MainsPracticePage() {
                         </p>
 
                       </div>
+
                     )}
 
 
                     {item.conclusion_hint && (
-                      <div className="panel">
 
-                        <span className="eyebrow">
+                      <div
+                        className="panel"
+                      >
+
+                        <span
+                          className="eyebrow"
+                        >
                           CONCLUSION HINT
                         </span>
+
 
                         <p
                           style={{
@@ -1479,6 +2049,7 @@ export function MainsPracticePage() {
                         </p>
 
                       </div>
+
                     )}
 
                   </div>
@@ -1486,12 +2057,15 @@ export function MainsPracticePage() {
                 )}
 
               </article>
+
             );
+
           }
         )}
 
       </section>
 
     </div>
+
   );
 }
