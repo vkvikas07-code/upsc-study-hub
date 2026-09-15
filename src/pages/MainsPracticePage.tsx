@@ -16,6 +16,9 @@ import {
   MainsPyqArchive
 } from '../components/MainsPyqArchive';
 
+import type {
+  MainsPyqArchiveQuestion
+} from '../components/MainsPyqArchive';
 import {
   supabase
 } from '../lib/supabase';
@@ -824,6 +827,135 @@ export function MainsPracticePage() {
     });
   }
 
+  function startPyqAnswerWriting(
+  item:
+    MainsPyqArchiveQuestion
+) {
+
+  /*
+   * Essay uses a different answer structure.
+   * For now direct answer writing is available
+   * for GS and Optional PYQs.
+   */
+  if (
+    item.section_type ===
+    'essay'
+  ) {
+
+    return;
+  }
+
+
+  const workspaceQuestion:
+    MainsQuestion = {
+
+      id:
+        item.id,
+
+      question:
+        item.question,
+
+      question_type:
+        'pyq',
+
+      section_type:
+        item.section_type,
+
+      gs_paper:
+        item.gs_paper,
+
+      optional_subject:
+        item.optional_subject,
+
+      optional_paper:
+        item.optional_paper,
+
+      subject:
+        item.subject,
+
+      topic:
+        item.topic,
+
+      syllabus_link:
+        item.syllabus_link,
+
+      directive:
+        item.directive,
+
+      marks:
+        item.marks,
+
+      word_limit:
+        item.word_limit,
+
+      pyq_year:
+        item.pyq_year,
+
+      answer_framework:
+        item.answer_framework,
+
+      key_points:
+        item.key_points,
+
+      introduction_hint:
+        item.introduction_hint,
+
+      conclusion_hint:
+        item.conclusion_hint,
+
+      source:
+        item.source,
+
+      source_url:
+        item.source_url,
+
+      tags: [
+        'UPSC PYQ',
+
+        item.pyq_year
+          ? String(
+              item.pyq_year
+            )
+          : '',
+
+        item.subject,
+
+        item.topic ||
+          '',
+
+        item.subtopic ||
+          ''
+      ].filter(
+        Boolean
+      ),
+
+      difficulty:
+        'medium',
+
+      created_at:
+        item.created_at
+    };
+
+
+  setSelectedQuestion(
+    workspaceQuestion
+  );
+
+
+  const mainArea =
+    document.querySelector(
+      '.main-area'
+    );
+
+
+  mainArea?.scrollTo({
+    top:
+      0,
+
+    behavior:
+      'smooth'
+  });
+}
 
   function closeAnswerWorkspace() {
 
@@ -906,7 +1038,11 @@ export function MainsPracticePage() {
         />
 
 
-        <MainsPyqArchive />
+        <MainsPyqArchive
+  onStartAnswerWriting={
+    startPyqAnswerWriting
+  }
+/>
 
       </div>
 
