@@ -9,25 +9,13 @@ import {
 } from '../lib/supabase';
 
 
-type BrowseMode =
-  | 'paper'
-  | 'subject'
-  | 'subtopic';
+export type MainsPyqArchiveQuestion = {
 
+  id:
+    string;
 
-type PaperTab =
-  | 'essay'
-  | 'GS-I'
-  | 'GS-II'
-  | 'GS-III'
-  | 'GS-IV'
-  | 'optional';
-
-
-type PyqQuestion = {
-  id: string;
-
-  question: string;
+  question:
+    string;
 
   section_type:
     | 'essay'
@@ -80,13 +68,56 @@ type PyqQuestion = {
   relevant_gs_papers:
     string[];
 
+  source:
+    string |
+    null;
+
   source_url:
+    string |
+    null;
+
+  syllabus_link:
+    string |
+    null;
+
+  directive:
+    string |
+    null;
+
+  answer_framework:
+    string |
+    null;
+
+  key_points:
+    string |
+    null;
+
+  introduction_hint:
+    string |
+    null;
+
+  conclusion_hint:
     string |
     null;
 
   created_at:
     string;
 };
+
+
+type BrowseMode =
+  | 'paper'
+  | 'subject'
+  | 'subtopic';
+
+
+type PaperTab =
+  | 'essay'
+  | 'GS-I'
+  | 'GS-II'
+  | 'GS-III'
+  | 'GS-IV'
+  | 'optional';
 
 
 const PYQ_SELECT = `
@@ -105,19 +136,34 @@ const PYQ_SELECT = `
   pyq_year,
   essay_section,
   relevant_gs_papers,
+  source,
   source_url,
+  syllabus_link,
+  directive,
+  answer_framework,
+  key_points,
+  introduction_hint,
+  conclusion_hint,
   created_at
 `;
 
 
-export function MainsPyqArchive() {
+export function MainsPyqArchive({
+  onStartAnswerWriting
+}: {
+  onStartAnswerWriting?:
+    (
+      question:
+        MainsPyqArchiveQuestion
+    ) => void;
+}) {
 
   const [
     questions,
     setQuestions
   ] =
     useState<
-      PyqQuestion[]
+      MainsPyqArchiveQuestion[]
     >([]);
 
 
@@ -141,7 +187,9 @@ export function MainsPyqArchive() {
     browseMode,
     setBrowseMode
   ] =
-    useState<BrowseMode>(
+    useState<
+      BrowseMode
+    >(
       'paper'
     );
 
@@ -150,7 +198,9 @@ export function MainsPyqArchive() {
     paperTab,
     setPaperTab
   ] =
-    useState<PaperTab>(
+    useState<
+      PaperTab
+    >(
       'GS-I'
     );
 
@@ -295,7 +345,7 @@ export function MainsPyqArchive() {
             []
         })
       ) as
-        PyqQuestion[];
+        MainsPyqArchiveQuestion[];
 
 
     setQuestions(
@@ -666,7 +716,7 @@ export function MainsPyqArchive() {
         const grouped =
           new Map<
             number,
-            PyqQuestion[]
+            MainsPyqArchiveQuestion[]
           >();
 
 
@@ -744,7 +794,7 @@ export function MainsPyqArchive() {
 
   function getPaperName(
     item:
-      PyqQuestion
+      MainsPyqArchiveQuestion
   ) {
 
     if (
@@ -844,6 +894,10 @@ export function MainsPyqArchive() {
           '14px'
       }}
     >
+
+      {/* =====================================
+          BROWSE MODE
+      ===================================== */}
 
       <section
         className="panel"
@@ -955,6 +1009,10 @@ export function MainsPyqArchive() {
       </section>
 
 
+      {/* =====================================
+          PAPER TABS
+      ===================================== */}
+
       {browseMode ===
         'paper' && (
 
@@ -1060,6 +1118,10 @@ export function MainsPyqArchive() {
       )}
 
 
+      {/* =====================================
+          FILTERS
+      ===================================== */}
+
       <section
         className="panel"
         style={{
@@ -1099,7 +1161,9 @@ export function MainsPyqArchive() {
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Years
               </option>
 
@@ -1151,7 +1215,9 @@ export function MainsPyqArchive() {
                 }
               >
 
-                <option value="all">
+                <option
+                  value="all"
+                >
                   All Optional Subjects
                 </option>
 
@@ -1203,15 +1269,23 @@ export function MainsPyqArchive() {
                 }
               >
 
-                <option value="all">
+                <option
+                  value="all"
+                >
                   Paper-I & Paper-II
                 </option>
 
-                <option value="Paper-I">
+
+                <option
+                  value="Paper-I"
+                >
                   Paper-I
                 </option>
 
-                <option value="Paper-II">
+
+                <option
+                  value="Paper-II"
+                >
                   Paper-II
                 </option>
 
@@ -1251,7 +1325,9 @@ export function MainsPyqArchive() {
                   }}
               >
 
-                <option value="all">
+                <option
+                  value="all"
+                >
                   All Subjects
                 </option>
 
@@ -1301,7 +1377,9 @@ export function MainsPyqArchive() {
                 }
               >
 
-                <option value="all">
+                <option
+                  value="all"
+                >
                   All Subtopics
                 </option>
 
@@ -1369,7 +1447,7 @@ export function MainsPyqArchive() {
 
         <button
           type="button"
-          className="text-btn"
+          className="secondary-btn"
           style={{
             marginTop:
               '10px'
@@ -1383,6 +1461,10 @@ export function MainsPyqArchive() {
 
       </section>
 
+
+      {/* =====================================
+          RESULT COUNT
+      ===================================== */}
 
       <section>
 
@@ -1409,9 +1491,20 @@ export function MainsPyqArchive() {
         >
 
           <strong>
-            {filteredQuestions.length}
-            {' '}
-            questions found
+
+            {
+              filteredQuestions
+                .length
+            }{' '}
+
+            {
+              filteredQuestions
+                .length ===
+              1
+                ? 'question'
+                : 'questions'
+            } found
+
           </strong>
 
 
@@ -1441,14 +1534,19 @@ export function MainsPyqArchive() {
 
 
             <p>
-              Change the filters or publish questions
-              from Admin Studio → Mains PYQ.
+              Change the filters or publish
+              questions from Admin Studio →
+              Mains PYQ.
             </p>
 
           </section>
 
         )}
 
+
+        {/* =====================================
+            QUESTIONS GROUPED BY YEAR
+        ===================================== */}
 
         <div
           style={{
@@ -1523,14 +1621,20 @@ export function MainsPyqArchive() {
 
 
                   <strong>
-                    {yearQuestions.length}
-                    {' '}
-                    question{
-                      yearQuestions.length ===
-                        1
-                        ? ''
-                        : 's'
+
+                    {
+                      yearQuestions
+                        .length
+                    }{' '}
+
+                    {
+                      yearQuestions
+                        .length ===
+                      1
+                        ? 'question'
+                        : 'questions'
                     }
+
                   </strong>
 
                 </div>
@@ -1588,9 +1692,15 @@ export function MainsPyqArchive() {
                         >
 
                           <strong>
-                            {item.question_number
-                              ? `Q. ${item.question_number}`
-                              : 'Question'}
+
+                            {
+                              item.question_number
+
+                                ? `Q. ${item.question_number}`
+
+                                : 'Question'
+                            }
+
                           </strong>
 
 
@@ -1603,9 +1713,11 @@ export function MainsPyqArchive() {
                                 700
                             }}
                           >
-                            {getPaperName(
-                              item
-                            )}
+                            {
+                              getPaperName(
+                                item
+                              )
+                            }
                           </span>
 
                         </div>
@@ -1614,7 +1726,10 @@ export function MainsPyqArchive() {
                         <p
                           style={{
                             margin:
-                              '9px 0'
+                              '9px 0',
+
+                            lineHeight:
+                              1.55
                           }}
                         >
                           {item.question}
@@ -1641,8 +1756,8 @@ export function MainsPyqArchive() {
                         >
 
                           <span>
-                            Subject:
-                            {' '}
+                            Subject:{' '}
+
                             <strong>
                               {item.subject}
                             </strong>
@@ -1652,11 +1767,13 @@ export function MainsPyqArchive() {
                           {item.topic && (
 
                             <span>
-                              • Topic:
-                              {' '}
+
+                              • Topic:{' '}
+
                               <strong>
                                 {item.topic}
                               </strong>
+
                             </span>
 
                           )}
@@ -1665,11 +1782,13 @@ export function MainsPyqArchive() {
                           {item.subtopic && (
 
                             <span>
-                              • Subtopic:
-                              {' '}
+
+                              • Subtopic:{' '}
+
                               <strong>
                                 {item.subtopic}
                               </strong>
+
                             </span>
 
                           )}
@@ -1731,34 +1850,110 @@ export function MainsPyqArchive() {
                                 '.78rem'
                             }}
                           >
-                            Useful for:
-                            {' '}
-                            {item.relevant_gs_papers.join(
-                              ', '
-                            )}
+
+                            Useful for:{' '}
+
+                            {
+                              item
+                                .relevant_gs_papers
+                                .join(
+                                  ', '
+                                )
+                            }
+
                           </div>
 
                         )}
 
 
-                        {item.source_url && (
+                        {/* =====================================
+                            QUESTION ACTIONS
+                        ===================================== */}
 
-                          <a
-                            href={
-                              item.source_url
-                            }
-                            target="_blank"
-                            rel="noreferrer"
+                        <div
+                          style={{
+                            display:
+                              'flex',
+
+                            gap:
+                              '8px',
+
+                            flexWrap:
+                              'wrap',
+
+                            marginTop:
+                              '12px'
+                          }}
+                        >
+
+                          {item.section_type !==
+                            'essay' &&
+                            onStartAnswerWriting && (
+
+                            <button
+                              type="button"
+                              className="primary-btn"
+                              onClick={() =>
+                                onStartAnswerWriting(
+                                  item
+                                )
+                              }
+                            >
+                              Start Answer Writing
+                            </button>
+
+                          )}
+
+
+                          {item.source_url && (
+
+                            <a
+                              href={
+                                item.source_url
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                              className="secondary-btn"
+                              style={{
+                                textDecoration:
+                                  'none',
+
+                                display:
+                                  'inline-flex',
+
+                                alignItems:
+                                  'center'
+                              }}
+                            >
+                              Official Source
+                            </a>
+
+                          )}
+
+                        </div>
+
+
+                        {item.section_type ===
+                          'essay' && (
+
+                          <p
                             style={{
-                              display:
-                                'inline-block',
-
                               marginTop:
-                                '9px'
+                                '10px',
+
+                              marginBottom:
+                                0,
+
+                              color:
+                                '#94a3b8',
+
+                              fontSize:
+                                '.78rem'
                             }}
                           >
-                            Official source
-                          </a>
+                            Essay topic available in
+                            the PYQ archive.
+                          </p>
 
                         )}
 
