@@ -13,26 +13,29 @@ type ImportStatus =
   | 'published';
 
 
+type PaperType =
+  | 'essay'
+  | 'gs'
+  | 'optional'
+  | 'language'
+  | 'other';
+
+
 type CsvRow =
-  Record<
-    string,
-    string
-  >;
+  Record<string, string>;
 
 
 type ParsedPyq = {
+  examAuthority: string;
+  examName: string;
+  stateName: string | null;
 
-  year:
-    number;
+  year: number;
 
-  paperType:
-    'essay'
-    | 'gs'
-    | 'optional';
+  paperType: PaperType;
+  paperName: string;
 
-  gsPaper:
-    string |
-    null;
+  gsPaper: string | null;
 
   optionalSubject:
     string |
@@ -50,8 +53,7 @@ type ParsedPyq = {
     string |
     null;
 
-  subject:
-    string;
+  subject: string;
 
   topic:
     string |
@@ -61,8 +63,7 @@ type ParsedPyq = {
     string |
     null;
 
-  question:
-    string;
+  question: string;
 
   marks:
     number |
@@ -88,15 +89,28 @@ type ParsedPyq = {
 
 
 type PaperRecord = {
+  id: string;
 
-  id:
-    string;
+  year: number;
 
-  year:
-    number;
+  exam_authority:
+    string |
+    null;
+
+  exam_name:
+    string |
+    null;
+
+  state_name:
+    string |
+    null;
 
   paper_type:
     string;
+
+  paper_name:
+    string |
+    null;
 
   gs_paper:
     string |
@@ -112,6 +126,47 @@ type PaperRecord = {
 };
 
 
+type ExistingQuestion = {
+  pyq_year:
+    number |
+    null;
+
+  exam_authority:
+    string |
+    null;
+
+  exam_name:
+    string |
+    null;
+
+  section_type:
+    string;
+
+  paper_name:
+    string |
+    null;
+
+  gs_paper:
+    string |
+    null;
+
+  optional_subject:
+    string |
+    null;
+
+  optional_paper:
+    string |
+    null;
+
+  question_number:
+    string |
+    null;
+
+  question:
+    string;
+};
+
+
 const PAGE_SIZE =
   1000;
 
@@ -121,11 +176,15 @@ const INSERT_SIZE =
 
 
 const SAMPLE_HEADER =
-  'year,paper_type,gs_paper,optional_subject,optional_paper,essay_section,question_number,subject,topic,subtopic,question,marks,word_limit,relevant_gs_papers,source_url,status';
+  'exam_authority,exam_name,state_name,year,paper_type,paper_name,gs_paper,optional_subject,optional_paper,essay_section,question_number,subject,topic,subtopic,question,marks,word_limit,relevant_gs_papers,source_url,status';
 
 
-const SAMPLE_ROW =
-  '2023,optional,,History,Paper-I,,3(a),History,Ancient India,Harappan Civilisation,"Discuss the important features of Harappan urbanisation.",20,250,GS-I,https://upsc.gov.in/,published';
+const UPSC_SAMPLE =
+  'UPSC,Civil Services Examination,,2025,gs,GS-I,GS-I,,,,1,History,Ancient India,Harappan Civilisation,"Paste exact official question here",10,150,GS-I,https://upsc.gov.in/,draft';
+
+
+const STATE_SAMPLE =
+  'MPSC,State Services Examination,Maharashtra,2024,gs,General Studies-I,,,,,1,History,Modern India,Maharashtra Reform Movement,"Paste exact official State PSC question here",10,150,GS-I,,draft';
 
 
 function clean(
@@ -262,17 +321,15 @@ function parseCsv(
       );
 
 
-      const hasContent =
+      if (
         row.some(
           value =>
-            clean(
-              value
+            Boolean(
+              clean(
+                value
+              )
             )
-        );
-
-
-      if (
-        hasContent
+        )
       ) {
 
         table.push(
@@ -304,8 +361,10 @@ function parseCsv(
   if (
     row.some(
       value =>
-        clean(
-          value
+        Boolean(
+          clean(
+            value
+          )
         )
     )
   ) {
@@ -318,7 +377,7 @@ function parseCsv(
 
   if (
     table.length <
-    2
+      2
   ) {
 
     return [];
@@ -352,13 +411,11 @@ function parseCsv(
               clean(
                 values[index]
               );
-
           }
         );
 
 
         return result;
-
       }
     );
 }
@@ -367,7 +424,9 @@ function parseCsv(
 function normalizePaperType(
   value:
     string
-) {
+):
+  PaperType |
+  null {
 
   const normalized =
     clean(
@@ -385,7 +444,7 @@ function normalizePaperType(
     'essay'
   ) {
 
-    return 'essay' as const;
+    return 'essay';
   }
 
 
@@ -396,7 +455,7 @@ function normalizePaperType(
       'generalstudies'
   ) {
 
-    return 'gs' as const;
+    return 'gs';
   }
 
 
@@ -405,7 +464,29 @@ function normalizePaperType(
     'optional'
   ) {
 
-    return 'optional' as const;
+    return 'optional';
+  }
+
+
+  if (
+    normalized ===
+      'language' ||
+    normalized ===
+      'languages'
+  ) {
+
+    return 'language';
+  }
+
+
+  if (
+    normalized ===
+      'other' ||
+    normalized ===
+      'otherpaper'
+  ) {
+
+    return 'other';
   }
 
 
@@ -416,12 +497,26 @@ function normalizePaperType(
 function normalizeGsPaper(
   value:
     string
-) {
+):
+  string |
+  null {
 
-  const normalized =
+  const raw =
     clean(
       value
-    )
+    );
+
+
+  if (
+    !raw
+  ) {
+
+    return null;
+  }
+
+
+  const normalized =
+    raw
       .toUpperCase()
       .replace(
         /[\s_-]+/g,
@@ -481,7 +576,11 @@ function normalizeGsPaper(
   }
 
 
-  return null;
+  /*
+   * State PSC may have GS-V, GS-VI, etc.
+   * Keep the original label.
+   */
+  return raw;
 }
 
 
@@ -490,10 +589,22 @@ function normalizeOptionalPaper(
     string
 ) {
 
-  const normalized =
+  const raw =
     clean(
       value
-    )
+    );
+
+
+  if (
+    !raw
+  ) {
+
+    return null;
+  }
+
+
+  const normalized =
+    raw
       .toLowerCase()
       .replace(
         /[\s_-]+/g,
@@ -531,7 +642,11 @@ function normalizeOptionalPaper(
   }
 
 
-  return null;
+  /*
+   * Some State PSC examinations may use
+   * another optional-paper naming pattern.
+   */
+  return raw;
 }
 
 
@@ -540,7 +655,8 @@ function normalizeStatus(
     string,
   fallback:
     ImportStatus
-) {
+):
+  ImportStatus {
 
   const normalized =
     clean(
@@ -554,7 +670,7 @@ function normalizeStatus(
     'published'
   ) {
 
-    return 'published' as const;
+    return 'published';
   }
 
 
@@ -563,7 +679,7 @@ function normalizeStatus(
     'draft'
   ) {
 
-    return 'draft' as const;
+    return 'draft';
   }
 
 
@@ -590,16 +706,16 @@ function numberOrNull(
   }
 
 
-  const number =
+  const parsed =
     Number(
       cleaned
     );
 
 
   return Number.isFinite(
-    number
+    parsed
   )
-    ? number
+    ? parsed
     : null;
 }
 
@@ -609,133 +725,138 @@ function relevantGs(
     string
 ): string[] {
 
-  const parts:
-    string[] =
-      clean(
-        value
-      )
-        .split(
-          /[|;,]+/
-        )
-        .flatMap(
-          item => {
-
-            const normalized =
-              normalizeGsPaper(
-                item
-              );
+  const result:
+    string[] = [];
 
 
-            return normalized
-              ? [
-                  normalized
-                ]
-              : [];
-          }
-        );
+  clean(
+    value
+  )
+    .split(
+      /[|;,]+/
+    )
+    .forEach(
+      part => {
+
+        const normalized =
+          normalizeGsPaper(
+            part
+          );
+
+
+        if (
+          normalized &&
+          [
+            'GS-I',
+            'GS-II',
+            'GS-III',
+            'GS-IV'
+          ].includes(
+            normalized
+          )
+        ) {
+
+          result.push(
+            normalized
+          );
+        }
+      }
+    );
 
 
   return Array.from(
     new Set(
-      parts
+      result
     )
   );
 }
 
 
-function paperKey(
-  year:
-    number,
+function derivePaperName(
   paperType:
+    PaperType,
+  rawPaperName:
     string,
-  gsPaper:
-    string |
-    null,
+  rawGsPaper:
+    string,
   optionalSubject:
     string |
     null,
   optionalPaper:
     string |
-    null
+    null,
+  subject:
+    string
 ) {
 
-  return [
-    year,
-    paperType,
+  const supplied =
     clean(
-      gsPaper
-    ).toLowerCase(),
-    clean(
-      optionalSubject
-    ).toLowerCase(),
-    clean(
-      optionalPaper
-    ).toLowerCase()
-  ].join(
-    '|'
-  );
-}
+      rawPaperName
+    );
 
 
-function questionKey(
-  item: {
-    year:
-      number;
+  if (
+    supplied
+  ) {
 
-    paperType:
-      string;
-
-    gsPaper:
-      string |
-      null;
-
-    optionalSubject:
-      string |
-      null;
-
-    optionalPaper:
-      string |
-      null;
-
-    questionNumber:
-      string |
-      null;
-
-    question:
-      string;
+    return supplied;
   }
-) {
 
-  const normalizedQuestion =
-    clean(
-      item.question
-    )
-      .toLowerCase()
-      .replace(
-        /\s+/g,
+
+  if (
+    paperType ===
+    'essay'
+  ) {
+
+    return 'Essay';
+  }
+
+
+  if (
+    paperType ===
+    'gs'
+  ) {
+
+    return (
+      clean(
+        rawGsPaper
+      ) ||
+      'General Studies'
+    );
+  }
+
+
+  if (
+    paperType ===
+    'optional'
+  ) {
+
+    return [
+      optionalSubject,
+      optionalPaper
+    ]
+      .filter(
+        Boolean
+      )
+      .join(
         ' '
       );
+  }
 
 
-  return [
-    item.year,
-    item.paperType,
-    clean(
-      item.gsPaper
-    ).toLowerCase(),
-    clean(
-      item.optionalSubject
-    ).toLowerCase(),
-    clean(
-      item.optionalPaper
-    ).toLowerCase(),
-    clean(
-      item.questionNumber
-    ).toLowerCase(),
-    normalizedQuestion
-  ].join(
-    '|'
-  );
+  if (
+    paperType ===
+    'language'
+  ) {
+
+    return (
+      subject ||
+      'Language'
+    );
+  }
+
+
+  return '';
 }
 
 
@@ -764,6 +885,70 @@ function validateRows(
         2;
 
 
+      /*
+       * EXAM AUTHORITY
+       */
+
+      const examAuthority =
+        clean(
+          row.exam_authority
+        ) ||
+        'UPSC';
+
+
+      const isUpsc =
+        examAuthority
+          .toUpperCase() ===
+        'UPSC';
+
+
+      const examName =
+        clean(
+          row.exam_name
+        ) ||
+        (
+          isUpsc
+            ? 'Civil Services Examination'
+            : ''
+        );
+
+
+      if (
+        !examName
+      ) {
+
+        errors.push(
+          `Row ${rowNumber}: exam_name is required for State PSC examinations.`
+        );
+
+        return;
+      }
+
+
+      const stateName =
+        clean(
+          row.state_name
+        ) ||
+        null;
+
+
+      if (
+        !isUpsc &&
+        !stateName
+      ) {
+
+        errors.push(
+          `Row ${rowNumber}: state_name is required for State PSC examinations.`
+        );
+
+        return;
+      }
+
+
+      /*
+       * YEAR
+       */
+
       const year =
         Number(
           clean(
@@ -790,6 +975,10 @@ function validateRows(
       }
 
 
+      /*
+       * PAPER TYPE
+       */
+
       const paperType =
         normalizePaperType(
           row.paper_type
@@ -801,11 +990,21 @@ function validateRows(
       ) {
 
         errors.push(
-          `Row ${rowNumber}: paper_type must be essay, gs or optional.`
+          `Row ${rowNumber}: paper_type must be essay, gs, optional, language or other.`
         );
 
         return;
       }
+
+
+      /*
+       * GS PAPER
+       */
+
+      const rawGsPaper =
+        clean(
+          row.gs_paper
+        );
 
 
       let gsPaper:
@@ -813,6 +1012,65 @@ function validateRows(
         null =
           null;
 
+
+      if (
+        paperType ===
+        'gs' &&
+        rawGsPaper
+      ) {
+
+        gsPaper =
+          normalizeGsPaper(
+            rawGsPaper
+          );
+      }
+
+
+      /*
+       * Existing UPSC structure requires
+       * GS-I to GS-IV.
+       */
+
+      if (
+        isUpsc &&
+        paperType ===
+          'gs'
+      ) {
+
+        const normalizedUpscGs =
+          normalizeGsPaper(
+            rawGsPaper
+          );
+
+
+        if (
+          !normalizedUpscGs ||
+          ![
+            'GS-I',
+            'GS-II',
+            'GS-III',
+            'GS-IV'
+          ].includes(
+            normalizedUpscGs
+          )
+        ) {
+
+          errors.push(
+            `Row ${rowNumber}: UPSC GS paper must be GS-I, GS-II, GS-III or GS-IV.`
+          );
+
+          return;
+        }
+
+
+        gsPaper =
+          normalizedUpscGs;
+      }
+
+
+      /*
+       * OPTIONAL
+       */
 
       let optionalSubject:
         string |
@@ -828,37 +1086,14 @@ function validateRows(
 
       if (
         paperType ===
-        'gs'
-      ) {
-
-        gsPaper =
-          normalizeGsPaper(
-            row.gs_paper
-          );
-
-
-        if (
-          !gsPaper
-        ) {
-
-          errors.push(
-            `Row ${rowNumber}: GS paper must be GS-I, GS-II, GS-III or GS-IV.`
-          );
-
-          return;
-        }
-      }
-
-
-      if (
-        paperType ===
         'optional'
       ) {
 
         optionalSubject =
           clean(
             row.optional_subject
-          );
+          ) ||
+          null;
 
 
         optionalPaper =
@@ -884,13 +1119,35 @@ function validateRows(
         ) {
 
           errors.push(
-            `Row ${rowNumber}: optional_paper must be Paper-I or Paper-II.`
+            `Row ${rowNumber}: optional_paper is required.`
+          );
+
+          return;
+        }
+
+
+        if (
+          isUpsc &&
+          ![
+            'Paper-I',
+            'Paper-II'
+          ].includes(
+            optionalPaper
+          )
+        ) {
+
+          errors.push(
+            `Row ${rowNumber}: UPSC Optional paper must be Paper-I or Paper-II.`
           );
 
           return;
         }
       }
 
+
+      /*
+       * SUBJECT
+       */
 
       let subject =
         clean(
@@ -933,6 +1190,37 @@ function validateRows(
       }
 
 
+      /*
+       * PAPER NAME
+       */
+
+      const paperName =
+        derivePaperName(
+          paperType,
+          row.paper_name,
+          rawGsPaper,
+          optionalSubject,
+          optionalPaper,
+          subject
+        );
+
+
+      if (
+        !paperName
+      ) {
+
+        errors.push(
+          `Row ${rowNumber}: paper_name is required.`
+        );
+
+        return;
+      }
+
+
+      /*
+       * QUESTION
+       */
+
       const question =
         clean(
           row.question
@@ -953,9 +1241,17 @@ function validateRows(
 
       valid.push({
 
+        examAuthority,
+
+        examName,
+
+        stateName,
+
         year,
 
         paperType,
+
+        paperName,
 
         gsPaper,
 
@@ -1036,6 +1332,323 @@ function validateRows(
 }
 
 
+function normalizeKeyPart(
+  value:
+    string |
+    null |
+    undefined
+) {
+
+  return clean(
+    value
+  )
+    .toLowerCase()
+    .replace(
+      /\s+/g,
+      ' '
+    );
+}
+
+
+function makePaperKey(
+  item: {
+    examAuthority:
+      string;
+
+    examName:
+      string;
+
+    year:
+      number;
+
+    paperType:
+      string;
+
+    paperName:
+      string;
+
+    gsPaper:
+      string |
+      null;
+
+    optionalSubject:
+      string |
+      null;
+
+    optionalPaper:
+      string |
+      null;
+  }
+) {
+
+  return [
+    normalizeKeyPart(
+      item.examAuthority
+    ),
+
+    normalizeKeyPart(
+      item.examName
+    ),
+
+    String(
+      item.year
+    ),
+
+    normalizeKeyPart(
+      item.paperType
+    ),
+
+    normalizeKeyPart(
+      item.paperName
+    ),
+
+    normalizeKeyPart(
+      item.gsPaper
+    ),
+
+    normalizeKeyPart(
+      item.optionalSubject
+    ),
+
+    normalizeKeyPart(
+      item.optionalPaper
+    )
+
+  ].join(
+    '|'
+  );
+}
+
+
+function paperKeyFromRecord(
+  item:
+    PaperRecord
+) {
+
+  const authority =
+    clean(
+      item.exam_authority
+    ) ||
+    'UPSC';
+
+
+  const examName =
+    clean(
+      item.exam_name
+    ) ||
+    (
+      authority
+        .toUpperCase() ===
+        'UPSC'
+        ? 'Civil Services Examination'
+        : ''
+    );
+
+
+  const paperName =
+    clean(
+      item.paper_name
+    ) ||
+    (
+      item.paper_type ===
+        'essay'
+        ? 'Essay'
+        : item.gs_paper ||
+          [
+            item.optional_subject,
+            item.optional_paper
+          ]
+            .filter(
+              Boolean
+            )
+            .join(
+              ' '
+            )
+    );
+
+
+  return makePaperKey({
+
+    examAuthority:
+      authority,
+
+    examName,
+
+    year:
+      item.year,
+
+    paperType:
+      item.paper_type,
+
+    paperName,
+
+    gsPaper:
+      item.gs_paper,
+
+    optionalSubject:
+      item.optional_subject,
+
+    optionalPaper:
+      item.optional_paper
+  });
+}
+
+
+function makeQuestionKey(
+  item: {
+    examAuthority:
+      string;
+
+    examName:
+      string;
+
+    year:
+      number;
+
+    paperType:
+      string;
+
+    paperName:
+      string;
+
+    optionalSubject:
+      string |
+      null;
+
+    optionalPaper:
+      string |
+      null;
+
+    questionNumber:
+      string |
+      null;
+
+    question:
+      string;
+  }
+) {
+
+  return [
+    normalizeKeyPart(
+      item.examAuthority
+    ),
+
+    normalizeKeyPart(
+      item.examName
+    ),
+
+    String(
+      item.year
+    ),
+
+    normalizeKeyPart(
+      item.paperType
+    ),
+
+    normalizeKeyPart(
+      item.paperName
+    ),
+
+    normalizeKeyPart(
+      item.optionalSubject
+    ),
+
+    normalizeKeyPart(
+      item.optionalPaper
+    ),
+
+    normalizeKeyPart(
+      item.questionNumber
+    ),
+
+    normalizeKeyPart(
+      item.question
+    )
+
+  ].join(
+    '|'
+  );
+}
+
+
+function questionKeyFromRecord(
+  item:
+    ExistingQuestion
+) {
+
+  const authority =
+    clean(
+      item.exam_authority
+    ) ||
+    'UPSC';
+
+
+  const examName =
+    clean(
+      item.exam_name
+    ) ||
+    (
+      authority
+        .toUpperCase() ===
+        'UPSC'
+        ? 'Civil Services Examination'
+        : ''
+    );
+
+
+  const paperName =
+    clean(
+      item.paper_name
+    ) ||
+    (
+      item.section_type ===
+        'essay'
+        ? 'Essay'
+        : item.gs_paper ||
+          [
+            item.optional_subject,
+            item.optional_paper
+          ]
+            .filter(
+              Boolean
+            )
+            .join(
+              ' '
+            )
+    );
+
+
+  return makeQuestionKey({
+
+    examAuthority:
+      authority,
+
+    examName,
+
+    year:
+      item.pyq_year ||
+      0,
+
+    paperType:
+      item.section_type,
+
+    paperName,
+
+    optionalSubject:
+      item.optional_subject,
+
+    optionalPaper:
+      item.optional_paper,
+
+    questionNumber:
+      item.question_number,
+
+    question:
+      item.question
+  });
+}
+
+
 async function loadAllPapers() {
 
   if (
@@ -1048,6 +1661,7 @@ async function loadAllPapers() {
 
   const results:
     PaperRecord[] = [];
+
 
   let from =
     0;
@@ -1068,7 +1682,11 @@ async function loadAllPapers() {
         .select(`
           id,
           year,
+          exam_authority,
+          exam_name,
+          state_name,
           paper_type,
+          paper_name,
           gs_paper,
           optional_subject,
           optional_paper
@@ -1093,8 +1711,7 @@ async function loadAllPapers() {
       (
         data ||
         []
-      ) as
-        PaperRecord[];
+      ) as PaperRecord[];
 
 
     results.push(
@@ -1120,22 +1737,18 @@ async function loadAllPapers() {
 }
 
 
-async function loadExistingQuestionKeys() {
+async function loadAllPyqQuestions() {
 
   if (
     !supabase
   ) {
 
-    return new Set<
-      string
-    >();
+    return [];
   }
 
 
-  const keys =
-    new Set<
-      string
-    >();
+  const results:
+    ExistingQuestion[] = [];
 
 
   let from =
@@ -1156,7 +1769,10 @@ async function loadExistingQuestionKeys() {
         )
         .select(`
           pyq_year,
+          exam_authority,
+          exam_name,
           section_type,
+          paper_name,
           gs_paper,
           optional_subject,
           optional_paper,
@@ -1184,45 +1800,14 @@ async function loadExistingQuestionKeys() {
 
 
     const page =
-      data ||
-      [];
+      (
+        data ||
+        []
+      ) as ExistingQuestion[];
 
 
-    page.forEach(
-      item => {
-
-        if (
-          item.pyq_year
-        ) {
-
-          keys.add(
-            questionKey({
-
-              year:
-                item.pyq_year,
-
-              paperType:
-                item.section_type,
-
-              gsPaper:
-                item.gs_paper,
-
-              optionalSubject:
-                item.optional_subject,
-
-              optionalPaper:
-                item.optional_paper,
-
-              questionNumber:
-                item.question_number,
-
-              question:
-                item.question
-            })
-          );
-        }
-
-      }
+    results.push(
+      ...page
     );
 
 
@@ -1240,46 +1825,50 @@ async function loadExistingQuestionKeys() {
   }
 
 
-  return keys;
+  return results;
 }
 
 
-function paperTitle(
-  item:
-    ParsedPyq
+function chunks<T>(
+  values:
+    T[],
+  size:
+    number
 ) {
 
-  if (
-    item.paperType ===
-    'essay'
+  const result:
+    T[][] = [];
+
+
+  for (
+    let index = 0;
+    index < values.length;
+    index += size
   ) {
 
-    return `${item.year} UPSC Mains Essay`;
+    result.push(
+      values.slice(
+        index,
+        index +
+          size
+      )
+    );
   }
 
 
-  if (
-    item.paperType ===
-    'gs'
-  ) {
-
-    return `${item.year} UPSC Mains ${item.gsPaper}`;
-  }
-
-
-  return `${item.year} UPSC Mains ${item.optionalSubject} ${item.optionalPaper}`;
+  return result;
 }
 
 
 export function MainsPyqBulkImporter() {
 
   const [
-    rows,
-    setRows
+    defaultStatus,
+    setDefaultStatus
   ] =
-    useState<
-      CsvRow[]
-    >([]);
+    useState<ImportStatus>(
+      'draft'
+    );
 
 
   const [
@@ -1290,13 +1879,11 @@ export function MainsPyqBulkImporter() {
 
 
   const [
-    defaultStatus,
-    setDefaultStatus
+    rows,
+    setRows
   ] =
-    useState<
-      ImportStatus
-    >(
-      'draft'
+    useState<CsvRow[]>(
+      []
     );
 
 
@@ -1317,17 +1904,20 @@ export function MainsPyqBulkImporter() {
 
 
   const [
-    result,
-    setResult
+    insertedCount,
+    setInsertedCount
   ] =
-    useState<{
-      inserted:
-        number;
+    useState(
+      0
+    );
 
-      duplicates:
-        number;
-    } | null>(
-      null
+
+  const [
+    duplicateCount,
+    setDuplicateCount
+  ] =
+    useState(
+      0
     );
 
 
@@ -1345,43 +1935,35 @@ export function MainsPyqBulkImporter() {
     );
 
 
-  async function readFile(
+  async function selectFile(
     file:
       File |
-      null
+      undefined
   ) {
-
-    setMessage('');
-    setResult(
-      null
-    );
-
 
     if (
       !file
     ) {
 
-      setRows([]);
-      setFileName('');
-
       return;
     }
 
 
-    if (
-      !file.name
-        .toLowerCase()
-        .endsWith(
-          '.csv'
-        )
-    ) {
+    setFileName(
+      file.name
+    );
 
-      setMessage(
-        'Please select a .csv file.'
-      );
+    setMessage(
+      'Reading CSV...'
+    );
 
-      return;
-    }
+    setInsertedCount(
+      0
+    );
+
+    setDuplicateCount(
+      0
+    );
 
 
     try {
@@ -1396,38 +1978,41 @@ export function MainsPyqBulkImporter() {
         );
 
 
+      setRows(
+        parsed
+      );
+
+
       if (
         parsed.length ===
         0
       ) {
 
         setMessage(
-          'No data rows were found in the CSV.'
+          'No CSV data rows found.'
         );
-
-        setRows([]);
 
         return;
       }
 
 
+      setMessage(
+        `CSV loaded: ${parsed.length} row(s).`
+      );
+
+    } catch (
+      error
+    ) {
+
       setRows(
-        parsed
+        []
       );
-
-      setFileName(
-        file.name
-      );
-
 
       setMessage(
-        `Loaded ${parsed.length} CSV rows. Review validation before importing.`
-      );
-
-    } catch {
-
-      setMessage(
-        'Unable to read the CSV file.'
+        error instanceof
+          Error
+          ? error.message
+          : 'Unable to read CSV.'
       );
     }
   }
@@ -1460,29 +2045,20 @@ export function MainsPyqBulkImporter() {
     }
 
 
-    if (
-      validation.errors.length >
-      0
-    ) {
-
-      setMessage(
-        'Fix all invalid CSV rows before importing.'
-      );
-
-      return;
-    }
-
-
     setImporting(
       true
     );
 
-    setResult(
-      null
+    setInsertedCount(
+      0
+    );
+
+    setDuplicateCount(
+      0
     );
 
     setMessage(
-      'Preparing bulk import...'
+      'Preparing PYQ import...'
     );
 
 
@@ -1509,44 +2085,35 @@ export function MainsPyqBulkImporter() {
 
 
       /*
-       * ---------------------------------
-       * 1. LOAD PAPER MASTER
-       * ---------------------------------
+       * LOAD PAPER MASTER
        */
 
-      const existingPapers =
+      let allPapers =
         await loadAllPapers();
 
 
-      const paperMap =
+      let paperMap =
         new Map<
           string,
           string
         >();
 
 
-      existingPapers.forEach(
-        item => {
+      allPapers.forEach(
+        paper => {
 
           paperMap.set(
-            paperKey(
-              item.year,
-              item.paper_type,
-              item.gs_paper,
-              item.optional_subject,
-              item.optional_paper
+            paperKeyFromRecord(
+              paper
             ),
-            item.id
+            paper.id
           );
-
         }
       );
 
 
       /*
-       * ---------------------------------
-       * 2. FIND MISSING PAPER MASTERS
-       * ---------------------------------
+       * CREATE MISSING PAPERS
        */
 
       const missingPapers =
@@ -1560,12 +2127,8 @@ export function MainsPyqBulkImporter() {
         item => {
 
           const key =
-            paperKey(
-              item.year,
-              item.paperType,
-              item.gsPaper,
-              item.optionalSubject,
-              item.optionalPaper
+            makePaperKey(
+              item
             );
 
 
@@ -1583,71 +2146,66 @@ export function MainsPyqBulkImporter() {
               item
             );
           }
-
         }
       );
 
 
-      const missingPaperRows =
+      const missingValues =
         Array.from(
           missingPapers.values()
-        ).map(
-          item => ({
-
-            year:
-              item.year,
-
-            paper_type:
-              item.paperType,
-
-            gs_paper:
-              item.paperType ===
-                'gs'
-                ? item.gsPaper
-                : null,
-
-            optional_subject:
-              item.paperType ===
-                'optional'
-                ? item.optionalSubject
-                : null,
-
-            optional_paper:
-              item.paperType ===
-                'optional'
-                ? item.optionalPaper
-                : null,
-
-            title:
-              paperTitle(
-                item
-              ),
-
-            official_source_url:
-              item.sourceUrl,
-
-            status:
-              defaultStatus,
-
-            created_by:
-              user.id
-          })
         );
 
 
       for (
-        let index = 0;
-        index <
-          missingPaperRows.length;
-        index +=
+        const batch of chunks(
+          missingValues,
           INSERT_SIZE
+        )
       ) {
 
-        const chunk =
-          missingPaperRows.slice(
-            index,
-            index +
-              INSERT_SIZE
+        const payload =
+          batch.map(
+            item => ({
+
+              year:
+                item.year,
+
+              exam_authority:
+                item.examAuthority,
+
+              exam_name:
+                item.examName,
+
+              state_name:
+                item.stateName,
+
+              paper_type:
+                item.paperType,
+
+              paper_name:
+                item.paperName,
+
+              gs_paper:
+                item.gsPaper,
+
+              optional_subject:
+                item.optionalSubject,
+
+              optional_paper:
+                item.optionalPaper,
+
+              title:
+                `${item.year} ${item.examAuthority} ${item.examName} ${item.paperName}`,
+
+              official_source_url:
+                item.sourceUrl,
+
+              status:
+                item.status,
+
+              created_by:
+                user.id
+            })
           );
 
 
@@ -1659,7 +2217,7 @@ export function MainsPyqBulkImporter() {
               'mains_pyq_papers'
             )
             .insert(
-              chunk
+              payload
             );
 
 
@@ -1673,104 +2231,101 @@ export function MainsPyqBulkImporter() {
 
 
       /*
-       * Reload master after creating missing papers.
+       * RELOAD PAPER IDS
        */
 
-      const refreshedPapers =
+      allPapers =
         await loadAllPapers();
 
 
-      paperMap.clear();
+      paperMap =
+        new Map<
+          string,
+          string
+        >();
 
 
-      refreshedPapers.forEach(
-        item => {
+      allPapers.forEach(
+        paper => {
 
           paperMap.set(
-            paperKey(
-              item.year,
-              item.paper_type,
-              item.gs_paper,
-              item.optional_subject,
-              item.optional_paper
+            paperKeyFromRecord(
+              paper
             ),
-            item.id
+            paper.id
           );
-
         }
       );
 
 
       /*
-       * ---------------------------------
-       * 3. DUPLICATE PROTECTION
-       * ---------------------------------
+       * EXISTING QUESTION DUPLICATES
        */
 
-      const existingQuestionKeys =
-        await loadExistingQuestionKeys();
+      const existingQuestions =
+        await loadAllPyqQuestions();
 
 
-      const fileKeys =
-        new Set<
-          string
-        >();
+      const existingKeys =
+        new Set(
+          existingQuestions.map(
+            questionKeyFromRecord
+          )
+        );
 
 
-      let duplicateCount =
+      const currentCsvKeys =
+        new Set<string>();
+
+
+      const insertPayloads:
+        Array<
+          Record<
+            string,
+            unknown
+          >
+        > = [];
+
+
+      let duplicates =
         0;
-
-
-      const questionsToInsert:
-        Record<
-          string,
-          unknown
-        >[] = [];
 
 
       validation.valid.forEach(
         item => {
 
           const key =
-            questionKey(
+            makeQuestionKey(
               item
             );
 
 
           if (
-            existingQuestionKeys.has(
+            existingKeys.has(
               key
             ) ||
-            fileKeys.has(
+            currentCsvKeys.has(
               key
             )
           ) {
 
-            duplicateCount +=
+            duplicates +=
               1;
 
             return;
           }
 
 
-          fileKeys.add(
+          currentCsvKeys.add(
             key
           );
 
 
-          const masterKey =
-            paperKey(
-              item.year,
-              item.paperType,
-              item.gsPaper,
-              item.optionalSubject,
-              item.optionalPaper
-            );
-
-
           const paperId =
             paperMap.get(
-              masterKey
+              makePaperKey(
+                item
+              )
             );
 
 
@@ -1779,28 +2334,36 @@ export function MainsPyqBulkImporter() {
           ) {
 
             throw new Error(
-              `Unable to resolve paper master for CSV row ${item.rowNumber}.`
+              `Unable to find paper master for CSV row ${item.rowNumber}.`
             );
           }
 
 
           const tags =
             [
-              'UPSC PYQ',
+              item.examAuthority,
+              item.examName,
+              item.stateName,
               String(
                 item.year
               ),
+              item.paperName,
               item.subject,
-              item.topic ||
-                '',
-              item.subtopic ||
-                ''
+              item.topic,
+              item.subtopic,
+              'PYQ'
             ].filter(
-              Boolean
+              (
+                value
+              ):
+                value is string =>
+                Boolean(
+                  value
+                )
             );
 
 
-          questionsToInsert.push({
+          insertPayloads.push({
 
             question:
               item.question,
@@ -1811,23 +2374,26 @@ export function MainsPyqBulkImporter() {
             section_type:
               item.paperType,
 
+            exam_authority:
+              item.examAuthority,
+
+            exam_name:
+              item.examName,
+
+            state_name:
+              item.stateName,
+
+            paper_name:
+              item.paperName,
+
             gs_paper:
-              item.paperType ===
-                'gs'
-                ? item.gsPaper
-                : null,
+              item.gsPaper,
 
             optional_subject:
-              item.paperType ===
-                'optional'
-                ? item.optionalSubject
-                : null,
+              item.optionalSubject,
 
             optional_paper:
-              item.paperType ===
-                'optional'
-                ? item.optionalPaper
-                : null,
+              item.optionalPaper,
 
             subject:
               item.subject,
@@ -1842,10 +2408,7 @@ export function MainsPyqBulkImporter() {
               item.questionNumber,
 
             essay_section:
-              item.paperType ===
-                'essay'
-                ? item.essaySection
-                : null,
+              item.essaySection,
 
             marks:
               item.marks,
@@ -1863,7 +2426,7 @@ export function MainsPyqBulkImporter() {
               item.relevantGsPapers,
 
             source:
-              'UPSC',
+              item.examAuthority,
 
             source_url:
               item.sourceUrl,
@@ -1879,31 +2442,32 @@ export function MainsPyqBulkImporter() {
             created_by:
               user.id
           });
-
         }
       );
 
 
       /*
-       * ---------------------------------
-       * 4. INSERT QUESTIONS IN BATCHES
-       * ---------------------------------
+       * INSERT QUESTIONS
        */
 
+      let inserted =
+        0;
+
+
       for (
-        let index = 0;
-        index <
-          questionsToInsert.length;
-        index +=
+        const batch of chunks(
+          insertPayloads,
           INSERT_SIZE
+        )
       ) {
 
-        const chunk =
-          questionsToInsert.slice(
-            index,
-            index +
-              INSERT_SIZE
-          );
+        if (
+          batch.length ===
+          0
+        ) {
+
+          continue;
+        }
 
 
         const {
@@ -1914,7 +2478,7 @@ export function MainsPyqBulkImporter() {
               'mains_questions'
             )
             .insert(
-              chunk
+              batch
             );
 
 
@@ -1924,36 +2488,36 @@ export function MainsPyqBulkImporter() {
 
           throw error;
         }
+
+
+        inserted +=
+          batch.length;
+
+
+        setInsertedCount(
+          inserted
+        );
       }
 
 
-      setResult({
-
-        inserted:
-          questionsToInsert.length,
-
-        duplicates:
-          duplicateCount
-      });
+      setDuplicateCount(
+        duplicates
+      );
 
 
       setMessage(
-        `Bulk import complete. ${questionsToInsert.length} questions added and ${duplicateCount} duplicates skipped.`
+        `Import complete. ${inserted} question(s) inserted. ${duplicates} duplicate(s) skipped.`
       );
 
     } catch (
-      caughtError
+      error
     ) {
 
-      const errorMessage =
-        caughtError instanceof
-          Error
-          ? caughtError.message
-          : 'Bulk import failed.';
-
-
       setMessage(
-        errorMessage
+        error instanceof
+          Error
+          ? error.message
+          : 'Bulk import failed.'
       );
 
     } finally {
@@ -1969,96 +2533,109 @@ export function MainsPyqBulkImporter() {
 
     <section
       className="panel"
-      style={{
-        display:
-          'grid',
-
-        gap:
-          '16px'
-      }}
     >
 
-      <div>
-
-        <span
-          className="eyebrow"
-        >
-          BULK PYQ IMPORT
-        </span>
+      <span
+        className="eyebrow"
+      >
+        BULK PYQ IMPORT
+      </span>
 
 
-        <h2>
-          Import complete Mains papers from CSV
-        </h2>
+      <h2>
+        UPSC + State PSC CSV Import
+      </h2>
 
 
-        <p>
-          Use this for large UPSC PYQ collections instead
-          of entering every question manually.
-        </p>
+      <p>
+        Import complete Mains question papers from UPSC,
+        MPSC, MPPSC, UPPSC, BPSC, RPSC and other State
+        Public Service Commissions.
+      </p>
+
+
+      <div
+        style={{
+          display:
+            'grid',
+
+          gridTemplateColumns:
+            'repeat(auto-fit, minmax(220px, 1fr))',
+
+          gap:
+            '12px',
+
+          marginTop:
+            '16px'
+        }}
+      >
+
+        <label>
+
+          Default Import Status
+
+          <select
+            value={
+              defaultStatus
+            }
+            onChange={
+              event =>
+                setDefaultStatus(
+                  event
+                    .target
+                    .value as
+                      ImportStatus
+                )
+            }
+          >
+
+            <option
+              value="draft"
+            >
+              Draft
+            </option>
+
+
+            <option
+              value="published"
+            >
+              Published
+            </option>
+
+          </select>
+
+        </label>
+
+
+        <label>
+
+          Select CSV File
+
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={
+              event =>
+                void selectFile(
+                  event
+                    .target
+                    .files?.[0]
+                )
+            }
+          />
+
+        </label>
 
       </div>
 
 
-      <label>
-
-        Default Import Status
-
-        <select
-          value={
-            defaultStatus
-          }
-          onChange={
-            event =>
-              setDefaultStatus(
-                event
-                  .target
-                  .value as
-                    ImportStatus
-              )
-          }
-        >
-          <option
-            value="draft"
-          >
-            Draft - review before students see it
-          </option>
-
-          <option
-            value="published"
-          >
-            Published - immediately visible to students
-          </option>
-        </select>
-
-      </label>
-
-
-      <label>
-
-        Select CSV File
-
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          onChange={
-            event =>
-              void readFile(
-                event
-                  .target
-                  .files?.[0] ||
-                null
-              )
-          }
-        />
-
-      </label>
-
-
-      <section
+      <div
         style={{
+          marginTop:
+            '18px',
+
           padding:
-            '12px',
+            '14px',
 
           border:
             '1px solid rgba(255,255,255,.08)',
@@ -2069,256 +2646,276 @@ export function MainsPyqBulkImporter() {
       >
 
         <strong>
-          Required CSV format
+          CSV column format
         </strong>
-
-
-        <p
-          style={{
-            fontSize:
-              '.82rem',
-
-            color:
-              '#94a3b8'
-          }}
-        >
-          Keep the question inside double quotes when it
-          contains commas.
-        </p>
 
 
         <pre
           style={{
-            overflowX:
-              'auto',
-
             whiteSpace:
-              'pre',
+              'pre-wrap',
 
-            fontSize:
-              '.72rem'
+            overflowWrap:
+              'anywhere',
+
+            marginTop:
+              '8px'
           }}
         >
           {SAMPLE_HEADER}
-          {'\n'}
-          {SAMPLE_ROW}
         </pre>
 
-      </section>
+
+        <strong>
+          UPSC example
+        </strong>
 
 
-      {fileName && (
-
-        <section
+        <pre
           style={{
-            display:
-              'grid',
+            whiteSpace:
+              'pre-wrap',
 
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(150px, 1fr))',
+            overflowWrap:
+              'anywhere',
 
-            gap:
-              '10px'
+            marginTop:
+              '8px'
           }}
         >
-
-          <div
-            className="panel"
-          >
-            <strong>
-              File
-            </strong>
-
-            <p>
-              {fileName}
-            </p>
-          </div>
+          {UPSC_SAMPLE}
+        </pre>
 
 
-          <div
-            className="panel"
-          >
-            <strong>
-              CSV Rows
-            </strong>
-
-            <p>
-              {rows.length}
-            </p>
-          </div>
+        <strong>
+          State PSC example
+        </strong>
 
 
-          <div
-            className="panel"
-          >
-            <strong>
-              Valid
-            </strong>
+        <pre
+          style={{
+            whiteSpace:
+              'pre-wrap',
 
-            <p>
-              {validation.valid.length}
-            </p>
-          </div>
+            overflowWrap:
+              'anywhere',
+
+            marginTop:
+              '8px'
+          }}
+        >
+          {STATE_SAMPLE}
+        </pre>
+
+      </div>
 
 
-          <div
-            className="panel"
-          >
-            <strong>
-              Errors
-            </strong>
+      <div
+        style={{
+          display:
+            'grid',
 
-            <p>
-              {validation.errors.length}
-            </p>
-          </div>
+          gridTemplateColumns:
+            'repeat(auto-fit, minmax(150px, 1fr))',
 
-        </section>
+          gap:
+            '10px',
 
-      )}
+          marginTop:
+            '16px'
+        }}
+      >
+
+        <div>
+          <strong>
+            File
+          </strong>
+
+          <p>
+            {fileName ||
+              'No file selected'}
+          </p>
+        </div>
+
+
+        <div>
+          <strong>
+            CSV rows
+          </strong>
+
+          <p>
+            {rows.length}
+          </p>
+        </div>
+
+
+        <div>
+          <strong>
+            Valid rows
+          </strong>
+
+          <p>
+            {validation.valid.length}
+          </p>
+        </div>
+
+
+        <div>
+          <strong>
+            Errors
+          </strong>
+
+          <p>
+            {validation.errors.length}
+          </p>
+        </div>
+
+
+        <div>
+          <strong>
+            Inserted
+          </strong>
+
+          <p>
+            {insertedCount}
+          </p>
+        </div>
+
+
+        <div>
+          <strong>
+            Duplicates skipped
+          </strong>
+
+          <p>
+            {duplicateCount}
+          </p>
+        </div>
+
+      </div>
 
 
       {validation.errors.length >
         0 && (
 
-        <section
+        <div
           style={{
+            marginTop:
+              '16px',
+
             padding:
               '12px',
 
             border:
-              '1px solid rgba(248,113,113,.35)',
+              '1px solid rgba(239,68,68,.35)',
 
             borderRadius:
-              '12px'
+              '10px'
           }}
         >
 
           <strong>
-            Fix these CSV rows
+            Validation errors
           </strong>
 
 
-          <div
-            style={{
-              display:
-                'grid',
+          {validation.errors
+            .slice(
+              0,
+              50
+            )
+            .map(
+              error => (
 
-              gap:
-                '5px',
+                <p
+                  key={
+                    error
+                  }
+                  style={{
+                    margin:
+                      '6px 0'
+                  }}
+                >
+                  {error}
+                </p>
 
-              marginTop:
-                '10px',
-
-              maxHeight:
-                '240px',
-
-              overflowY:
-                'auto'
-            }}
-          >
-
-            {validation.errors
-              .slice(
-                0,
-                50
               )
-              .map(
-                error => (
+            )}
 
-                  <div
-                    key={
-                      error
-                    }
-                    style={{
-                      fontSize:
-                        '.82rem'
-                    }}
-                  >
-                    {error}
-                  </div>
-
-                )
-              )}
-
-          </div>
-
-
-          {validation.errors.length >
-            50 && (
-
-            <p>
-              Showing the first 50 errors.
-            </p>
-
-          )}
-
-        </section>
+        </div>
 
       )}
 
 
-      <button
-        type="button"
-        className="primary-btn"
-        disabled={
-          importing ||
-          validation.valid.length ===
-            0 ||
-          validation.errors.length >
-            0
-        }
-        onClick={() =>
-          void importQuestions()
-        }
+      <div
+        style={{
+          display:
+            'flex',
+
+          gap:
+            '10px',
+
+          flexWrap:
+            'wrap',
+
+          marginTop:
+            '18px'
+        }}
       >
 
-        {importing
-          ? 'Importing PYQs...'
-          : `Import ${validation.valid.length} PYQs`}
+        <button
+          type="button"
+          className="primary-btn"
+          disabled={
+            importing ||
+            validation.valid.length ===
+              0
+          }
+          onClick={() =>
+            void importQuestions()
+          }
+        >
 
-      </button>
+          {importing
+            ? 'Importing...'
+            : `Import ${validation.valid.length} PYQs`}
+
+        </button>
+
+
+        <button
+          type="button"
+          className="secondary-btn"
+          disabled={
+            importing
+          }
+          onClick={() => {
+
+            setFileName('');
+            setRows([]);
+            setMessage('');
+            setInsertedCount(0);
+            setDuplicateCount(0);
+
+          }}
+        >
+          Clear
+        </button>
+
+      </div>
 
 
       {message && (
 
-        <p>
-          {message}
-        </p>
-
-      )}
-
-
-      {result && (
-
-        <section
+        <p
+          className="form-message"
           style={{
-            padding:
-              '12px',
-
-            border:
-              '1px solid rgba(45,212,191,.35)',
-
-            borderRadius:
-              '12px'
+            marginTop:
+              '14px'
           }}
         >
-
-          <strong>
-            Import Result
-          </strong>
-
-
-          <p>
-            Added: {result.inserted}
-          </p>
-
-
-          <p>
-            Duplicate questions skipped: {result.duplicates}
-          </p>
-
-        </section>
+          {message}
+        </p>
 
       )}
 
