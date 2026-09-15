@@ -19,6 +19,7 @@ import {
 import type {
   MainsPyqArchiveQuestion
 } from '../components/MainsPyqArchive';
+
 import {
   supabase
 } from '../lib/supabase';
@@ -61,7 +62,8 @@ type MainsQuestion =
       QuestionType;
 
     pyq_year:
-      number | null;
+      number |
+      null;
 
     tags:
       string[];
@@ -162,6 +164,7 @@ function WorkspaceTabs({
   active,
   onChange
 }: {
+
   active:
     WorkspaceView;
 
@@ -170,6 +173,7 @@ function WorkspaceTabs({
       value:
         WorkspaceView
     ) => void;
+
 }) {
 
   return (
@@ -249,7 +253,9 @@ export function MainsPracticePage() {
   ] =
     useState<
       MainsQuestion[]
-    >([]);
+    >(
+      []
+    );
 
 
   const [
@@ -379,7 +385,9 @@ export function MainsPracticePage() {
 
   async function loadQuestions() {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       setError(
         'Mains question database is not configured.'
@@ -434,19 +442,10 @@ export function MainsPracticePage() {
           difficulty,
           created_at
         `)
-
         .eq(
           'status',
           'published'
         )
-
-        /*
-         * The present answer-writing workspace
-         * supports GS + Optional.
-         *
-         * Essay PYQs remain available in the
-         * dedicated Previous Year Papers archive.
-         */
         .in(
           'section_type',
           [
@@ -454,7 +453,6 @@ export function MainsPracticePage() {
             'optional'
           ]
         )
-
         .order(
           'created_at',
           {
@@ -498,7 +496,12 @@ export function MainsPracticePage() {
 
           tags:
             item.tags ||
-            []
+            [],
+
+          difficulty:
+            item.difficulty ||
+            'medium'
+
         })
       ) as
         MainsQuestion[];
@@ -710,23 +713,22 @@ export function MainsPracticePage() {
                 [
                   item.question,
                   item.subject,
-                  item.topic,
-                  item.directive,
-                  item.gs_paper,
-                  item.optional_subject,
-                  item.optional_paper,
+                  item.topic ||
+                    '',
+                  item.directive ||
+                    '',
+                  item.gs_paper ||
+                    '',
+                  item.optional_subject ||
+                    '',
+                  item.optional_paper ||
+                    '',
                   ...(item.tags ||
                     [])
                 ]
-
-                  .filter(
-                    Boolean
-                  )
-
                   .join(
                     ' '
                   )
-
                   .toLowerCase();
 
 
@@ -767,38 +769,51 @@ export function MainsPracticePage() {
       'all'
     );
 
-
     setTypeFilter(
       'all'
     );
-
 
     setGsFilter(
       'all'
     );
 
-
     setOptionalSubjectFilter(
       'all'
     );
-
 
     setOptionalPaperFilter(
       'all'
     );
 
-
     setMarksFilter(
       'all'
     );
-
 
     setYearFilter(
       'all'
     );
 
-
     setSearchText('');
+  }
+
+
+  function scrollToTop() {
+
+    const mainArea =
+      document.querySelector(
+        '.main-area'
+      );
+
+
+    mainArea?.scrollTo({
+
+      top:
+        0,
+
+      behavior:
+        'smooth'
+
+    });
   }
 
 
@@ -812,105 +827,38 @@ export function MainsPracticePage() {
     );
 
 
-    const mainArea =
-      document.querySelector(
-        '.main-area'
-      );
-
-
-    mainArea?.scrollTo({
-      top:
-        0,
-
-      behavior:
-        'smooth'
-    });
+    scrollToTop();
   }
 
-  function startPyqAnswerWriting(
-  item:
-    MainsPyqArchiveQuestion
-) {
 
   /*
-   * Essay uses a different answer structure.
-   * For now direct answer writing is available
-   * for GS and Optional PYQs.
+   * Direct answer writing from the
+   * UPSC + State PSC PYQ Archive.
+   *
+   * MainsPyqArchiveQuestion is already
+   * restricted to GS and Optional.
    */
-  if (
-    item.section_type ===
-    'essay'
+  function startPyqAnswerWriting(
+    item:
+      MainsPyqArchiveQuestion
   ) {
 
-    return;
-  }
+    const tags:
+      string[] = [
 
+        item.exam_authority
+          ? `${item.exam_authority} PYQ`
+          : 'PYQ',
 
-  const workspaceQuestion:
-    MainsQuestion = {
+        item.exam_name ||
+          '',
 
-      id:
-        item.id,
+        item.state_name ||
+          '',
 
-      question:
-        item.question,
-
-      question_type:
-        'pyq',
-
-      section_type:
-        item.section_type,
-
-      gs_paper:
-        item.gs_paper,
-
-      optional_subject:
-        item.optional_subject,
-
-      optional_paper:
-        item.optional_paper,
-
-      subject:
-        item.subject,
-
-      topic:
-        item.topic,
-
-      syllabus_link:
-        item.syllabus_link,
-
-      directive:
-        item.directive,
-
-      marks:
-        item.marks,
-
-      word_limit:
-        item.word_limit,
-
-      pyq_year:
-        item.pyq_year,
-
-      answer_framework:
-        item.answer_framework,
-
-      key_points:
-        item.key_points,
-
-      introduction_hint:
-        item.introduction_hint,
-
-      conclusion_hint:
-        item.conclusion_hint,
-
-      source:
-        item.source,
-
-      source_url:
-        item.source_url,
-
-      tags: [
-        'UPSC PYQ',
+        item.paper_name ||
+          item.gs_paper ||
+          '',
 
         item.pyq_year
           ? String(
@@ -925,37 +873,99 @@ export function MainsPracticePage() {
 
         item.subtopic ||
           ''
+
       ].filter(
-        Boolean
-      ),
-
-      difficulty:
-        'medium',
-
-      created_at:
-        item.created_at
-    };
-
-
-  setSelectedQuestion(
-    workspaceQuestion
-  );
+        (
+          value
+        ):
+          value is string =>
+          Boolean(
+            value
+          )
+      );
 
 
-  const mainArea =
-    document.querySelector(
-      '.main-area'
+    const workspaceQuestion:
+      MainsQuestion = {
+
+        id:
+          item.id,
+
+        question:
+          item.question,
+
+        question_type:
+          'pyq',
+
+        section_type:
+          item.section_type,
+
+        gs_paper:
+          item.gs_paper,
+
+        optional_subject:
+          item.optional_subject,
+
+        optional_paper:
+          item.optional_paper,
+
+        subject:
+          item.subject,
+
+        topic:
+          item.topic,
+
+        syllabus_link:
+          item.syllabus_link,
+
+        directive:
+          item.directive,
+
+        marks:
+          item.marks,
+
+        word_limit:
+          item.word_limit,
+
+        pyq_year:
+          item.pyq_year,
+
+        answer_framework:
+          item.answer_framework,
+
+        key_points:
+          item.key_points,
+
+        introduction_hint:
+          item.introduction_hint,
+
+        conclusion_hint:
+          item.conclusion_hint,
+
+        source:
+          item.source,
+
+        source_url:
+          item.source_url,
+
+        tags,
+
+        difficulty:
+          'medium',
+
+        created_at:
+          item.created_at
+      };
+
+
+    setSelectedQuestion(
+      workspaceQuestion
     );
 
 
-  mainArea?.scrollTo({
-    top:
-      0,
+    scrollToTop();
+  }
 
-    behavior:
-      'smooth'
-  });
-}
 
   function closeAnswerWorkspace() {
 
@@ -964,25 +974,13 @@ export function MainsPracticePage() {
     );
 
 
-    const mainArea =
-      document.querySelector(
-        '.main-area'
-      );
-
-
-    mainArea?.scrollTo({
-      top:
-        0,
-
-      behavior:
-        'smooth'
-    });
+    scrollToTop();
   }
 
 
   /*
    * =====================================
-   * ANSWER-WRITING WORKSPACE
+   * ANSWER WRITING WORKSPACE
    * =====================================
    */
 
@@ -1007,7 +1005,7 @@ export function MainsPracticePage() {
 
   /*
    * =====================================
-   * PREVIOUS YEAR PAPERS WORKSPACE
+   * PREVIOUS YEAR PAPERS
    * =====================================
    */
 
@@ -1024,7 +1022,7 @@ export function MainsPracticePage() {
 
         <TopBar
           title="Mains Practice"
-          subtitle="Previous Year Papers, Essay, GS and Optional"
+          subtitle="UPSC and State PSC Previous Year Mains Papers"
         />
 
 
@@ -1039,10 +1037,10 @@ export function MainsPracticePage() {
 
 
         <MainsPyqArchive
-  onStartAnswerWriting={
-    startPyqAnswerWriting
-  }
-/>
+          onStartAnswerWriting={
+            startPyqAnswerWriting
+          }
+        />
 
       </div>
 
@@ -1164,7 +1162,7 @@ export function MainsPracticePage() {
 
   /*
    * =====================================
-   * MAIN ANSWER PRACTICE PAGE
+   * MAIN PAGE
    * =====================================
    */
 
@@ -1176,7 +1174,7 @@ export function MainsPracticePage() {
 
       <TopBar
         title="Mains Practice"
-        subtitle="GS-I to GS-IV, PYQs, practice questions and optionals"
+        subtitle="GS, Optional, UPSC and State PSC Mains preparation"
       />
 
 
@@ -1191,7 +1189,7 @@ export function MainsPracticePage() {
 
 
       {/* =====================================
-          QUESTION FILTERS
+          FILTERS
       ===================================== */}
 
       <section
@@ -1286,13 +1284,11 @@ export function MainsPracticePage() {
                 All Sections
               </option>
 
-
               <option
                 value="gs"
               >
                 General Studies
               </option>
-
 
               <option
                 value="optional"
@@ -1337,13 +1333,11 @@ export function MainsPracticePage() {
                 All Question Types
               </option>
 
-
               <option
                 value="practice"
               >
                 Practice Question
               </option>
-
 
               <option
                 value="pyq"
@@ -1393,13 +1387,11 @@ export function MainsPracticePage() {
                 All GS Papers
               </option>
 
-
               <option
                 value="GS-I"
               >
                 GS-I
               </option>
-
 
               <option
                 value="GS-II"
@@ -1407,13 +1399,11 @@ export function MainsPracticePage() {
                 GS-II
               </option>
 
-
               <option
                 value="GS-III"
               >
                 GS-III
               </option>
-
 
               <option
                 value="GS-IV"
@@ -1457,20 +1447,17 @@ export function MainsPracticePage() {
                 All Marks
               </option>
 
-
               <option
                 value="10"
               >
                 10 Marks
               </option>
 
-
               <option
                 value="15"
               >
                 15 Marks
               </option>
-
 
               <option
                 value="20"
@@ -1574,13 +1561,11 @@ export function MainsPracticePage() {
                 Both Papers
               </option>
 
-
               <option
                 value="Paper-I"
               >
                 Paper-I
               </option>
-
 
               <option
                 value="Paper-II"
@@ -1688,7 +1673,7 @@ export function MainsPracticePage() {
 
 
       {/* =====================================
-          QUESTION RESULTS
+          RESULTS
       ===================================== */}
 
       <section
@@ -1731,18 +1716,13 @@ export function MainsPracticePage() {
 
             <h2>
 
-              {
-                filteredQuestions
-                  .length
-              }{' '}
+              {filteredQuestions.length}
+              {' '}
 
-              {
-                filteredQuestions
-                  .length ===
+              {filteredQuestions.length ===
                 1
-                  ? 'question'
-                  : 'questions'
-              }
+                ? 'question'
+                : 'questions'}
 
             </h2>
 
@@ -1777,9 +1757,8 @@ export function MainsPracticePage() {
 
 
             <p>
-              Try changing the filters or ask
-              the administrator to publish more
-              questions.
+              Try changing the filters or ask the
+              administrator to publish more questions.
             </p>
 
           </div>
@@ -1824,14 +1803,11 @@ export function MainsPracticePage() {
                     className="eyebrow"
                   >
 
-                    {
-                      item.section_type ===
-                        'gs'
-
-                        ? item.gs_paper
-
-                        : `${item.optional_subject || 'Optional'} • ${item.optional_paper || ''}`
-                    }
+                    {item.section_type ===
+                      'gs'
+                      ? item.gs_paper ||
+                        'General Studies'
+                      : `${item.optional_subject || 'Optional'} • ${item.optional_paper || ''}`}
 
                   </span>
 
@@ -1864,14 +1840,10 @@ export function MainsPracticePage() {
                     className="tag"
                   >
 
-                    {
-                      item.question_type ===
-                        'pyq'
-
-                        ? `PYQ ${item.pyq_year || ''}`
-
-                        : 'Practice'
-                    }
+                    {item.question_type ===
+                      'pyq'
+                      ? `PYQ ${item.pyq_year || ''}`
+                      : 'Practice'}
 
                   </span>
 
@@ -1882,7 +1854,9 @@ export function MainsPracticePage() {
                     <span
                       className="tag"
                     >
-                      {item.marks} marks
+                      {item.marks}
+                      {' '}
+                      marks
                     </span>
 
                   )}
@@ -1894,7 +1868,9 @@ export function MainsPracticePage() {
                     <span
                       className="tag"
                     >
-                      {item.word_limit} words
+                      {item.word_limit}
+                      {' '}
+                      words
                     </span>
 
                   )}
@@ -1930,7 +1906,9 @@ export function MainsPracticePage() {
 
                   <strong>
                     Subject:
-                  </strong>{' '}
+                  </strong>
+
+                  {' '}
 
                   {item.subject}
 
@@ -1943,7 +1921,9 @@ export function MainsPracticePage() {
 
                     <strong>
                       Topic:
-                    </strong>{' '}
+                    </strong>
+
+                    {' '}
 
                     {item.topic}
 
@@ -2020,20 +2000,14 @@ export function MainsPracticePage() {
                     }
                   >
 
-                    {
-                      expanded
-                        ? 'Hide guidance'
-                        : 'View answer guidance'
-                    }
+                    {expanded
+                      ? 'Hide guidance'
+                      : 'View answer guidance'}
 
                   </button>
 
                 </div>
 
-
-                {/* =====================================
-                    ANSWER GUIDANCE
-                ===================================== */}
 
                 {expanded && (
 
@@ -2059,7 +2033,7 @@ export function MainsPracticePage() {
                         <span
                           className="eyebrow"
                         >
-                          UPSC SYLLABUS LINKAGE
+                          SYLLABUS LINKAGE
                         </span>
 
 
@@ -2091,9 +2065,7 @@ export function MainsPracticePage() {
                               'pre-wrap'
                           }}
                         >
-                          {
-                            item.introduction_hint
-                          }
+                          {item.introduction_hint}
                         </p>
 
                       </div>
@@ -2123,9 +2095,7 @@ export function MainsPracticePage() {
                               1.7
                           }}
                         >
-                          {
-                            item.answer_framework
-                          }
+                          {item.answer_framework}
                         </p>
 
                       </div>
@@ -2179,9 +2149,7 @@ export function MainsPracticePage() {
                               'pre-wrap'
                           }}
                         >
-                          {
-                            item.conclusion_hint
-                          }
+                          {item.conclusion_hint}
                         </p>
 
                       </div>
@@ -2195,7 +2163,6 @@ export function MainsPracticePage() {
               </article>
 
             );
-
           }
         )}
 
