@@ -9,7 +9,15 @@ import {
 } from '../lib/supabase';
 
 
-export type MainsPyqArchiveQuestion = {
+type PaperType =
+  | 'essay'
+  | 'gs'
+  | 'optional'
+  | 'language'
+  | 'other';
+
+
+type ArchiveQuestion = {
 
   id:
     string;
@@ -18,9 +26,23 @@ export type MainsPyqArchiveQuestion = {
     string;
 
   section_type:
-    | 'essay'
-    | 'gs'
-    | 'optional';
+    PaperType;
+
+  exam_authority:
+    string |
+    null;
+
+  exam_name:
+    string |
+    null;
+
+  state_name:
+    string |
+    null;
+
+  paper_name:
+    string |
+    null;
 
   gs_paper:
     string |
@@ -105,13 +127,39 @@ export type MainsPyqArchiveQuestion = {
 };
 
 
+/*
+ * Keep this exported type limited to GS + Optional.
+ *
+ * The existing Mains answer-writing workspace currently
+ * supports these two types directly.
+ *
+ * Essay, Language and Other papers remain fully browsable.
+ */
+export type MainsPyqArchiveQuestion =
+  Omit<
+    ArchiveQuestion,
+    'section_type'
+  > & {
+
+    section_type:
+      | 'gs'
+      | 'optional';
+  };
+
+
+type SourceMode =
+  | 'all'
+  | 'upsc'
+  | 'state';
+
+
 type BrowseMode =
   | 'paper'
   | 'subject'
   | 'subtopic';
 
 
-type PaperTab =
+type UpscPaperTab =
   | 'essay'
   | 'GS-I'
   | 'GS-II'
@@ -124,6 +172,10 @@ const PYQ_SELECT = `
   id,
   question,
   section_type,
+  exam_authority,
+  exam_name,
+  state_name,
+  paper_name,
   gs_paper,
   optional_subject,
   optional_paper,
@@ -148,14 +200,159 @@ const PYQ_SELECT = `
 `;
 
 
+function clean(
+  value:
+    string |
+    null |
+    undefined
+) {
+
+  return (
+    value ||
+    ''
+  ).trim();
+}
+
+
+function authorityOf(
+  item:
+    ArchiveQuestion
+) {
+
+  return (
+    clean(
+      item.exam_authority
+    ) ||
+    'UPSC'
+  );
+}
+
+
+function examNameOf(
+  item:
+    ArchiveQuestion
+) {
+
+  return (
+    clean(
+      item.exam_name
+    ) ||
+    (
+      authorityOf(
+        item
+      ).toUpperCase() ===
+        'UPSC'
+        ? 'Civil Services Examination'
+        : 'Examination'
+    )
+  );
+}
+
+
+function paperNameOf(
+  item:
+    ArchiveQuestion
+) {
+
+  if (
+    clean(
+      item.paper_name
+    )
+  ) {
+
+    return clean(
+      item.paper_name
+    );
+  }
+
+
+  if (
+    item.section_type ===
+    'essay'
+  ) {
+
+    return 'Essay';
+  }
+
+
+  if (
+    item.section_type ===
+    'optional'
+  ) {
+
+    return [
+      item.optional_subject,
+      item.optional_paper
+    ]
+      .filter(
+        Boolean
+      )
+      .join(
+        ' '
+      );
+  }
+
+
+  if (
+    item.section_type ===
+    'language'
+  ) {
+
+    return (
+      item.subject ||
+      'Language'
+    );
+  }
+
+
+  return (
+    item.gs_paper ||
+    'General Studies'
+  );
+}
+
+
+function isUpsc(
+  item:
+    ArchiveQuestion
+) {
+
+  return (
+    authorityOf(
+      item
+    )
+      .toUpperCase() ===
+    'UPSC'
+  );
+}
+
+
+function isAnswerable(
+  item:
+    ArchiveQuestion
+):
+  item is
+    MainsPyqArchiveQuestion {
+
+  return (
+    item.section_type ===
+      'gs' ||
+    item.section_type ===
+      'optional'
+  );
+}
+
+
 export function MainsPyqArchive({
   onStartAnswerWriting
 }: {
+
   onStartAnswerWriting?:
     (
       question:
         MainsPyqArchiveQuestion
     ) => void;
+
 }) {
 
   const [
@@ -163,8 +360,10 @@ export function MainsPyqArchive({
     setQuestions
   ] =
     useState<
-      MainsPyqArchiveQuestion[]
-    >([]);
+      ArchiveQuestion[]
+    >(
+      []
+    );
 
 
   const [
@@ -183,25 +382,82 @@ export function MainsPyqArchive({
     useState('');
 
 
+  /*
+   * TOP LEVEL SOURCE
+   */
+
+  const [
+    sourceMode,
+    setSourceMode
+  ] =
+    useState<SourceMode>(
+      'upsc'
+    );
+
+
+  /*
+   * BROWSE STYLE
+   */
+
   const [
     browseMode,
     setBrowseMode
   ] =
-    useState<
-      BrowseMode
-    >(
+    useState<BrowseMode>(
       'paper'
     );
 
 
+  /*
+   * UPSC PAPER
+   */
+
   const [
-    paperTab,
-    setPaperTab
+    upscPaperTab,
+    setUpscPaperTab
   ] =
-    useState<
-      PaperTab
-    >(
+    useState<UpscPaperTab>(
       'GS-I'
+    );
+
+
+  /*
+   * COMMON FILTERS
+   */
+
+  const [
+    commissionFilter,
+    setCommissionFilter
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
+    stateFilter,
+    setStateFilter
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
+    examFilter,
+    setExamFilter
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
+    paperNameFilter,
+    setPaperNameFilter
+  ] =
+    useState(
+      'all'
     );
 
 
@@ -257,9 +513,15 @@ export function MainsPyqArchive({
     useState('');
 
 
+  /*
+   * LOAD PUBLISHED PYQs
+   */
+
   async function loadPyqs() {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       setError(
         'PYQ database is not configured.'
@@ -338,14 +600,16 @@ export function MainsPyqArchive({
         []
       ).map(
         item => ({
+
           ...item,
 
           relevant_gs_papers:
-            item.relevant_gs_papers ||
+            item
+              .relevant_gs_papers ||
             []
+
         })
-      ) as
-        MainsPyqArchiveQuestion[];
+      ) as ArchiveQuestion[];
 
 
     setQuestions(
@@ -368,53 +632,120 @@ export function MainsPyqArchive({
   );
 
 
-  const years =
+  /*
+   * RESET DEPENDENT FILTERS
+   */
+
+  useEffect(
+    () => {
+
+      setCommissionFilter(
+        'all'
+      );
+
+      setStateFilter(
+        'all'
+      );
+
+      setExamFilter(
+        'all'
+      );
+
+      setPaperNameFilter(
+        'all'
+      );
+
+      setOptionalSubjectFilter(
+        'all'
+      );
+
+      setOptionalPaperFilter(
+        'all'
+      );
+
+      setSubjectFilter(
+        'all'
+      );
+
+      setSubtopicFilter(
+        'all'
+      );
+
+    },
+    [
+      sourceMode
+    ]
+  );
+
+
+  /*
+   * SOURCE-SCOPED QUESTIONS
+   */
+
+  const sourceQuestions =
     useMemo(
       () => {
 
-        return Array.from(
-          new Set(
-            questions
-              .map(
-                item =>
-                  item.pyq_year
+        if (
+          sourceMode ===
+          'upsc'
+        ) {
+
+          return questions.filter(
+            item =>
+              isUpsc(
+                item
               )
-              .filter(
-                (
-                  value
-                ):
-                  value is number =>
-                  typeof value ===
-                  'number'
+          );
+        }
+
+
+        if (
+          sourceMode ===
+          'state'
+        ) {
+
+          return questions.filter(
+            item =>
+              !isUpsc(
+                item
               )
-          )
-        ).sort(
-          (
-            first,
-            second
-          ) =>
-            second -
-            first
-        );
+          );
+        }
+
+
+        return questions;
 
       },
       [
-        questions
+        questions,
+        sourceMode
       ]
     );
 
 
-  const subjects =
+  /*
+   * STATE COMMISSIONS
+   */
+
+  const commissions =
     useMemo(
       () => {
 
         return Array.from(
           new Set(
             questions
+              .filter(
+                item =>
+                  !isUpsc(
+                    item
+                  )
+              )
               .map(
                 item =>
-                  item.subject
-                    .trim()
+                  authorityOf(
+                    item
+                  )
               )
               .filter(
                 Boolean
@@ -429,13 +760,248 @@ export function MainsPyqArchive({
     );
 
 
+  /*
+   * STATES
+   */
+
+  const states =
+    useMemo(
+      () => {
+
+        return Array.from(
+          new Set(
+            sourceQuestions
+              .filter(
+                item => {
+
+                  if (
+                    commissionFilter !==
+                      'all' &&
+                    authorityOf(
+                      item
+                    ) !==
+                      commissionFilter
+                  ) {
+
+                    return false;
+                  }
+
+
+                  return Boolean(
+                    item.state_name
+                  );
+                }
+              )
+              .map(
+                item =>
+                  clean(
+                    item.state_name
+                  )
+              )
+              .filter(
+                Boolean
+              )
+          )
+        ).sort();
+
+      },
+      [
+        sourceQuestions,
+        commissionFilter
+      ]
+    );
+
+
+  /*
+   * EXAMINATIONS
+   */
+
+  const examinations =
+    useMemo(
+      () => {
+
+        return Array.from(
+          new Set(
+            sourceQuestions
+              .filter(
+                item => {
+
+                  if (
+                    commissionFilter !==
+                      'all' &&
+                    authorityOf(
+                      item
+                    ) !==
+                      commissionFilter
+                  ) {
+
+                    return false;
+                  }
+
+
+                  if (
+                    stateFilter !==
+                      'all' &&
+                    clean(
+                      item.state_name
+                    ) !==
+                      stateFilter
+                  ) {
+
+                    return false;
+                  }
+
+
+                  return true;
+                }
+              )
+              .map(
+                item =>
+                  examNameOf(
+                    item
+                  )
+              )
+          )
+        ).sort();
+
+      },
+      [
+        sourceQuestions,
+        commissionFilter,
+        stateFilter
+      ]
+    );
+
+
+  /*
+   * YEARS
+   */
+
+  const years =
+    useMemo(
+      () => {
+
+        return Array.from(
+          new Set(
+            sourceQuestions
+              .map(
+                item =>
+                  item.pyq_year
+              )
+              .filter(
+                (
+                  value
+                ):
+                  value is number =>
+                  typeof value ===
+                    'number'
+              )
+          )
+        ).sort(
+          (
+            first,
+            second
+          ) =>
+            second -
+            first
+        );
+
+      },
+      [
+        sourceQuestions
+      ]
+    );
+
+
+  /*
+   * PAPER NAMES
+   */
+
+  const paperNames =
+    useMemo(
+      () => {
+
+        return Array.from(
+          new Set(
+            sourceQuestions
+              .filter(
+                item => {
+
+                  if (
+                    commissionFilter !==
+                      'all' &&
+                    authorityOf(
+                      item
+                    ) !==
+                      commissionFilter
+                  ) {
+
+                    return false;
+                  }
+
+
+                  if (
+                    stateFilter !==
+                      'all' &&
+                    clean(
+                      item.state_name
+                    ) !==
+                      stateFilter
+                  ) {
+
+                    return false;
+                  }
+
+
+                  if (
+                    examFilter !==
+                      'all' &&
+                    examNameOf(
+                      item
+                    ) !==
+                      examFilter
+                  ) {
+
+                    return false;
+                  }
+
+
+                  return true;
+                }
+              )
+              .map(
+                item =>
+                  paperNameOf(
+                    item
+                  )
+              )
+              .filter(
+                Boolean
+              )
+          )
+        ).sort();
+
+      },
+      [
+        sourceQuestions,
+        commissionFilter,
+        stateFilter,
+        examFilter
+      ]
+    );
+
+
+  /*
+   * OPTIONAL SUBJECTS
+   */
+
   const optionalSubjects =
     useMemo(
       () => {
 
         return Array.from(
           new Set(
-            questions
+            sourceQuestions
               .filter(
                 item =>
                   item.section_type ===
@@ -459,18 +1025,52 @@ export function MainsPyqArchive({
 
       },
       [
-        questions
+        sourceQuestions
       ]
     );
 
 
-  const availableSubtopics =
+  /*
+   * SUBJECTS
+   */
+
+  const subjects =
     useMemo(
       () => {
 
         return Array.from(
           new Set(
-            questions
+            sourceQuestions
+              .map(
+                item =>
+                  clean(
+                    item.subject
+                  )
+              )
+              .filter(
+                Boolean
+              )
+          )
+        ).sort();
+
+      },
+      [
+        sourceQuestions
+      ]
+    );
+
+
+  /*
+   * SUBTOPICS
+   */
+
+  const subtopics =
+    useMemo(
+      () => {
+
+        return Array.from(
+          new Set(
+            sourceQuestions
               .filter(
                 item => {
 
@@ -508,11 +1108,15 @@ export function MainsPyqArchive({
 
       },
       [
-        questions,
+        sourceQuestions,
         subjectFilter
       ]
     );
 
+
+  /*
+   * FILTER QUESTIONS
+   */
 
   const filteredQuestions =
     useMemo(
@@ -524,8 +1128,55 @@ export function MainsPyqArchive({
             .toLowerCase();
 
 
-        return questions.filter(
+        return sourceQuestions.filter(
           item => {
+
+            /*
+             * STATE / COMMISSION
+             */
+
+            if (
+              commissionFilter !==
+                'all' &&
+              authorityOf(
+                item
+              ) !==
+                commissionFilter
+            ) {
+
+              return false;
+            }
+
+
+            if (
+              stateFilter !==
+                'all' &&
+              clean(
+                item.state_name
+              ) !==
+                stateFilter
+            ) {
+
+              return false;
+            }
+
+
+            if (
+              examFilter !==
+                'all' &&
+              examNameOf(
+                item
+              ) !==
+                examFilter
+            ) {
+
+              return false;
+            }
+
+
+            /*
+             * YEAR
+             */
 
             if (
               yearFilter !==
@@ -540,73 +1191,98 @@ export function MainsPyqArchive({
             }
 
 
+            /*
+             * PAPER-WISE
+             */
+
             if (
               browseMode ===
               'paper'
             ) {
 
               if (
-                paperTab ===
-                'essay'
+                sourceMode ===
+                'upsc'
               ) {
 
                 if (
-                  item.section_type !==
+                  upscPaperTab ===
                   'essay'
                 ) {
 
-                  return false;
-                }
+                  if (
+                    item.section_type !==
+                    'essay'
+                  ) {
 
-              } else if (
-                paperTab ===
-                'optional'
-              ) {
+                    return false;
+                  }
 
-                if (
-                  item.section_type !==
+                } else if (
+                  upscPaperTab ===
                   'optional'
                 ) {
 
-                  return false;
+                  if (
+                    item.section_type !==
+                    'optional'
+                  ) {
+
+                    return false;
+                  }
+
+
+                  if (
+                    optionalSubjectFilter !==
+                      'all' &&
+                    item.optional_subject !==
+                      optionalSubjectFilter
+                  ) {
+
+                    return false;
+                  }
+
+
+                  if (
+                    optionalPaperFilter !==
+                      'all' &&
+                    item.optional_paper !==
+                      optionalPaperFilter
+                  ) {
+
+                    return false;
+                  }
+
+                } else {
+
+                  if (
+                    item.section_type !==
+                      'gs' ||
+                    item.gs_paper !==
+                      upscPaperTab
+                  ) {
+
+                    return false;
+                  }
                 }
 
+              } else if (
+                paperNameFilter !==
+                  'all' &&
+                paperNameOf(
+                  item
+                ) !==
+                  paperNameFilter
+              ) {
 
-                if (
-                  optionalSubjectFilter !==
-                    'all' &&
-                  item.optional_subject !==
-                    optionalSubjectFilter
-                ) {
-
-                  return false;
-                }
-
-
-                if (
-                  optionalPaperFilter !==
-                    'all' &&
-                  item.optional_paper !==
-                    optionalPaperFilter
-                ) {
-
-                  return false;
-                }
-
-              } else {
-
-                if (
-                  item.section_type !==
-                    'gs' ||
-                  item.gs_paper !==
-                    paperTab
-                ) {
-
-                  return false;
-                }
+                return false;
               }
             }
 
+
+            /*
+             * SUBJECT-WISE
+             */
 
             if (
               browseMode ===
@@ -620,6 +1296,10 @@ export function MainsPyqArchive({
               return false;
             }
 
+
+            /*
+             * SUBTOPIC-WISE
+             */
 
             if (
               browseMode ===
@@ -649,12 +1329,27 @@ export function MainsPyqArchive({
             }
 
 
+            /*
+             * SEARCH
+             */
+
             if (
               search
             ) {
 
               const searchable =
                 [
+                  authorityOf(
+                    item
+                  ),
+                  examNameOf(
+                    item
+                  ),
+                  item.state_name ||
+                    '',
+                  paperNameOf(
+                    item
+                  ),
                   item.question,
                   item.subject,
                   item.topic ||
@@ -696,10 +1391,15 @@ export function MainsPyqArchive({
 
       },
       [
-        questions,
-        yearFilter,
+        sourceQuestions,
+        sourceMode,
         browseMode,
-        paperTab,
+        commissionFilter,
+        stateFilter,
+        examFilter,
+        yearFilter,
+        paperNameFilter,
+        upscPaperTab,
         optionalSubjectFilter,
         optionalPaperFilter,
         subjectFilter,
@@ -709,6 +1409,10 @@ export function MainsPyqArchive({
     );
 
 
+  /*
+   * GROUP BY YEAR
+   */
+
   const questionsByYear =
     useMemo(
       () => {
@@ -716,7 +1420,7 @@ export function MainsPyqArchive({
         const grouped =
           new Map<
             number,
-            MainsPyqArchiveQuestion[]
+            ArchiveQuestion[]
           >();
 
 
@@ -728,21 +1432,21 @@ export function MainsPyqArchive({
               0;
 
 
-            const existing =
+            const current =
               grouped.get(
                 year
               ) ||
               [];
 
 
-            existing.push(
+            current.push(
               item
             );
 
 
             grouped.set(
               year,
-              existing
+              current
             );
           }
         );
@@ -768,6 +1472,22 @@ export function MainsPyqArchive({
 
   function clearFilters() {
 
+    setCommissionFilter(
+      'all'
+    );
+
+    setStateFilter(
+      'all'
+    );
+
+    setExamFilter(
+      'all'
+    );
+
+    setPaperNameFilter(
+      'all'
+    );
+
     setYearFilter(
       'all'
     );
@@ -789,45 +1509,6 @@ export function MainsPyqArchive({
     );
 
     setSearchText('');
-  }
-
-
-  function getPaperName(
-    item:
-      MainsPyqArchiveQuestion
-  ) {
-
-    if (
-      item.section_type ===
-      'essay'
-    ) {
-
-      return 'Essay';
-    }
-
-
-    if (
-      item.section_type ===
-      'optional'
-    ) {
-
-      return [
-        item.optional_subject,
-        item.optional_paper
-      ]
-        .filter(
-          Boolean
-        )
-        .join(
-          ' '
-        );
-    }
-
-
-    return (
-      item.gs_paper ||
-      'General Studies'
-    );
   }
 
 
@@ -896,42 +1577,28 @@ export function MainsPyqArchive({
     >
 
       {/* =====================================
-          BROWSE MODE
+          SOURCE
       ===================================== */}
 
       <section
         className="panel"
-        style={{
-          padding:
-            '16px'
-        }}
       >
 
         <span
           className="eyebrow"
         >
-          UPSC MAINS PYQ
+          MAINS PYQ ARCHIVE
         </span>
 
 
-        <h2
-          style={{
-            marginBottom:
-              '6px'
-          }}
-        >
-          Previous Year Question Papers
+        <h2>
+          Previous Year Mains Papers
         </h2>
 
 
-        <p
-          style={{
-            marginTop:
-              0
-          }}
-        >
-          Browse complete papers or study questions
-          subject-wise and subtopic-wise.
+        <p>
+          Browse UPSC Civil Services and State PSC
+          previous-year Mains questions from one archive.
         </p>
 
 
@@ -948,6 +1615,93 @@ export function MainsPyqArchive({
 
             marginTop:
               '14px'
+          }}
+        >
+
+          <button
+            type="button"
+            className={
+              sourceMode ===
+                'upsc'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setSourceMode(
+                'upsc'
+              )
+            }
+          >
+            UPSC
+          </button>
+
+
+          <button
+            type="button"
+            className={
+              sourceMode ===
+                'state'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setSourceMode(
+                'state'
+              )
+            }
+          >
+            State PSC
+          </button>
+
+
+          <button
+            type="button"
+            className={
+              sourceMode ===
+                'all'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setSourceMode(
+                'all'
+              )
+            }
+          >
+            All
+          </button>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================
+          BROWSE MODE
+      ===================================== */}
+
+      <section
+        className="panel"
+      >
+
+        <strong>
+          Browse by
+        </strong>
+
+
+        <div
+          style={{
+            display:
+              'grid',
+
+            gridTemplateColumns:
+              'repeat(3, minmax(0, 1fr))',
+
+            gap:
+              '8px',
+
+            marginTop:
+              '10px'
           }}
         >
 
@@ -1010,19 +1764,421 @@ export function MainsPyqArchive({
 
 
       {/* =====================================
-          PAPER TABS
+          FILTERS
       ===================================== */}
 
-      {browseMode ===
-        'paper' && (
+      <section
+        className="panel"
+      >
 
-        <section
-          className="panel"
+        <div
           style={{
-            padding:
-              '14px'
+            display:
+              'grid',
+
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(180px, 1fr))',
+
+            gap:
+              '10px'
           }}
         >
+
+          {sourceMode ===
+            'state' && (
+
+            <label>
+
+              Commission
+
+              <select
+                value={
+                  commissionFilter
+                }
+                onChange={
+                  event => {
+
+                    setCommissionFilter(
+                      event
+                        .target
+                        .value
+                    );
+
+                    setStateFilter(
+                      'all'
+                    );
+
+                    setExamFilter(
+                      'all'
+                    );
+
+                    setPaperNameFilter(
+                      'all'
+                    );
+                  }
+                }
+              >
+
+                <option value="all">
+                  All State PSCs
+                </option>
+
+
+                {commissions.map(
+                  commission => (
+
+                    <option
+                      key={
+                        commission
+                      }
+                      value={
+                        commission
+                      }
+                    >
+                      {commission}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+          )}
+
+
+          {sourceMode ===
+            'state' && (
+
+            <label>
+
+              State / UT
+
+              <select
+                value={
+                  stateFilter
+                }
+                onChange={
+                  event => {
+
+                    setStateFilter(
+                      event
+                        .target
+                        .value
+                    );
+
+                    setExamFilter(
+                      'all'
+                    );
+
+                    setPaperNameFilter(
+                      'all'
+                    );
+                  }
+                }
+              >
+
+                <option value="all">
+                  All States
+                </option>
+
+
+                {states.map(
+                  state => (
+
+                    <option
+                      key={
+                        state
+                      }
+                      value={
+                        state
+                      }
+                    >
+                      {state}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+          )}
+
+
+          {(sourceMode ===
+              'state' ||
+            sourceMode ===
+              'all') && (
+
+            <label>
+
+              Examination
+
+              <select
+                value={
+                  examFilter
+                }
+                onChange={
+                  event => {
+
+                    setExamFilter(
+                      event
+                        .target
+                        .value
+                    );
+
+                    setPaperNameFilter(
+                      'all'
+                    );
+                  }
+                }
+              >
+
+                <option value="all">
+                  All examinations
+                </option>
+
+
+                {examinations.map(
+                  examination => (
+
+                    <option
+                      key={
+                        examination
+                      }
+                      value={
+                        examination
+                      }
+                    >
+                      {examination}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+          )}
+
+
+          <label>
+
+            Year
+
+            <select
+              value={
+                yearFilter
+              }
+              onChange={
+                event =>
+                  setYearFilter(
+                    event
+                      .target
+                      .value
+                  )
+              }
+            >
+
+              <option value="all">
+                All years
+              </option>
+
+
+              {years.map(
+                year => (
+
+                  <option
+                    key={
+                      year
+                    }
+                    value={
+                      String(
+                        year
+                      )
+                    }
+                  >
+                    {year}
+                  </option>
+
+                )
+              )}
+
+            </select>
+
+          </label>
+
+
+          {browseMode ===
+              'subject' && (
+
+            <label>
+
+              Subject
+
+              <select
+                value={
+                  subjectFilter
+                }
+                onChange={
+                  event =>
+                    setSubjectFilter(
+                      event
+                        .target
+                        .value
+                    )
+                }
+              >
+
+                <option value="all">
+                  All subjects
+                </option>
+
+
+                {subjects.map(
+                  subject => (
+
+                    <option
+                      key={
+                        subject
+                      }
+                      value={
+                        subject
+                      }
+                    >
+                      {subject}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+          )}
+
+
+          {browseMode ===
+              'subtopic' && (
+
+            <label>
+
+              Subject
+
+              <select
+                value={
+                  subjectFilter
+                }
+                onChange={
+                  event => {
+
+                    setSubjectFilter(
+                      event
+                        .target
+                        .value
+                    );
+
+                    setSubtopicFilter(
+                      'all'
+                    );
+                  }
+                }
+              >
+
+                <option value="all">
+                  All subjects
+                </option>
+
+
+                {subjects.map(
+                  subject => (
+
+                    <option
+                      key={
+                        subject
+                      }
+                      value={
+                        subject
+                      }
+                    >
+                      {subject}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+          )}
+
+
+          {browseMode ===
+              'subtopic' && (
+
+            <label>
+
+              Subtopic
+
+              <select
+                value={
+                  subtopicFilter
+                }
+                onChange={
+                  event =>
+                    setSubtopicFilter(
+                      event
+                        .target
+                        .value
+                    )
+                }
+              >
+
+                <option value="all">
+                  All subtopics
+                </option>
+
+
+                {subtopics.map(
+                  subtopic => (
+
+                    <option
+                      key={
+                        subtopic
+                      }
+                      value={
+                        subtopic
+                      }
+                    >
+                      {subtopic}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+          )}
+
+        </div>
+
+
+        {/* =====================================
+            UPSC PAPER TABS
+        ===================================== */}
+
+        {browseMode ===
+            'paper' &&
+          sourceMode ===
+            'upsc' && (
 
           <div
             style={{
@@ -1030,10 +2186,13 @@ export function MainsPyqArchive({
                 'grid',
 
               gridTemplateColumns:
-                'repeat(3, minmax(0, 1fr))',
+                'repeat(auto-fit, minmax(95px, 1fr))',
 
               gap:
-                '8px'
+                '8px',
+
+              marginTop:
+                '14px'
             }}
           >
 
@@ -1063,13 +2222,12 @@ export function MainsPyqArchive({
                   'optional',
                   'Optional'
                 ]
-              ] as
-                Array<
-                  [
-                    PaperTab,
-                    string
-                  ]
-                >
+              ] as Array<
+                [
+                  UpscPaperTab,
+                  string
+                ]
+              >
             ).map(
               (
                 [
@@ -1084,26 +2242,16 @@ export function MainsPyqArchive({
                   }
                   type="button"
                   className={
-                    paperTab ===
+                    upscPaperTab ===
                       value
                       ? 'filter active'
                       : 'filter'
                   }
-                  onClick={() => {
-
-                    setPaperTab(
+                  onClick={() =>
+                    setUpscPaperTab(
                       value
-                    );
-
-                    setOptionalSubjectFilter(
-                      'all'
-                    );
-
-                    setOptionalPaperFilter(
-                      'all'
-                    );
-
-                  }}
+                    )
+                  }
                 >
                   {label}
                 </button>
@@ -1113,89 +2261,35 @@ export function MainsPyqArchive({
 
           </div>
 
-        </section>
-
-      )}
+        )}
 
 
-      {/* =====================================
-          FILTERS
-      ===================================== */}
+        {/* =====================================
+            UPSC OPTIONAL FILTERS
+        ===================================== */}
 
-      <section
-        className="panel"
-        style={{
-          padding:
-            '14px'
-        }}
-      >
-
-        <div
-          style={{
-            display:
-              'grid',
-
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(170px, 1fr))',
-
-            gap:
-              '10px'
-          }}
-        >
-
-          <label>
-
-            Year
-
-            <select
-              value={
-                yearFilter
-              }
-              onChange={
-                event =>
-                  setYearFilter(
-                    event
-                      .target
-                      .value
-                  )
-              }
-            >
-
-              <option
-                value="all"
-              >
-                All Years
-              </option>
-
-
-              {years.map(
-                year => (
-
-                  <option
-                    key={
-                      year
-                    }
-                    value={
-                      String(
-                        year
-                      )
-                    }
-                  >
-                    {year}
-                  </option>
-
-                )
-              )}
-
-            </select>
-
-          </label>
-
-
-          {browseMode ===
+        {browseMode ===
             'paper' &&
-            paperTab ===
-              'optional' && (
+          sourceMode ===
+            'upsc' &&
+          upscPaperTab ===
+            'optional' && (
+
+          <div
+            style={{
+              display:
+                'grid',
+
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(180px, 1fr))',
+
+              gap:
+                '10px',
+
+              marginTop:
+                '12px'
+            }}
+          >
 
             <label>
 
@@ -1215,25 +2309,23 @@ export function MainsPyqArchive({
                 }
               >
 
-                <option
-                  value="all"
-                >
-                  All Optional Subjects
+                <option value="all">
+                  All optionals
                 </option>
 
 
                 {optionalSubjects.map(
-                  item => (
+                  subject => (
 
                     <option
                       key={
-                        item
+                        subject
                       }
                       value={
-                        item
+                        subject
                       }
                     >
-                      {item}
+                      {subject}
                     </option>
 
                   )
@@ -1243,13 +2335,6 @@ export function MainsPyqArchive({
 
             </label>
 
-          )}
-
-
-          {browseMode ===
-            'paper' &&
-            paperTab ===
-              'optional' && (
 
             <label>
 
@@ -1269,23 +2354,15 @@ export function MainsPyqArchive({
                 }
               >
 
-                <option
-                  value="all"
-                >
-                  Paper-I & Paper-II
+                <option value="all">
+                  Both papers
                 </option>
 
-
-                <option
-                  value="Paper-I"
-                >
+                <option value="Paper-I">
                   Paper-I
                 </option>
 
-
-                <option
-                  value="Paper-II"
-                >
+                <option value="Paper-II">
                   Paper-II
                 </option>
 
@@ -1293,83 +2370,38 @@ export function MainsPyqArchive({
 
             </label>
 
-          )}
+          </div>
+
+        )}
 
 
-          {(browseMode ===
-            'subject' ||
-            browseMode ===
-              'subtopic') && (
+        {/* =====================================
+            STATE / ALL PAPER FILTER
+        ===================================== */}
 
-            <label>
+        {browseMode ===
+            'paper' &&
+          sourceMode !==
+            'upsc' && (
 
-              Subject
-
-              <select
-                value={
-                  subjectFilter
-                }
-                onChange={
-                  event => {
-
-                    setSubjectFilter(
-                      event
-                        .target
-                        .value
-                    );
-
-                    setSubtopicFilter(
-                      'all'
-                    );
-
-                  }}
-              >
-
-                <option
-                  value="all"
-                >
-                  All Subjects
-                </option>
-
-
-                {subjects.map(
-                  item => (
-
-                    <option
-                      key={
-                        item
-                      }
-                      value={
-                        item
-                      }
-                    >
-                      {item}
-                    </option>
-
-                  )
-                )}
-
-              </select>
-
-            </label>
-
-          )}
-
-
-          {browseMode ===
-            'subtopic' && (
+          <div
+            style={{
+              marginTop:
+                '12px'
+            }}
+          >
 
             <label>
 
-              Subtopic
+              Paper
 
               <select
                 value={
-                  subtopicFilter
+                  paperNameFilter
                 }
                 onChange={
                   event =>
-                    setSubtopicFilter(
+                    setPaperNameFilter(
                       event
                         .target
                         .value
@@ -1377,25 +2409,23 @@ export function MainsPyqArchive({
                 }
               >
 
-                <option
-                  value="all"
-                >
-                  All Subtopics
+                <option value="all">
+                  All papers
                 </option>
 
 
-                {availableSubtopics.map(
-                  item => (
+                {paperNames.map(
+                  paper => (
 
                     <option
                       key={
-                        item
+                        paper
                       }
                       value={
-                        item
+                        paper
                       }
                     >
-                      {item}
+                      {paper}
                     </option>
 
                   )
@@ -1405,25 +2435,28 @@ export function MainsPyqArchive({
 
             </label>
 
-          )}
+          </div>
 
-        </div>
+        )}
 
 
-        <label
+        <div
           style={{
             display:
-              'block',
+              'grid',
+
+            gridTemplateColumns:
+              '1fr auto',
+
+            gap:
+              '8px',
 
             marginTop:
-              '12px'
+              '14px'
           }}
         >
 
-          Search Question / Topic
-
           <input
-            type="search"
             value={
               searchText
             }
@@ -1435,543 +2468,499 @@ export function MainsPyqArchive({
                     .value
                 )
             }
-            placeholder="Example: Harappan Culture, federalism, inflation..."
-            style={{
-              width:
-                '100%'
-            }}
+            placeholder="Search question, topic, paper, commission..."
           />
-
-        </label>
-
-
-        <button
-          type="button"
-          className="secondary-btn"
-          style={{
-            marginTop:
-              '10px'
-          }}
-          onClick={
-            clearFilters
-          }
-        >
-          Clear filters
-        </button>
-
-      </section>
-
-
-      {/* =====================================
-          RESULT COUNT
-      ===================================== */}
-
-      <section>
-
-        <div
-          style={{
-            display:
-              'flex',
-
-            justifyContent:
-              'space-between',
-
-            gap:
-              '10px',
-
-            alignItems:
-              'center',
-
-            flexWrap:
-              'wrap',
-
-            marginBottom:
-              '10px'
-          }}
-        >
-
-          <strong>
-
-            {
-              filteredQuestions
-                .length
-            }{' '}
-
-            {
-              filteredQuestions
-                .length ===
-              1
-                ? 'question'
-                : 'questions'
-            } found
-
-          </strong>
 
 
           <button
             type="button"
             className="secondary-btn"
-            onClick={() =>
-              void loadPyqs()
+            onClick={
+              clearFilters
             }
           >
-            Refresh
+            Clear
           </button>
 
         </div>
 
+      </section>
 
-        {questionsByYear.length ===
-          0 && (
+
+      {/* =====================================
+          RESULT SUMMARY
+      ===================================== */}
+
+      <section
+        className="panel"
+        style={{
+          padding:
+            '12px 16px'
+        }}
+      >
+
+        <strong>
+          {filteredQuestions.length}
+          {' '}
+          question
+          {filteredQuestions.length ===
+            1
+            ? ''
+            : 's'}
+        </strong>
+
+        {' '}
+
+        <span
+          style={{
+            color:
+              '#94a3b8'
+          }}
+        >
+          found in the archive
+        </span>
+
+      </section>
+
+
+      {/* =====================================
+          QUESTIONS
+      ===================================== */}
+
+      {questionsByYear.map(
+        (
+          [
+            year,
+            yearQuestions
+          ]
+        ) => (
 
           <section
+            key={
+              year
+            }
             className="panel"
           >
 
-            <h3>
-              No published PYQs found
-            </h3>
+            <div
+              style={{
+                display:
+                  'flex',
 
+                justifyContent:
+                  'space-between',
 
-            <p>
-              Change the filters or publish
-              questions from Admin Studio →
-              Mains PYQ.
-            </p>
+                alignItems:
+                  'center',
 
-          </section>
+                gap:
+                  '12px',
 
-        )}
+                marginBottom:
+                  '12px'
+              }}
+            >
 
-
-        {/* =====================================
-            QUESTIONS GROUPED BY YEAR
-        ===================================== */}
-
-        <div
-          style={{
-            display:
-              'grid',
-
-            gap:
-              '14px'
-          }}
-        >
-
-          {questionsByYear.map(
-            (
-              [
-                year,
-                yearQuestions
-              ]
-            ) => (
-
-              <section
-                key={
-                  year
-                }
-                className="panel"
+              <h3
                 style={{
-                  padding:
-                    '14px'
+                  margin:
+                    0
                 }}
               >
-
-                <div
-                  style={{
-                    display:
-                      'flex',
-
-                    justifyContent:
-                      'space-between',
-
-                    alignItems:
-                      'center',
-
-                    gap:
-                      '10px',
-
-                    flexWrap:
-                      'wrap',
-
-                    marginBottom:
-                      '12px'
-                  }}
-                >
-
-                  <div>
-
-                    <span
-                      className="eyebrow"
-                    >
-                      UPSC MAINS
-                    </span>
+                {year ||
+                  'Year not specified'}
+              </h3>
 
 
-                    <h3
+              <span
+                style={{
+                  color:
+                    '#94a3b8'
+                }}
+              >
+                {yearQuestions.length}
+                {' '}
+                question
+                {yearQuestions.length ===
+                  1
+                  ? ''
+                  : 's'}
+              </span>
+
+            </div>
+
+
+            <div
+              style={{
+                display:
+                  'grid',
+
+                gap:
+                  '12px'
+              }}
+            >
+
+              {yearQuestions.map(
+                item => {
+
+                  const authority =
+                    authorityOf(
+                      item
+                    );
+
+
+                  const exam =
+                    examNameOf(
+                      item
+                    );
+
+
+                  const paper =
+                    paperNameOf(
+                      item
+                    );
+
+
+                  const canWrite =
+                    Boolean(
+                      onStartAnswerWriting
+                    ) &&
+                    isAnswerable(
+                      item
+                    );
+
+
+                  return (
+
+                    <article
+                      key={
+                        item.id
+                      }
                       style={{
-                        margin:
-                          '3px 0 0'
+                        padding:
+                          '14px',
+
+                        borderRadius:
+                          '12px',
+
+                        border:
+                          '1px solid rgba(255,255,255,.08)',
+
+                        background:
+                          'rgba(255,255,255,.02)'
                       }}
                     >
-                      {year}
-                    </h3>
 
-                  </div>
-
-
-                  <strong>
-
-                    {
-                      yearQuestions
-                        .length
-                    }{' '}
-
-                    {
-                      yearQuestions
-                        .length ===
-                      1
-                        ? 'question'
-                        : 'questions'
-                    }
-
-                  </strong>
-
-                </div>
-
-
-                <div
-                  style={{
-                    display:
-                      'grid',
-
-                    gap:
-                      '9px'
-                  }}
-                >
-
-                  {yearQuestions.map(
-                    item => (
-
-                      <article
-                        key={
-                          item.id
-                        }
+                      <div
                         style={{
-                          padding:
-                            '12px',
+                          display:
+                            'flex',
 
-                          border:
-                            '1px solid rgba(255,255,255,.08)',
+                          justifyContent:
+                            'space-between',
 
-                          borderRadius:
-                            '12px',
+                          gap:
+                            '10px',
 
-                          background:
-                            'rgba(255,255,255,.025)'
+                          flexWrap:
+                            'wrap'
                         }}
                       >
 
-                        <div
-                          style={{
-                            display:
-                              'flex',
-
-                            justifyContent:
-                              'space-between',
-
-                            alignItems:
-                              'flex-start',
-
-                            gap:
-                              '10px',
-
-                            flexWrap:
-                              'wrap'
-                          }}
-                        >
-
-                          <strong>
-
-                            {
-                              item.question_number
-
-                                ? `Q. ${item.question_number}`
-
-                                : 'Question'
-                            }
-
-                          </strong>
+                        <strong>
+                          {authority}
+                          {' • '}
+                          {paper}
+                        </strong>
 
 
-                          <span
-                            style={{
-                              color:
-                                '#5eead4',
-
-                              fontWeight:
-                                700
-                            }}
-                          >
-                            {
-                              getPaperName(
-                                item
-                              )
-                            }
-                          </span>
-
-                        </div>
-
-
-                        <p
-                          style={{
-                            margin:
-                              '9px 0',
-
-                            lineHeight:
-                              1.55
-                          }}
-                        >
-                          {item.question}
-                        </p>
-
-
-                        <div
-                          style={{
-                            display:
-                              'flex',
-
-                            gap:
-                              '6px',
-
-                            flexWrap:
-                              'wrap',
-
-                            color:
-                              '#94a3b8',
-
-                            fontSize:
-                              '.78rem'
-                          }}
-                        >
+                        {item.question_number && (
 
                           <span>
-                            Subject:{' '}
-
-                            <strong>
-                              {item.subject}
-                            </strong>
+                            Q.
+                            {item.question_number}
                           </span>
 
+                        )}
 
-                          {item.topic && (
-
-                            <span>
-
-                              • Topic:{' '}
-
-                              <strong>
-                                {item.topic}
-                              </strong>
-
-                            </span>
-
-                          )}
+                      </div>
 
 
-                          {item.subtopic && (
+                      <div
+                        style={{
+                          marginTop:
+                            '4px',
 
-                            <span>
+                          color:
+                            '#94a3b8',
 
-                              • Subtopic:{' '}
+                          fontSize:
+                            '.82rem'
+                        }}
+                      >
 
-                              <strong>
-                                {item.subtopic}
-                              </strong>
+                        {exam}
 
-                            </span>
+                        {item.state_name
+                          ? ` • ${item.state_name}`
+                          : ''}
 
-                          )}
-
-
-                          {item.marks !==
-                            null && (
-
-                            <span>
-                              • {item.marks} Marks
-                            </span>
-
-                          )}
+                      </div>
 
 
-                          {item.word_limit !==
-                            null && (
+                      <p
+                        style={{
+                          margin:
+                            '12px 0',
 
-                            <span>
-                              • {item.word_limit} Words
-                            </span>
-
-                          )}
-
-
-                          {item.essay_section && (
-
-                            <span>
-                              • {item.essay_section}
-                            </span>
-
-                          )}
-
-                        </div>
+                          lineHeight:
+                            1.6
+                        }}
+                      >
+                        {item.question}
+                      </p>
 
 
-                        {item.relevant_gs_papers
-                          .length >
-                          0 && (
+                      <div
+                        style={{
+                          display:
+                            'flex',
 
-                          <div
-                            style={{
-                              marginTop:
-                                '9px',
+                          gap:
+                            '8px',
 
-                              padding:
-                                '7px 9px',
+                          flexWrap:
+                            'wrap',
 
-                              borderRadius:
-                                '9px',
+                          color:
+                            '#94a3b8',
 
-                              background:
-                                'rgba(45,212,191,.06)',
+                          fontSize:
+                            '.82rem'
+                        }}
+                      >
 
-                              color:
-                                '#5eead4',
+                        <span>
+                          Subject:
+                          {' '}
+                          {item.subject}
+                        </span>
 
-                              fontSize:
-                                '.78rem'
-                            }}
-                          >
 
-                            Useful for:{' '}
+                        {item.topic && (
 
-                            {
-                              item
-                                .relevant_gs_papers
-                                .join(
-                                  ', '
-                                )
-                            }
-
-                          </div>
+                          <span>
+                            • Topic:
+                            {' '}
+                            {item.topic}
+                          </span>
 
                         )}
 
 
-                        {/* =====================================
-                            QUESTION ACTIONS
-                        ===================================== */}
+                        {item.subtopic && (
+
+                          <span>
+                            • Subtopic:
+                            {' '}
+                            {item.subtopic}
+                          </span>
+
+                        )}
+
+
+                        {item.marks !==
+                          null && (
+
+                          <span>
+                            •
+                            {' '}
+                            {item.marks}
+                            {' '}
+                            marks
+                          </span>
+
+                        )}
+
+
+                        {item.word_limit !==
+                          null && (
+
+                          <span>
+                            •
+                            {' '}
+                            {item.word_limit}
+                            {' '}
+                            words
+                          </span>
+
+                        )}
+
+                      </div>
+
+
+                      {item.relevant_gs_papers
+                        .length >
+                        0 && (
 
                         <div
                           style={{
-                            display:
-                              'flex',
-
-                            gap:
+                            marginTop:
                               '8px',
 
-                            flexWrap:
-                              'wrap',
-
-                            marginTop:
-                              '12px'
+                            fontSize:
+                              '.82rem'
                           }}
                         >
 
-                          {item.section_type !==
-                            'essay' &&
-                            onStartAnswerWriting && (
+                          <strong>
+                            Relevant to UPSC:
+                          </strong>
 
-                            <button
-                              type="button"
-                              className="primary-btn"
-                              onClick={() =>
-                                onStartAnswerWriting(
-                                  item
-                                )
-                              }
-                            >
-                              Start Answer Writing
-                            </button>
+                          {' '}
 
-                          )}
-
-
-                          {item.source_url && (
-
-                            <a
-                              href={
-                                item.source_url
-                              }
-                              target="_blank"
-                              rel="noreferrer"
-                              className="secondary-btn"
-                              style={{
-                                textDecoration:
-                                  'none',
-
-                                display:
-                                  'inline-flex',
-
-                                alignItems:
-                                  'center'
-                              }}
-                            >
-                              Official Source
-                            </a>
-
-                          )}
+                          {item
+                            .relevant_gs_papers
+                            .join(
+                              ', '
+                            )}
 
                         </div>
 
+                      )}
 
-                        {item.section_type ===
-                          'essay' && (
 
-                          <p
+                      <div
+                        style={{
+                          display:
+                            'flex',
+
+                          gap:
+                            '8px',
+
+                          flexWrap:
+                            'wrap',
+
+                          marginTop:
+                            '14px'
+                        }}
+                      >
+
+                        {canWrite && (
+
+                          <button
+                            type="button"
+                            className="primary-btn"
+                            onClick={() => {
+
+                              if (
+                                isAnswerable(
+                                  item
+                                )
+                              ) {
+
+                                onStartAnswerWriting?.(
+                                  item
+                                );
+                              }
+
+                            }}
+                          >
+                            Start Answer Writing
+                          </button>
+
+                        )}
+
+
+                        {item.source_url && (
+
+                          <a
+                            href={
+                              item.source_url
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                            className="secondary-btn"
                             style={{
-                              marginTop:
-                                '10px',
+                              display:
+                                'inline-flex',
 
-                              marginBottom:
-                                0,
+                              alignItems:
+                                'center',
+
+                              textDecoration:
+                                'none'
+                            }}
+                          >
+                            Official Source
+                          </a>
+
+                        )}
+
+
+                        {!canWrite &&
+                          (
+                            item.section_type ===
+                              'essay' ||
+                            item.section_type ===
+                              'language' ||
+                            item.section_type ===
+                              'other'
+                          ) && (
+
+                          <span
+                            style={{
+                              alignSelf:
+                                'center',
 
                               color:
                                 '#94a3b8',
 
                               fontSize:
-                                '.78rem'
+                                '.8rem'
                             }}
                           >
-                            Essay topic available in
-                            the PYQ archive.
-                          </p>
+                            Browse-only paper
+                          </span>
 
                         )}
 
-                      </article>
+                      </div>
 
-                    )
-                  )}
+                    </article>
 
-                </div>
+                  );
+                }
+              )}
 
-              </section>
+            </div>
 
-            )
-          )}
+          </section>
 
-        </div>
+        )
+      )}
 
-      </section>
+
+      {filteredQuestions.length ===
+        0 && (
+
+        <section
+          className="panel"
+        >
+
+          <h3>
+            No previous-year questions found
+          </h3>
+
+
+          <p>
+            Try changing the commission, examination,
+            paper, year or search filters.
+          </p>
+
+        </section>
+
+      )}
 
     </section>
 
