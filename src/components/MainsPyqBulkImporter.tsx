@@ -607,27 +607,32 @@ function numberOrNull(
 function relevantGs(
   value:
     string
-) {
+): string[] {
 
-  const parts =
-    clean(
-      value
-    )
-      .split(
-        /[|;,]+/
+  const parts:
+    string[] =
+      clean(
+        value
       )
-      .map(
-        normalizeGsPaper
-      )
-      .filter(
-        (
-          item
-        ):
-          item is string =>
-          Boolean(
-            item
-          )
-      );
+        .split(
+          /[|;,]+/
+        )
+        .flatMap(
+          item => {
+
+            const normalized =
+              normalizeGsPaper(
+                item
+              );
+
+
+            return normalized
+              ? [
+                  normalized
+                ]
+              : [];
+          }
+        );
 
 
   return Array.from(
