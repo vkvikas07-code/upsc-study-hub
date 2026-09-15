@@ -2,6 +2,10 @@ import {
   useState
 } from 'react';
 
+import type {
+  FormEvent
+} from 'react';
+
 import {
   TopBar
 } from '../components/TopBar';
@@ -19,7 +23,6 @@ type AccountMode =
 
 
 type AccountPageProps = {
-
   intent?:
     | 'study'
     | 'admin';
@@ -30,11 +33,8 @@ type AccountPageProps = {
 
 
 /*
- * Password reset emails from both the website
- * and Android APK will open the secure web reset page.
- *
- * Later, if you move to a custom domain,
- * we only need to change this URL.
+ * Password reset emails from both
+ * website and Android APK open this page.
  */
 const PASSWORD_RESET_REDIRECT_URL =
   'https://vkvikas07-code.github.io/upsc-study-hub/?password-recovery=1';
@@ -107,7 +107,7 @@ export function AccountPage({
 
   /*
    * =====================================
-   * SWITCH ACCOUNT MODE
+   * CHANGE MODE
    * =====================================
    */
 
@@ -136,11 +136,10 @@ export function AccountPage({
 
   async function submit(
     event:
-      React.FormEvent<HTMLFormElement>
+      FormEvent<HTMLFormElement>
   ) {
 
     event.preventDefault();
-
 
     setMessage('');
     setErrorMessage('');
@@ -213,11 +212,6 @@ export function AccountPage({
         }
 
 
-        /*
-         * Deliberately use a generic response.
-         * This avoids revealing whether an email
-         * address is registered.
-         */
         setMessage(
           'If an account exists for this email, a password reset link has been sent. Open the email and follow the link to create a new password.'
         );
@@ -247,7 +241,7 @@ export function AccountPage({
 
     /*
      * =====================================
-     * SIGN-UP VALIDATION
+     * SIGN UP VALIDATION
      * =====================================
      */
 
@@ -331,7 +325,7 @@ export function AccountPage({
         } else {
 
           setMessage(
-            'Account created. Check your email if your Supabase project requires email confirmation.'
+            'Account created. Check your email if email confirmation is required.'
           );
         }
 
@@ -528,7 +522,7 @@ export function AccountPage({
 
 
         {/* =====================================
-            SIGN IN / CREATE ACCOUNT TABS
+            SIGN IN / CREATE ACCOUNT
         ===================================== */}
 
         {mode !==
@@ -539,8 +533,10 @@ export function AccountPage({
             className="filter-row"
 
             style={{
+
               marginTop:
                 '18px'
+
             }}
 
           >
@@ -903,6 +899,25 @@ export function AccountPage({
 
               className="secondary-btn"
 
+              style={{
+
+                width:
+                  '100%',
+
+                display:
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                justifyContent:
+                  'center',
+
+                textAlign:
+                  'center'
+
+              }}
+
               onClick={() =>
                 switchMode(
                   'forgot'
@@ -976,60 +991,32 @@ export function AccountPage({
           )}
 
 
-          {/* MAIN BUTTON */}
+          {/* MAIN SUBMIT BUTTON */}
 
           <button
-  type="submit"
-  className="primary-btn"
 
-  style={{
+            type="submit"
 
-    width:
-      '100%',
+            className="primary-btn"
 
-    display:
-      'flex',
+            style={{
 
-    alignItems:
-      'center',
+              width:
+                '100%',
 
-    justifyContent:
-      'center',
+              display:
+                'flex',
 
-    textAlign:
-      'center'
+              alignItems:
+                'center',
 
-  }}
+              justifyContent:
+                'center',
 
-  disabled={
+              textAlign:
+                'center'
 
-    busy ||
-    !isSupabaseConfigured
-
-  }
->
-
-  {
-
-    busy
-
-      ? 'Please wait…'
-
-      : mode ===
-        'signin'
-
-      ? 'Sign In'
-
-      : mode ===
-        'signup'
-
-      ? 'Create Account'
-
-      : 'Send Reset Link'
-
-  }
-
-</button>
+            }}
 
             disabled={
 
@@ -1063,7 +1050,7 @@ export function AccountPage({
           </button>
 
 
-          {/* BACK FROM FORGOT PASSWORD */}
+          {/* BACK TO SIGN IN */}
 
           {mode ===
             'forgot' && (
@@ -1073,6 +1060,25 @@ export function AccountPage({
               type="button"
 
               className="secondary-btn"
+
+              style={{
+
+                width:
+                  '100%',
+
+                display:
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                justifyContent:
+                  'center',
+
+                textAlign:
+                  'center'
+
+              }}
 
               onClick={() =>
                 switchMode(
@@ -1087,11 +1093,32 @@ export function AccountPage({
           )}
 
 
+          {/* BACK HOME */}
+
           <button
 
             type="button"
 
             className="secondary-btn"
+
+            style={{
+
+              width:
+                '100%',
+
+              display:
+                'flex',
+
+              alignItems:
+                'center',
+
+              justifyContent:
+                'center',
+
+              textAlign:
+                'center'
+
+            }}
 
             onClick={
               onBack
@@ -1106,5 +1133,6 @@ export function AccountPage({
       </section>
 
     </div>
+
   );
 }
