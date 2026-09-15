@@ -24,6 +24,10 @@ import {
 } from '../components/MainsQuestionManager';
 
 import {
+  MainsPyqManager
+} from '../components/MainsPyqManager';
+
+import {
   MainsEvaluationManager
 } from '../components/MainsEvaluationManager';
 
@@ -60,6 +64,7 @@ type AdminTab =
   | 'mcq'
   | 'tests'
   | 'mains'
+  | 'pyq'
   | 'evaluation'
   | 'resources';
 
@@ -2068,6 +2073,25 @@ export function AdminPage({
           >
             Mains Questions
           </button>
+          
+          <button
+  type="button"
+
+  className={
+    adminTab ===
+      'pyq'
+      ? 'filter active'
+      : 'filter'
+  }
+
+  onClick={() =>
+    switchAdminTab(
+      'pyq'
+    )
+  }
+>
+  Mains PYQ
+</button>
 
 
           {/* MAINS EVALUATION */}
@@ -3119,6 +3143,23 @@ export function AdminPage({
 
       </div>
 
+      {/* =====================================
+    MAINS PYQ ARCHIVE TAB
+===================================== */}
+
+<div
+  style={{
+    display:
+      adminTab ===
+        'pyq'
+        ? 'block'
+        : 'none'
+  }}
+>
+
+  <MainsPyqManager />
+
+</div>
 
       {/* =====================================
           MAINS EVALUATION TAB
