@@ -22,9 +22,21 @@ type PaperTab =
   | 'optional';
 
 
+type SectionType =
+  | 'essay'
+  | 'gs'
+  | 'optional';
+
+
 type QuestionStatus =
   | 'draft'
   | 'published';
+
+
+type FullQuestionStatus =
+  | 'draft'
+  | 'published'
+  | 'archived';
 
 
 type PaperStatus =
@@ -35,10 +47,7 @@ type PaperStatus =
 type PyqRow = {
   id: string;
   question: string;
-  section_type:
-    | 'essay'
-    | 'gs'
-    | 'optional';
+  section_type: SectionType;
   gs_paper: string | null;
   optional_subject: string | null;
   optional_paper: string | null;
@@ -51,10 +60,7 @@ type PyqRow = {
   pyq_year: number | null;
   essay_section: string | null;
   relevant_gs_papers: string[];
-  status:
-    | 'draft'
-    | 'published'
-    | 'archived';
+  status: FullQuestionStatus;
   created_at: string;
 };
 
@@ -141,12 +147,9 @@ const PYQ_SELECT = `
 
 
 function paperLabel(
-  paperTab:
-    PaperTab,
-  optionalSubject:
-    string,
-  optionalPaper:
-    string
+  paperTab: PaperTab,
+  optionalSubject: string,
+  optionalPaper: string
 ) {
 
   if (
@@ -168,6 +171,32 @@ function paperLabel(
 
 
   return paperTab;
+}
+
+
+function sectionFromPaper(
+  paperTab: PaperTab
+): SectionType {
+
+  if (
+    paperTab ===
+    'essay'
+  ) {
+
+    return 'essay';
+  }
+
+
+  if (
+    paperTab ===
+    'optional'
+  ) {
+
+    return 'optional';
+  }
+
+
+  return 'gs';
 }
 
 
@@ -287,9 +316,9 @@ export function MainsPyqManager() {
     relevantGsPapers,
     setRelevantGsPapers
   ] =
-    useState<
-      string[]
-    >([]);
+    useState<string[]>(
+      []
+    );
 
 
   const [
@@ -329,6 +358,18 @@ export function MainsPyqManager() {
 
 
   const [
+    changingStatusId,
+    setChangingStatusId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
+
+
+  const [
     message,
     setMessage
   ] =
@@ -339,9 +380,9 @@ export function MainsPyqManager() {
     questions,
     setQuestions
   ] =
-    useState<
-      PyqRow[]
-    >([]);
+    useState<PyqRow[]>(
+      []
+    );
 
 
   const [
@@ -377,6 +418,9 @@ export function MainsPyqManager() {
     );
 
 
+    setMessage('');
+
+
     const {
       data,
       error
@@ -407,7 +451,7 @@ export function MainsPyqManager() {
           }
         )
         .limit(
-          250
+          500
         );
 
 
@@ -427,19 +471,23 @@ export function MainsPyqManager() {
     }
 
 
-    setQuestions(
+    const formatted =
       (
         data ||
         []
       ).map(
         item => ({
           ...item,
+
           relevant_gs_papers:
             item.relevant_gs_papers ||
             []
         })
-      ) as
-        PyqRow[]
+      ) as PyqRow[];
+
+
+    setQuestions(
+      formatted
     );
 
 
@@ -477,7 +525,11 @@ export function MainsPyqManager() {
 
         setWordLimit('');
 
-      } else if (
+        return;
+      }
+
+
+      if (
         paperTab ===
         'optional'
       ) {
@@ -494,16 +546,17 @@ export function MainsPyqManager() {
           '150'
         );
 
-      } else {
-
-        setMarks(
-          '10'
-        );
-
-        setWordLimit(
-          '150'
-        );
+        return;
       }
+
+
+      setMarks(
+        '10'
+      );
+
+      setWordLimit(
+        '150'
+      );
 
     },
     [
@@ -534,8 +587,7 @@ export function MainsPyqManager() {
 
 
   function toggleRelevantGs(
-    paper:
-      string
+    paper: string
   ) {
 
     setRelevantGsPapers(
@@ -556,14 +608,25 @@ export function MainsPyqManager() {
   }
 
 
+  function clearQuestionFields() {
+
+    setQuestionNumber('');
+    setQuestion('');
+    setTopic('');
+    setSubtopic('');
+    setRelevantGsPapers([]);
+  }
+
+
   async function findOrCreatePaper(
-    userId:
-      string
+    userId: string
   ) {
 
     if (!supabase) {
 
-      return null;
+      throw new Error(
+        'Supabase is not configured.'
+      );
     }
 
 
@@ -574,13 +637,9 @@ export function MainsPyqManager() {
 
 
     const paperType =
-      paperTab ===
-        'essay'
-        ? 'essay'
-        : paperTab ===
-            'optional'
-          ? 'optional'
-          : 'gs';
+      sectionFromPaper(
+        paperTab
+      );
 
 
     let query =
@@ -684,7 +743,7 @@ export function MainsPyqManager() {
 
       const {
         error:
-          paperUpdateError
+          updateError
       } =
         await supabase
           .from(
@@ -693,6 +752,7 @@ export function MainsPyqManager() {
           .update({
             status:
               paperStatus,
+
             official_source_url:
               sourceUrl.trim() ||
               null
@@ -704,10 +764,10 @@ export function MainsPyqManager() {
 
 
       if (
-        paperUpdateError
+        updateError
       ) {
 
-        throw paperUpdateError;
+        throw updateError;
       }
 
 
@@ -738,29 +798,37 @@ export function MainsPyqManager() {
         .insert({
           year:
             numericYear,
+
           paper_type:
             paperType,
+
           gs_paper:
             paperType ===
               'gs'
               ? paperTab
               : null,
+
           optional_subject:
             paperType ===
               'optional'
               ? optionalSubject
               : null,
+
           optional_paper:
             paperType ===
               'optional'
               ? optionalPaper
               : null,
+
           title,
+
           official_source_url:
             sourceUrl.trim() ||
             null,
+
           status:
             paperStatus,
+
           created_by:
             userId
         })
@@ -791,8 +859,7 @@ export function MainsPyqManager() {
 
 
   async function saveQuestion(
-    event:
-      FormEvent
+    event: FormEvent
   ) {
 
     event.preventDefault();
@@ -807,91 +874,6 @@ export function MainsPyqManager() {
       return;
     }
 
-    async function changeQuestionStatus(
-  item:
-    PyqRow,
-  nextStatus:
-    'draft' |
-    'published' |
-    'archived'
-) {
-
-  if (!supabase) {
-
-    setMessage(
-      'Supabase is not configured.'
-    );
-
-    return;
-  }
-
-
-  setMessage(
-    `Changing question to ${nextStatus}...`
-  );
-
-
-  const {
-    data,
-    error
-  } =
-    await supabase
-      .from(
-        'mains_questions'
-      )
-      .update({
-        status:
-          nextStatus
-      })
-      .eq(
-        'id',
-        item.id
-      )
-      .select(
-        PYQ_SELECT
-      )
-      .single();
-
-
-  if (
-    error ||
-    !data
-  ) {
-
-    setMessage(
-      error?.message ||
-      'Unable to change question status.'
-    );
-
-    return;
-  }
-
-
-  const updated = {
-    ...data,
-
-    relevant_gs_papers:
-      data.relevant_gs_papers ||
-      []
-  } as PyqRow;
-
-
-  setQuestions(
-    current =>
-      current.map(
-        question =>
-          question.id ===
-            updated.id
-            ? updated
-            : question
-      )
-  );
-
-
-  setMessage(
-    `Question moved to ${nextStatus}.`
-  );
-}
 
     const numericYear =
       Number(
@@ -1001,31 +983,33 @@ export function MainsPyqManager() {
 
 
       const sectionType =
-        paperTab ===
-          'essay'
-          ? 'essay'
-          : paperTab ===
-              'optional'
-            ? 'optional'
-            : 'gs';
+        sectionFromPaper(
+          paperTab
+        );
 
 
-      const cleanTags = [
-        String(
-          numericYear
-        ),
-        paperLabel(
-          paperTab,
-          optionalSubject,
-          optionalPaper
-        ),
-        subject.trim(),
-        topic.trim(),
-        subtopic.trim(),
-        'UPSC PYQ'
-      ].filter(
-        Boolean
-      );
+      const cleanTags =
+        [
+          String(
+            numericYear
+          ),
+
+          paperLabel(
+            paperTab,
+            optionalSubject,
+            optionalPaper
+          ),
+
+          subject.trim(),
+
+          topic.trim(),
+
+          subtopic.trim(),
+
+          'UPSC PYQ'
+        ].filter(
+          Boolean
+        );
 
 
       const {
@@ -1149,11 +1133,11 @@ export function MainsPyqManager() {
 
       const created = {
         ...data,
+
         relevant_gs_papers:
           data.relevant_gs_papers ||
           []
-      } as
-        PyqRow;
+      } as PyqRow;
 
 
       setQuestions(
@@ -1164,11 +1148,7 @@ export function MainsPyqManager() {
       );
 
 
-      setQuestionNumber('');
-      setQuestion('');
-      setTopic('');
-      setSubtopic('');
-      setRelevantGsPapers([]);
+      clearQuestionFields();
 
 
       setMessage(
@@ -1203,6 +1183,107 @@ export function MainsPyqManager() {
   }
 
 
+  /*
+   * IMPORTANT:
+   * This function must remain OUTSIDE saveQuestion().
+   */
+  async function changeQuestionStatus(
+    item: PyqRow,
+    nextStatus: FullQuestionStatus
+  ) {
+
+    if (!supabase) {
+
+      setMessage(
+        'Supabase is not configured.'
+      );
+
+      return;
+    }
+
+
+    setChangingStatusId(
+      item.id
+    );
+
+
+    setMessage(
+      `Changing question to ${nextStatus}...`
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from(
+          'mains_questions'
+        )
+        .update({
+          status:
+            nextStatus
+        })
+        .eq(
+          'id',
+          item.id
+        )
+        .select(
+          PYQ_SELECT
+        )
+        .single();
+
+
+    if (
+      error ||
+      !data
+    ) {
+
+      setMessage(
+        error?.message ||
+        'Unable to change question status.'
+      );
+
+      setChangingStatusId(
+        null
+      );
+
+      return;
+    }
+
+
+    const updated = {
+      ...data,
+
+      relevant_gs_papers:
+        data.relevant_gs_papers ||
+        []
+    } as PyqRow;
+
+
+    setQuestions(
+      current =>
+        current.map(
+          questionItem =>
+            questionItem.id ===
+              updated.id
+              ? updated
+              : questionItem
+        )
+    );
+
+
+    setChangingStatusId(
+      null
+    );
+
+
+    setMessage(
+      `Question moved to ${nextStatus}.`
+    );
+  }
+
+
   const years =
     useMemo(
       () =>
@@ -1217,8 +1298,7 @@ export function MainsPyqManager() {
                 (
                   item
                 ):
-                  item is
-                    number =>
+                  item is number =>
                   typeof item ===
                     'number'
               )
@@ -1305,10 +1385,15 @@ export function MainsPyqManager() {
       style={{
         display:
           'grid',
+
         gap:
           '16px'
       }}
     >
+
+      {/* =====================================
+          PAPER SELECTION
+      ===================================== */}
 
       <section
         className="panel"
@@ -1336,10 +1421,13 @@ export function MainsPyqManager() {
           style={{
             display:
               'grid',
+
             gridTemplateColumns:
               'repeat(auto-fit, minmax(110px, 1fr))',
+
             gap:
               '8px',
+
             marginTop:
               '14px'
           }}
@@ -1371,13 +1459,12 @@ export function MainsPyqManager() {
                 'optional',
                 'Optional'
               ]
-            ] as
-              Array<
-                [
-                  PaperTab,
-                  string
-                ]
-              >
+            ] as Array<
+              [
+                PaperTab,
+                string
+              ]
+            >
           ).map(
             (
               [
@@ -1414,6 +1501,10 @@ export function MainsPyqManager() {
       </section>
 
 
+      {/* =====================================
+          MANUAL ENTRY FORM
+      ===================================== */}
+
       <form
         className="panel admin-form"
         onSubmit={
@@ -1425,14 +1516,17 @@ export function MainsPyqManager() {
           style={{
             display:
               'grid',
+
             gridTemplateColumns:
               'repeat(auto-fit, minmax(180px, 1fr))',
+
             gap:
               '12px'
           }}
         >
 
           <label>
+
             Year
 
             <input
@@ -1452,6 +1546,7 @@ export function MainsPyqManager() {
               }
               required
             />
+
           </label>
 
 
@@ -1459,6 +1554,7 @@ export function MainsPyqManager() {
             'optional' && (
 
             <label>
+
               Optional Subject
 
               <select
@@ -1493,6 +1589,7 @@ export function MainsPyqManager() {
                 )}
 
               </select>
+
             </label>
 
           )}
@@ -1502,6 +1599,7 @@ export function MainsPyqManager() {
             'optional' && (
 
             <label>
+
               Optional Paper
 
               <select
@@ -1517,14 +1615,22 @@ export function MainsPyqManager() {
                     )
                 }
               >
-                <option value="Paper-I">
+
+                <option
+                  value="Paper-I"
+                >
                   Paper-I
                 </option>
 
-                <option value="Paper-II">
+
+                <option
+                  value="Paper-II"
+                >
                   Paper-II
                 </option>
+
               </select>
+
             </label>
 
           )}
@@ -1534,6 +1640,7 @@ export function MainsPyqManager() {
             'essay' && (
 
             <label>
+
               Essay Section
 
               <select
@@ -1549,20 +1656,29 @@ export function MainsPyqManager() {
                     )
                 }
               >
-                <option value="Section A">
+
+                <option
+                  value="Section A"
+                >
                   Section A
                 </option>
 
-                <option value="Section B">
+
+                <option
+                  value="Section B"
+                >
                   Section B
                 </option>
+
               </select>
+
             </label>
 
           )}
 
 
           <label>
+
             Subject
 
             <input
@@ -1580,10 +1696,12 @@ export function MainsPyqManager() {
               placeholder="History"
               required
             />
+
           </label>
 
 
           <label>
+
             Topic
 
             <input
@@ -1600,10 +1718,12 @@ export function MainsPyqManager() {
               }
               placeholder="Ancient India"
             />
+
           </label>
 
 
           <label>
+
             Subtopic
 
             <input
@@ -1620,10 +1740,12 @@ export function MainsPyqManager() {
               }
               placeholder="Harappan Culture"
             />
+
           </label>
 
 
           <label>
+
             Question No.
 
             <input
@@ -1640,10 +1762,12 @@ export function MainsPyqManager() {
               }
               placeholder="3(a)"
             />
+
           </label>
 
 
           <label>
+
             Marks
 
             <input
@@ -1661,10 +1785,12 @@ export function MainsPyqManager() {
                   )
               }
             />
+
           </label>
 
 
           <label>
+
             Word Limit
 
             <input
@@ -1682,10 +1808,12 @@ export function MainsPyqManager() {
                   )
               }
             />
+
           </label>
 
 
           <label>
+
             Question Status
 
             <select
@@ -1702,18 +1830,27 @@ export function MainsPyqManager() {
                   )
               }
             >
-              <option value="draft">
+
+              <option
+                value="draft"
+              >
                 Draft
               </option>
 
-              <option value="published">
+
+              <option
+                value="published"
+              >
                 Published
               </option>
+
             </select>
+
           </label>
 
 
           <label>
+
             Paper Status
 
             <select
@@ -1730,14 +1867,22 @@ export function MainsPyqManager() {
                   )
               }
             >
-              <option value="draft">
+
+              <option
+                value="draft"
+              >
                 Draft / incomplete paper
               </option>
 
-              <option value="published">
+
+              <option
+                value="published"
+              >
                 Published / complete paper
               </option>
+
             </select>
+
           </label>
 
         </div>
@@ -1745,10 +1890,14 @@ export function MainsPyqManager() {
 
         <label
           style={{
+            display:
+              'block',
+
             marginTop:
               '12px'
           }}
         >
+
           Exact UPSC Question
 
           <textarea
@@ -1769,15 +1918,20 @@ export function MainsPyqManager() {
             placeholder="Paste the exact question from the official UPSC paper."
             required
           />
+
         </label>
 
 
         <label
           style={{
+            display:
+              'block',
+
             marginTop:
               '12px'
           }}
         >
+
           Official UPSC Source URL
 
           <input
@@ -1795,6 +1949,7 @@ export function MainsPyqManager() {
             }
             placeholder="Official question paper URL"
           />
+
         </label>
 
 
@@ -1814,13 +1969,16 @@ export function MainsPyqManager() {
             style={{
               margin:
                 '4px 0 8px',
+
               color:
                 '#94a3b8',
+
               fontSize:
                 '.82rem'
             }}
           >
-            Especially useful for Optional questions that can strengthen GS preparation.
+            Useful when an Optional PYQ overlaps with
+            General Studies preparation.
           </p>
 
 
@@ -1828,8 +1986,10 @@ export function MainsPyqManager() {
             style={{
               display:
                 'flex',
+
               gap:
                 '12px',
+
               flexWrap:
                 'wrap'
             }}
@@ -1845,12 +2005,15 @@ export function MainsPyqManager() {
                   style={{
                     display:
                       'inline-flex',
+
                     alignItems:
                       'center',
+
                     gap:
                       '6px'
                   }}
                 >
+
                   <input
                     type="checkbox"
                     checked={
@@ -1866,6 +2029,7 @@ export function MainsPyqManager() {
                   />
 
                   {item}
+
                 </label>
 
               )
@@ -1880,10 +2044,13 @@ export function MainsPyqManager() {
           style={{
             display:
               'flex',
+
             gap:
               '10px',
+
             flexWrap:
               'wrap',
+
             marginTop:
               '16px'
           }}
@@ -1905,15 +2072,9 @@ export function MainsPyqManager() {
           <button
             type="button"
             className="secondary-btn"
-            onClick={() => {
-
-              setQuestionNumber('');
-              setQuestion('');
-              setTopic('');
-              setSubtopic('');
-              setRelevantGsPapers([]);
-
-            }}
+            onClick={
+              clearQuestionFields
+            }
           >
             Clear Question
           </button>
@@ -1945,6 +2106,10 @@ export function MainsPyqManager() {
       </form>
 
 
+      {/* =====================================
+          SAVED QUESTION ARCHIVE
+      ===================================== */}
+
       <section
         className="panel"
       >
@@ -1953,12 +2118,16 @@ export function MainsPyqManager() {
           style={{
             display:
               'flex',
+
             justifyContent:
               'space-between',
+
             alignItems:
               'end',
+
             gap:
               '12px',
+
             flexWrap:
               'wrap'
           }}
@@ -1984,8 +2153,10 @@ export function MainsPyqManager() {
             style={{
               display:
                 'flex',
+
               gap:
                 '8px',
+
               flexWrap:
                 'wrap'
             }}
@@ -2004,9 +2175,13 @@ export function MainsPyqManager() {
                   )
               }
             >
-              <option value="all">
+
+              <option
+                value="all"
+              >
                 All years
               </option>
+
 
               {years.map(
                 item => (
@@ -2026,6 +2201,7 @@ export function MainsPyqManager() {
 
                 )
               )}
+
             </select>
 
 
@@ -2061,8 +2237,10 @@ export function MainsPyqManager() {
             style={{
               display:
                 'grid',
+
               gap:
                 '10px',
+
               marginTop:
                 '14px'
             }}
@@ -2071,173 +2249,209 @@ export function MainsPyqManager() {
             {visibleQuestions
               .slice(
                 0,
-                100
+                150
               )
               .map(
-                item => (
+                item => {
 
-                  <article
-                    key={
-                      item.id
-                    }
-                    style={{
-                      border:
-                        '1px solid rgba(255,255,255,.08)',
-                      borderRadius:
-                        '12px',
-                      padding:
-                        '12px',
-                      background:
-                        'rgba(255,255,255,.02)'
-                    }}
-                  >
+                  const changing =
+                    changingStatusId ===
+                    item.id;
 
-                    <div
+
+                  return (
+
+                    <article
+                      key={
+                        item.id
+                      }
                       style={{
-                        display:
-                          'flex',
-                        justifyContent:
-                          'space-between',
-                        gap:
+                        border:
+                          '1px solid rgba(255,255,255,.08)',
+
+                        borderRadius:
                           '12px',
-                        flexWrap:
-                          'wrap'
+
+                        padding:
+                          '12px',
+
+                        background:
+                          'rgba(255,255,255,.02)'
                       }}
                     >
 
-                      <strong>
-                        {item.pyq_year}
-                        {' • '}
-                        {item.section_type ===
-                          'essay'
-                          ? 'Essay'
-                          : item.section_type ===
-                              'optional'
-                            ? `${item.optional_subject || 'Optional'} ${item.optional_paper || ''}`
-                            : item.gs_paper || 'GS'}
-                      </strong>
+                      <div
+                        style={{
+                          display:
+                            'flex',
+
+                          justifyContent:
+                            'space-between',
+
+                          gap:
+                            '12px',
+
+                          flexWrap:
+                            'wrap'
+                        }}
+                      >
+
+                        <strong>
+
+                          {item.pyq_year}
+
+                          {' • '}
+
+                          {item.section_type ===
+                            'essay'
+                            ? 'Essay'
+                            : item.section_type ===
+                                'optional'
+                              ? `${item.optional_subject || 'Optional'} ${item.optional_paper || ''}`
+                              : item.gs_paper ||
+                                'GS'}
+
+                        </strong>
 
 
-                      <span>
-                        {item.status}
-                      </span>
+                        <span>
+                          {item.status}
+                        </span>
 
-                    </div>
-
-
-                    <p
-                      style={{
-                        margin:
-                          '8px 0'
-                      }}
-                    >
-                      {item.question_number
-                        ? `${item.question_number}. `
-                        : ''}
-                      {item.question}
-                    </p>
+                      </div>
 
 
-                    <small
-                      style={{
-                        color:
-                          '#94a3b8'
-                      }}
-                    >
-                      Subject:
-                      {' '}
-                      {item.subject}
+                      <p
+                        style={{
+                          margin:
+                            '8px 0'
+                        }}
+                      >
 
-                      {item.topic
-                        ? ` • Topic: ${item.topic}`
-                        : ''}
+                        {item.question_number
+                          ? `${item.question_number}. `
+                          : ''}
 
-                      {item.subtopic
-                        ? ` • Subtopic: ${item.subtopic}`
-                        : ''}
+                        {item.question}
 
-                      {item.marks !==
-                        null
-                        ? ` • ${item.marks} marks`
-                        : ''}
-                    </small>
-
-                    <div
-  style={{
-    display:
-      'flex',
-
-    gap:
-      '8px',
-
-    flexWrap:
-      'wrap',
-
-    marginTop:
-      '12px'
-  }}
->
-
-  {item.status !==
-    'published' && (
-
-    <button
-      type="button"
-      className="primary-btn"
-      onClick={() =>
-        void changeQuestionStatus(
-          item,
-          'published'
-        )
-      }
-    >
-      Publish
-    </button>
-
-  )}
+                      </p>
 
 
-  {item.status !==
-    'draft' && (
+                      <small
+                        style={{
+                          color:
+                            '#94a3b8'
+                        }}
+                      >
 
-    <button
-      type="button"
-      className="secondary-btn"
-      onClick={() =>
-        void changeQuestionStatus(
-          item,
-          'draft'
-        )
-      }
-    >
-      Move to Draft
-    </button>
+                        Subject:{' '}
+                        {item.subject}
 
-  )}
+                        {item.topic
+                          ? ` • Topic: ${item.topic}`
+                          : ''}
+
+                        {item.subtopic
+                          ? ` • Subtopic: ${item.subtopic}`
+                          : ''}
+
+                        {item.marks !==
+                          null
+                          ? ` • ${item.marks} marks`
+                          : ''}
+
+                      </small>
 
 
-  {item.status !==
-    'archived' && (
+                      <div
+                        style={{
+                          display:
+                            'flex',
 
-    <button
-      type="button"
-      className="secondary-btn"
-      onClick={() =>
-        void changeQuestionStatus(
-          item,
-          'archived'
-        )
-      }
-    >
-      Archive
-    </button>
+                          gap:
+                            '8px',
 
-  )}
+                          flexWrap:
+                            'wrap',
 
-</div>
-                  </article>
+                          marginTop:
+                            '12px'
+                        }}
+                      >
 
-                )
+                        {item.status !==
+                          'published' && (
+
+                          <button
+                            type="button"
+                            className="primary-btn"
+                            disabled={
+                              changing
+                            }
+                            onClick={() =>
+                              void changeQuestionStatus(
+                                item,
+                                'published'
+                              )
+                            }
+                          >
+                            {changing
+                              ? 'Updating...'
+                              : 'Publish'}
+                          </button>
+
+                        )}
+
+
+                        {item.status !==
+                          'draft' && (
+
+                          <button
+                            type="button"
+                            className="secondary-btn"
+                            disabled={
+                              changing
+                            }
+                            onClick={() =>
+                              void changeQuestionStatus(
+                                item,
+                                'draft'
+                              )
+                            }
+                          >
+                            Move to Draft
+                          </button>
+
+                        )}
+
+
+                        {item.status !==
+                          'archived' && (
+
+                          <button
+                            type="button"
+                            className="secondary-btn"
+                            disabled={
+                              changing
+                            }
+                            onClick={() =>
+                              void changeQuestionStatus(
+                                item,
+                                'archived'
+                              )
+                            }
+                          >
+                            Archive
+                          </button>
+
+                        )}
+
+                      </div>
+
+                    </article>
+
+                  );
+                }
               )}
 
 
