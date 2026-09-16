@@ -2327,105 +2327,78 @@ export function MyBooksPage() {
    */
 
   async function makeCurrentBook(
-    bookId:
-      string
-  ) {
+  bookId:
+    string
+) {
 
-    const client =
-      supabase;
-
-
-    if (!client) {
-
-      return;
-    }
+  const client =
+    supabase;
 
 
-    const {
-      data: {
-        user
-      }
-    } =
-      await client.auth
-        .getUser();
+  if (!client) {
 
-
-    if (!user) {
-
-      return;
-    }
-
-
-    const resetResult =
-      await client
-        .from(
-          'personal_books'
-        )
-        .update({
-
-          is_current:
-            false
-
-        })
-        .eq(
-          'user_id',
-          user.id
-        );
-
-
-    if (
-      resetResult.error
-    ) {
-
-      setMessage(
-        resetResult
-          .error
-          .message
-      );
-
-      return;
-    }
-
-
-    const {
-      error
-    } =
-      await client
-        .from(
-          'personal_books'
-        )
-        .update({
-
-          is_current:
-            true,
-
-          reading_status:
-            'reading'
-
-        })
-        .eq(
-          'id',
-          bookId
-        );
-
-
-    if (error) {
-
-      setMessage(
-        error.message
-      );
-
-      return;
-    }
-
-
-    await loadLibrary(
-      bookId
+    setMessage(
+      'Study database is not configured.'
     );
+
+    return;
   }
 
 
+  setSaving(
+    true
+  );
+
+  setMessage('');
+
+
   /*
+   * One secure database transaction:
+   * - verifies ownership
+   * - clears previous current book
+   * - activates selected book
+   */
+
+  const {
+    error
+  } =
+    await client.rpc(
+      'set_current_personal_book',
+      {
+        p_book_id:
+          bookId
+      }
+    );
+
+
+  if (error) {
+
+    setMessage(
+      error.message
+    );
+
+    setSaving(
+      false
+    );
+
+    return;
+  }
+
+
+  setMessage(
+    'Current book updated.'
+  );
+
+
+  await loadLibrary(
+    bookId
+  );
+
+
+  setSaving(
+    false
+  );
+}
    * =========================================
    * CURRENT PAGE
    * =========================================
