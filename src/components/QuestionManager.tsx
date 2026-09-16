@@ -344,12 +344,12 @@ export function QuestionManager() {
     useState('');
 
   const [
-    paper,
-    setPaper
-  ] =
-    useState(
-      'GS-I'
-    );
+  paper,
+  setPaper
+] =
+  useState(
+    'GS Paper I'
+  );
 
   const [
     difficulty,
@@ -838,8 +838,8 @@ export function QuestionManager() {
     setTopic('');
 
     setPaper(
-      'GS-I'
-    );
+  'GS Paper I'
+);
 
     setDifficulty(
       'medium'
@@ -2787,22 +2787,64 @@ export function QuestionManager() {
 
 
             <label>
-              Paper
+  Prelims Paper
 
-              <input
-                value={
-                  paper
-                }
-                onChange={
-                  event =>
-                    setPaper(
-                      event.target.value
-                    )
-                }
-                placeholder="GS-I"
-              />
+  {
+    examStage ===
+      'prelims' &&
+    questionOrigin ===
+      'cse'
+      ? (
 
-            </label>
+        <select
+
+          value={
+            paper
+          }
+
+          onChange={
+            event =>
+              setPaper(
+                event.target.value
+              )
+          }
+
+        >
+
+          <option value="GS Paper I">
+            GS Paper I
+          </option>
+
+          <option value="CSAT Paper II">
+            CSAT Paper II
+          </option>
+
+        </select>
+
+      )
+      : (
+
+        <input
+
+          value={
+            paper
+          }
+
+          onChange={
+            event =>
+              setPaper(
+                event.target.value
+              )
+          }
+
+          placeholder="Paper name"
+
+        />
+
+      )
+  }
+
+</label>
 
           </div>
 
