@@ -39,6 +39,10 @@ import {
   RevisionDueToday
 } from '../components/RevisionDueToday';
 
+import {
+  CurrentReadingCard
+} from '../components/CurrentReadingCard';
+
 
 type HomeLearnMode =
   | 'syllabus'
@@ -54,6 +58,7 @@ type HomePanel =
 
 
 type HomePageProps = {
+
   tasks:
     DailyTask[];
 
@@ -85,10 +90,9 @@ type HomePageProps = {
  * =========================================
  * HOME PAGE
  *
- * Purpose:
- * Keep the home screen short, calm and
- * action-focused. Detailed information lives
- * inside the proper Learn / Practice sections.
+ * Keep the home page simple and focused.
+ * Detailed tools remain inside their
+ * dedicated Learn / Practice workspaces.
  * =========================================
  */
 
@@ -119,8 +123,7 @@ export function HomePage({
 
 
   const taskPct =
-    tasks.length >
-      0
+    tasks.length > 0
       ? Math.round(
           (
             completed /
@@ -131,6 +134,12 @@ export function HomePage({
       : 0;
 
 
+  /*
+   * =========================================
+   * DAILY TASK
+   * =========================================
+   */
+
   function toggleTask(
     id:
       string
@@ -139,10 +148,10 @@ export function HomePage({
     setTasks(
       tasks.map(
         task =>
-          task.id ===
-            id
+          task.id === id
             ? {
                 ...task,
+
                 done:
                   !task.done
               }
@@ -151,6 +160,12 @@ export function HomePage({
     );
   }
 
+
+  /*
+   * =========================================
+   * OPTIONAL PANEL
+   * =========================================
+   */
 
   function togglePanel(
     panel:
@@ -162,15 +177,36 @@ export function HomePage({
 
     setOpenPanel(
       current =>
-        current ===
-          panel
+        current === panel
           ? 'none'
           : panel
     );
   }
 
 
+  /*
+   * =========================================
+   * OPEN PERSONAL READING
+   * =========================================
+   */
+
+  function openMyReading() {
+
+    onGoLearn(
+      null,
+      'book-progress'
+    );
+  }
+
+
+  /*
+   * =========================================
+   * SHARED STYLES
+   * =========================================
+   */
+
   const quickCardStyle = {
+
     width:
       '100%',
 
@@ -212,10 +248,12 @@ export function HomePage({
 
     whiteSpace:
       'normal' as const
+
   };
 
 
   const toolButtonStyle = {
+
     minHeight:
       '46px',
 
@@ -236,8 +274,15 @@ export function HomePage({
 
     lineHeight:
       1.2
+
   };
 
+
+  /*
+   * =========================================
+   * PAGE
+   * =========================================
+   */
 
   return (
 
@@ -259,13 +304,14 @@ export function HomePage({
 
 
       {/* =====================================
-          COMPACT TODAY CARD
+          TODAY
       ===================================== */}
 
       <section
         className="hero-card"
 
         style={{
+
           padding:
             '18px',
 
@@ -277,6 +323,7 @@ export function HomePage({
 
           gap:
             '14px'
+
         }}
       >
 
@@ -291,11 +338,13 @@ export function HomePage({
 
           <h2
             style={{
+
               margin:
                 '6px 0 7px',
 
               fontSize:
                 'clamp(1.35rem, 5vw, 2rem)'
+
             }}
           >
             Focus on the next useful step.
@@ -304,18 +353,20 @@ export function HomePage({
 
           <p
             style={{
+
               margin:
                 '0 0 10px'
+
             }}
           >
-            {completed}/{tasks.length}
-            {' '}
+            {completed}/{tasks.length}{' '}
             daily essentials completed.
           </p>
 
 
           <button
             type="button"
+
             className="primary-btn"
 
             onClick={
@@ -357,6 +408,7 @@ export function HomePage({
 
       <section
         style={{
+
           display:
             'grid',
 
@@ -368,8 +420,11 @@ export function HomePage({
 
           marginTop:
             '14px'
+
         }}
       >
+
+        {/* CURRENT AFFAIRS */}
 
         <button
           type="button"
@@ -389,13 +444,16 @@ export function HomePage({
             }
 
             style={{
+
               fontSize:
                 '1.4rem',
 
               color:
                 '#5eead4'
+
             }}
           />
+
 
           <span>
 
@@ -407,6 +465,7 @@ export function HomePage({
             >
               Current Affairs
             </strong>
+
 
             <small
               style={{
@@ -421,6 +480,8 @@ export function HomePage({
 
         </button>
 
+
+        {/* PRACTICE */}
 
         <button
           type="button"
@@ -440,13 +501,16 @@ export function HomePage({
             }
 
             style={{
+
               fontSize:
                 '1.4rem',
 
               color:
                 '#5eead4'
+
             }}
           />
+
 
           <span>
 
@@ -458,6 +522,7 @@ export function HomePage({
             >
               Practice
             </strong>
+
 
             <small
               style={{
@@ -472,6 +537,8 @@ export function HomePage({
 
         </button>
 
+
+        {/* SYLLABUS */}
 
         <button
           type="button"
@@ -494,13 +561,16 @@ export function HomePage({
             }
 
             style={{
+
               fontSize:
                 '1.4rem',
 
               color:
                 '#5eead4'
+
             }}
           />
+
 
           <span>
 
@@ -512,6 +582,7 @@ export function HomePage({
             >
               Syllabus
             </strong>
+
 
             <small
               style={{
@@ -527,6 +598,8 @@ export function HomePage({
         </button>
 
 
+        {/* MY BOOKS */}
+
         <button
           type="button"
 
@@ -534,11 +607,8 @@ export function HomePage({
             quickCardStyle
           }
 
-          onClick={() =>
-            onGoLearn(
-              null,
-              'book-progress'
-            )
+          onClick={
+            openMyReading
           }
         >
 
@@ -548,13 +618,16 @@ export function HomePage({
             }
 
             style={{
+
               fontSize:
                 '1.4rem',
 
               color:
                 '#5eead4'
+
             }}
           />
+
 
           <span>
 
@@ -566,6 +639,7 @@ export function HomePage({
             >
               My Books
             </strong>
+
 
             <small
               style={{
@@ -584,6 +658,19 @@ export function HomePage({
 
 
       {/* =====================================
+          CURRENT READING
+      ===================================== */}
+
+      <CurrentReadingCard
+
+        onOpenBooks={
+          openMyReading
+        }
+
+      />
+
+
+      {/* =====================================
           DAILY ESSENTIALS
       ===================================== */}
 
@@ -591,11 +678,13 @@ export function HomePage({
         className="panel"
 
         style={{
+
           marginTop:
             '14px',
 
           padding:
             '16px'
+
         }}
       >
 
@@ -610,6 +699,7 @@ export function HomePage({
             >
               DAILY ESSENTIALS
             </span>
+
 
             <h3
               style={{
@@ -636,8 +726,10 @@ export function HomePage({
           className="task-list"
 
           style={{
+
             margin:
               '12px 0 10px'
+
           }}
         >
 
@@ -664,8 +756,10 @@ export function HomePage({
                 }
 
                 style={{
+
                   padding:
                     '10px 11px'
+
                 }}
               >
 
@@ -707,18 +801,20 @@ export function HomePage({
 
 
       {/* =====================================
-          OPTIONAL TOOLS
+          MORE TOOLS
       ===================================== */}
 
       <section
         className="panel"
 
         style={{
+
           marginTop:
             '14px',
 
           padding:
             '16px'
+
         }}
       >
 
@@ -739,6 +835,7 @@ export function HomePage({
               MORE
             </span>
 
+
             <h3
               style={{
                 marginBottom:
@@ -755,6 +852,7 @@ export function HomePage({
 
         <div
           style={{
+
             display:
               'grid',
 
@@ -766,8 +864,11 @@ export function HomePage({
 
             marginTop:
               '12px'
+
           }}
         >
+
+          {/* SCHEDULE */}
 
           <button
             type="button"
@@ -793,6 +894,8 @@ export function HomePage({
           </button>
 
 
+          {/* REVISIONS */}
+
           <button
             type="button"
 
@@ -816,6 +919,8 @@ export function HomePage({
             Revisions
           </button>
 
+
+          {/* SUBJECTS */}
 
           <button
             type="button"
@@ -858,6 +963,7 @@ export function HomePage({
             }
 
             style={{
+
               width:
                 '100%',
 
@@ -875,6 +981,7 @@ export function HomePage({
 
               gap:
                 '5px'
+
             }}
           >
 
@@ -896,6 +1003,7 @@ export function HomePage({
 
           <div
             style={{
+
               marginTop:
                 '9px',
 
@@ -907,6 +1015,7 @@ export function HomePage({
 
               fontSize:
                 '.75rem'
+
             }}
           >
 
@@ -931,7 +1040,7 @@ export function HomePage({
 
 
       {/* =====================================
-          OPTIONAL: SCHEDULE
+          SCHEDULE
       ===================================== */}
 
       {openPanel ===
@@ -962,11 +1071,8 @@ export function HomePage({
               onGoPractice
             }
 
-            onOpenBookProgress={() =>
-              onGoLearn(
-                null,
-                'book-progress'
-              )
+            onOpenBookProgress={
+              openMyReading
             }
 
           />
@@ -977,7 +1083,7 @@ export function HomePage({
 
 
       {/* =====================================
-          OPTIONAL: REVISION DUE
+          REVISION DUE
       ===================================== */}
 
       {openPanel ===
@@ -992,11 +1098,8 @@ export function HomePage({
 
           <RevisionDueToday
 
-            onOpenTracker={() =>
-              onGoLearn(
-                null,
-                'book-progress'
-              )
+            onOpenTracker={
+              openMyReading
             }
 
           />
@@ -1007,7 +1110,7 @@ export function HomePage({
 
 
       {/* =====================================
-          OPTIONAL: SUBJECTS
+          SUBJECTS
       ===================================== */}
 
       {openPanel ===
@@ -1017,11 +1120,13 @@ export function HomePage({
           className="panel"
 
           style={{
+
             marginTop:
               '12px',
 
             padding:
               '16px'
+
           }}
         >
 
@@ -1036,6 +1141,7 @@ export function HomePage({
               >
                 SUBJECTS
               </span>
+
 
               <h3>
                 Open syllabus by subject
@@ -1081,9 +1187,11 @@ export function HomePage({
                     {subject.icon}
                   </span>
 
+
                   <strong>
                     {subject.name}
                   </strong>
+
 
                   <small>
                     Open
@@ -1102,7 +1210,7 @@ export function HomePage({
 
 
       {/* =====================================
-          BOTTOM QUICK CTA
+          BOTTOM SCHEDULE BUTTON
       ===================================== */}
 
       <button
@@ -1117,6 +1225,7 @@ export function HomePage({
         }
 
         style={{
+
           width:
             '100%',
 
@@ -1134,6 +1243,7 @@ export function HomePage({
 
           whiteSpace:
             'normal'
+
         }}
       >
 
@@ -1147,6 +1257,7 @@ export function HomePage({
               '6px'
           }}
         />
+
 
         {
           openPanel ===
