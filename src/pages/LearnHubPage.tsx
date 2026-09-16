@@ -64,7 +64,7 @@ export function LearnHubPage({
 
   /*
    * =========================================
-   * MAIN LEARN WORKSPACE
+   * MAIN LEARN MODE
    * =========================================
    */
 
@@ -79,13 +79,13 @@ export function LearnHubPage({
 
   /*
    * =========================================
-   * MY BOOKS WORKSPACE
-   *
-   * personal  = student-created private books
-   * standard  = standard/admin books
-   * calendar  = revision plan
-   * settings  = revision schedule settings
+   * BOOK WORKSPACE
    * =========================================
+   *
+   * personal  = student's own books
+   * standard  = admin / standard books
+   * calendar  = 7-day revision plan
+   * settings  = revision settings
    */
 
   const [
@@ -99,7 +99,7 @@ export function LearnHubPage({
 
   /*
    * =========================================
-   * RESPOND TO EXTERNAL NAVIGATION
+   * SYNC EXTERNAL NAVIGATION
    * =========================================
    */
 
@@ -111,16 +111,15 @@ export function LearnHubPage({
       );
 
 
-      /*
-       * Whenever My Books is opened from another
-       * part of the app, start with the student's
-       * own reading tracker.
-       */
-
       if (
         initialMode ===
         'book-progress'
       ) {
+
+        /*
+         * Open student's personal reading
+         * tracker first.
+         */
 
         setBookWorkspace(
           'personal'
@@ -136,7 +135,7 @@ export function LearnHubPage({
 
   /*
    * =========================================
-   * COMMON BUTTON STYLE
+   * COMMON TAB STYLE
    * =========================================
    */
 
@@ -190,7 +189,7 @@ export function LearnHubPage({
     >
 
       {/* =====================================
-          COMPACT LEARN HEADER
+          LEARN HEADER
       ===================================== */}
 
       <section
@@ -293,11 +292,13 @@ export function LearnHubPage({
               mainButtonStyle
             }
 
-            onClick={() =>
+            onClick={() => {
+
               setMode(
                 'syllabus'
-              )
-            }
+              );
+
+            }}
           >
             Syllabus
           </button>
@@ -319,11 +320,13 @@ export function LearnHubPage({
               mainButtonStyle
             }
 
-            onClick={() =>
+            onClick={() => {
+
               setMode(
                 'resources'
-              )
-            }
+              );
+
+            }}
           >
             Resources
           </button>
@@ -351,11 +354,6 @@ export function LearnHubPage({
                 'book-progress'
               );
 
-
-              /*
-               * Clicking My Books directly should
-               * open personal reading first.
-               */
 
               setBookWorkspace(
                 'personal'
@@ -401,7 +399,7 @@ export function LearnHubPage({
 
 
       {/* =====================================
-          RESOURCES
+          STUDY RESOURCES
       ===================================== */}
 
       {
@@ -436,7 +434,7 @@ export function LearnHubPage({
 
 
       {/* =====================================
-          MY BOOKS / READING WORKSPACE
+          MY BOOKS WORKSPACE
       ===================================== */}
 
       {
@@ -445,9 +443,9 @@ export function LearnHubPage({
 
           <>
 
-            {/* ===============================
-                BOOK WORKSPACE TABS
-            =============================== */}
+            {/* =================================
+                BOOK WORKSPACE NAVIGATION
+            ================================= */}
 
             <section
               className="panel"
@@ -500,11 +498,13 @@ export function LearnHubPage({
                     mainButtonStyle
                   }
 
-                  onClick={() =>
+                  onClick={() => {
+
                     setBookWorkspace(
                       'personal'
-                    )
-                  }
+                    );
+
+                  }}
                 >
                   My Reading
                 </button>
@@ -526,17 +526,19 @@ export function LearnHubPage({
                     mainButtonStyle
                   }
 
-                  onClick={() =>
+                  onClick={() => {
+
                     setBookWorkspace(
                       'standard'
-                    )
-                  }
+                    );
+
+                  }}
                 >
                   Standard Books
                 </button>
 
 
-                {/* REVISION CALENDAR */}
+                {/* 7 DAY PLAN */}
 
                 <button
                   type="button"
@@ -552,11 +554,13 @@ export function LearnHubPage({
                     mainButtonStyle
                   }
 
-                  onClick={() =>
+                  onClick={() => {
+
                     setBookWorkspace(
                       'calendar'
-                    )
-                  }
+                    );
+
+                  }}
                 >
                   7-Day Plan
                 </button>
@@ -578,11 +582,13 @@ export function LearnHubPage({
                     mainButtonStyle
                   }
 
-                  onClick={() =>
+                  onClick={() => {
+
                     setBookWorkspace(
                       'settings'
-                    )
-                  }
+                    );
+
+                  }}
                 >
                   Revision Settings
                 </button>
@@ -592,9 +598,9 @@ export function LearnHubPage({
             </section>
 
 
-            {/* ===============================
-                PERSONAL BOOKS
-            =============================== */}
+            {/* =================================
+                PERSONAL READING
+            ================================= */}
 
             {
               bookWorkspace ===
@@ -615,9 +621,9 @@ export function LearnHubPage({
             }
 
 
-            {/* ===============================
+            {/* =================================
                 STANDARD BOOKS
-            =============================== */}
+            ================================= */}
 
             {
               bookWorkspace ===
@@ -644,9 +650,9 @@ export function LearnHubPage({
             }
 
 
-            {/* ===============================
-                7-DAY REVISION PLAN
-            =============================== */}
+            {/* =================================
+                REVISION CALENDAR
+            ================================= */}
 
             {
               bookWorkspace ===
@@ -667,9 +673,9 @@ export function LearnHubPage({
             }
 
 
-            {/* ===============================
+            {/* =================================
                 REVISION SETTINGS
-            =============================== */}
+            ================================= */}
 
             {
               bookWorkspace ===
