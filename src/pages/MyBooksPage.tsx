@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react';
 
@@ -375,6 +376,18 @@ export function MyBooksPage() {
 
 
   /*
+   * Prevent automatic topic scrolling
+   * from running repeatedly after a topic
+   * has already been focused.
+   */
+
+  const lastFocusedTopicRef =
+    useRef<string | null>(
+      null
+    );
+
+
+  /*
    * =========================================
    * LOAD LIBRARY
    * =========================================
@@ -695,6 +708,11 @@ export function MyBooksPage() {
     setSelectedBookId(
       current => {
 
+        /*
+         * First preference:
+         * an explicitly requested book.
+         */
+
         if (
           preferredBookId &&
           cleanBooks.some(
@@ -708,6 +726,11 @@ export function MyBooksPage() {
         }
 
 
+        /*
+         * Keep an already selected book
+         * where possible.
+         */
+
         if (
           current &&
           cleanBooks.some(
@@ -720,6 +743,12 @@ export function MyBooksPage() {
           return current;
         }
 
+
+        /*
+         * When opening My Reading from Home,
+         * automatically select the student's
+         * current book.
+         */
 
         const currentBook =
           cleanBooks.find(
@@ -752,8 +781,8 @@ export function MyBooksPage() {
 
 
   /*
-   * Reset book-content navigation when
-   * another book is selected.
+   * Reset search/filter when another book
+   * is opened.
    */
 
   useEffect(
@@ -768,6 +797,15 @@ export function MyBooksPage() {
       setExpandedTopicIds(
         new Set<string>()
       );
+
+
+      /*
+       * Allow the current topic of the newly
+       * selected book to be focused.
+       */
+
+      lastFocusedTopicRef.current =
+        null;
 
     },
     [
@@ -1057,7 +1095,9 @@ export function MyBooksPage() {
         );
 
 
-      if (!parent) {
+      if (
+        !parent
+      ) {
 
         break;
       }
@@ -1172,8 +1212,11 @@ export function MyBooksPage() {
       () =>
         selectedBookTopics.filter(
           topic =>
-            getChildren(
-              topic.id
+            (
+              childrenMap.get(
+                topic.id
+              ) ||
+              []
             ).length ===
             0
         ),
@@ -1293,6 +1336,175 @@ export function MyBooksPage() {
         selectedBookTopics
       ]
     );
+
+
+  /*
+   * =========================================
+   * AUTO FOCUS CURRENT READING
+   * =========================================
+   *
+   * When the user opens:
+   *
+   * Home → Continue Reading
+   *
+   * My Reading automatically:
+   *
+   * 1. selects the current book
+   * 2. finds the current topic
+   * 3. expands all of its parents
+   * 4. scrolls to that exact topic
+   *
+   * It runs only once for the current topic,
+   * so percentage changes do not repeatedly
+   * move the screen.
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        !currentTopic
+      ) {
+
+        return;
+      }
+
+
+      if (
+        lastFocusedTopicRef
+          .current ===
+        currentTopic.id
+      ) {
+
+        return;
+      }
+
+
+      const ancestorIds =
+        new Set<string>();
+
+
+      const visited =
+        new Set<string>();
+
+
+      let parentIdValue =
+        currentTopic.parent_id;
+
+
+      while (
+        parentIdValue &&
+        !visited.has(
+          parentIdValue
+        )
+      ) {
+
+        visited.add(
+          parentIdValue
+        );
+
+
+        ancestorIds.add(
+          parentIdValue
+        );
+
+
+        const parent =
+          topicMap.get(
+            parentIdValue
+          );
+
+
+        if (
+          !parent
+        ) {
+
+          break;
+        }
+
+
+        parentIdValue =
+          parent.parent_id;
+      }
+
+
+      /*
+       * Expand every parent in the path.
+       */
+
+      setExpandedTopicIds(
+        current => {
+
+          const next =
+            new Set(
+              current
+            );
+
+
+          ancestorIds.forEach(
+            id =>
+              next.add(
+                id
+              )
+          );
+
+
+          return next;
+        }
+      );
+
+
+      lastFocusedTopicRef.current =
+        currentTopic.id;
+
+
+      /*
+       * Give React time to render the
+       * newly expanded hierarchy.
+       */
+
+      const timer =
+        window.setTimeout(
+          () => {
+
+            const element =
+              document.getElementById(
+                `personal-topic-${currentTopic.id}`
+              );
+
+
+            if (
+              element
+            ) {
+
+              element.scrollIntoView({
+
+                behavior:
+                  'smooth',
+
+                block:
+                  'center'
+
+              });
+            }
+
+          },
+          300
+        );
+
+
+      return () =>
+        window.clearTimeout(
+          timer
+        );
+
+    },
+    [
+      currentTopic,
+      topicMap
+    ]
+  );
 
 
   /*
@@ -1526,7 +1738,9 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (!client) {
+    if (
+      !client
+    ) {
 
       setMessage(
         'Study database is not configured.'
@@ -1540,7 +1754,9 @@ export function MyBooksPage() {
       bookTitle.trim();
 
 
-    if (!cleanTitle) {
+    if (
+      !cleanTitle
+    ) {
 
       setMessage(
         'Book title is required.'
@@ -1559,7 +1775,9 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (!user) {
+    if (
+      !user
+    ) {
 
       setMessage(
         'Sign in to add a book.'
@@ -1662,7 +1880,9 @@ export function MyBooksPage() {
         .single();
 
 
-    if (error) {
+    if (
+      error
+    ) {
 
       setMessage(
         error.message
@@ -1683,11 +1903,16 @@ export function MyBooksPage() {
 
 
     setBookTitle('');
+
     setBookAuthor('');
+
     setBookEdition('');
+
     setBookTotalPages('');
 
-    setShowBookForm(false);
+    setShowBookForm(
+      false
+    );
 
 
     setMessage(
@@ -1715,7 +1940,9 @@ export function MyBooksPage() {
       PersonalBook
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -1727,7 +1954,9 @@ export function MyBooksPage() {
       );
 
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
 
       return;
     }
@@ -1747,7 +1976,9 @@ export function MyBooksPage() {
         );
 
 
-    if (error) {
+    if (
+      error
+    ) {
 
       setMessage(
         error.message
@@ -1757,9 +1988,13 @@ export function MyBooksPage() {
     }
 
 
-    setShowTopicForm(false);
+    setShowTopicForm(
+      false
+    );
 
-    setShowBulkImporter(false);
+    setShowBulkImporter(
+      false
+    );
 
 
     setMessage(
@@ -1782,7 +2017,9 @@ export function MyBooksPage() {
       PersonalBook
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -1808,7 +2045,9 @@ export function MyBooksPage() {
       nextTitle.trim();
 
 
-    if (!cleanTitle) {
+    if (
+      !cleanTitle
+    ) {
 
       return;
     }
@@ -1833,7 +2072,9 @@ export function MyBooksPage() {
         );
 
 
-    if (error) {
+    if (
+      error
+    ) {
 
       setMessage(
         error.message
@@ -1864,7 +2105,9 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (!client) {
+    if (
+      !client
+    ) {
 
       return;
     }
@@ -1879,7 +2122,9 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (!user) {
+    if (
+      !user
+    ) {
 
       return;
     }
@@ -1938,7 +2183,9 @@ export function MyBooksPage() {
         );
 
 
-    if (error) {
+    if (
+      error
+    ) {
 
       setMessage(
         error.message
@@ -2029,7 +2276,9 @@ export function MyBooksPage() {
         );
 
 
-    if (error) {
+    if (
+      error
+    ) {
 
       setMessage(
         error.message
@@ -2170,7 +2419,9 @@ export function MyBooksPage() {
       topicName.trim();
 
 
-    if (!cleanName) {
+    if (
+      !cleanName
+    ) {
 
       setMessage(
         'Topic name is required.'
@@ -2262,7 +2513,9 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (!user) {
+    if (
+      !user
+    ) {
 
       return;
     }
@@ -2335,7 +2588,9 @@ export function MyBooksPage() {
         });
 
 
-    if (error) {
+    if (
+      error
+    ) {
 
       setMessage(
         error.message
@@ -2355,7 +2610,9 @@ export function MyBooksPage() {
 
     setPageEnd('');
 
-    setShowTopicForm(false);
+    setShowTopicForm(
+      false
+    );
 
 
     setMessage(
@@ -2374,7 +2631,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * UPDATE PROGRESS
+   * UPDATE TOPIC PROGRESS
    * =========================================
    */
 
@@ -2385,7 +2642,9 @@ export function MyBooksPage() {
       number
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -2396,6 +2655,10 @@ export function MyBooksPage() {
         value
       );
 
+
+    /*
+     * Update the UI immediately.
+     */
 
     setTopics(
       current =>
@@ -2433,7 +2696,9 @@ export function MyBooksPage() {
         );
 
 
-    if (error) {
+    if (
+      error
+    ) {
 
       setMessage(
         error.message
@@ -2462,7 +2727,9 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (!client) {
+    if (
+      !client
+    ) {
 
       return;
     }
@@ -2477,13 +2744,20 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (!user) {
+    if (
+      !user
+    ) {
 
       return;
     }
 
 
-    const resetResult =
+    /*
+     * Remove the previous current topic
+     * only inside this book.
+     */
+
+    const resetTopicResult =
       await client
         .from(
           'personal_book_topics'
@@ -2505,11 +2779,11 @@ export function MyBooksPage() {
 
 
     if (
-      resetResult.error
+      resetTopicResult.error
     ) {
 
       setMessage(
-        resetResult
+        resetTopicResult
           .error
           .message
       );
@@ -2518,9 +2792,11 @@ export function MyBooksPage() {
     }
 
 
-    const {
-      error
-    } =
+    /*
+     * Mark the selected topic.
+     */
+
+    const topicResult =
       await client
         .from(
           'personal_book_topics'
@@ -2537,19 +2813,96 @@ export function MyBooksPage() {
         );
 
 
-    if (error) {
+    if (
+      topicResult.error
+    ) {
 
       setMessage(
-        error.message
+        topicResult
+          .error
+          .message
       );
 
       return;
     }
 
 
-    await makeCurrentBook(
-      topic.book_id
-    );
+    /*
+     * Also make its book the current book.
+     */
+
+    const resetBookResult =
+      await client
+        .from(
+          'personal_books'
+        )
+        .update({
+
+          is_current:
+            false
+
+        })
+        .eq(
+          'user_id',
+          user.id
+        );
+
+
+    if (
+      resetBookResult.error
+    ) {
+
+      setMessage(
+        resetBookResult
+          .error
+          .message
+      );
+
+      return;
+    }
+
+
+    const bookResult =
+      await client
+        .from(
+          'personal_books'
+        )
+        .update({
+
+          is_current:
+            true,
+
+          reading_status:
+            'reading'
+
+        })
+        .eq(
+          'id',
+          topic.book_id
+        );
+
+
+    if (
+      bookResult.error
+    ) {
+
+      setMessage(
+        bookResult
+          .error
+          .message
+      );
+
+      return;
+    }
+
+
+    /*
+     * Allow the newly selected topic to
+     * receive automatic focus.
+     */
+
+    lastFocusedTopicRef.current =
+      null;
 
 
     await loadLibrary(
@@ -2569,7 +2922,9 @@ export function MyBooksPage() {
       PersonalTopic
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -2595,7 +2950,9 @@ export function MyBooksPage() {
       nextName.trim();
 
 
-    if (!cleanName) {
+    if (
+      !cleanName
+    ) {
 
       return;
     }
@@ -2620,7 +2977,9 @@ export function MyBooksPage() {
         );
 
 
-    if (error) {
+    if (
+      error
+    ) {
 
       setMessage(
         error.message
@@ -2647,7 +3006,9 @@ export function MyBooksPage() {
       PersonalTopic
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -2659,7 +3020,9 @@ export function MyBooksPage() {
       );
 
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
 
       return;
     }
@@ -2679,13 +3042,24 @@ export function MyBooksPage() {
         );
 
 
-    if (error) {
+    if (
+      error
+    ) {
 
       setMessage(
         error.message
       );
 
       return;
+    }
+
+
+    if (
+      topic.is_current
+    ) {
+
+      lastFocusedTopicRef.current =
+        null;
     }
 
 
@@ -2697,7 +3071,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * RENDER TOPIC
+   * RENDER ONE TOPIC
    * =========================================
    */
 
@@ -2718,10 +3092,14 @@ export function MyBooksPage() {
     }
 
 
-    const children =
+    const allChildren =
       getChildren(
         topic.id
-      ).filter(
+      );
+
+
+    const children =
+      allChildren.filter(
         child =>
           topicHasVisibleContent(
             child
@@ -2734,17 +3112,15 @@ export function MyBooksPage() {
       0;
 
 
+    const isLeaf =
+      allChildren.length ===
+      0;
+
+
     const calculated =
       calculatedTopicProgress(
         topic
       );
-
-
-    const isLeaf =
-      getChildren(
-        topic.id
-      ).length ===
-      0;
 
 
     const expanded =
@@ -2757,11 +3133,16 @@ export function MyBooksPage() {
     return (
 
       <div
+        id={
+          `personal-topic-${topic.id}`
+        }
+
         key={
           topic.id
         }
 
         style={{
+
           marginLeft:
             depth ===
               0
@@ -2774,19 +3155,21 @@ export function MyBooksPage() {
 
           marginTop:
             '10px'
+
         }}
       >
 
         <div
           style={{
+
             border:
               topic.is_current
-                ? '1px solid rgba(94,234,212,.65)'
+                ? '1px solid rgba(94,234,212,.75)'
                 : '1px solid rgba(255,255,255,.09)',
 
             background:
               topic.is_current
-                ? 'rgba(20,184,166,.10)'
+                ? 'rgba(20,184,166,.12)'
                 : 'rgba(255,255,255,.025)',
 
             borderRadius:
@@ -2794,11 +3177,13 @@ export function MyBooksPage() {
 
             padding:
               '14px'
+
           }}
         >
 
           <div
             style={{
+
               display:
                 'flex',
 
@@ -2810,19 +3195,25 @@ export function MyBooksPage() {
 
               gap:
                 '12px'
+
             }}
           >
 
             <div
               style={{
-                minWidth: 0,
 
-                flex: 1
+                minWidth:
+                  0,
+
+                flex:
+                  1
+
               }}
             >
 
               <div
                 style={{
+
                   display:
                     'flex',
 
@@ -2834,6 +3225,7 @@ export function MyBooksPage() {
 
                   gap:
                     '7px'
+
                 }}
               >
 
@@ -2868,11 +3260,13 @@ export function MyBooksPage() {
 
                 <small
                   style={{
+
                     textTransform:
                       'uppercase',
 
                     color:
                       '#5eead4'
+
                   }}
                 >
                   {
@@ -2926,14 +3320,14 @@ export function MyBooksPage() {
                 <div
                   style={{
                     marginTop:
-                      '6px'
+                      '7px'
                   }}
                 >
 
                   <span
                     className="pill"
                   >
-                    Currently Reading
+                    ● Currently Reading
                   </span>
 
                 </div>
@@ -2945,6 +3339,7 @@ export function MyBooksPage() {
 
             <strong
               style={{
+
                 fontSize:
                   '1.1rem',
 
@@ -2953,6 +3348,7 @@ export function MyBooksPage() {
                     100
                     ? '#5eead4'
                     : '#f8fafc'
+
               }}
             >
               {calculated}%
@@ -2969,12 +3365,14 @@ export function MyBooksPage() {
                 '12px'
             }}
           >
+
             <span
               style={{
                 width:
                   `${calculated}%`
               }}
             />
+
           </div>
 
 
@@ -3000,6 +3398,7 @@ export function MyBooksPage() {
 
             <small
               style={{
+
                 display:
                   'block',
 
@@ -3008,15 +3407,19 @@ export function MyBooksPage() {
 
                 color:
                   '#94a3b8'
+
               }}
             >
               Automatically calculated from{' '}
+
               {
                 getLeafTopics(
                   topic
                 ).length
               }{' '}
+
               underlying topic
+
               {
                 getLeafTopics(
                   topic
@@ -3032,6 +3435,7 @@ export function MyBooksPage() {
 
           <div
             style={{
+
               display:
                 'flex',
 
@@ -3043,13 +3447,18 @@ export function MyBooksPage() {
 
               marginTop:
                 '12px'
+
             }}
           >
 
             <button
               type="button"
 
-              className="secondary-btn"
+              className={
+                topic.is_current
+                  ? 'primary-btn'
+                  : 'secondary-btn'
+              }
 
               onClick={() =>
                 void makeCurrentTopic(
@@ -3057,7 +3466,11 @@ export function MyBooksPage() {
                 )
               }
             >
-              Read Now
+              {
+                topic.is_current
+                  ? 'Currently Reading'
+                  : 'Read Now'
+              }
             </button>
 
 
@@ -3114,6 +3527,7 @@ export function MyBooksPage() {
           expanded && (
 
           <div>
+
             {
               children.map(
                 child =>
@@ -3124,6 +3538,7 @@ export function MyBooksPage() {
                   )
               )
             }
+
           </div>
 
         )}
@@ -3140,7 +3555,9 @@ export function MyBooksPage() {
    * =========================================
    */
 
-  if (loading) {
+  if (
+    loading
+  ) {
 
     return (
 
@@ -3228,6 +3645,10 @@ export function MyBooksPage() {
 
       </section>
 
+
+      {/* =====================================
+          MESSAGE
+      ===================================== */}
 
       {message && (
 
@@ -3431,6 +3852,7 @@ export function MyBooksPage() {
 
             <div
               style={{
+
                 display:
                   'flex',
 
@@ -3439,6 +3861,7 @@ export function MyBooksPage() {
 
                 flexWrap:
                   'wrap'
+
               }}
             >
 
@@ -3493,11 +3916,13 @@ export function MyBooksPage() {
           className="panel"
 
           style={{
+
             marginTop:
               '14px',
 
             textAlign:
               'center'
+
           }}
         >
 
@@ -3558,6 +3983,7 @@ export function MyBooksPage() {
 
             <div
               style={{
+
                 display:
                   'grid',
 
@@ -3569,6 +3995,7 @@ export function MyBooksPage() {
 
                 marginTop:
                   '14px'
+
               }}
             >
 
@@ -3599,6 +4026,7 @@ export function MyBooksPage() {
                     }}
 
                     style={{
+
                       textAlign:
                         'left',
 
@@ -3625,11 +4053,14 @@ export function MyBooksPage() {
 
                       cursor:
                         'pointer'
+
                     }}
                   >
 
                     <strong>
-                      {book.title}
+                      {
+                        book.title
+                      }
                     </strong>
 
 
@@ -3637,6 +4068,7 @@ export function MyBooksPage() {
 
                       <small
                         style={{
+
                           display:
                             'block',
 
@@ -3645,9 +4077,12 @@ export function MyBooksPage() {
 
                           color:
                             '#94a3b8'
+
                         }}
                       >
-                        {book.author}
+                        {
+                          book.author
+                        }
                       </small>
 
                     )}
@@ -3655,6 +4090,7 @@ export function MyBooksPage() {
 
                     <small
                       style={{
+
                         display:
                           'block',
 
@@ -3665,6 +4101,7 @@ export function MyBooksPage() {
                           book.is_current
                             ? '#5eead4'
                             : '#94a3b8'
+
                       }}
                     >
                       {
@@ -3710,6 +4147,7 @@ export function MyBooksPage() {
 
               <div
                 style={{
+
                   display:
                     'flex',
 
@@ -3727,6 +4165,7 @@ export function MyBooksPage() {
 
                   marginTop:
                     '8px'
+
                 }}
               >
 
@@ -3746,7 +4185,8 @@ export function MyBooksPage() {
 
                   <p
                     style={{
-                      margin: 0
+                      margin:
+                        0
                     }}
                   >
                     {[
@@ -3756,8 +4196,12 @@ export function MyBooksPage() {
                         ? `Edition: ${selectedBook.edition}`
                         : null
                     ]
-                      .filter(Boolean)
-                      .join(' · ')}
+                      .filter(
+                        Boolean
+                      )
+                      .join(
+                        ' · '
+                      )}
                   </p>
 
                 </div>
@@ -3772,6 +4216,7 @@ export function MyBooksPage() {
 
                   <strong
                     style={{
+
                       display:
                         'block',
 
@@ -3780,9 +4225,12 @@ export function MyBooksPage() {
 
                       color:
                         '#5eead4'
+
                     }}
                   >
-                    {bookProgress}%
+                    {
+                      bookProgress
+                    }%
                   </strong>
 
 
@@ -3799,11 +4247,13 @@ export function MyBooksPage() {
                 className="progress-track"
 
                 style={{
+
                   height:
                     '10px',
 
                   marginTop:
                     '16px'
+
                 }}
               >
 
@@ -3817,8 +4267,13 @@ export function MyBooksPage() {
               </div>
 
 
+              {/* =============================
+                  BOOK STATISTICS
+              ============================= */}
+
               <div
                 style={{
+
                   display:
                     'grid',
 
@@ -3830,6 +4285,7 @@ export function MyBooksPage() {
 
                   marginTop:
                     '14px'
+
                 }}
               >
 
@@ -3837,7 +4293,9 @@ export function MyBooksPage() {
                   className="callout"
                 >
                   <strong>
-                    {leafTopics.length}
+                    {
+                      leafTopics.length
+                    }
                   </strong>
 
                   <p>
@@ -3850,7 +4308,9 @@ export function MyBooksPage() {
                   className="callout"
                 >
                   <strong>
-                    {notStartedLeafTopics}
+                    {
+                      notStartedLeafTopics
+                    }
                   </strong>
 
                   <p>
@@ -3863,7 +4323,9 @@ export function MyBooksPage() {
                   className="callout"
                 >
                   <strong>
-                    {readingLeafTopics}
+                    {
+                      readingLeafTopics
+                    }
                   </strong>
 
                   <p>
@@ -3876,7 +4338,9 @@ export function MyBooksPage() {
                   className="callout"
                 >
                   <strong>
-                    {completedLeafTopics}
+                    {
+                      completedLeafTopics
+                    }
                   </strong>
 
                   <p>
@@ -3889,7 +4353,9 @@ export function MyBooksPage() {
                   className="callout"
                 >
                   <strong>
-                    {remainingPercent}%
+                    {
+                      remainingPercent
+                    }%
                   </strong>
 
                   <p>
@@ -3900,10 +4366,15 @@ export function MyBooksPage() {
               </div>
 
 
+              {/* =============================
+                  CURRENT TOPIC
+              ============================= */}
+
               {currentTopic && (
 
                 <div
                   style={{
+
                     marginTop:
                       '16px',
 
@@ -3915,6 +4386,7 @@ export function MyBooksPage() {
 
                     background:
                       'rgba(20,184,166,.10)'
+
                   }}
                 >
 
@@ -3927,11 +4399,13 @@ export function MyBooksPage() {
 
                   <strong
                     style={{
+
                       display:
                         'block',
 
                       marginTop:
                         '6px'
+
                     }}
                   >
                     {
@@ -3941,10 +4415,36 @@ export function MyBooksPage() {
                     }
                   </strong>
 
+
+                  <small
+                    style={{
+
+                      display:
+                        'block',
+
+                      marginTop:
+                        '5px',
+
+                      color:
+                        '#5eead4'
+
+                    }}
+                  >
+                    {
+                      calculatedTopicProgress(
+                        currentTopic
+                      )
+                    }% complete
+                  </small>
+
                 </div>
 
               )}
 
+
+              {/* =============================
+                  PAGE TRACKING
+              ============================= */}
 
               {selectedBook.total_pages && (
 
@@ -4008,8 +4508,13 @@ export function MyBooksPage() {
               )}
 
 
+              {/* =============================
+                  BOOK ACTIONS
+              ============================= */}
+
               <div
                 style={{
+
                   display:
                     'flex',
 
@@ -4021,6 +4526,7 @@ export function MyBooksPage() {
 
                   marginTop:
                     '16px'
+
                 }}
               >
 
@@ -4193,6 +4699,12 @@ export function MyBooksPage() {
               <h3>
                 Add Topic
               </h3>
+
+
+              <p>
+                Add a Part, Chapter, Topic or
+                Subtopic to your personal book.
+              </p>
 
 
               <form
@@ -4380,6 +4892,7 @@ export function MyBooksPage() {
 
                 <div
                   style={{
+
                     display:
                       'flex',
 
@@ -4388,6 +4901,7 @@ export function MyBooksPage() {
 
                     flexWrap:
                       'wrap'
+
                   }}
                 >
 
@@ -4441,11 +4955,13 @@ export function MyBooksPage() {
               className="panel"
 
               style={{
+
                 marginTop:
                   '14px',
 
                 marginBottom:
                   '20px'
+
               }}
             >
 
@@ -4500,10 +5016,15 @@ export function MyBooksPage() {
               )}
 
 
+              {/* =============================
+                  FILTER INFORMATION
+              ============================= */}
+
               {isFiltering && (
 
                 <div
                   style={{
+
                     marginTop:
                       '12px',
 
@@ -4515,17 +5036,22 @@ export function MyBooksPage() {
 
                     background:
                       'rgba(59,130,246,.08)'
+
                   }}
                 >
+
                   <small>
                     Showing{' '}
+
                     <strong>
                       {
                         visibleLeafTopics
                           .length
                       }
                     </strong>{' '}
+
                     matching trackable topic
+
                     {
                       visibleLeafTopics
                         .length ===
@@ -4534,10 +5060,15 @@ export function MyBooksPage() {
                         : 's'
                     }.
                   </small>
+
                 </div>
 
               )}
 
+
+              {/* =============================
+                  NO TOPICS
+              ============================= */}
 
               {rootTopics.length ===
                 0 ? (
@@ -4565,6 +5096,7 @@ export function MyBooksPage() {
 
                   <div
                     style={{
+
                       display:
                         'flex',
 
@@ -4573,6 +5105,7 @@ export function MyBooksPage() {
 
                       gap:
                         '8px'
+
                     }}
                   >
 
@@ -4618,6 +5151,12 @@ export function MyBooksPage() {
               ) : visibleRootTopics.length ===
                 0 ? (
 
+                /*
+                 * =============================
+                 * NO SEARCH RESULT
+                 * =============================
+                 */
+
                 <div
                   className="callout"
 
@@ -4633,7 +5172,8 @@ export function MyBooksPage() {
 
 
                   <p>
-                    Change the search text or progress filter.
+                    Change the search text or
+                    progress filter.
                   </p>
 
 
@@ -4658,6 +5198,12 @@ export function MyBooksPage() {
                 </div>
 
               ) : (
+
+                /*
+                 * =============================
+                 * TOPIC TREE
+                 * =============================
+                 */
 
                 <div
                   style={{
