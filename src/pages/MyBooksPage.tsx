@@ -5,12 +5,17 @@ import {
 } from 'react';
 
 import type {
-  FormEvent
+  FormEvent,
+  ReactNode
 } from 'react';
 
 import {
   TopBar
 } from '../components/TopBar';
+
+import {
+  PersonalBookBulkImporter
+} from '../components/PersonalBookBulkImporter';
 
 import {
   supabase
@@ -137,7 +142,9 @@ function statusLabel(
   status: ReadingStatus
 ) {
 
-  switch (status) {
+  switch (
+    status
+  ) {
 
     case 'reading':
       return 'Reading';
@@ -156,25 +163,38 @@ function statusLabel(
 
 export function MyBooksPage() {
 
+  /*
+   * =========================================
+   * MAIN DATA
+   * =========================================
+   */
+
   const [
     books,
     setBooks
   ] =
-    useState<PersonalBook[]>([]);
+    useState<
+      PersonalBook[]
+    >([]);
 
 
   const [
     topics,
     setTopics
   ] =
-    useState<PersonalTopic[]>([]);
+    useState<
+      PersonalTopic[]
+    >([]);
 
 
   const [
     selectedBookId,
     setSelectedBookId
   ] =
-    useState<string | null>(
+    useState<
+      string |
+      null
+    >(
       null
     );
 
@@ -189,13 +209,6 @@ export function MyBooksPage() {
 
 
   const [
-    message,
-    setMessage
-  ] =
-    useState('');
-
-
-  const [
     saving,
     setSaving
   ] =
@@ -204,9 +217,16 @@ export function MyBooksPage() {
     );
 
 
+  const [
+    message,
+    setMessage
+  ] =
+    useState('');
+
+
   /*
    * =========================================
-   * ADD BOOK FORM
+   * BOOK FORM
    * =========================================
    */
 
@@ -267,7 +287,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * ADD TOPIC FORM
+   * SINGLE TOPIC FORM
    * =========================================
    */
 
@@ -319,7 +339,22 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * LOAD PERSONAL LIBRARY
+   * BULK IMPORT
+   * =========================================
+   */
+
+  const [
+    showBulkImporter,
+    setShowBulkImporter
+  ] =
+    useState(
+      false
+    );
+
+
+  /*
+   * =========================================
+   * LOAD LIBRARY
    * =========================================
    */
 
@@ -329,7 +364,9 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (!client) {
+    if (
+      !client
+    ) {
 
       setMessage(
         'Study database is not configured.'
@@ -351,8 +388,6 @@ export function MyBooksPage() {
       true
     );
 
-    setMessage('');
-
 
     const {
       data: {
@@ -364,7 +399,9 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (!user) {
+    if (
+      !user
+    ) {
 
       setMessage(
         'Sign in to use My Books.'
@@ -649,6 +686,7 @@ export function MyBooksPage() {
       cleanBooks
     );
 
+
     setTopics(
       cleanTopics
     );
@@ -783,12 +821,13 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * TOPIC TREE HELPERS
+   * TREE HELPERS
    * =========================================
    */
 
   function getChildren(
-    topicId: string
+    topicId:
+      string
   ) {
 
     return selectedBookTopics
@@ -852,9 +891,9 @@ export function MyBooksPage() {
 
     if (
       leaves.length ===
-      1 &&
+        1 &&
       leaves[0].id ===
-      topic.id
+        topic.id
     ) {
 
       return clampPercent(
@@ -904,6 +943,12 @@ export function MyBooksPage() {
     );
 
 
+  /*
+   * =========================================
+   * BOOK PROGRESS
+   * =========================================
+   */
+
   const bookProgress =
     useMemo(
       () => {
@@ -920,19 +965,20 @@ export function MyBooksPage() {
                   value
                 ):
                   value is string =>
-                    Boolean(value)
+                    Boolean(
+                      value
+                    )
               )
           );
 
 
         const leaves =
-          selectedBookTopics
-            .filter(
-              topic =>
-                !childIds.has(
-                  topic.id
-                )
-            );
+          selectedBookTopics.filter(
+            topic =>
+              !childIds.has(
+                topic.id
+              )
+          );
 
 
         if (
@@ -992,7 +1038,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * CURRENT READING PATH
+   * CURRENT READING
    * =========================================
    */
 
@@ -1091,7 +1137,9 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (!client) {
+    if (
+      !client
+    ) {
 
       setMessage(
         'Study database is not configured.'
@@ -1099,10 +1147,6 @@ export function MyBooksPage() {
 
       return;
     }
-
-
-    const safeClient =
-      client;
 
 
     const cleanTitle =
@@ -1126,12 +1170,13 @@ export function MyBooksPage() {
         user
       }
     } =
-      await safeClient
-        .auth
+      await client.auth
         .getUser();
 
 
-    if (!user) {
+    if (
+      !user
+    ) {
 
       setMessage(
         'Sign in to add a book.'
@@ -1156,7 +1201,8 @@ export function MyBooksPage() {
         !Number.isInteger(
           totalPages
         ) ||
-        totalPages <= 0
+        totalPages <=
+          0
       )
     ) {
 
@@ -1171,6 +1217,7 @@ export function MyBooksPage() {
     setSaving(
       true
     );
+
 
     setMessage('');
 
@@ -1192,7 +1239,7 @@ export function MyBooksPage() {
       data,
       error
     } =
-      await safeClient
+      await client
         .from(
           'personal_books'
         )
@@ -1251,6 +1298,14 @@ export function MyBooksPage() {
     }
 
 
+    const newBookId =
+      data?.id
+        ? String(
+            data.id
+          )
+        : null;
+
+
     setBookTitle('');
     setBookAuthor('');
     setBookEdition('');
@@ -1262,13 +1317,11 @@ export function MyBooksPage() {
 
 
     if (
-      data?.id
+      newBookId
     ) {
 
       setSelectedBookId(
-        String(
-          data.id
-        )
+        newBookId
       );
     }
 
@@ -1298,6 +1351,14 @@ export function MyBooksPage() {
       PersonalBook
   ) {
 
+    if (
+      !supabase
+    ) {
+
+      return;
+    }
+
+
     const confirmed =
       window.confirm(
         `Delete "${book.title}" and all its topics?`
@@ -1305,8 +1366,7 @@ export function MyBooksPage() {
 
 
     if (
-      !confirmed ||
-      !supabase
+      !confirmed
     ) {
 
       return;
@@ -1337,6 +1397,15 @@ export function MyBooksPage() {
 
       return;
     }
+
+
+    setShowTopicForm(
+      false
+    );
+
+    setShowBulkImporter(
+      false
+    );
 
 
     setMessage(
@@ -1376,7 +1445,7 @@ export function MyBooksPage() {
 
     if (
       nextTitle ===
-        null
+      null
     ) {
 
       return;
@@ -1443,7 +1512,9 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (!client) {
+    if (
+      !client
+    ) {
 
       return;
     }
@@ -1458,24 +1529,41 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (!user) {
+    if (
+      !user
+    ) {
 
       return;
     }
 
 
-    await client
-      .from(
-        'personal_books'
-      )
-      .update({
-        is_current:
-          false
-      })
-      .eq(
-        'user_id',
-        user.id
+    const resetResult =
+      await client
+        .from(
+          'personal_books'
+        )
+        .update({
+          is_current:
+            false
+        })
+        .eq(
+          'user_id',
+          user.id
+        );
+
+
+    if (
+      resetResult.error
+    ) {
+
+      setMessage(
+        resetResult
+          .error
+          .message
       );
+
+      return;
+    }
 
 
     const {
@@ -1530,6 +1618,16 @@ export function MyBooksPage() {
     if (
       !supabase ||
       !selectedBook
+    ) {
+
+      return;
+    }
+
+
+    if (
+      !Number.isFinite(
+        value
+      )
     ) {
 
       return;
@@ -1599,17 +1697,24 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * ADD TOPIC
+   * START ADD TOPIC
    * =========================================
    */
 
   function startAddTopic(
     parent:
       PersonalTopic |
-      null = null
+      null =
+        null
   ) {
 
+    setShowBulkImporter(
+      false
+    );
+
+
     setTopicName('');
+
 
     setParentId(
       parent?.id ||
@@ -1619,7 +1724,7 @@ export function MyBooksPage() {
 
     if (
       parent?.topic_type ===
-        'part'
+      'part'
     ) {
 
       setTopicType(
@@ -1628,7 +1733,7 @@ export function MyBooksPage() {
 
     } else if (
       parent?.topic_type ===
-        'chapter'
+      'chapter'
     ) {
 
       setTopicType(
@@ -1654,6 +1759,7 @@ export function MyBooksPage() {
     setPageStart('');
     setPageEnd('');
 
+
     setShowTopicForm(
       true
     );
@@ -1678,6 +1784,12 @@ export function MyBooksPage() {
     );
   }
 
+
+  /*
+   * =========================================
+   * SAVE SINGLE TOPIC
+   * =========================================
+   */
 
   async function saveTopic(
     event:
@@ -1716,6 +1828,79 @@ export function MyBooksPage() {
     }
 
 
+    const cleanPageStart =
+      pageStart.trim()
+        ? Number(
+            pageStart
+          )
+        : null;
+
+
+    const cleanPageEnd =
+      pageEnd.trim()
+        ? Number(
+            pageEnd
+          )
+        : null;
+
+
+    if (
+      cleanPageStart !==
+        null &&
+      (
+        !Number.isInteger(
+          cleanPageStart
+        ) ||
+        cleanPageStart <
+          0
+      )
+    ) {
+
+      setMessage(
+        'Start page must be a valid whole number.'
+      );
+
+      return;
+    }
+
+
+    if (
+      cleanPageEnd !==
+        null &&
+      (
+        !Number.isInteger(
+          cleanPageEnd
+        ) ||
+        cleanPageEnd <
+          0
+      )
+    ) {
+
+      setMessage(
+        'End page must be a valid whole number.'
+      );
+
+      return;
+    }
+
+
+    if (
+      cleanPageStart !==
+        null &&
+      cleanPageEnd !==
+        null &&
+      cleanPageEnd <
+        cleanPageStart
+    ) {
+
+      setMessage(
+        'End page cannot be before start page.'
+      );
+
+      return;
+    }
+
+
     const {
       data: {
         user
@@ -1725,7 +1910,9 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (!user) {
+    if (
+      !user
+    ) {
 
       return;
     }
@@ -1757,25 +1944,12 @@ export function MyBooksPage() {
           10;
 
 
-    const cleanPageStart =
-      pageStart.trim()
-        ? Number(
-            pageStart
-          )
-        : null;
-
-
-    const cleanPageEnd =
-      pageEnd.trim()
-        ? Number(
-            pageEnd
-          )
-        : null;
-
-
     setSaving(
       true
     );
+
+
+    setMessage('');
 
 
     const {
@@ -1889,6 +2063,7 @@ export function MyBooksPage() {
               topic.id
               ? {
                   ...item,
+
                   progress_percent:
                     cleanPercent
                 }
@@ -1942,7 +2117,9 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (!client) {
+    if (
+      !client
+    ) {
 
       return;
     }
@@ -1957,28 +2134,45 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (!user) {
+    if (
+      !user
+    ) {
 
       return;
     }
 
 
-    await client
-      .from(
-        'personal_book_topics'
-      )
-      .update({
-        is_current:
-          false
-      })
-      .eq(
-        'user_id',
-        user.id
-      )
-      .eq(
-        'book_id',
-        topic.book_id
+    const resetResult =
+      await client
+        .from(
+          'personal_book_topics'
+        )
+        .update({
+          is_current:
+            false
+        })
+        .eq(
+          'user_id',
+          user.id
+        )
+        .eq(
+          'book_id',
+          topic.book_id
+        );
+
+
+    if (
+      resetResult.error
+    ) {
+
+      setMessage(
+        resetResult
+          .error
+          .message
       );
+
+      return;
+    }
 
 
     const {
@@ -2047,7 +2241,7 @@ export function MyBooksPage() {
 
     if (
       nextName ===
-        null
+      null
     ) {
 
       return;
@@ -2171,8 +2365,9 @@ export function MyBooksPage() {
   function renderTopic(
     topic:
       PersonalTopic,
-    depth = 0
-  ): React.ReactNode {
+    depth =
+      0
+  ): ReactNode {
 
     const children =
       getChildren(
@@ -2200,10 +2395,12 @@ export function MyBooksPage() {
 
         style={{
           marginLeft:
-            depth === 0
+            depth ===
+              0
               ? 0
               : Math.min(
-                  depth * 18,
+                  depth *
+                    18,
                   54
                 ),
 
@@ -2264,7 +2461,9 @@ export function MyBooksPage() {
                     '#5eead4'
                 }}
               >
-                {topic.topic_type}
+                {
+                  topic.topic_type
+                }
               </small>
 
 
@@ -2274,7 +2473,9 @@ export function MyBooksPage() {
                     '4px 0 3px'
                 }}
               >
-                {topic.topic_name}
+                {
+                  topic.topic_name
+                }
               </h4>
 
 
@@ -2289,17 +2490,16 @@ export function MyBooksPage() {
                       '#94a3b8'
                   }}
                 >
-
                   Pages{' '}
-
-                  {topic.page_start ??
-                    '?'}
-
+                  {
+                    topic.page_start ??
+                    '?'
+                  }
                   {' – '}
-
-                  {topic.page_end ??
-                    '?'}
-
+                  {
+                    topic.page_end ??
+                    '?'
+                  }
                 </small>
 
               )}
@@ -2313,11 +2513,13 @@ export function MyBooksPage() {
                       '6px'
                   }}
                 >
+
                   <span
                     className="pill"
                   >
                     Currently Reading
                   </span>
+
                 </div>
 
               )}
@@ -2372,13 +2574,9 @@ export function MyBooksPage() {
             >
 
               <input
-
                 type="range"
-
                 min="0"
-
                 max="100"
-
                 step="5"
 
                 value={
@@ -2399,7 +2597,6 @@ export function MyBooksPage() {
                   width:
                     '100%'
                 }}
-
               />
 
 
@@ -2418,6 +2615,7 @@ export function MyBooksPage() {
                     '#94a3b8'
                 }}
               >
+
                 <span>
                   0%
                 </span>
@@ -2432,6 +2630,7 @@ export function MyBooksPage() {
                 <span>
                   100%
                 </span>
+
               </div>
 
             </div>
@@ -2451,11 +2650,16 @@ export function MyBooksPage() {
               }}
             >
               Automatically calculated from{' '}
-              {getLeafTopics(topic).length}{' '}
+              {
+                getLeafTopics(
+                  topic
+                ).length
+              }{' '}
               underlying topic
               {
-                getLeafTopics(topic)
-                  .length ===
+                getLeafTopics(
+                  topic
+                ).length ===
                   1
                   ? ''
                   : 's'
@@ -2484,6 +2688,7 @@ export function MyBooksPage() {
             <button
               type="button"
               className="secondary-btn"
+
               onClick={() =>
                 void makeCurrentTopic(
                   topic
@@ -2499,6 +2704,7 @@ export function MyBooksPage() {
               <button
                 type="button"
                 className="secondary-btn"
+
                 onClick={() =>
                   void updateTopicProgress(
                     topic,
@@ -2515,6 +2721,7 @@ export function MyBooksPage() {
             <button
               type="button"
               className="secondary-btn"
+
               onClick={() =>
                 startAddTopic(
                   topic
@@ -2528,6 +2735,7 @@ export function MyBooksPage() {
             <button
               type="button"
               className="text-btn"
+
               onClick={() =>
                 void renameTopic(
                   topic
@@ -2541,6 +2749,7 @@ export function MyBooksPage() {
             <button
               type="button"
               className="text-btn"
+
               onClick={() =>
                 void deleteTopic(
                   topic
@@ -2559,7 +2768,8 @@ export function MyBooksPage() {
           child =>
             renderTopic(
               child,
-              depth + 1
+              depth +
+                1
             )
         )}
 
@@ -2616,11 +2826,8 @@ export function MyBooksPage() {
     >
 
       <TopBar
-
         title="My Books"
-
         subtitle="Track exactly what you are reading and how much remains"
-
       />
 
 
@@ -2654,6 +2861,7 @@ export function MyBooksPage() {
         <button
           type="button"
           className="primary-btn"
+
           onClick={() =>
             setShowBookForm(
               current =>
@@ -2684,7 +2892,7 @@ export function MyBooksPage() {
 
 
       {/* =====================================
-          ADD BOOK
+          ADD BOOK FORM
       ===================================== */}
 
       {showBookForm && (
@@ -2723,12 +2931,14 @@ export function MyBooksPage() {
                 value={
                   bookTitle
                 }
+
                 onChange={
                   event =>
                     setBookTitle(
                       event.target.value
                     )
                 }
+
                 placeholder="Example: World History"
               />
             </label>
@@ -2745,12 +2955,14 @@ export function MyBooksPage() {
                   value={
                     bookAuthor
                   }
+
                   onChange={
                     event =>
                       setBookAuthor(
                         event.target.value
                       )
                   }
+
                   placeholder="Author name"
                 />
               </label>
@@ -2763,12 +2975,14 @@ export function MyBooksPage() {
                   value={
                     bookSubject
                   }
+
                   onChange={
                     event =>
                       setBookSubject(
                         event.target.value
                       )
                   }
+
                   placeholder="World History"
                 />
               </label>
@@ -2787,12 +3001,14 @@ export function MyBooksPage() {
                   value={
                     bookEdition
                   }
+
                   onChange={
                     event =>
                       setBookEdition(
                         event.target.value
                       )
                   }
+
                   placeholder="Optional"
                 />
               </label>
@@ -2804,15 +3020,18 @@ export function MyBooksPage() {
                 <input
                   type="number"
                   min="1"
+
                   value={
                     bookTotalPages
                   }
+
                   onChange={
                     event =>
                       setBookTotalPages(
                         event.target.value
                       )
                   }
+
                   placeholder="Optional"
                 />
               </label>
@@ -2824,7 +3043,6 @@ export function MyBooksPage() {
               Useful For
 
               <select
-
                 value={
                   bookExamStage
                 }
@@ -2837,8 +3055,8 @@ export function MyBooksPage() {
                         ExamStage
                     )
                 }
-
               >
+
                 <option value="both">
                   Prelims + Mains
                 </option>
@@ -2850,6 +3068,7 @@ export function MyBooksPage() {
                 <option value="mains">
                   Mains
                 </option>
+
               </select>
 
             </label>
@@ -2871,6 +3090,7 @@ export function MyBooksPage() {
               <button
                 type="submit"
                 className="primary-btn"
+
                 disabled={
                   saving
                 }
@@ -2886,6 +3106,7 @@ export function MyBooksPage() {
               <button
                 type="button"
                 className="secondary-btn"
+
                 onClick={() =>
                   setShowBookForm(
                     false
@@ -2937,6 +3158,7 @@ export function MyBooksPage() {
           <button
             type="button"
             className="primary-btn"
+
             onClick={() =>
               setShowBookForm(
                 true
@@ -2952,7 +3174,7 @@ export function MyBooksPage() {
 
 
       {/* =====================================
-          BOOK SELECTOR
+          LIBRARY
       ===================================== */}
 
       {books.length >
@@ -2996,18 +3218,27 @@ export function MyBooksPage() {
                 book => (
 
                   <button
-
                     key={
                       book.id
                     }
 
                     type="button"
 
-                    onClick={() =>
+                    onClick={() => {
+
                       setSelectedBookId(
                         book.id
-                      )
-                    }
+                      );
+
+                      setShowTopicForm(
+                        false
+                      );
+
+                      setShowBulkImporter(
+                        false
+                      );
+
+                    }}
 
                     style={{
                       textAlign:
@@ -3034,7 +3265,6 @@ export function MyBooksPage() {
                       color:
                         '#f8fafc'
                     }}
-
                   >
 
                     <strong>
@@ -3076,7 +3306,6 @@ export function MyBooksPage() {
                             : '#94a3b8'
                       }}
                     >
-
                       {
                         book.is_current
                           ? '● Current Book'
@@ -3084,7 +3313,6 @@ export function MyBooksPage() {
                               book.reading_status
                             )
                       }
-
                     </small>
 
                   </button>
@@ -3098,7 +3326,7 @@ export function MyBooksPage() {
 
 
           {/* =================================
-              SELECTED BOOK DASHBOARD
+              SELECTED BOOK
           ================================= */}
 
           {selectedBook && (
@@ -3149,7 +3377,9 @@ export function MyBooksPage() {
                         '0 0 5px'
                     }}
                   >
-                    {selectedBook.title}
+                    {
+                      selectedBook.title
+                    }
                   </h2>
 
 
@@ -3159,7 +3389,6 @@ export function MyBooksPage() {
                         0
                     }}
                   >
-
                     {[
                       selectedBook.author,
                       selectedBook.subject,
@@ -3173,7 +3402,6 @@ export function MyBooksPage() {
                       .join(
                         ' · '
                       )}
-
                   </p>
 
                 </div>
@@ -3198,8 +3426,11 @@ export function MyBooksPage() {
                         '#5eead4'
                     }}
                   >
-                    {bookProgress}%
+                    {
+                      bookProgress
+                    }%
                   </strong>
+
 
                   <small>
                     completed
@@ -3221,12 +3452,14 @@ export function MyBooksPage() {
                     '16px'
                 }}
               >
+
                 <span
                   style={{
                     width:
                       `${bookProgress}%`
                   }}
                 />
+
               </div>
 
 
@@ -3249,32 +3482,41 @@ export function MyBooksPage() {
                 <div
                   className="callout"
                 >
+
                   <strong>
-                    {bookProgress}%
+                    {
+                      bookProgress
+                    }%
                   </strong>
 
                   <p>
                     Completed
                   </p>
+
                 </div>
 
 
                 <div
                   className="callout"
                 >
+
                   <strong>
-                    {remainingPercent}%
+                    {
+                      remainingPercent
+                    }%
                   </strong>
 
                   <p>
                     Remaining
                   </p>
+
                 </div>
 
 
                 <div
                   className="callout"
                 >
+
                   <strong>
                     {
                       selectedBookTopics
@@ -3285,6 +3527,7 @@ export function MyBooksPage() {
                   <p>
                     Topics
                   </p>
+
                 </div>
 
               </div>
@@ -3351,14 +3594,17 @@ export function MyBooksPage() {
                     <input
                       type="number"
                       min="0"
+
                       max={
                         selectedBook
                           .total_pages
                       }
+
                       defaultValue={
                         selectedBook
                           .current_page
                       }
+
                       onBlur={
                         event =>
                           void updateCurrentPage(
@@ -3390,6 +3636,10 @@ export function MyBooksPage() {
               )}
 
 
+              {/* =============================
+                  BOOK ACTIONS
+              ============================= */}
+
               <div
                 style={{
                   display:
@@ -3409,13 +3659,45 @@ export function MyBooksPage() {
                 <button
                   type="button"
                   className="primary-btn"
-                  onClick={() =>
+
+                  onClick={() => {
+
+                    setShowBulkImporter(
+                      false
+                    );
+
                     startAddTopic(
                       null
-                    )
-                  }
+                    );
+
+                  }}
                 >
                   + Add Topic
+                </button>
+
+
+                <button
+                  type="button"
+                  className="secondary-btn"
+
+                  onClick={() => {
+
+                    setShowTopicForm(
+                      false
+                    );
+
+                    setShowBulkImporter(
+                      current =>
+                        !current
+                    );
+
+                  }}
+                >
+                  {
+                    showBulkImporter
+                      ? 'Close Fast Import'
+                      : 'Fast Index Import'
+                  }
                 </button>
 
 
@@ -3424,6 +3706,7 @@ export function MyBooksPage() {
                   <button
                     type="button"
                     className="secondary-btn"
+
                     onClick={() =>
                       void makeCurrentBook(
                         selectedBook.id
@@ -3439,6 +3722,7 @@ export function MyBooksPage() {
                 <button
                   type="button"
                   className="secondary-btn"
+
                   onClick={() =>
                     void renameBook(
                       selectedBook
@@ -3452,6 +3736,7 @@ export function MyBooksPage() {
                 <button
                   type="button"
                   className="text-btn"
+
                   onClick={() =>
                     void deleteBook(
                       selectedBook
@@ -3469,7 +3754,43 @@ export function MyBooksPage() {
 
 
           {/* =================================
-              ADD TOPIC FORM
+              FAST INDEX IMPORT
+          ================================= */}
+
+          {selectedBook &&
+            showBulkImporter && (
+
+            <PersonalBookBulkImporter
+
+              key={
+                selectedBook.id
+              }
+
+              bookId={
+                selectedBook.id
+              }
+
+              bookTitle={
+                selectedBook.title
+              }
+
+              onImported={() => {
+
+                setMessage(
+                  'Book index imported successfully.'
+                );
+
+                void loadLibrary();
+
+              }}
+
+            />
+
+          )}
+
+
+          {/* =================================
+              SINGLE TOPIC FORM
           ================================= */}
 
           {selectedBook &&
@@ -3500,8 +3821,8 @@ export function MyBooksPage() {
 
               <p>
                 Add a Part, Chapter, Topic or
-                Subtopic exactly according to
-                your own book.
+                Subtopic according to your
+                reading plan.
               </p>
 
 
@@ -3518,6 +3839,7 @@ export function MyBooksPage() {
                     value={
                       topicName
                     }
+
                     onChange={
                       event =>
                         setTopicName(
@@ -3525,7 +3847,8 @@ export function MyBooksPage() {
                             .value
                         )
                     }
-                    placeholder="Example: The First World War and its aftermath"
+
+                    placeholder="Enter topic name"
                   />
                 </label>
 
@@ -3541,6 +3864,7 @@ export function MyBooksPage() {
                       value={
                         topicType
                       }
+
                       onChange={
                         event =>
                           setTopicType(
@@ -3572,6 +3896,7 @@ export function MyBooksPage() {
                       </option>
 
                     </select>
+
                   </label>
 
 
@@ -3582,6 +3907,7 @@ export function MyBooksPage() {
                       value={
                         parentId
                       }
+
                       onChange={
                         event =>
                           setParentId(
@@ -3595,29 +3921,29 @@ export function MyBooksPage() {
                         Top Level
                       </option>
 
-                      {
-                        selectedBookTopics
-                          .map(
-                            topic => (
 
-                              <option
-                                key={
-                                  topic.id
-                                }
-                                value={
-                                  topic.id
-                                }
-                              >
-                                {
-                                  topic.topic_name
-                                }
-                              </option>
+                      {selectedBookTopics.map(
+                        topic => (
 
-                            )
-                          )
-                      }
+                          <option
+                            key={
+                              topic.id
+                            }
+
+                            value={
+                              topic.id
+                            }
+                          >
+                            {
+                              topic.topic_name
+                            }
+                          </option>
+
+                        )
+                      )}
 
                     </select>
+
                   </label>
 
                 </div>
@@ -3633,9 +3959,11 @@ export function MyBooksPage() {
                     <input
                       type="number"
                       min="0"
+
                       value={
                         pageStart
                       }
+
                       onChange={
                         event =>
                           setPageStart(
@@ -3643,6 +3971,7 @@ export function MyBooksPage() {
                               .value
                           )
                       }
+
                       placeholder="Optional"
                     />
                   </label>
@@ -3654,9 +3983,11 @@ export function MyBooksPage() {
                     <input
                       type="number"
                       min="0"
+
                       value={
                         pageEnd
                       }
+
                       onChange={
                         event =>
                           setPageEnd(
@@ -3664,6 +3995,7 @@ export function MyBooksPage() {
                               .value
                           )
                       }
+
                       placeholder="Optional"
                     />
                   </label>
@@ -3687,6 +4019,7 @@ export function MyBooksPage() {
                   <button
                     type="submit"
                     className="primary-btn"
+
                     disabled={
                       saving
                     }
@@ -3702,6 +4035,7 @@ export function MyBooksPage() {
                   <button
                     type="button"
                     className="secondary-btn"
+
                     onClick={() =>
                       setShowTopicForm(
                         false
@@ -3768,22 +4102,59 @@ export function MyBooksPage() {
 
 
                   <p>
-                    Start with a Part or Chapter
-                    from the book's contents page.
+                    Add one topic manually or use
+                    Fast Index Import for the full
+                    book structure.
                   </p>
 
 
-                  <button
-                    type="button"
-                    className="primary-btn"
-                    onClick={() =>
-                      startAddTopic(
-                        null
-                      )
-                    }
+                  <div
+                    style={{
+                      display:
+                        'flex',
+
+                      flexWrap:
+                        'wrap',
+
+                      gap:
+                        '8px'
+                    }}
                   >
-                    + Add First Topic
-                  </button>
+
+                    <button
+                      type="button"
+                      className="primary-btn"
+
+                      onClick={() =>
+                        startAddTopic(
+                          null
+                        )
+                      }
+                    >
+                      + Add First Topic
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className="secondary-btn"
+
+                      onClick={() => {
+
+                        setShowTopicForm(
+                          false
+                        );
+
+                        setShowBulkImporter(
+                          true
+                        );
+
+                      }}
+                    >
+                      Fast Index Import
+                    </button>
+
+                  </div>
 
                 </div>
 
