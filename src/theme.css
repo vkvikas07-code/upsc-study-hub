@@ -842,3 +842,133 @@ textarea::placeholder {
   opacity:
     1;
 }
+
+/* =========================================================
+   STANDALONE PAGE SCROLL FIX
+   Visitor Preview
+   Sign In / Sign Up
+   Serious Learner Activation
+   Loading screens
+   ========================================================= */
+
+ion-app > .page-wrap {
+  height: 100dvh;
+  min-height: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+
+  padding-bottom:
+    max(
+      40px,
+      env(safe-area-inset-bottom)
+    );
+
+  scrollbar-gutter: stable;
+}
+
+
+/* Better visible scrollbar on desktop */
+
+@media (min-width: 1000px) {
+
+  ion-app > .page-wrap {
+    scrollbar-width: thin;
+    scrollbar-color:
+      rgba(94, 234, 212, 0.45)
+      rgba(255, 255, 255, 0.04);
+  }
+
+  ion-app > .page-wrap::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ion-app > .page-wrap::-webkit-scrollbar-track {
+    background:
+      rgba(255, 255, 255, 0.03);
+  }
+
+  ion-app > .page-wrap::-webkit-scrollbar-thumb {
+    background:
+      rgba(94, 234, 212, 0.35);
+
+    border-radius: 20px;
+  }
+
+  ion-app > .page-wrap::-webkit-scrollbar-thumb:hover {
+    background:
+      rgba(94, 234, 212, 0.55);
+  }
+}
+
+
+/* Improve standalone page readability on desktop */
+
+@media (min-width: 1000px) {
+
+  ion-app > .page-wrap {
+    width:
+      min(
+        1240px,
+        100%
+      );
+
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  ion-app > .page-wrap .panel {
+    padding: 24px;
+  }
+
+  ion-app > .page-wrap .panel p {
+    line-height: 1.65;
+  }
+}
+
+
+/* Tablet */
+
+@media (
+  min-width: 701px
+)
+and (
+  max-width: 999px
+) {
+
+  ion-app > .page-wrap {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+
+/* Mobile */
+
+@media (max-width: 700px) {
+
+  ion-app > .page-wrap {
+    width: 100%;
+
+    padding-left: 14px;
+    padding-right: 14px;
+
+    padding-bottom:
+      max(
+        32px,
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  ion-app > .page-wrap .panel {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  ion-app > .page-wrap .topbar {
+    min-height: 76px;
+  }
+}
