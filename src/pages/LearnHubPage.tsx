@@ -27,6 +27,9 @@ import {
   RevisionWeekCalendar
 } from '../components/RevisionWeekCalendar';
 
+import {
+  PersonalRevisionWeekCalendar
+} from '../components/PersonalRevisionWeekCalendar';
 
 export type LearnMode =
   | 'syllabus'
@@ -654,24 +657,59 @@ export function LearnHubPage({
                 REVISION CALENDAR
             ================================= */}
 
-            {
-              bookWorkspace ===
-              'calendar' && (
+           {
+  bookWorkspace ===
+  'calendar' && (
 
-                <div
-                  style={{
-                    marginTop:
-                      '12px'
-                  }}
-                >
+    <div
+      style={{
+        marginTop:
+          '12px'
+      }}
+    >
 
-                  <RevisionWeekCalendar />
+      {/* =================================
+          STANDARD BOOK 7-DAY PLAN
+      ================================= */}
 
-                </div>
+      <RevisionWeekCalendar
 
-              )
-            }
+        onOpenTracker={() =>
+          setBookWorkspace(
+            'standard'
+          )
+        }
 
+      />
+
+
+      {/* =================================
+          PERSONAL BOOK 7-DAY PLAN
+      ================================= */}
+
+      <div
+        style={{
+          marginTop:
+            '14px'
+        }}
+      >
+
+        <PersonalRevisionWeekCalendar
+
+          onOpenTracker={() =>
+            setBookWorkspace(
+              'personal'
+            )
+          }
+
+        />
+
+      </div>
+
+    </div>
+
+  )
+}
 
             {/* =================================
                 REVISION SETTINGS
