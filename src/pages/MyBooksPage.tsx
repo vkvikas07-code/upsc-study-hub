@@ -23,6 +23,10 @@ import {
 } from '../components/TopicProgressControls';
 
 import {
+  TopicNotesEditor
+} from '../components/TopicNotesEditor';
+
+import {
   BookTopicToolbar
 } from '../components/BookTopicToolbar';
 
@@ -376,9 +380,8 @@ export function MyBooksPage() {
 
 
   /*
-   * Prevent automatic topic scrolling
-   * from running repeatedly after a topic
-   * has already been focused.
+   * Prevent automatic scrolling from
+   * repeatedly moving the screen.
    */
 
   const lastFocusedTopicRef =
@@ -389,7 +392,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * LOAD LIBRARY
+   * LOAD PERSONAL LIBRARY
    * =========================================
    */
 
@@ -494,14 +497,10 @@ export function MyBooksPage() {
       ]);
 
 
-    if (
-      bookResult.error
-    ) {
+    if (bookResult.error) {
 
       setMessage(
-        bookResult
-          .error
-          .message
+        bookResult.error.message
       );
 
       setLoading(false);
@@ -510,14 +509,10 @@ export function MyBooksPage() {
     }
 
 
-    if (
-      topicResult.error
-    ) {
+    if (topicResult.error) {
 
       setMessage(
-        topicResult
-          .error
-          .message
+        topicResult.error.message
       );
 
       setLoading(false);
@@ -709,8 +704,7 @@ export function MyBooksPage() {
       current => {
 
         /*
-         * First preference:
-         * an explicitly requested book.
+         * Explicitly requested book.
          */
 
         if (
@@ -727,8 +721,7 @@ export function MyBooksPage() {
 
 
         /*
-         * Keep an already selected book
-         * where possible.
+         * Keep selected book.
          */
 
         if (
@@ -745,9 +738,7 @@ export function MyBooksPage() {
 
 
         /*
-         * When opening My Reading from Home,
-         * automatically select the student's
-         * current book.
+         * Prefer the current book.
          */
 
         const currentBook =
@@ -781,8 +772,8 @@ export function MyBooksPage() {
 
 
   /*
-   * Reset search/filter when another book
-   * is opened.
+   * Reset book navigation when another
+   * book is selected.
    */
 
   useEffect(
@@ -798,11 +789,6 @@ export function MyBooksPage() {
         new Set<string>()
       );
 
-
-      /*
-       * Allow the current topic of the newly
-       * selected book to be focused.
-       */
 
       lastFocusedTopicRef.current =
         null;
@@ -840,9 +826,7 @@ export function MyBooksPage() {
     useMemo(
       () => {
 
-        if (
-          !selectedBookId
-        ) {
+        if (!selectedBookId) {
 
           return [];
         }
@@ -890,7 +874,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * TOPIC LOOKUP
+   * TOPIC LOOKUP MAPS
    * =========================================
    */
 
@@ -937,29 +921,27 @@ export function MyBooksPage() {
         selectedBookTopics.forEach(
           topic => {
 
-            if (
-              !topic.parent_id
-            ) {
+            if (!topic.parent_id) {
 
               return;
             }
 
 
-            const existing =
+            const children =
               map.get(
                 topic.parent_id
               ) ||
               [];
 
 
-            existing.push(
+            children.push(
               topic
             );
 
 
             map.set(
               topic.parent_id,
-              existing
+              children
             );
 
           }
@@ -1069,7 +1051,7 @@ export function MyBooksPage() {
       ];
 
 
-    let parentIdValue =
+    let currentParentId =
       topic.parent_id;
 
 
@@ -1078,26 +1060,24 @@ export function MyBooksPage() {
 
 
     while (
-      parentIdValue &&
+      currentParentId &&
       !visited.has(
-        parentIdValue
+        currentParentId
       )
     ) {
 
       visited.add(
-        parentIdValue
+        currentParentId
       );
 
 
       const parent =
         topicMap.get(
-          parentIdValue
+          currentParentId
         );
 
 
-      if (
-        !parent
-      ) {
+      if (!parent) {
 
         break;
       }
@@ -1108,7 +1088,7 @@ export function MyBooksPage() {
       );
 
 
-      parentIdValue =
+      currentParentId =
         parent.parent_id;
     }
 
@@ -1121,7 +1101,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * PROGRESS CALCULATION
+   * TOPIC PROGRESS
    * =========================================
    */
 
@@ -1342,30 +1322,12 @@ export function MyBooksPage() {
    * =========================================
    * AUTO FOCUS CURRENT READING
    * =========================================
-   *
-   * When the user opens:
-   *
-   * Home → Continue Reading
-   *
-   * My Reading automatically:
-   *
-   * 1. selects the current book
-   * 2. finds the current topic
-   * 3. expands all of its parents
-   * 4. scrolls to that exact topic
-   *
-   * It runs only once for the current topic,
-   * so percentage changes do not repeatedly
-   * move the screen.
-   * =========================================
    */
 
   useEffect(
     () => {
 
-      if (
-        !currentTopic
-      ) {
+      if (!currentTopic) {
 
         return;
       }
@@ -1389,49 +1351,43 @@ export function MyBooksPage() {
         new Set<string>();
 
 
-      let parentIdValue =
+      let currentParentId =
         currentTopic.parent_id;
 
 
       while (
-        parentIdValue &&
+        currentParentId &&
         !visited.has(
-          parentIdValue
+          currentParentId
         )
       ) {
 
         visited.add(
-          parentIdValue
+          currentParentId
         );
 
 
         ancestorIds.add(
-          parentIdValue
+          currentParentId
         );
 
 
         const parent =
           topicMap.get(
-            parentIdValue
+            currentParentId
           );
 
 
-        if (
-          !parent
-        ) {
+        if (!parent) {
 
           break;
         }
 
 
-        parentIdValue =
+        currentParentId =
           parent.parent_id;
       }
 
-
-      /*
-       * Expand every parent in the path.
-       */
 
       setExpandedTopicIds(
         current => {
@@ -1459,26 +1415,15 @@ export function MyBooksPage() {
         currentTopic.id;
 
 
-      /*
-       * Give React time to render the
-       * newly expanded hierarchy.
-       */
-
       const timer =
         window.setTimeout(
           () => {
 
-            const element =
-              document.getElementById(
+            document
+              .getElementById(
                 `personal-topic-${currentTopic.id}`
-              );
-
-
-            if (
-              element
-            ) {
-
-              element.scrollIntoView({
+              )
+              ?.scrollIntoView({
 
                 behavior:
                   'smooth',
@@ -1487,7 +1432,6 @@ export function MyBooksPage() {
                   'center'
 
               });
-            }
 
           },
           300
@@ -1509,7 +1453,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * SEARCH + FILTER
+   * SEARCH / FILTER
    * =========================================
    */
 
@@ -1571,9 +1515,7 @@ export function MyBooksPage() {
       PersonalTopic
   ) {
 
-    if (
-      !normalizedSearch
-    ) {
+    if (!normalizedSearch) {
 
       return true;
     }
@@ -1738,9 +1680,7 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (
-      !client
-    ) {
+    if (!client) {
 
       setMessage(
         'Study database is not configured.'
@@ -1754,9 +1694,7 @@ export function MyBooksPage() {
       bookTitle.trim();
 
 
-    if (
-      !cleanTitle
-    ) {
+    if (!cleanTitle) {
 
       setMessage(
         'Book title is required.'
@@ -1775,9 +1713,7 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (
-      !user
-    ) {
+    if (!user) {
 
       setMessage(
         'Sign in to add a book.'
@@ -1880,9 +1816,7 @@ export function MyBooksPage() {
         .single();
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       setMessage(
         error.message
@@ -1940,9 +1874,7 @@ export function MyBooksPage() {
       PersonalBook
   ) {
 
-    if (
-      !supabase
-    ) {
+    if (!supabase) {
 
       return;
     }
@@ -1954,9 +1886,7 @@ export function MyBooksPage() {
       );
 
 
-    if (
-      !confirmed
-    ) {
+    if (!confirmed) {
 
       return;
     }
@@ -1976,9 +1906,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       setMessage(
         error.message
@@ -2017,9 +1945,7 @@ export function MyBooksPage() {
       PersonalBook
   ) {
 
-    if (
-      !supabase
-    ) {
+    if (!supabase) {
 
       return;
     }
@@ -2045,9 +1971,7 @@ export function MyBooksPage() {
       nextTitle.trim();
 
 
-    if (
-      !cleanTitle
-    ) {
+    if (!cleanTitle) {
 
       return;
     }
@@ -2072,9 +1996,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       setMessage(
         error.message
@@ -2105,9 +2027,7 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (
-      !client
-    ) {
+    if (!client) {
 
       return;
     }
@@ -2122,9 +2042,7 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (
-      !user
-    ) {
+    if (!user) {
 
       return;
     }
@@ -2152,9 +2070,7 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        resetResult
-          .error
-          .message
+        resetResult.error.message
       );
 
       return;
@@ -2183,9 +2099,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       setMessage(
         error.message
@@ -2276,9 +2190,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       setMessage(
         error.message
@@ -2419,9 +2331,7 @@ export function MyBooksPage() {
       topicName.trim();
 
 
-    if (
-      !cleanName
-    ) {
+    if (!cleanName) {
 
       setMessage(
         'Topic name is required.'
@@ -2513,9 +2423,7 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (
-      !user
-    ) {
+    if (!user) {
 
       return;
     }
@@ -2588,9 +2496,7 @@ export function MyBooksPage() {
         });
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       setMessage(
         error.message
@@ -2638,13 +2544,12 @@ export function MyBooksPage() {
   async function updateTopicProgress(
     topic:
       PersonalTopic,
+
     value:
       number
   ) {
 
-    if (
-      !supabase
-    ) {
+    if (!supabase) {
 
       return;
     }
@@ -2656,8 +2561,12 @@ export function MyBooksPage() {
       );
 
 
+    const previousPercent =
+      topic.progress_percent;
+
+
     /*
-     * Update the UI immediately.
+     * Optimistic update.
      */
 
     setTopics(
@@ -2696,17 +2605,129 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
+    if (error) {
+
+      /*
+       * Restore previous value.
+       */
+
+      setTopics(
+        current =>
+          current.map(
+            item =>
+              item.id ===
+                topic.id
+                ? {
+                    ...item,
+
+                    progress_percent:
+                      previousPercent
+                  }
+                : item
+          )
+      );
+
 
       setMessage(
         error.message
       );
+    }
+  }
 
 
-      await loadLibrary(
-        topic.book_id
+  /*
+   * =========================================
+   * SAVE PERSONAL TOPIC NOTE
+   * =========================================
+   */
+
+  async function updateTopicNote(
+    topic:
+      PersonalTopic,
+
+    nextNotes:
+      string |
+      null
+  ) {
+
+    if (!supabase) {
+
+      throw new Error(
+        'Study database is not configured.'
+      );
+    }
+
+
+    const previousNotes =
+      topic.notes;
+
+
+    /*
+     * Show the new note immediately.
+     */
+
+    setTopics(
+      current =>
+        current.map(
+          item =>
+            item.id ===
+              topic.id
+              ? {
+                  ...item,
+
+                  notes:
+                    nextNotes
+                }
+              : item
+        )
+    );
+
+
+    const {
+      error
+    } =
+      await supabase
+        .from(
+          'personal_book_topics'
+        )
+        .update({
+
+          notes:
+            nextNotes
+
+        })
+        .eq(
+          'id',
+          topic.id
+        );
+
+
+    if (error) {
+
+      /*
+       * Restore the previous note when
+       * database saving fails.
+       */
+
+      setTopics(
+        current =>
+          current.map(
+            item =>
+              item.id ===
+                topic.id
+                ? {
+                    ...item,
+
+                    notes:
+                      previousNotes
+                  }
+                : item
+          )
+      );
+
+
+      throw new Error(
+        error.message
       );
     }
   }
@@ -2727,9 +2748,7 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (
-      !client
-    ) {
+    if (!client) {
 
       return;
     }
@@ -2744,17 +2763,15 @@ export function MyBooksPage() {
         .getUser();
 
 
-    if (
-      !user
-    ) {
+    if (!user) {
 
       return;
     }
 
 
     /*
-     * Remove the previous current topic
-     * only inside this book.
+     * Remove previous current topic
+     * inside this book.
      */
 
     const resetTopicResult =
@@ -2783,9 +2800,7 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        resetTopicResult
-          .error
-          .message
+        resetTopicResult.error.message
       );
 
       return;
@@ -2793,7 +2808,7 @@ export function MyBooksPage() {
 
 
     /*
-     * Mark the selected topic.
+     * Mark this topic as current.
      */
 
     const topicResult =
@@ -2818,9 +2833,7 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        topicResult
-          .error
-          .message
+        topicResult.error.message
       );
 
       return;
@@ -2828,7 +2841,7 @@ export function MyBooksPage() {
 
 
     /*
-     * Also make its book the current book.
+     * Remove previous current book.
      */
 
     const resetBookResult =
@@ -2853,14 +2866,16 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        resetBookResult
-          .error
-          .message
+        resetBookResult.error.message
       );
 
       return;
     }
 
+
+    /*
+     * Make this topic's book current.
+     */
 
     const bookResult =
       await client
@@ -2887,9 +2902,7 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        bookResult
-          .error
-          .message
+        bookResult.error.message
       );
 
       return;
@@ -2897,8 +2910,8 @@ export function MyBooksPage() {
 
 
     /*
-     * Allow the newly selected topic to
-     * receive automatic focus.
+     * Permit automatic focus on the
+     * newly selected topic.
      */
 
     lastFocusedTopicRef.current =
@@ -2922,9 +2935,7 @@ export function MyBooksPage() {
       PersonalTopic
   ) {
 
-    if (
-      !supabase
-    ) {
+    if (!supabase) {
 
       return;
     }
@@ -2950,9 +2961,7 @@ export function MyBooksPage() {
       nextName.trim();
 
 
-    if (
-      !cleanName
-    ) {
+    if (!cleanName) {
 
       return;
     }
@@ -2977,9 +2986,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       setMessage(
         error.message
@@ -3006,9 +3013,7 @@ export function MyBooksPage() {
       PersonalTopic
   ) {
 
-    if (
-      !supabase
-    ) {
+    if (!supabase) {
 
       return;
     }
@@ -3020,9 +3025,7 @@ export function MyBooksPage() {
       );
 
 
-    if (
-      !confirmed
-    ) {
+    if (!confirmed) {
 
       return;
     }
@@ -3042,9 +3045,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       setMessage(
         error.message
@@ -3071,13 +3072,14 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * RENDER ONE TOPIC
+   * RENDER TOPIC
    * =========================================
    */
 
   function renderTopic(
     topic:
       PersonalTopic,
+
     depth =
       0
   ): ReactNode {
@@ -3180,6 +3182,10 @@ export function MyBooksPage() {
 
           }}
         >
+
+          {/* =============================
+              TOPIC HEADER
+          ============================= */}
 
           <div
             style={{
@@ -3301,11 +3307,14 @@ export function MyBooksPage() {
                   }}
                 >
                   Pages{' '}
+
                   {
                     topic.page_start ??
                     '?'
                   }
+
                   {' – '}
+
                   {
                     topic.page_end ??
                     '?'
@@ -3351,11 +3360,17 @@ export function MyBooksPage() {
 
               }}
             >
-              {calculated}%
+              {
+                calculated
+              }%
             </strong>
 
           </div>
 
+
+          {/* =============================
+              PROGRESS BAR
+          ============================= */}
 
           <div
             className="progress-track"
@@ -3375,6 +3390,10 @@ export function MyBooksPage() {
 
           </div>
 
+
+          {/* =============================
+              LEAF TOPIC PROGRESS
+          ============================= */}
 
           {isLeaf ? (
 
@@ -3432,6 +3451,35 @@ export function MyBooksPage() {
 
           )}
 
+
+          {/* =============================
+              PERSONAL NOTE
+          ============================= */}
+
+          <TopicNotesEditor
+
+            topicName={
+              topic.topic_name
+            }
+
+            notes={
+              topic.notes
+            }
+
+            onSave={
+              nextNotes =>
+                updateTopicNote(
+                  topic,
+                  nextNotes
+                )
+            }
+
+          />
+
+
+          {/* =============================
+              TOPIC ACTIONS
+          ============================= */}
 
           <div
             style={{
@@ -3523,6 +3571,10 @@ export function MyBooksPage() {
         </div>
 
 
+        {/* =============================
+            CHILD TOPICS
+        ============================= */}
+
         {hasChildren &&
           expanded && (
 
@@ -3555,9 +3607,7 @@ export function MyBooksPage() {
    * =========================================
    */
 
-  if (
-    loading
-  ) {
+  if (loading) {
 
     return (
 
@@ -3660,14 +3710,16 @@ export function MyBooksPage() {
               '14px'
           }}
         >
-          {message}
+          {
+            message
+          }
         </section>
 
       )}
 
 
       {/* =====================================
-          ADD BOOK
+          ADD BOOK FORM
       ===================================== */}
 
       {showBookForm && (
@@ -4268,7 +4320,7 @@ export function MyBooksPage() {
 
 
               {/* =============================
-                  BOOK STATISTICS
+                  BOOK STATS
               ============================= */}
 
               <div
@@ -4468,21 +4520,18 @@ export function MyBooksPage() {
                       min="0"
 
                       max={
-                        selectedBook
-                          .total_pages
+                        selectedBook.total_pages
                       }
 
                       defaultValue={
-                        selectedBook
-                          .current_page
+                        selectedBook.current_page
                       }
 
                       onBlur={
                         event =>
                           void updateCurrentPage(
                             Number(
-                              event.target
-                                .value
+                              event.target.value
                             )
                           )
                       }
@@ -4493,13 +4542,11 @@ export function MyBooksPage() {
                   <small>
                     Page{' '}
                     {
-                      selectedBook
-                        .current_page
+                      selectedBook.current_page
                     }{' '}
                     of{' '}
                     {
-                      selectedBook
-                        .total_pages
+                      selectedBook.total_pages
                     }
                   </small>
 
@@ -4672,7 +4719,7 @@ export function MyBooksPage() {
 
 
           {/* =================================
-              ADD TOPIC FORM
+              ADD TOPIC
           ================================= */}
 
           {selectedBook &&
@@ -4724,8 +4771,7 @@ export function MyBooksPage() {
                     onChange={
                       event =>
                         setTopicName(
-                          event.target
-                            .value
+                          event.target.value
                         )
                     }
 
@@ -4792,8 +4838,7 @@ export function MyBooksPage() {
                       onChange={
                         event =>
                           setParentId(
-                            event.target
-                              .value
+                            event.target.value
                           )
                       }
                     >
@@ -4803,29 +4848,27 @@ export function MyBooksPage() {
                       </option>
 
 
-                      {
-                        selectedBookTopics.map(
-                          topic => (
+                      {selectedBookTopics.map(
+                        topic => (
 
-                            <option
-                              key={
-                                topic.id
-                              }
+                          <option
+                            key={
+                              topic.id
+                            }
 
-                              value={
-                                topic.id
-                              }
-                            >
-                              {
-                                topicPath(
-                                  topic
-                                )
-                              }
-                            </option>
+                            value={
+                              topic.id
+                            }
+                          >
+                            {
+                              topicPath(
+                                topic
+                              )
+                            }
+                          </option>
 
-                          )
                         )
-                      }
+                      )}
 
                     </select>
 
@@ -4853,8 +4896,7 @@ export function MyBooksPage() {
                       onChange={
                         event =>
                           setPageStart(
-                            event.target
-                              .value
+                            event.target.value
                           )
                       }
 
@@ -4878,8 +4920,7 @@ export function MyBooksPage() {
                       onChange={
                         event =>
                           setPageEnd(
-                            event.target
-                              .value
+                            event.target.value
                           )
                       }
 
@@ -4991,8 +5032,7 @@ export function MyBooksPage() {
                   }
 
                   totalTopics={
-                    selectedBookTopics
-                      .length
+                    selectedBookTopics.length
                   }
 
                   onSearchChange={
@@ -5017,7 +5057,7 @@ export function MyBooksPage() {
 
 
               {/* =============================
-                  FILTER INFORMATION
+                  FILTER RESULT
               ============================= */}
 
               {isFiltering && (
@@ -5045,16 +5085,14 @@ export function MyBooksPage() {
 
                     <strong>
                       {
-                        visibleLeafTopics
-                          .length
+                        visibleLeafTopics.length
                       }
                     </strong>{' '}
 
                     matching trackable topic
 
                     {
-                      visibleLeafTopics
-                        .length ===
+                      visibleLeafTopics.length ===
                         1
                         ? ''
                         : 's'
@@ -5067,7 +5105,7 @@ export function MyBooksPage() {
 
 
               {/* =============================
-                  NO TOPICS
+                  EMPTY BOOK
               ============================= */}
 
               {rootTopics.length ===
@@ -5212,14 +5250,12 @@ export function MyBooksPage() {
                   }}
                 >
 
-                  {
-                    visibleRootTopics.map(
-                      topic =>
-                        renderTopic(
-                          topic
-                        )
-                    )
-                  }
+                  {visibleRootTopics.map(
+                    topic =>
+                      renderTopic(
+                        topic
+                      )
+                  )}
 
                 </div>
 
