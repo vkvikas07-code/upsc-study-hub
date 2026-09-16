@@ -40,6 +40,10 @@ import {
 } from '../components/RevisionDueToday';
 
 import {
+  PersonalRevisionDueToday
+} from '../components/PersonalRevisionDueToday';
+
+import {
   CurrentReadingCard
 } from '../components/CurrentReadingCard';
 
@@ -1086,27 +1090,40 @@ export function HomePage({
           REVISION DUE
       ===================================== */}
 
-      {openPanel ===
-        'revision' && (
+     {openPanel ===
+  'revision' && (
 
-        <div
-          style={{
-            marginTop:
-              '12px'
-          }}
-        >
+  <div
+    style={{
+      marginTop:
+        '12px'
+    }}
+  >
 
-          <RevisionDueToday
+    {/* STANDARD BOOK REVISIONS */}
 
-            onOpenTracker={
-              openMyReading
-            }
+    <RevisionDueToday
 
-          />
+      onOpenTracker={
+        openMyReading
+      }
 
-        </div>
+    />
 
-      )}
+
+    {/* PERSONAL BOOK REVISIONS */}
+
+    <PersonalRevisionDueToday
+
+      onOpenTracker={
+        openMyReading
+      }
+
+    />
+
+  </div>
+
+)}
 
 
       {/* =====================================
