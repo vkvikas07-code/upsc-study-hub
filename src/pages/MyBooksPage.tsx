@@ -27,6 +27,10 @@ import {
 } from '../components/TopicNotesEditor';
 
 import {
+  PersonalTopicRevisionControls
+} from '../components/PersonalTopicRevisionControls';
+
+import {
   BookTopicToolbar
 } from '../components/BookTopicToolbar';
 
@@ -83,12 +87,27 @@ type PersonalTopic = {
   parent_id: string | null;
   topic_name: string;
   topic_type: TopicType;
+
   progress_percent: number;
+
   is_current: boolean;
+
   page_start: number | null;
   page_end: number | null;
+
   notes: string | null;
+
   sort_order: number;
+
+  completed_at: string | null;
+
+  revision_count: number;
+
+  revision_1_at: string | null;
+  revision_2_at: string | null;
+  final_revision_at: string | null;
+
+  next_revision_due_at: string | null;
 };
 
 
@@ -120,7 +139,13 @@ const TOPIC_SELECT = `
   page_start,
   page_end,
   notes,
-  sort_order
+  sort_order,
+  completed_at,
+  revision_count,
+  revision_1_at,
+  revision_2_at,
+  final_revision_at,
+  next_revision_due_at
 `;
 
 
@@ -152,6 +177,40 @@ function clampPercent(
 }
 
 
+function cleanRevisionCount(
+  value: unknown
+) {
+
+  return Math.min(
+    3,
+    Math.max(
+      0,
+      Math.round(
+        safeNumber(value)
+      )
+    )
+  );
+}
+
+
+function textOrNull(
+  value: unknown
+) {
+
+  if (
+    value === null ||
+    value === undefined ||
+    value === ''
+  ) {
+
+    return null;
+  }
+
+
+  return String(value);
+}
+
+
 function statusLabel(
   status: ReadingStatus
 ) {
@@ -170,6 +229,249 @@ function statusLabel(
     default:
       return 'Planned';
   }
+}
+
+
+function normaliseBook(
+  item: any
+): PersonalBook {
+
+  return {
+
+    id:
+      String(
+        item.id
+      ),
+
+    title:
+      String(
+        item.title ||
+        ''
+      ),
+
+    author:
+      textOrNull(
+        item.author
+      ),
+
+    subject:
+      String(
+        item.subject ||
+        'General'
+      ),
+
+    edition:
+      textOrNull(
+        item.edition
+      ),
+
+    exam_stage:
+      (
+        item.exam_stage ||
+        'both'
+      ) as ExamStage,
+
+    total_pages:
+      item.total_pages ===
+        null ||
+      item.total_pages ===
+        undefined
+        ? null
+        : safeNumber(
+            item.total_pages
+          ),
+
+    current_page:
+      safeNumber(
+        item.current_page
+      ),
+
+    reading_status:
+      (
+        item.reading_status ||
+        'planned'
+      ) as ReadingStatus,
+
+    is_current:
+      item.is_current ===
+      true,
+
+    notes:
+      textOrNull(
+        item.notes
+      ),
+
+    sort_order:
+      safeNumber(
+        item.sort_order
+      )
+
+  };
+}
+
+
+function normaliseTopic(
+  item: any
+): PersonalTopic {
+
+  return {
+
+    id:
+      String(
+        item.id
+      ),
+
+    user_id:
+      String(
+        item.user_id
+      ),
+
+    book_id:
+      String(
+        item.book_id
+      ),
+
+    parent_id:
+      textOrNull(
+        item.parent_id
+      ),
+
+    topic_name:
+      String(
+        item.topic_name ||
+        ''
+      ),
+
+    topic_type:
+      (
+        item.topic_type ||
+        'topic'
+      ) as TopicType,
+
+    progress_percent:
+      clampPercent(
+        safeNumber(
+          item.progress_percent
+        )
+      ),
+
+    is_current:
+      item.is_current ===
+      true,
+
+    page_start:
+      item.page_start ===
+        null ||
+      item.page_start ===
+        undefined
+        ? null
+        : safeNumber(
+            item.page_start
+          ),
+
+    page_end:
+      item.page_end ===
+        null ||
+      item.page_end ===
+        undefined
+        ? null
+        : safeNumber(
+            item.page_end
+          ),
+
+    notes:
+      textOrNull(
+        item.notes
+      ),
+
+    sort_order:
+      safeNumber(
+        item.sort_order
+      ),
+
+    completed_at:
+      textOrNull(
+        item.completed_at
+      ),
+
+    revision_count:
+      cleanRevisionCount(
+        item.revision_count
+      ),
+
+    revision_1_at:
+      textOrNull(
+        item.revision_1_at
+      ),
+
+    revision_2_at:
+      textOrNull(
+        item.revision_2_at
+      ),
+
+    final_revision_at:
+      textOrNull(
+        item.final_revision_at
+      ),
+
+    next_revision_due_at:
+      textOrNull(
+        item.next_revision_due_at
+      )
+
+  };
+}
+
+
+function revisionIsDueNow(
+  topic:
+    PersonalTopic
+) {
+
+  if (
+    topic.progress_percent <
+      100 ||
+    topic.revision_count >=
+      3 ||
+    !topic.next_revision_due_at
+  ) {
+
+    return false;
+  }
+
+
+  const due =
+    new Date(
+      topic.next_revision_due_at
+    );
+
+
+  if (
+    Number.isNaN(
+      due.getTime()
+    )
+  ) {
+
+    return false;
+  }
+
+
+  const endOfToday =
+    new Date();
+
+
+  endOfToday.setHours(
+    23,
+    59,
+    59,
+    999
+  );
+
+
+  return (
+    due.getTime() <=
+    endOfToday.getTime()
+  );
 }
 
 
@@ -223,6 +525,20 @@ export function MyBooksPage() {
     setMessage
   ] =
     useState('');
+
+
+  /*
+   * Track revision buttons separately.
+   */
+
+  const [
+    revisionSavingIds,
+    setRevisionSavingIds
+  ] =
+    useState<Set<string>>(
+      () =>
+        new Set<string>()
+    );
 
 
   /*
@@ -392,6 +708,49 @@ export function MyBooksPage() {
 
   /*
    * =========================================
+   * REVISION SAVING STATE
+   * =========================================
+   */
+
+  function setRevisionSaving(
+    topicId:
+      string,
+
+    value:
+      boolean
+  ) {
+
+    setRevisionSavingIds(
+      current => {
+
+        const next =
+          new Set(
+            current
+          );
+
+
+        if (value) {
+
+          next.add(
+            topicId
+          );
+
+        } else {
+
+          next.delete(
+            topicId
+          );
+        }
+
+
+        return next;
+      }
+    );
+  }
+
+
+  /*
+   * =========================================
    * LOAD PERSONAL LIBRARY
    * =========================================
    */
@@ -410,13 +769,17 @@ export function MyBooksPage() {
         'Study database is not configured.'
       );
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
       return;
     }
 
 
-    setLoading(true);
+    setLoading(
+      true
+    );
 
 
     const {
@@ -434,7 +797,9 @@ export function MyBooksPage() {
         'Sign in to use My Books.'
       );
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
       return;
     }
@@ -460,13 +825,15 @@ export function MyBooksPage() {
           .order(
             'sort_order',
             {
-              ascending: true
+              ascending:
+                true
             }
           )
           .order(
             'created_at',
             {
-              ascending: true
+              ascending:
+                true
             }
           ),
 
@@ -484,210 +851,73 @@ export function MyBooksPage() {
           .order(
             'sort_order',
             {
-              ascending: true
+              ascending:
+                true
             }
           )
           .order(
             'created_at',
             {
-              ascending: true
+              ascending:
+                true
             }
           )
 
       ]);
 
 
-    if (bookResult.error) {
+    if (
+      bookResult.error
+    ) {
 
       setMessage(
-        bookResult.error.message
+        bookResult
+          .error
+          .message
       );
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
       return;
     }
 
 
-    if (topicResult.error) {
+    if (
+      topicResult.error
+    ) {
 
       setMessage(
-        topicResult.error.message
+        topicResult
+          .error
+          .message
       );
 
-      setLoading(false);
+      setLoading(
+        false
+      );
 
       return;
     }
 
 
-    const cleanBooks:
-      PersonalBook[] =
-        (
-          bookResult.data ||
-          []
-        ).map(
-          item => ({
-
-            id:
-              String(
-                item.id
-              ),
-
-            title:
-              String(
-                item.title ||
-                ''
-              ),
-
-            author:
-              item.author
-                ? String(
-                    item.author
-                  )
-                : null,
-
-            subject:
-              String(
-                item.subject ||
-                'General'
-              ),
-
-            edition:
-              item.edition
-                ? String(
-                    item.edition
-                  )
-                : null,
-
-            exam_stage:
-              (
-                item.exam_stage ||
-                'both'
-              ) as ExamStage,
-
-            total_pages:
-              item.total_pages ===
-                null
-                ? null
-                : safeNumber(
-                    item.total_pages
-                  ),
-
-            current_page:
-              safeNumber(
-                item.current_page
-              ),
-
-            reading_status:
-              (
-                item.reading_status ||
-                'planned'
-              ) as ReadingStatus,
-
-            is_current:
-              item.is_current ===
-                true,
-
-            notes:
-              item.notes
-                ? String(
-                    item.notes
-                  )
-                : null,
-
-            sort_order:
-              safeNumber(
-                item.sort_order
-              )
-
-          })
-        );
+    const cleanBooks =
+      (
+        bookResult.data ||
+        []
+      ).map(
+        normaliseBook
+      );
 
 
-    const cleanTopics:
-      PersonalTopic[] =
-        (
-          topicResult.data ||
-          []
-        ).map(
-          item => ({
-
-            id:
-              String(
-                item.id
-              ),
-
-            user_id:
-              String(
-                item.user_id
-              ),
-
-            book_id:
-              String(
-                item.book_id
-              ),
-
-            parent_id:
-              item.parent_id
-                ? String(
-                    item.parent_id
-                  )
-                : null,
-
-            topic_name:
-              String(
-                item.topic_name ||
-                ''
-              ),
-
-            topic_type:
-              (
-                item.topic_type ||
-                'topic'
-              ) as TopicType,
-
-            progress_percent:
-              clampPercent(
-                safeNumber(
-                  item.progress_percent
-                )
-              ),
-
-            is_current:
-              item.is_current ===
-                true,
-
-            page_start:
-              item.page_start ===
-                null
-                ? null
-                : safeNumber(
-                    item.page_start
-                  ),
-
-            page_end:
-              item.page_end ===
-                null
-                ? null
-                : safeNumber(
-                    item.page_end
-                  ),
-
-            notes:
-              item.notes
-                ? String(
-                    item.notes
-                  )
-                : null,
-
-            sort_order:
-              safeNumber(
-                item.sort_order
-              )
-
-          })
-        );
+    const cleanTopics =
+      (
+        topicResult.data ||
+        []
+      ).map(
+        normaliseTopic
+      );
 
 
     setBooks(
@@ -704,7 +934,8 @@ export function MyBooksPage() {
       current => {
 
         /*
-         * Explicitly requested book.
+         * First:
+         * explicitly requested book.
          */
 
         if (
@@ -721,7 +952,7 @@ export function MyBooksPage() {
 
 
         /*
-         * Keep selected book.
+         * Keep currently selected book.
          */
 
         if (
@@ -738,7 +969,7 @@ export function MyBooksPage() {
 
 
         /*
-         * Prefer the current book.
+         * Otherwise prefer current book.
          */
 
         const currentBook =
@@ -757,7 +988,9 @@ export function MyBooksPage() {
     );
 
 
-    setLoading(false);
+    setLoading(
+      false
+    );
   }
 
 
@@ -772,8 +1005,7 @@ export function MyBooksPage() {
 
 
   /*
-   * Reset book navigation when another
-   * book is selected.
+   * Reset navigation when book changes.
    */
 
   useEffect(
@@ -788,7 +1020,6 @@ export function MyBooksPage() {
       setExpandedTopicIds(
         new Set<string>()
       );
-
 
       lastFocusedTopicRef.current =
         null;
@@ -826,7 +1057,9 @@ export function MyBooksPage() {
     useMemo(
       () => {
 
-        if (!selectedBookId) {
+        if (
+          !selectedBookId
+        ) {
 
           return [];
         }
@@ -874,7 +1107,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * TOPIC LOOKUP MAPS
+   * TOPIC MAPS
    * =========================================
    */
 
@@ -921,7 +1154,9 @@ export function MyBooksPage() {
         selectedBookTopics.forEach(
           topic => {
 
-            if (!topic.parent_id) {
+            if (
+              !topic.parent_id
+            ) {
 
               return;
             }
@@ -991,7 +1226,8 @@ export function MyBooksPage() {
 
 
   function getChildren(
-    topicId: string
+    topicId:
+      string
   ) {
 
     return (
@@ -1005,8 +1241,32 @@ export function MyBooksPage() {
 
   function getLeafTopics(
     topic:
-      PersonalTopic
+      PersonalTopic,
+
+    visited =
+      new Set<string>()
   ): PersonalTopic[] {
+
+    if (
+      visited.has(
+        topic.id
+      )
+    ) {
+
+      return [];
+    }
+
+
+    const nextVisited =
+      new Set(
+        visited
+      );
+
+
+    nextVisited.add(
+      topic.id
+    );
+
 
     const children =
       getChildren(
@@ -1028,7 +1288,8 @@ export function MyBooksPage() {
     return children.flatMap(
       child =>
         getLeafTopics(
-          child
+          child,
+          nextVisited
         )
     );
   }
@@ -1114,6 +1375,17 @@ export function MyBooksPage() {
       getLeafTopics(
         topic
       );
+
+
+    if (
+      leaves.length ===
+      0
+    ) {
+
+      return clampPercent(
+        topic.progress_percent
+      );
+    }
 
 
     if (
@@ -1209,7 +1481,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * BOOK PROGRESS
+   * BOOK STATISTICS
    * =========================================
    */
 
@@ -1298,6 +1570,22 @@ export function MyBooksPage() {
     ).length;
 
 
+  const fullyRevisedLeafTopics =
+    leafTopics.filter(
+      topic =>
+        topic.progress_percent >=
+          100 &&
+        topic.revision_count >=
+          3
+    ).length;
+
+
+  const dueRevisionTopics =
+    leafTopics.filter(
+      revisionIsDueNow
+    ).length;
+
+
   /*
    * =========================================
    * CURRENT TOPIC
@@ -1327,7 +1615,9 @@ export function MyBooksPage() {
   useEffect(
     () => {
 
-      if (!currentTopic) {
+      if (
+        !currentTopic
+      ) {
 
         return;
       }
@@ -1515,7 +1805,9 @@ export function MyBooksPage() {
       PersonalTopic
   ) {
 
-    if (!normalizedSearch) {
+    if (
+      !normalizedSearch
+    ) {
 
       return true;
     }
@@ -1694,7 +1986,9 @@ export function MyBooksPage() {
       bookTitle.trim();
 
 
-    if (!cleanTitle) {
+    if (
+      !cleanTitle
+    ) {
 
       setMessage(
         'Book title is required.'
@@ -1751,7 +2045,9 @@ export function MyBooksPage() {
     }
 
 
-    setSaving(true);
+    setSaving(
+      true
+    );
 
     setMessage('');
 
@@ -1822,7 +2118,9 @@ export function MyBooksPage() {
         error.message
       );
 
-      setSaving(false);
+      setSaving(
+        false
+      );
 
       return;
     }
@@ -1859,7 +2157,9 @@ export function MyBooksPage() {
     );
 
 
-    setSaving(false);
+    setSaving(
+      false
+    );
   }
 
 
@@ -1874,7 +2174,9 @@ export function MyBooksPage() {
       PersonalBook
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -1886,7 +2188,9 @@ export function MyBooksPage() {
       );
 
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
 
       return;
     }
@@ -1945,7 +2249,9 @@ export function MyBooksPage() {
       PersonalBook
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -1971,7 +2277,9 @@ export function MyBooksPage() {
       nextTitle.trim();
 
 
-    if (!cleanTitle) {
+    if (
+      !cleanTitle
+    ) {
 
       return;
     }
@@ -2070,7 +2378,9 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        resetResult.error.message
+        resetResult
+          .error
+          .message
       );
 
       return;
@@ -2331,7 +2641,9 @@ export function MyBooksPage() {
       topicName.trim();
 
 
-    if (!cleanName) {
+    if (
+      !cleanName
+    ) {
 
       setMessage(
         'Topic name is required.'
@@ -2455,7 +2767,9 @@ export function MyBooksPage() {
           10;
 
 
-    setSaving(true);
+    setSaving(
+      true
+    );
 
     setMessage('');
 
@@ -2502,7 +2816,9 @@ export function MyBooksPage() {
         error.message
       );
 
-      setSaving(false);
+      setSaving(
+        false
+      );
 
       return;
     }
@@ -2531,13 +2847,24 @@ export function MyBooksPage() {
     );
 
 
-    setSaving(false);
+    setSaving(
+      false
+    );
   }
 
 
   /*
    * =========================================
    * UPDATE TOPIC PROGRESS
+   * =========================================
+   *
+   * We select the row after update because
+   * the database trigger also updates:
+   *
+   * completed_at
+   * revision_count
+   * revision dates
+   * next revision due date
    * =========================================
    */
 
@@ -2549,7 +2876,9 @@ export function MyBooksPage() {
       number
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -2561,12 +2890,13 @@ export function MyBooksPage() {
       );
 
 
-    const previousPercent =
-      topic.progress_percent;
+    const previousTopic = {
+      ...topic
+    };
 
 
     /*
-     * Optimistic update.
+     * Immediate UI update.
      */
 
     setTopics(
@@ -2579,7 +2909,34 @@ export function MyBooksPage() {
                   ...item,
 
                   progress_percent:
-                    cleanPercent
+                    cleanPercent,
+
+                  /*
+                   * When dropping below 100,
+                   * revision history will be
+                   * cleared by the DB trigger.
+                   */
+                  ...(cleanPercent < 100
+                    ? {
+                        completed_at:
+                          null,
+
+                        revision_count:
+                          0,
+
+                        revision_1_at:
+                          null,
+
+                        revision_2_at:
+                          null,
+
+                        final_revision_at:
+                          null,
+
+                        next_revision_due_at:
+                          null
+                      }
+                    : {})
                 }
               : item
         )
@@ -2587,6 +2944,7 @@ export function MyBooksPage() {
 
 
     const {
+      data,
       error
     } =
       await supabase
@@ -2602,13 +2960,20 @@ export function MyBooksPage() {
         .eq(
           'id',
           topic.id
-        );
+        )
+        .select(
+          TOPIC_SELECT
+        )
+        .single();
 
 
-    if (error) {
+    if (
+      error ||
+      !data
+    ) {
 
       /*
-       * Restore previous value.
+       * Restore previous state.
        */
 
       setTopics(
@@ -2617,19 +2982,214 @@ export function MyBooksPage() {
             item =>
               item.id ===
                 topic.id
-                ? {
-                    ...item,
-
-                    progress_percent:
-                      previousPercent
-                  }
+                ? previousTopic
                 : item
           )
       );
 
 
       setMessage(
-        error.message
+        error?.message ||
+        'Unable to save topic progress.'
+      );
+
+      return;
+    }
+
+
+    const updatedTopic =
+      normaliseTopic(
+        data
+      );
+
+
+    setTopics(
+      current =>
+        current.map(
+          item =>
+            item.id ===
+              updatedTopic.id
+              ? updatedTopic
+              : item
+        )
+    );
+
+
+    if (
+      previousTopic.progress_percent <
+        100 &&
+      updatedTopic.progress_percent >=
+        100
+    ) {
+
+      setMessage(
+        'Topic completed. Revision 1 has been scheduled automatically.'
+      );
+    }
+  }
+
+
+  /*
+   * =========================================
+   * ADVANCE REVISION
+   * =========================================
+   */
+
+  async function advanceTopicRevision(
+    topic:
+      PersonalTopic,
+
+    requestedRevision:
+      1 |
+      2 |
+      3
+  ) {
+
+    if (
+      !supabase
+    ) {
+
+      return;
+    }
+
+
+    if (
+      topic.progress_percent <
+      100
+    ) {
+
+      setMessage(
+        'Complete the topic to 100% before recording a revision.'
+      );
+
+      return;
+    }
+
+
+    const expectedRevision =
+      Math.min(
+        3,
+        topic.revision_count +
+          1
+      ) as
+        1 |
+        2 |
+        3;
+
+
+    /*
+     * Prevent accidental skipping.
+     */
+
+    const nextRevision =
+      requestedRevision ===
+        expectedRevision
+        ? requestedRevision
+        : expectedRevision;
+
+
+    setRevisionSaving(
+      topic.id,
+      true
+    );
+
+
+    setMessage('');
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from(
+          'personal_book_topics'
+        )
+        .update({
+
+          revision_count:
+            nextRevision
+
+        })
+        .eq(
+          'id',
+          topic.id
+        )
+        .select(
+          TOPIC_SELECT
+        )
+        .single();
+
+
+    if (
+      error ||
+      !data
+    ) {
+
+      setRevisionSaving(
+        topic.id,
+        false
+      );
+
+
+      setMessage(
+        error?.message ||
+        'Unable to save revision progress.'
+      );
+
+      return;
+    }
+
+
+    const updatedTopic =
+      normaliseTopic(
+        data
+      );
+
+
+    setTopics(
+      current =>
+        current.map(
+          item =>
+            item.id ===
+              updatedTopic.id
+              ? updatedTopic
+              : item
+        )
+    );
+
+
+    setRevisionSaving(
+      topic.id,
+      false
+    );
+
+
+    if (
+      updatedTopic.revision_count ===
+      1
+    ) {
+
+      setMessage(
+        'Revision 1 completed. Revision 2 has been scheduled.'
+      );
+
+    } else if (
+      updatedTopic.revision_count ===
+      2
+    ) {
+
+      setMessage(
+        'Revision 2 completed. Final Revision has been scheduled.'
+      );
+
+    } else if (
+      updatedTopic.revision_count >=
+      3
+    ) {
+
+      setMessage(
+        'Final Revision completed. Revision cycle finished.'
       );
     }
   }
@@ -2650,7 +3210,9 @@ export function MyBooksPage() {
       null
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       throw new Error(
         'Study database is not configured.'
@@ -2661,10 +3223,6 @@ export function MyBooksPage() {
     const previousNotes =
       topic.notes;
 
-
-    /*
-     * Show the new note immediately.
-     */
 
     setTopics(
       current =>
@@ -2703,11 +3261,6 @@ export function MyBooksPage() {
 
 
     if (error) {
-
-      /*
-       * Restore the previous note when
-       * database saving fails.
-       */
 
       setTopics(
         current =>
@@ -2769,11 +3322,6 @@ export function MyBooksPage() {
     }
 
 
-    /*
-     * Remove previous current topic
-     * inside this book.
-     */
-
     const resetTopicResult =
       await client
         .from(
@@ -2800,16 +3348,14 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        resetTopicResult.error.message
+        resetTopicResult
+          .error
+          .message
       );
 
       return;
     }
 
-
-    /*
-     * Mark this topic as current.
-     */
 
     const topicResult =
       await client
@@ -2833,16 +3379,14 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        topicResult.error.message
+        topicResult
+          .error
+          .message
       );
 
       return;
     }
 
-
-    /*
-     * Remove previous current book.
-     */
 
     const resetBookResult =
       await client
@@ -2866,16 +3410,14 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        resetBookResult.error.message
+        resetBookResult
+          .error
+          .message
       );
 
       return;
     }
 
-
-    /*
-     * Make this topic's book current.
-     */
 
     const bookResult =
       await client
@@ -2902,17 +3444,14 @@ export function MyBooksPage() {
     ) {
 
       setMessage(
-        bookResult.error.message
+        bookResult
+          .error
+          .message
       );
 
       return;
     }
 
-
-    /*
-     * Permit automatic focus on the
-     * newly selected topic.
-     */
 
     lastFocusedTopicRef.current =
       null;
@@ -2935,7 +3474,9 @@ export function MyBooksPage() {
       PersonalTopic
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -2961,7 +3502,9 @@ export function MyBooksPage() {
       nextName.trim();
 
 
-    if (!cleanName) {
+    if (
+      !cleanName
+    ) {
 
       return;
     }
@@ -3013,7 +3556,9 @@ export function MyBooksPage() {
       PersonalTopic
   ) {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       return;
     }
@@ -3025,7 +3570,9 @@ export function MyBooksPage() {
       );
 
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
 
       return;
     }
@@ -3183,9 +3730,9 @@ export function MyBooksPage() {
           }}
         >
 
-          {/* =============================
+          {/* =================================
               TOPIC HEADER
-          ============================= */}
+          ================================= */}
 
           <div
             style={{
@@ -3368,9 +3915,9 @@ export function MyBooksPage() {
           </div>
 
 
-          {/* =============================
+          {/* =================================
               PROGRESS BAR
-          ============================= */}
+          ================================= */}
 
           <div
             className="progress-track"
@@ -3391,27 +3938,78 @@ export function MyBooksPage() {
           </div>
 
 
-          {/* =============================
-              LEAF TOPIC PROGRESS
-          ============================= */}
+          {/* =================================
+              LEAF PROGRESS + REVISION
+          ================================= */}
 
           {isLeaf ? (
 
-            <TopicProgressControls
+            <>
 
-              progress={
-                topic.progress_percent
-              }
+              <TopicProgressControls
 
-              onChange={
-                value =>
-                  void updateTopicProgress(
-                    topic,
-                    value
+                progress={
+                  topic.progress_percent
+                }
+
+                onChange={
+                  value =>
+                    void updateTopicProgress(
+                      topic,
+                      value
+                    )
+                }
+
+              />
+
+
+              <PersonalTopicRevisionControls
+
+                progressPercent={
+                  topic.progress_percent
+                }
+
+                revisionCount={
+                  topic.revision_count
+                }
+
+                completedAt={
+                  topic.completed_at
+                }
+
+                revision1At={
+                  topic.revision_1_at
+                }
+
+                revision2At={
+                  topic.revision_2_at
+                }
+
+                finalRevisionAt={
+                  topic.final_revision_at
+                }
+
+                nextRevisionDueAt={
+                  topic.next_revision_due_at
+                }
+
+                saving={
+                  revisionSavingIds.has(
+                    topic.id
                   )
-              }
+                }
 
-            />
+                onAdvanceRevision={
+                  nextRevision =>
+                    advanceTopicRevision(
+                      topic,
+                      nextRevision
+                    )
+                }
+
+              />
+
+            </>
 
           ) : (
 
@@ -3452,9 +4050,9 @@ export function MyBooksPage() {
           )}
 
 
-          {/* =============================
+          {/* =================================
               PERSONAL NOTE
-          ============================= */}
+          ================================= */}
 
           <TopicNotesEditor
 
@@ -3477,9 +4075,9 @@ export function MyBooksPage() {
           />
 
 
-          {/* =============================
+          {/* =================================
               TOPIC ACTIONS
-          ============================= */}
+          ================================= */}
 
           <div
             style={{
@@ -3571,9 +4169,9 @@ export function MyBooksPage() {
         </div>
 
 
-        {/* =============================
+        {/* =================================
             CHILD TOPICS
-        ============================= */}
+        ================================= */}
 
         {hasChildren &&
           expanded && (
@@ -3607,7 +4205,9 @@ export function MyBooksPage() {
    * =========================================
    */
 
-  if (loading) {
+  if (
+    loading
+  ) {
 
     return (
 
@@ -3617,7 +4217,7 @@ export function MyBooksPage() {
 
         <TopBar
           title="My Books"
-          subtitle="Personal reading and topic progress"
+          subtitle="Personal reading and revision tracker"
         />
 
 
@@ -3647,7 +4247,7 @@ export function MyBooksPage() {
 
       <TopBar
         title="My Books"
-        subtitle="Track exactly what you are reading and how much remains"
+        subtitle="Reading, notes, progress and revision in one place"
       />
 
 
@@ -3667,14 +4267,15 @@ export function MyBooksPage() {
 
 
         <h2>
-          Your books. Your topics. Your plan.
+          Your books. Your topics. Your revision.
         </h2>
 
 
         <p>
-          Add any book you choose, build its
-          chapter and topic structure, and track
-          your reading from 0% to 100%.
+          Add any book, create its chapter
+          structure, track reading progress,
+          save notes and automatically schedule
+          revisions after completing a topic.
         </p>
 
 
@@ -4193,7 +4794,7 @@ export function MyBooksPage() {
               <span
                 className="eyebrow"
               >
-                READING PROGRESS
+                READING + REVISION PROGRESS
               </span>
 
 
@@ -4287,7 +4888,7 @@ export function MyBooksPage() {
 
 
                   <small>
-                    completed
+                    reading complete
                   </small>
 
                 </div>
@@ -4330,7 +4931,7 @@ export function MyBooksPage() {
                     'grid',
 
                   gridTemplateColumns:
-                    'repeat(auto-fit,minmax(115px,1fr))',
+                    'repeat(auto-fit,minmax(110px,1fr))',
 
                   gap:
                     '10px',
@@ -4396,7 +4997,37 @@ export function MyBooksPage() {
                   </strong>
 
                   <p>
-                    Completed
+                    Read 100%
+                  </p>
+                </div>
+
+
+                <div
+                  className="callout"
+                >
+                  <strong>
+                    {
+                      dueRevisionTopics
+                    }
+                  </strong>
+
+                  <p>
+                    Revision Due
+                  </p>
+                </div>
+
+
+                <div
+                  className="callout"
+                >
+                  <strong>
+                    {
+                      fullyRevisedLeafTopics
+                    }
+                  </strong>
+
+                  <p>
+                    Fully Revised
                   </p>
                 </div>
 
@@ -4411,7 +5042,7 @@ export function MyBooksPage() {
                   </strong>
 
                   <p>
-                    Remaining
+                    Reading Left
                   </p>
                 </div>
 
@@ -4520,18 +5151,21 @@ export function MyBooksPage() {
                       min="0"
 
                       max={
-                        selectedBook.total_pages
+                        selectedBook
+                          .total_pages
                       }
 
                       defaultValue={
-                        selectedBook.current_page
+                        selectedBook
+                          .current_page
                       }
 
                       onBlur={
                         event =>
                           void updateCurrentPage(
                             Number(
-                              event.target.value
+                              event.target
+                                .value
                             )
                           )
                       }
@@ -4541,12 +5175,17 @@ export function MyBooksPage() {
 
                   <small>
                     Page{' '}
+
                     {
-                      selectedBook.current_page
+                      selectedBook
+                        .current_page
                     }{' '}
+
                     of{' '}
+
                     {
-                      selectedBook.total_pages
+                      selectedBook
+                        .total_pages
                     }
                   </small>
 
@@ -4719,7 +5358,7 @@ export function MyBooksPage() {
 
 
           {/* =================================
-              ADD TOPIC
+              ADD TOPIC FORM
           ================================= */}
 
           {selectedBook &&
@@ -4771,7 +5410,8 @@ export function MyBooksPage() {
                     onChange={
                       event =>
                         setTopicName(
-                          event.target.value
+                          event.target
+                            .value
                         )
                     }
 
@@ -4838,7 +5478,8 @@ export function MyBooksPage() {
                       onChange={
                         event =>
                           setParentId(
-                            event.target.value
+                            event.target
+                              .value
                           )
                       }
                     >
@@ -4848,27 +5489,29 @@ export function MyBooksPage() {
                       </option>
 
 
-                      {selectedBookTopics.map(
-                        topic => (
+                      {
+                        selectedBookTopics.map(
+                          topic => (
 
-                          <option
-                            key={
-                              topic.id
-                            }
+                            <option
+                              key={
+                                topic.id
+                              }
 
-                            value={
-                              topic.id
-                            }
-                          >
-                            {
-                              topicPath(
-                                topic
-                              )
-                            }
-                          </option>
+                              value={
+                                topic.id
+                              }
+                            >
+                              {
+                                topicPath(
+                                  topic
+                                )
+                              }
+                            </option>
 
+                          )
                         )
-                      )}
+                      }
 
                     </select>
 
@@ -4896,7 +5539,8 @@ export function MyBooksPage() {
                       onChange={
                         event =>
                           setPageStart(
-                            event.target.value
+                            event.target
+                              .value
                           )
                       }
 
@@ -4920,7 +5564,8 @@ export function MyBooksPage() {
                       onChange={
                         event =>
                           setPageEnd(
-                            event.target.value
+                            event.target
+                              .value
                           )
                       }
 
@@ -5014,8 +5659,15 @@ export function MyBooksPage() {
 
 
               <h3>
-                Topic-by-topic progress
+                Topic-by-topic reading and revision
               </h3>
+
+
+              <p>
+                Finish a leaf topic to 100% to
+                automatically begin its Revision 1,
+                Revision 2 and Final Revision cycle.
+              </p>
 
 
               {rootTopics.length >
@@ -5032,7 +5684,8 @@ export function MyBooksPage() {
                   }
 
                   totalTopics={
-                    selectedBookTopics.length
+                    selectedBookTopics
+                      .length
                   }
 
                   onSearchChange={
@@ -5085,14 +5738,16 @@ export function MyBooksPage() {
 
                     <strong>
                       {
-                        visibleLeafTopics.length
+                        visibleLeafTopics
+                          .length
                       }
                     </strong>{' '}
 
                     matching trackable topic
 
                     {
-                      visibleLeafTopics.length ===
+                      visibleLeafTopics
+                        .length ===
                         1
                         ? ''
                         : 's'
@@ -5189,12 +5844,6 @@ export function MyBooksPage() {
               ) : visibleRootTopics.length ===
                 0 ? (
 
-                /*
-                 * =============================
-                 * NO SEARCH RESULT
-                 * =============================
-                 */
-
                 <div
                   className="callout"
 
@@ -5237,12 +5886,6 @@ export function MyBooksPage() {
 
               ) : (
 
-                /*
-                 * =============================
-                 * TOPIC TREE
-                 * =============================
-                 */
-
                 <div
                   style={{
                     marginTop:
@@ -5250,12 +5893,14 @@ export function MyBooksPage() {
                   }}
                 >
 
-                  {visibleRootTopics.map(
-                    topic =>
-                      renderTopic(
-                        topic
-                      )
-                  )}
+                  {
+                    visibleRootTopics.map(
+                      topic =>
+                        renderTopic(
+                          topic
+                        )
+                    )
+                  }
 
                 </div>
 
