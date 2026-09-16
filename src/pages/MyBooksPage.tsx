@@ -18,6 +18,10 @@ import {
 } from '../components/PersonalBookBulkImporter';
 
 import {
+  TopicProgressControls
+} from '../components/TopicProgressControls';
+
+import {
   supabase
 } from '../lib/supabase';
 
@@ -111,14 +115,10 @@ function safeNumber(
   value: unknown,
   fallback = 0
 ) {
-
   const number =
     Number(value);
 
-
-  return Number.isFinite(
-    number
-  )
+  return Number.isFinite(number)
     ? number
     : fallback;
 }
@@ -127,7 +127,6 @@ function safeNumber(
 function clampPercent(
   value: number
 ) {
-
   return Math.min(
     100,
     Math.max(
@@ -141,11 +140,7 @@ function clampPercent(
 function statusLabel(
   status: ReadingStatus
 ) {
-
-  switch (
-    status
-  ) {
-
+  switch (status) {
     case 'reading':
       return 'Reading';
 
@@ -173,28 +168,21 @@ export function MyBooksPage() {
     books,
     setBooks
   ] =
-    useState<
-      PersonalBook[]
-    >([]);
+    useState<PersonalBook[]>([]);
 
 
   const [
     topics,
     setTopics
   ] =
-    useState<
-      PersonalTopic[]
-    >([]);
+    useState<PersonalTopic[]>([]);
 
 
   const [
     selectedBookId,
     setSelectedBookId
   ] =
-    useState<
-      string |
-      null
-    >(
+    useState<string | null>(
       null
     );
 
@@ -203,18 +191,14 @@ export function MyBooksPage() {
     loading,
     setLoading
   ] =
-    useState(
-      true
-    );
+    useState(true);
 
 
   const [
     saving,
     setSaving
   ] =
-    useState(
-      false
-    );
+    useState(false);
 
 
   const [
@@ -234,9 +218,7 @@ export function MyBooksPage() {
     showBookForm,
     setShowBookForm
   ] =
-    useState(
-      false
-    );
+    useState(false);
 
 
   const [
@@ -295,9 +277,7 @@ export function MyBooksPage() {
     showTopicForm,
     setShowTopicForm
   ] =
-    useState(
-      false
-    );
+    useState(false);
 
 
   const [
@@ -339,7 +319,7 @@ export function MyBooksPage() {
 
   /*
    * =========================================
-   * BULK IMPORT
+   * FAST IMPORT
    * =========================================
    */
 
@@ -347,9 +327,7 @@ export function MyBooksPage() {
     showBulkImporter,
     setShowBulkImporter
   ] =
-    useState(
-      false
-    );
+    useState(false);
 
 
   /*
@@ -358,35 +336,26 @@ export function MyBooksPage() {
    * =========================================
    */
 
-  async function loadLibrary() {
+  async function loadLibrary(
+    preferredBookId?: string | null
+  ) {
 
     const client =
       supabase;
 
 
-    if (
-      !client
-    ) {
-
+    if (!client) {
       setMessage(
         'Study database is not configured.'
       );
 
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
 
 
-    const safeClient =
-      client;
-
-
-    setLoading(
-      true
-    );
+    setLoading(true);
 
 
     const {
@@ -394,22 +363,15 @@ export function MyBooksPage() {
         user
       }
     } =
-      await safeClient
-        .auth
-        .getUser();
+      await client.auth.getUser();
 
 
-    if (
-      !user
-    ) {
-
+    if (!user) {
       setMessage(
         'Sign in to use My Books.'
       );
 
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
@@ -420,14 +382,9 @@ export function MyBooksPage() {
       topicResult
     ] =
       await Promise.all([
-
-        safeClient
-          .from(
-            'personal_books'
-          )
-          .select(
-            BOOK_SELECT
-          )
+        client
+          .from('personal_books')
+          .select(BOOK_SELECT)
           .eq(
             'user_id',
             user.id
@@ -435,26 +392,21 @@ export function MyBooksPage() {
           .order(
             'sort_order',
             {
-              ascending:
-                true
+              ascending: true
             }
           )
           .order(
             'created_at',
             {
-              ascending:
-                true
+              ascending: true
             }
           ),
 
-
-        safeClient
+        client
           .from(
             'personal_book_topics'
           )
-          .select(
-            TOPIC_SELECT
-          )
+          .select(TOPIC_SELECT)
           .eq(
             'user_id',
             user.id
@@ -462,52 +414,35 @@ export function MyBooksPage() {
           .order(
             'sort_order',
             {
-              ascending:
-                true
+              ascending: true
             }
           )
           .order(
             'created_at',
             {
-              ascending:
-                true
+              ascending: true
             }
           )
-
       ]);
 
 
-    if (
-      bookResult.error
-    ) {
-
+    if (bookResult.error) {
       setMessage(
-        bookResult
-          .error
-          .message
+        bookResult.error.message
       );
 
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
 
 
-    if (
-      topicResult.error
-    ) {
-
+    if (topicResult.error) {
       setMessage(
-        topicResult
-          .error
-          .message
+        topicResult.error.message
       );
 
-      setLoading(
-        false
-      );
+      setLoading(false);
 
       return;
     }
@@ -520,11 +455,8 @@ export function MyBooksPage() {
           []
         ).map(
           item => ({
-
             id:
-              String(
-                item.id
-              ),
+              String(item.id),
 
             title:
               String(
@@ -534,9 +466,7 @@ export function MyBooksPage() {
 
             author:
               item.author
-                ? String(
-                    item.author
-                  )
+                ? String(item.author)
                 : null,
 
             subject:
@@ -547,9 +477,7 @@ export function MyBooksPage() {
 
             edition:
               item.edition
-                ? String(
-                    item.edition
-                  )
+                ? String(item.edition)
                 : null,
 
             exam_stage:
@@ -559,8 +487,7 @@ export function MyBooksPage() {
               ) as ExamStage,
 
             total_pages:
-              item.total_pages ===
-                null
+              item.total_pages === null
                 ? null
                 : safeNumber(
                     item.total_pages
@@ -578,21 +505,17 @@ export function MyBooksPage() {
               ) as ReadingStatus,
 
             is_current:
-              item.is_current ===
-                true,
+              item.is_current === true,
 
             notes:
               item.notes
-                ? String(
-                    item.notes
-                  )
+                ? String(item.notes)
                 : null,
 
             sort_order:
               safeNumber(
                 item.sort_order
               )
-
           })
         );
 
@@ -604,21 +527,14 @@ export function MyBooksPage() {
           []
         ).map(
           item => ({
-
             id:
-              String(
-                item.id
-              ),
+              String(item.id),
 
             user_id:
-              String(
-                item.user_id
-              ),
+              String(item.user_id),
 
             book_id:
-              String(
-                item.book_id
-              ),
+              String(item.book_id),
 
             parent_id:
               item.parent_id
@@ -647,20 +563,17 @@ export function MyBooksPage() {
               ),
 
             is_current:
-              item.is_current ===
-                true,
+              item.is_current === true,
 
             page_start:
-              item.page_start ===
-                null
+              item.page_start === null
                 ? null
                 : safeNumber(
                     item.page_start
                   ),
 
             page_end:
-              item.page_end ===
-                null
+              item.page_end === null
                 ? null
                 : safeNumber(
                     item.page_end
@@ -668,16 +581,13 @@ export function MyBooksPage() {
 
             notes:
               item.notes
-                ? String(
-                    item.notes
-                  )
+                ? String(item.notes)
                 : null,
 
             sort_order:
               safeNumber(
                 item.sort_order
               )
-
           })
         );
 
@@ -685,7 +595,6 @@ export function MyBooksPage() {
     setBooks(
       cleanBooks
     );
-
 
     setTopics(
       cleanTopics
@@ -696,6 +605,18 @@ export function MyBooksPage() {
       current => {
 
         if (
+          preferredBookId &&
+          cleanBooks.some(
+            book =>
+              book.id ===
+              preferredBookId
+          )
+        ) {
+          return preferredBookId;
+        }
+
+
+        if (
           current &&
           cleanBooks.some(
             book =>
@@ -703,7 +624,6 @@ export function MyBooksPage() {
               current
           )
         ) {
-
           return current;
         }
 
@@ -724,17 +644,13 @@ export function MyBooksPage() {
     );
 
 
-    setLoading(
-      false
-    );
+    setLoading(false);
   }
 
 
   useEffect(
     () => {
-
       void loadLibrary();
-
     },
     []
   );
@@ -748,18 +664,13 @@ export function MyBooksPage() {
 
   const selectedBook =
     useMemo(
-      () => {
-
-        return (
-          books.find(
-            book =>
-              book.id ===
-              selectedBookId
-          ) ||
-          null
-        );
-
-      },
+      () =>
+        books.find(
+          book =>
+            book.id ===
+            selectedBookId
+        ) ||
+        null,
       [
         books,
         selectedBookId
@@ -771,10 +682,7 @@ export function MyBooksPage() {
     useMemo(
       () => {
 
-        if (
-          !selectedBookId
-        ) {
-
+        if (!selectedBookId) {
           return [];
         }
 
@@ -795,13 +703,11 @@ export function MyBooksPage() {
                 first.sort_order !==
                 second.sort_order
               ) {
-
                 return (
                   first.sort_order -
                   second.sort_order
                 );
               }
-
 
               return first
                 .topic_name
@@ -810,7 +716,6 @@ export function MyBooksPage() {
                 );
             }
           );
-
       },
       [
         topics,
@@ -826,10 +731,8 @@ export function MyBooksPage() {
    */
 
   function getChildren(
-    topicId:
-      string
+    topicId: string
   ) {
-
     return selectedBookTopics
       .filter(
         topic =>
@@ -848,8 +751,7 @@ export function MyBooksPage() {
 
 
   function getLeafTopics(
-    topic:
-      PersonalTopic
+    topic: PersonalTopic
   ): PersonalTopic[] {
 
     const children =
@@ -859,43 +761,32 @@ export function MyBooksPage() {
 
 
     if (
-      children.length ===
-      0
+      children.length === 0
     ) {
-
-      return [
-        topic
-      ];
+      return [topic];
     }
 
 
     return children.flatMap(
       child =>
-        getLeafTopics(
-          child
-        )
+        getLeafTopics(child)
     );
   }
 
 
   function calculatedTopicProgress(
-    topic:
-      PersonalTopic
+    topic: PersonalTopic
   ) {
 
     const leaves =
-      getLeafTopics(
-        topic
-      );
+      getLeafTopics(topic);
 
 
     if (
-      leaves.length ===
-        1 &&
+      leaves.length === 1 &&
       leaves[0].id ===
         topic.id
     ) {
-
       return clampPercent(
         topic.progress_percent
       );
@@ -943,17 +834,11 @@ export function MyBooksPage() {
     );
 
 
-  /*
-   * =========================================
-   * BOOK PROGRESS
-   * =========================================
-   */
-
-  const bookProgress =
+  const leafTopics =
     useMemo(
       () => {
 
-        const childIds =
+        const parentIds =
           new Set(
             selectedBookTopics
               .map(
@@ -965,29 +850,41 @@ export function MyBooksPage() {
                   value
                 ):
                   value is string =>
-                    Boolean(
-                      value
-                    )
+                    Boolean(value)
               )
           );
 
 
-        const leaves =
-          selectedBookTopics.filter(
+        return selectedBookTopics
+          .filter(
             topic =>
-              !childIds.has(
+              !parentIds.has(
                 topic.id
               )
           );
+      },
+      [
+        selectedBookTopics
+      ]
+    );
 
+
+  /*
+   * =========================================
+   * BOOK PROGRESS
+   * =========================================
+   */
+
+  const bookProgress =
+    useMemo(
+      () => {
 
         if (
-          leaves.length >
-          0
+          leafTopics.length > 0
         ) {
 
           const total =
-            leaves.reduce(
+            leafTopics.reduce(
               (
                 sum,
                 topic
@@ -1000,15 +897,14 @@ export function MyBooksPage() {
 
           return clampPercent(
             total /
-            leaves.length
+            leafTopics.length
           );
         }
 
 
         if (
           selectedBook?.total_pages &&
-          selectedBook.total_pages >
-            0
+          selectedBook.total_pages > 0
         ) {
 
           return clampPercent(
@@ -1022,10 +918,9 @@ export function MyBooksPage() {
 
 
         return 0;
-
       },
       [
-        selectedBookTopics,
+        leafTopics,
         selectedBook
       ]
     );
@@ -1034,6 +929,20 @@ export function MyBooksPage() {
   const remainingPercent =
     100 -
     bookProgress;
+
+
+  const completedLeafTopics =
+    useMemo(
+      () =>
+        leafTopics.filter(
+          topic =>
+            topic.progress_percent >=
+            100
+        ).length,
+      [
+        leafTopics
+      ]
+    );
 
 
   /*
@@ -1057,8 +966,7 @@ export function MyBooksPage() {
 
 
   function topicPath(
-    topic:
-      PersonalTopic
+    topic: PersonalTopic
   ) {
 
     const parts:
@@ -1077,14 +985,10 @@ export function MyBooksPage() {
 
     while (
       parent &&
-      !visited.has(
-        parent
-      )
+      !visited.has(parent)
     ) {
 
-      visited.add(
-        parent
-      );
+      visited.add(parent);
 
 
       const parentTopic =
@@ -1095,10 +999,7 @@ export function MyBooksPage() {
         );
 
 
-      if (
-        !parentTopic
-      ) {
-
+      if (!parentTopic) {
         break;
       }
 
@@ -1137,10 +1038,7 @@ export function MyBooksPage() {
       supabase;
 
 
-    if (
-      !client
-    ) {
-
+    if (!client) {
       setMessage(
         'Study database is not configured.'
       );
@@ -1153,10 +1051,7 @@ export function MyBooksPage() {
       bookTitle.trim();
 
 
-    if (
-      !cleanTitle
-    ) {
-
+    if (!cleanTitle) {
       setMessage(
         'Book title is required.'
       );
@@ -1170,14 +1065,10 @@ export function MyBooksPage() {
         user
       }
     } =
-      await client.auth
-        .getUser();
+      await client.auth.getUser();
 
 
-    if (
-      !user
-    ) {
-
+    if (!user) {
       setMessage(
         'Sign in to add a book.'
       );
@@ -1195,17 +1086,14 @@ export function MyBooksPage() {
 
 
     if (
-      totalPages !==
-        null &&
+      totalPages !== null &&
       (
         !Number.isInteger(
           totalPages
         ) ||
-        totalPages <=
-          0
+        totalPages <= 0
       )
     ) {
-
       setMessage(
         'Total pages must be a positive whole number.'
       );
@@ -1214,17 +1102,12 @@ export function MyBooksPage() {
     }
 
 
-    setSaving(
-      true
-    );
-
-
+    setSaving(true);
     setMessage('');
 
 
     const nextSort =
-      books.length ===
-        0
+      books.length === 0
         ? 10
         : Math.max(
             ...books.map(
@@ -1244,7 +1127,6 @@ export function MyBooksPage() {
           'personal_books'
         )
         .insert({
-
           user_id:
             user.id,
 
@@ -1274,25 +1156,17 @@ export function MyBooksPage() {
 
           sort_order:
             nextSort
-
         })
-        .select(
-          'id'
-        )
+        .select('id')
         .single();
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
 
-      setSaving(
-        false
-      );
+      setSaving(false);
 
       return;
     }
@@ -1300,9 +1174,7 @@ export function MyBooksPage() {
 
     const newBookId =
       data?.id
-        ? String(
-            data.id
-          )
+        ? String(data.id)
         : null;
 
 
@@ -1311,19 +1183,7 @@ export function MyBooksPage() {
     setBookEdition('');
     setBookTotalPages('');
 
-    setShowBookForm(
-      false
-    );
-
-
-    if (
-      newBookId
-    ) {
-
-      setSelectedBookId(
-        newBookId
-      );
-    }
+    setShowBookForm(false);
 
 
     setMessage(
@@ -1331,12 +1191,12 @@ export function MyBooksPage() {
     );
 
 
-    await loadLibrary();
-
-
-    setSaving(
-      false
+    await loadLibrary(
+      newBookId
     );
+
+
+    setSaving(false);
   }
 
 
@@ -1347,14 +1207,10 @@ export function MyBooksPage() {
    */
 
   async function deleteBook(
-    book:
-      PersonalBook
+    book: PersonalBook
   ) {
 
-    if (
-      !supabase
-    ) {
-
+    if (!supabase) {
       return;
     }
 
@@ -1365,10 +1221,7 @@ export function MyBooksPage() {
       );
 
 
-    if (
-      !confirmed
-    ) {
-
+    if (!confirmed) {
       return;
     }
 
@@ -1387,10 +1240,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
@@ -1399,14 +1249,8 @@ export function MyBooksPage() {
     }
 
 
-    setShowTopicForm(
-      false
-    );
-
-    setShowBulkImporter(
-      false
-    );
-
+    setShowTopicForm(false);
+    setShowBulkImporter(false);
 
     setMessage(
       'Book deleted.'
@@ -1424,14 +1268,10 @@ export function MyBooksPage() {
    */
 
   async function renameBook(
-    book:
-      PersonalBook
+    book: PersonalBook
   ) {
 
-    if (
-      !supabase
-    ) {
-
+    if (!supabase) {
       return;
     }
 
@@ -1444,10 +1284,8 @@ export function MyBooksPage() {
 
 
     if (
-      nextTitle ===
-      null
+      nextTitle === null
     ) {
-
       return;
     }
 
@@ -1456,10 +1294,7 @@ export function MyBooksPage() {
       nextTitle.trim();
 
 
-    if (
-      !cleanTitle
-    ) {
-
+    if (!cleanTitle) {
       return;
     }
 
@@ -1481,10 +1316,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
@@ -1493,7 +1325,9 @@ export function MyBooksPage() {
     }
 
 
-    await loadLibrary();
+    await loadLibrary(
+      book.id
+    );
   }
 
 
@@ -1504,18 +1338,14 @@ export function MyBooksPage() {
    */
 
   async function makeCurrentBook(
-    bookId:
-      string
+    bookId: string
   ) {
 
     const client =
       supabase;
 
 
-    if (
-      !client
-    ) {
-
+    if (!client) {
       return;
     }
 
@@ -1525,14 +1355,10 @@ export function MyBooksPage() {
         user
       }
     } =
-      await client.auth
-        .getUser();
+      await client.auth.getUser();
 
 
-    if (
-      !user
-    ) {
-
+    if (!user) {
       return;
     }
 
@@ -1555,11 +1381,8 @@ export function MyBooksPage() {
     if (
       resetResult.error
     ) {
-
       setMessage(
-        resetResult
-          .error
-          .message
+        resetResult.error.message
       );
 
       return;
@@ -1574,13 +1397,11 @@ export function MyBooksPage() {
           'personal_books'
         )
         .update({
-
           is_current:
             true,
 
           reading_status:
             'reading'
-
         })
         .eq(
           'id',
@@ -1588,10 +1409,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
@@ -1600,7 +1418,9 @@ export function MyBooksPage() {
     }
 
 
-    await loadLibrary();
+    await loadLibrary(
+      bookId
+    );
   }
 
 
@@ -1611,25 +1431,20 @@ export function MyBooksPage() {
    */
 
   async function updateCurrentPage(
-    value:
-      number
+    value: number
   ) {
 
     if (
       !supabase ||
       !selectedBook
     ) {
-
       return;
     }
 
 
     if (
-      !Number.isFinite(
-        value
-      )
+      !Number.isFinite(value)
     ) {
-
       return;
     }
 
@@ -1637,9 +1452,7 @@ export function MyBooksPage() {
     const safePage =
       Math.max(
         0,
-        Math.round(
-          value
-        )
+        Math.round(value)
       );
 
 
@@ -1648,7 +1461,6 @@ export function MyBooksPage() {
       safePage >
         selectedBook.total_pages
     ) {
-
       setMessage(
         `Page cannot exceed ${selectedBook.total_pages}.`
       );
@@ -1665,13 +1477,11 @@ export function MyBooksPage() {
           'personal_books'
         )
         .update({
-
           current_page:
             safePage,
 
           reading_status:
             'reading'
-
         })
         .eq(
           'id',
@@ -1679,10 +1489,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
@@ -1691,7 +1498,9 @@ export function MyBooksPage() {
     }
 
 
-    await loadLibrary();
+    await loadLibrary(
+      selectedBook.id
+    );
   }
 
 
@@ -1708,13 +1517,9 @@ export function MyBooksPage() {
         null
   ) {
 
-    setShowBulkImporter(
-      false
-    );
-
+    setShowBulkImporter(false);
 
     setTopicName('');
-
 
     setParentId(
       parent?.id ||
@@ -1726,7 +1531,6 @@ export function MyBooksPage() {
       parent?.topic_type ===
       'part'
     ) {
-
       setTopicType(
         'chapter'
       );
@@ -1735,21 +1539,16 @@ export function MyBooksPage() {
       parent?.topic_type ===
       'chapter'
     ) {
-
       setTopicType(
         'topic'
       );
 
-    } else if (
-      parent
-    ) {
-
+    } else if (parent) {
       setTopicType(
         'subtopic'
       );
 
     } else {
-
       setTopicType(
         'chapter'
       );
@@ -1759,15 +1558,11 @@ export function MyBooksPage() {
     setPageStart('');
     setPageEnd('');
 
-
-    setShowTopicForm(
-      true
-    );
+    setShowTopicForm(true);
 
 
     window.setTimeout(
       () => {
-
         document
           .getElementById(
             'personal-topic-form'
@@ -1775,10 +1570,10 @@ export function MyBooksPage() {
           ?.scrollIntoView({
             behavior:
               'smooth',
+
             block:
               'start'
           });
-
       },
       50
     );
@@ -1807,7 +1602,6 @@ export function MyBooksPage() {
       !client ||
       !selectedBook
     ) {
-
       return;
     }
 
@@ -1816,10 +1610,7 @@ export function MyBooksPage() {
       topicName.trim();
 
 
-    if (
-      !cleanName
-    ) {
-
+    if (!cleanName) {
       setMessage(
         'Topic name is required.'
       );
@@ -1830,32 +1621,25 @@ export function MyBooksPage() {
 
     const cleanPageStart =
       pageStart.trim()
-        ? Number(
-            pageStart
-          )
+        ? Number(pageStart)
         : null;
 
 
     const cleanPageEnd =
       pageEnd.trim()
-        ? Number(
-            pageEnd
-          )
+        ? Number(pageEnd)
         : null;
 
 
     if (
-      cleanPageStart !==
-        null &&
+      cleanPageStart !== null &&
       (
         !Number.isInteger(
           cleanPageStart
         ) ||
-        cleanPageStart <
-          0
+        cleanPageStart < 0
       )
     ) {
-
       setMessage(
         'Start page must be a valid whole number.'
       );
@@ -1865,17 +1649,14 @@ export function MyBooksPage() {
 
 
     if (
-      cleanPageEnd !==
-        null &&
+      cleanPageEnd !== null &&
       (
         !Number.isInteger(
           cleanPageEnd
         ) ||
-        cleanPageEnd <
-          0
+        cleanPageEnd < 0
       )
     ) {
-
       setMessage(
         'End page must be a valid whole number.'
       );
@@ -1885,14 +1666,11 @@ export function MyBooksPage() {
 
 
     if (
-      cleanPageStart !==
-        null &&
-      cleanPageEnd !==
-        null &&
+      cleanPageStart !== null &&
+      cleanPageEnd !== null &&
       cleanPageEnd <
         cleanPageStart
     ) {
-
       setMessage(
         'End page cannot be before start page.'
       );
@@ -1906,14 +1684,10 @@ export function MyBooksPage() {
         user
       }
     } =
-      await client.auth
-        .getUser();
+      await client.auth.getUser();
 
 
-    if (
-      !user
-    ) {
-
+    if (!user) {
       return;
     }
 
@@ -1932,8 +1706,7 @@ export function MyBooksPage() {
 
 
     const nextSort =
-      siblings.length ===
-        0
+      siblings.length === 0
         ? 10
         : Math.max(
             ...siblings.map(
@@ -1944,11 +1717,7 @@ export function MyBooksPage() {
           10;
 
 
-    setSaving(
-      true
-    );
-
-
+    setSaving(true);
     setMessage('');
 
 
@@ -1960,7 +1729,6 @@ export function MyBooksPage() {
           'personal_book_topics'
         )
         .insert({
-
           user_id:
             user.id,
 
@@ -1984,21 +1752,15 @@ export function MyBooksPage() {
 
           sort_order:
             nextSort
-
         });
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
 
-      setSaving(
-        false
-      );
+      setSaving(false);
 
       return;
     }
@@ -2009,22 +1771,19 @@ export function MyBooksPage() {
     setPageStart('');
     setPageEnd('');
 
-    setShowTopicForm(
-      false
-    );
-
+    setShowTopicForm(false);
 
     setMessage(
       'Topic added.'
     );
 
 
-    await loadLibrary();
-
-
-    setSaving(
-      false
+    await loadLibrary(
+      selectedBook.id
     );
+
+
+    setSaving(false);
   }
 
 
@@ -2035,25 +1794,23 @@ export function MyBooksPage() {
    */
 
   async function updateTopicProgress(
-    topic:
-      PersonalTopic,
-    value:
-      number
+    topic: PersonalTopic,
+    value: number
   ) {
 
-    if (
-      !supabase
-    ) {
-
+    if (!supabase) {
       return;
     }
 
 
     const cleanPercent =
-      clampPercent(
-        value
-      );
+      clampPercent(value);
 
+
+    /*
+     * Immediate local update.
+     * This keeps the UI responsive.
+     */
 
     setTopics(
       current =>
@@ -2089,15 +1846,14 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
 
-      await loadLibrary();
+      await loadLibrary(
+        topic.book_id
+      );
     }
   }
 
@@ -2109,18 +1865,14 @@ export function MyBooksPage() {
    */
 
   async function makeCurrentTopic(
-    topic:
-      PersonalTopic
+    topic: PersonalTopic
   ) {
 
     const client =
       supabase;
 
 
-    if (
-      !client
-    ) {
-
+    if (!client) {
       return;
     }
 
@@ -2130,14 +1882,10 @@ export function MyBooksPage() {
         user
       }
     } =
-      await client.auth
-        .getUser();
+      await client.auth.getUser();
 
 
-    if (
-      !user
-    ) {
-
+    if (!user) {
       return;
     }
 
@@ -2164,11 +1912,8 @@ export function MyBooksPage() {
     if (
       resetResult.error
     ) {
-
       setMessage(
-        resetResult
-          .error
-          .message
+        resetResult.error.message
       );
 
       return;
@@ -2192,10 +1937,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
@@ -2209,7 +1951,9 @@ export function MyBooksPage() {
     );
 
 
-    await loadLibrary();
+    await loadLibrary(
+      topic.book_id
+    );
   }
 
 
@@ -2220,14 +1964,10 @@ export function MyBooksPage() {
    */
 
   async function renameTopic(
-    topic:
-      PersonalTopic
+    topic: PersonalTopic
   ) {
 
-    if (
-      !supabase
-    ) {
-
+    if (!supabase) {
       return;
     }
 
@@ -2240,10 +1980,8 @@ export function MyBooksPage() {
 
 
     if (
-      nextName ===
-      null
+      nextName === null
     ) {
-
       return;
     }
 
@@ -2252,10 +1990,7 @@ export function MyBooksPage() {
       nextName.trim();
 
 
-    if (
-      !cleanName
-    ) {
-
+    if (!cleanName) {
       return;
     }
 
@@ -2277,10 +2012,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
@@ -2289,7 +2021,9 @@ export function MyBooksPage() {
     }
 
 
-    await loadLibrary();
+    await loadLibrary(
+      topic.book_id
+    );
   }
 
 
@@ -2300,14 +2034,10 @@ export function MyBooksPage() {
    */
 
   async function deleteTopic(
-    topic:
-      PersonalTopic
+    topic: PersonalTopic
   ) {
 
-    if (
-      !supabase
-    ) {
-
+    if (!supabase) {
       return;
     }
 
@@ -2318,10 +2048,7 @@ export function MyBooksPage() {
       );
 
 
-    if (
-      !confirmed
-    ) {
-
+    if (!confirmed) {
       return;
     }
 
@@ -2340,10 +2067,7 @@ export function MyBooksPage() {
         );
 
 
-    if (
-      error
-    ) {
-
+    if (error) {
       setMessage(
         error.message
       );
@@ -2352,21 +2076,21 @@ export function MyBooksPage() {
     }
 
 
-    await loadLibrary();
+    await loadLibrary(
+      topic.book_id
+    );
   }
 
 
   /*
    * =========================================
-   * TOPIC CARD
+   * TOPIC TREE CARD
    * =========================================
    */
 
   function renderTopic(
-    topic:
-      PersonalTopic,
-    depth =
-      0
+    topic: PersonalTopic,
+    depth = 0
   ): ReactNode {
 
     const children =
@@ -2382,8 +2106,7 @@ export function MyBooksPage() {
 
 
     const isLeaf =
-      children.length ===
-      0;
+      children.length === 0;
 
 
     return (
@@ -2395,12 +2118,10 @@ export function MyBooksPage() {
 
         style={{
           marginLeft:
-            depth ===
-              0
+            depth === 0
               ? 0
               : Math.min(
-                  depth *
-                    18,
+                  depth * 18,
                   54
                 ),
 
@@ -2447,8 +2168,7 @@ export function MyBooksPage() {
 
             <div
               style={{
-                minWidth:
-                  0
+                minWidth: 0
               }}
             >
 
@@ -2479,10 +2199,8 @@ export function MyBooksPage() {
               </h4>
 
 
-              {(topic.page_start !==
-                  null ||
-                topic.page_end !==
-                  null) && (
+              {(topic.page_start !== null ||
+                topic.page_end !== null) && (
 
                 <small
                   style={{
@@ -2533,8 +2251,7 @@ export function MyBooksPage() {
                   '1.1rem',
 
                 color:
-                  calculated ===
-                    100
+                  calculated === 100
                     ? '#5eead4'
                     : '#f8fafc'
               }}
@@ -2564,76 +2281,25 @@ export function MyBooksPage() {
           </div>
 
 
+          {/* =================================
+              LEAF TOPIC PROGRESS CONTROLS
+          ================================= */}
+
           {isLeaf ? (
 
-            <div
-              style={{
-                marginTop:
-                  '12px'
-              }}
-            >
+            <TopicProgressControls
+              progress={
+                topic.progress_percent
+              }
 
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-
-                value={
-                  topic.progress_percent
-                }
-
-                onChange={
-                  event =>
-                    void updateTopicProgress(
-                      topic,
-                      Number(
-                        event.target.value
-                      )
-                    )
-                }
-
-                style={{
-                  width:
-                    '100%'
-                }}
-              />
-
-
-              <div
-                style={{
-                  display:
-                    'flex',
-
-                  justifyContent:
-                    'space-between',
-
-                  fontSize:
-                    '.75rem',
-
-                  color:
-                    '#94a3b8'
-                }}
-              >
-
-                <span>
-                  0%
-                </span>
-
-                <span>
-                  {
-                    topic
-                      .progress_percent
-                  }%
-                </span>
-
-                <span>
-                  100%
-                </span>
-
-              </div>
-
-            </div>
+              onChange={
+                value =>
+                  void updateTopicProgress(
+                    topic,
+                    value
+                  )
+              }
+            />
 
           ) : (
 
@@ -2659,8 +2325,7 @@ export function MyBooksPage() {
               {
                 getLeafTopics(
                   topic
-                ).length ===
-                  1
+                ).length === 1
                   ? ''
                   : 's'
               }.
@@ -2697,25 +2362,6 @@ export function MyBooksPage() {
             >
               Read Now
             </button>
-
-
-            {isLeaf && (
-
-              <button
-                type="button"
-                className="secondary-btn"
-
-                onClick={() =>
-                  void updateTopicProgress(
-                    topic,
-                    100
-                  )
-                }
-              >
-                Mark 100%
-              </button>
-
-            )}
 
 
             <button
@@ -2768,8 +2414,7 @@ export function MyBooksPage() {
           child =>
             renderTopic(
               child,
-              depth +
-                1
+              depth + 1
             )
         )}
 
@@ -2785,9 +2430,7 @@ export function MyBooksPage() {
    * =========================================
    */
 
-  if (
-    loading
-  ) {
+  if (loading) {
 
     return (
 
@@ -2892,7 +2535,7 @@ export function MyBooksPage() {
 
 
       {/* =====================================
-          ADD BOOK FORM
+          ADD BOOK
       ===================================== */}
 
       {showBookForm && (
@@ -3129,8 +2772,7 @@ export function MyBooksPage() {
           EMPTY LIBRARY
       ===================================== */}
 
-      {books.length ===
-        0 && (
+      {books.length === 0 && (
 
         <section
           className="panel"
@@ -3160,9 +2802,7 @@ export function MyBooksPage() {
             className="primary-btn"
 
             onClick={() =>
-              setShowBookForm(
-                true
-              )
+              setShowBookForm(true)
             }
           >
             + Add First Book
@@ -3174,11 +2814,10 @@ export function MyBooksPage() {
 
 
       {/* =====================================
-          LIBRARY
+          BOOK LIBRARY
       ===================================== */}
 
-      {books.length >
-        0 && (
+      {books.length > 0 && (
 
         <>
 
@@ -3225,7 +2864,6 @@ export function MyBooksPage() {
                     type="button"
 
                     onClick={() => {
-
                       setSelectedBookId(
                         book.id
                       );
@@ -3237,7 +2875,6 @@ export function MyBooksPage() {
                       setShowBulkImporter(
                         false
                       );
-
                     }}
 
                     style={{
@@ -3263,7 +2900,10 @@ export function MyBooksPage() {
                           : 'rgba(255,255,255,.025)',
 
                       color:
-                        '#f8fafc'
+                        '#f8fafc',
+
+                      cursor:
+                        'pointer'
                     }}
                   >
 
@@ -3326,7 +2966,7 @@ export function MyBooksPage() {
 
 
           {/* =================================
-              SELECTED BOOK
+              SELECTED BOOK DASHBOARD
           ================================= */}
 
           {selectedBook && (
@@ -3385,8 +3025,7 @@ export function MyBooksPage() {
 
                   <p
                     style={{
-                      margin:
-                        0
+                      margin: 0
                     }}
                   >
                     {[
@@ -3396,12 +3035,8 @@ export function MyBooksPage() {
                         ? `Edition: ${selectedBook.edition}`
                         : null
                     ]
-                      .filter(
-                        Boolean
-                      )
-                      .join(
-                        ' · '
-                      )}
+                      .filter(Boolean)
+                      .join(' · ')}
                   </p>
 
                 </div>
@@ -3426,11 +3061,8 @@ export function MyBooksPage() {
                         '#5eead4'
                     }}
                   >
-                    {
-                      bookProgress
-                    }%
+                    {bookProgress}%
                   </strong>
-
 
                   <small>
                     completed
@@ -3452,14 +3084,12 @@ export function MyBooksPage() {
                     '16px'
                 }}
               >
-
                 <span
                   style={{
                     width:
                       `${bookProgress}%`
                   }}
                 />
-
               </div>
 
 
@@ -3469,7 +3099,7 @@ export function MyBooksPage() {
                     'grid',
 
                   gridTemplateColumns:
-                    'repeat(auto-fit,minmax(130px,1fr))',
+                    'repeat(auto-fit,minmax(120px,1fr))',
 
                   gap:
                     '10px',
@@ -3482,52 +3112,56 @@ export function MyBooksPage() {
                 <div
                   className="callout"
                 >
-
                   <strong>
-                    {
-                      bookProgress
-                    }%
+                    {bookProgress}%
                   </strong>
 
                   <p>
                     Completed
                   </p>
-
                 </div>
 
 
                 <div
                   className="callout"
                 >
-
                   <strong>
-                    {
-                      remainingPercent
-                    }%
+                    {remainingPercent}%
                   </strong>
 
                   <p>
                     Remaining
                   </p>
-
                 </div>
 
 
                 <div
                   className="callout"
                 >
-
                   <strong>
                     {
-                      selectedBookTopics
-                        .length
+                      leafTopics.length
                     }
                   </strong>
 
                   <p>
-                    Topics
+                    Trackable Topics
                   </p>
+                </div>
 
+
+                <div
+                  className="callout"
+                >
+                  <strong>
+                    {
+                      completedLeafTopics
+                    }
+                  </strong>
+
+                  <p>
+                    Completed Topics
+                  </p>
                 </div>
 
               </div>
@@ -3592,6 +3226,10 @@ export function MyBooksPage() {
                     Current Page
 
                     <input
+                      key={
+                        `${selectedBook.id}-${selectedBook.current_page}`
+                      }
+
                       type="number"
                       min="0"
 
@@ -3609,8 +3247,7 @@ export function MyBooksPage() {
                         event =>
                           void updateCurrentPage(
                             Number(
-                              event.target
-                                .value
+                              event.target.value
                             )
                           )
                       }
@@ -3621,13 +3258,11 @@ export function MyBooksPage() {
                   <small>
                     Page{' '}
                     {
-                      selectedBook
-                        .current_page
+                      selectedBook.current_page
                     }{' '}
                     of{' '}
                     {
-                      selectedBook
-                        .total_pages
+                      selectedBook.total_pages
                     }
                   </small>
 
@@ -3661,7 +3296,6 @@ export function MyBooksPage() {
                   className="primary-btn"
 
                   onClick={() => {
-
                     setShowBulkImporter(
                       false
                     );
@@ -3669,7 +3303,6 @@ export function MyBooksPage() {
                     startAddTopic(
                       null
                     );
-
                   }}
                 >
                   + Add Topic
@@ -3681,7 +3314,6 @@ export function MyBooksPage() {
                   className="secondary-btn"
 
                   onClick={() => {
-
                     setShowTopicForm(
                       false
                     );
@@ -3690,7 +3322,6 @@ export function MyBooksPage() {
                       current =>
                         !current
                     );
-
                   }}
                 >
                   {
@@ -3761,7 +3392,6 @@ export function MyBooksPage() {
             showBulkImporter && (
 
             <PersonalBookBulkImporter
-
               key={
                 selectedBook.id
               }
@@ -3775,15 +3405,14 @@ export function MyBooksPage() {
               }
 
               onImported={() => {
-
                 setMessage(
                   'Book index imported successfully.'
                 );
 
-                void loadLibrary();
-
+                void loadLibrary(
+                  selectedBook.id
+                );
               }}
-
             />
 
           )}
@@ -3843,8 +3472,7 @@ export function MyBooksPage() {
                     onChange={
                       event =>
                         setTopicName(
-                          event.target
-                            .value
+                          event.target.value
                         )
                     }
 
@@ -3911,8 +3539,7 @@ export function MyBooksPage() {
                       onChange={
                         event =>
                           setParentId(
-                            event.target
-                              .value
+                            event.target.value
                           )
                       }
                     >
@@ -3967,8 +3594,7 @@ export function MyBooksPage() {
                       onChange={
                         event =>
                           setPageStart(
-                            event.target
-                              .value
+                            event.target.value
                           )
                       }
 
@@ -3991,8 +3617,7 @@ export function MyBooksPage() {
                       onChange={
                         event =>
                           setPageEnd(
-                            event.target
-                              .value
+                            event.target.value
                           )
                       }
 
@@ -4084,8 +3709,7 @@ export function MyBooksPage() {
               </h3>
 
 
-              {rootTopics.length ===
-                0 ? (
+              {rootTopics.length === 0 ? (
 
                 <div
                   className="callout"
@@ -4140,7 +3764,6 @@ export function MyBooksPage() {
                       className="secondary-btn"
 
                       onClick={() => {
-
                         setShowTopicForm(
                           false
                         );
@@ -4148,7 +3771,6 @@ export function MyBooksPage() {
                         setShowBulkImporter(
                           true
                         );
-
                       }}
                     >
                       Fast Index Import
