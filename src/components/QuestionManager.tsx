@@ -1373,6 +1373,108 @@ export function QuestionManager() {
     }
 
 
+        /*
+     * =========================================
+     * DUPLICATE QUESTION CHECK
+     * =========================================
+     *
+     * Only check while creating a NEW question.
+     * Editing an existing question should not
+     * compare the question against itself.
+     */
+
+    if (!editingId) {
+
+      setMessage(
+        'Checking whether this question already exists...'
+      );
+
+
+      const {
+        data: duplicateData,
+        error: duplicateError
+      } =
+        await supabase.rpc(
+          'find_prelims_question_matches',
+          {
+
+            p_question:
+              question.trim(),
+
+            p_options:
+              options,
+
+            p_correct_index:
+              correctIndex
+
+          }
+        );
+
+
+      if (duplicateError) {
+
+        console.error(
+          'Duplicate question check failed:',
+          duplicateError
+        );
+
+
+        setMessage(
+          duplicateError.message ||
+          'Unable to check for duplicate questions.'
+        );
+
+
+        return;
+      }
+
+
+      const duplicateMatches =
+        Array.isArray(
+          duplicateData
+        )
+          ? duplicateData
+          : [];
+
+
+      const exactMatch =
+        duplicateMatches.find(
+          (
+            item:
+              any
+          ) =>
+            item?.match_type ===
+            'exact'
+        );
+
+
+      /*
+       * Exact also covers questions where
+       * the option order changed but the
+       * question and correct answer are
+       * otherwise the same.
+       */
+
+      if (exactMatch) {
+
+        const appearances =
+          Number(
+            exactMatch
+              .appearance_count ||
+            0
+          );
+
+
+        setMessage(
+          appearances > 0
+            ? `Existing question found. It is already linked to ${appearances} exam appearance${appearances === 1 ? '' : 's'}. Do not create another copy.`
+            : 'Existing question found in the master question bank. Do not create another copy.'
+        );
+
+
+        return;
+      }
+    }
     setSaving(
       true
     );
