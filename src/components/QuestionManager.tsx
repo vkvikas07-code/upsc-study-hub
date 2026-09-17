@@ -32,6 +32,55 @@ type QuestionOrigin =
   | 'upsc'
   | 'state';
 
+type DuplicateAppearance = {
+  appearance_id?: string | null;
+  appearance_type?: string | null;
+  question_number?: string | null;
+  exam_paper_id?: string | null;
+  exam_family?: string | null;
+  commission?: string | null;
+  state?: string | null;
+  exam_name?: string | null;
+  exam_cycle?: string | null;
+  year?: number | null;
+  stage?: string | null;
+  paper?: string | null;
+};
+
+
+type DuplicateMatch = {
+  question_id: string;
+
+  match_type:
+    | 'exact'
+    | 'same_stem'
+    | 'possible';
+
+  question: string;
+
+  options: string[];
+
+  correct_index: number;
+
+  explanation: string;
+
+  subject: string;
+
+  topic: string | null;
+
+  difficulty: string;
+
+  status: string;
+
+  duplicate_group_id:
+    string | null;
+
+  appearance_count:
+    number | string | null;
+
+  appearances:
+    DuplicateAppearance[];
+};
 
 type QuestionRow = {
   id: string;
@@ -282,6 +331,31 @@ export function QuestionManager() {
   ] =
     useState('');
 
+    /*
+   * DUPLICATE QUESTION WORKFLOW
+   */
+
+  const [
+    duplicateMatch,
+    setDuplicateMatch
+  ] =
+    useState<DuplicateMatch | null>(
+      null
+    );
+
+
+  const [
+    linkingDuplicate,
+    setLinkingDuplicate
+  ] =
+    useState(false);
+
+
+  const [
+    allowVariantCreate,
+    setAllowVariantCreate
+  ] =
+    useState(false);
 
   /*
    * MAIN MCQ FORM
@@ -818,6 +892,17 @@ export function QuestionManager() {
       null
     );
 
+        setDuplicateMatch(
+      null
+    );
+
+    setLinkingDuplicate(
+      false
+    );
+
+    setAllowVariantCreate(
+      false
+    );
     setQuestion('');
 
     setOptionA('');
@@ -1153,6 +1238,305 @@ export function QuestionManager() {
   }
 
 
+    /*
+   * =========================================
+   * LINK EXISTING MASTER QUESTION
+   * =========================================
+   */
+
+  async function linkExistingQuestion() {
+
+    if (
+      !supabase ||
+      !duplicateMatch
+    ) {
+
+      return;
+    }
+
+
+    if (
+      duplicateMatch.match_type !==
+      'exact'
+    ) {
+
+      setMessage(
+        'Only an exact or reordered match can be linked directly.'
+      );
+
+      return;
+    }
+
+
+    if (!isPyq) {
+
+      setMessage(
+        'Mark this question as a Previous Year Question before linking an exam appearance.'
+      );
+
+      return;
+    }
+
+
+    const options = [
+      optionA.trim(),
+      optionB.trim(),
+      optionC.trim(),
+      optionD.trim()
+    ];
+
+
+    const savedStateName =
+      statePscState ===
+        OTHER_STATE
+        ? customStateName
+            .trim()
+        : statePscState;
+
+
+    const savedUpscExam =
+      upscExamName ===
+        'Other UPSC Examination'
+        ? customUpscExamName
+            .trim()
+        : upscExamName;
+
+
+    const metadata = {
+
+      source:
+        source.trim() ||
+        null,
+
+      source_url:
+        sourceUrl.trim() ||
+        null,
+
+      pyq_year:
+        pyqYear.trim() ||
+        null,
+
+      exam_stage:
+        examStage,
+
+      paper:
+        paper.trim() ||
+        null,
+
+
+      /*
+       * OTHER UPSC
+       */
+
+      upsc_exam_name:
+        savedUpscExam ||
+        null,
+
+      upsc_exam_cycle:
+        upscExamCycle.trim() ||
+        null,
+
+      upsc_exam_year:
+        upscExamYear.trim() ||
+        null,
+
+      upsc_exam_stage:
+        upscExamStage.trim() ||
+        null,
+
+      upsc_exam_paper:
+        upscExamPaper.trim() ||
+        null,
+
+
+      /*
+       * STATE PSC
+       */
+
+      state_psc_state:
+        savedStateName ||
+        null,
+
+      state_psc_name:
+        statePscName.trim() ||
+        null,
+
+      state_psc_exam_name:
+        statePscExamName.trim() ||
+        null,
+
+      state_psc_year:
+        statePscYear.trim() ||
+        null,
+
+      state_psc_stage:
+        statePscStage.trim() ||
+        null,
+
+      state_psc_paper:
+        statePscPaper.trim() ||
+        null
+    };
+
+
+    setLinkingDuplicate(
+      true
+    );
+
+
+    setMessage(
+      'Linking existing question to this exam paper...'
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase.rpc(
+        'link_existing_prelims_question',
+        {
+
+          p_question_id:
+            duplicateMatch
+              .question_id,
+
+          p_origin:
+            questionOrigin,
+
+          p_metadata:
+            metadata,
+
+          p_original_question:
+            question.trim(),
+
+          p_original_options:
+            options,
+
+          p_original_correct_index:
+            correctIndex
+
+        }
+      );
+
+
+    if (error) {
+
+      console.error(
+        'Unable to link existing question:',
+        error
+      );
+
+
+      setLinkingDuplicate(
+        false
+      );
+
+
+      setMessage(
+        error.message ||
+        'Unable to link this exam appearance.'
+      );
+
+      return;
+    }
+
+
+    const result =
+      Array.isArray(
+        data
+      )
+        ? data[0]
+        : null;
+
+
+    const resultStatus =
+      result?.link_status;
+
+
+    setLinkingDuplicate(
+      false
+    );
+
+
+    resetForm();
+
+
+    if (
+      resultStatus ===
+      'already_linked'
+    ) {
+
+      setMessage(
+        'This question is already linked to that examination paper.'
+      );
+
+      return;
+    }
+
+
+    setMessage(
+      'Existing master question linked successfully. No duplicate question was created.'
+    );
+  }
+
+
+  /*
+   * =========================================
+   * APPROVE A SAME-STEM VARIANT
+   * =========================================
+   */
+
+  function createAsVariant() {
+
+    if (
+      !duplicateMatch ||
+      duplicateMatch.match_type !==
+        'same_stem'
+    ) {
+
+      return;
+    }
+
+
+    setAllowVariantCreate(
+      true
+    );
+
+
+    setDuplicateMatch(
+      null
+    );
+
+
+    setMessage(
+      'Variant approved. Click Save draft or Publish question again to create it as a separate variant.'
+    );
+  }
+
+
+  /*
+   * =========================================
+   * CANCEL DUPLICATE DECISION
+   * =========================================
+   */
+
+  function cancelDuplicateDecision() {
+
+    setDuplicateMatch(
+      null
+    );
+
+
+    setAllowVariantCreate(
+      false
+    );
+
+
+    setMessage(
+      'Duplicate action cancelled. You can edit the question or examination details.'
+    );
+  }
   /*
    * SAVE
    */
@@ -1378,12 +1762,17 @@ export function QuestionManager() {
      * DUPLICATE QUESTION CHECK
      * =========================================
      *
-     * Only check while creating a NEW question.
-     * Editing an existing question should not
-     * compare the question against itself.
+     * Skip only when:
+     *
+     * 1. Editing an existing question, or
+     * 2. Admin explicitly approved creation
+     *    of a same-stem variant.
      */
 
-    if (!editingId) {
+    if (
+      !editingId &&
+      !allowVariantCreate
+    ) {
 
       setMessage(
         'Checking whether this question already exists...'
@@ -1430,32 +1819,36 @@ export function QuestionManager() {
 
 
       const duplicateMatches =
-        Array.isArray(
-          duplicateData
-        )
-          ? duplicateData
-          : [];
+        (
+          Array.isArray(
+            duplicateData
+          )
+            ? duplicateData
+            : []
+        ) as
+          DuplicateMatch[];
 
+
+      /*
+       * =====================================
+       * EXACT / REORDERED
+       * =====================================
+       */
 
       const exactMatch =
         duplicateMatches.find(
-          (
-            item:
-              any
-          ) =>
-            item?.match_type ===
+          item =>
+            item.match_type ===
             'exact'
         );
 
 
-      /*
-       * Exact also covers questions where
-       * the option order changed but the
-       * question and correct answer are
-       * otherwise the same.
-       */
-
       if (exactMatch) {
+
+        setDuplicateMatch(
+          exactMatch
+        );
+
 
         const appearances =
           Number(
@@ -1467,18 +1860,54 @@ export function QuestionManager() {
 
         setMessage(
           appearances > 0
-            ? `Existing question found. It is already linked to ${appearances} exam appearance${appearances === 1 ? '' : 's'}. Do not create another copy.`
-            : 'Existing question found in the master question bank. Do not create another copy.'
+            ? `Existing master question found with ${appearances} exam appearance${appearances === 1 ? '' : 's'}. Link this examination instead of creating another copy.`
+            : 'Existing master question found. Link this examination instead of creating another copy.'
         );
 
 
         return;
       }
+
+
+      /*
+       * =====================================
+       * SAME STEM / POSSIBLE VARIANT
+       * =====================================
+       */
+
+      const sameStemMatch =
+        duplicateMatches.find(
+          item =>
+            item.match_type ===
+            'same_stem'
+        );
+
+
+      if (sameStemMatch) {
+
+        setDuplicateMatch(
+          sameStemMatch
+        );
+
+
+        setMessage(
+          'A question with the same stem already exists, but its options or correct answer differ. Review it before creating a separate variant.'
+        );
+
+
+        return;
+      }
+
+
+      setDuplicateMatch(
+        null
+      );
     }
+
+
     setSaving(
       true
     );
-
 
     setMessage(
       editingId
@@ -1690,6 +2119,17 @@ export function QuestionManager() {
 
       status,
 
+            ...(
+        !editingId &&
+        allowVariantCreate
+
+          ? {
+              duplicate_review_status:
+                'variant'
+            }
+
+          : {}
+      ),
       updated_at:
         new Date()
           .toISOString()
@@ -3690,6 +4130,295 @@ export function QuestionManager() {
           </div>
 
 
+                    {/* DUPLICATE QUESTION ACTIONS */}
+
+          {duplicateMatch && (
+
+            <div
+              style={{
+                marginTop:
+                  '18px',
+
+                padding:
+                  '18px',
+
+                border:
+                  duplicateMatch
+                    .match_type ===
+                    'exact'
+                    ? '1px solid rgba(20,184,166,.45)'
+                    : '1px solid rgba(251,191,36,.45)',
+
+                borderRadius:
+                  '14px',
+
+                background:
+                  duplicateMatch
+                    .match_type ===
+                    'exact'
+                    ? 'rgba(20,184,166,.08)'
+                    : 'rgba(251,191,36,.08)'
+              }}
+            >
+
+              <span
+                className="eyebrow"
+              >
+                {
+                  duplicateMatch
+                    .match_type ===
+                    'exact'
+                    ? 'EXISTING QUESTION FOUND'
+                    : 'POSSIBLE QUESTION VARIANT'
+                }
+              </span>
+
+
+              <h3
+                style={{
+                  marginBottom:
+                    '8px'
+                }}
+              >
+                {
+                  duplicateMatch.question
+                }
+              </h3>
+
+
+              <p>
+                Subject:{' '}
+                <strong>
+                  {
+                    duplicateMatch.subject
+                  }
+                </strong>
+
+                {
+                  duplicateMatch.topic
+                    ? ` · ${duplicateMatch.topic}`
+                    : ''
+                }
+              </p>
+
+
+              <p>
+                Previous exam appearances:{' '}
+
+                <strong>
+                  {
+                    Number(
+                      duplicateMatch
+                        .appearance_count ||
+                      0
+                    )
+                  }
+                </strong>
+              </p>
+
+
+              {
+                Array.isArray(
+                  duplicateMatch
+                    .appearances
+                ) &&
+
+                duplicateMatch
+                  .appearances
+                  .length > 0 && (
+
+                  <div
+                    style={{
+                      display:
+                        'grid',
+
+                      gap:
+                        '6px',
+
+                      marginTop:
+                        '10px'
+                    }}
+                  >
+
+                    {
+                      duplicateMatch
+                        .appearances
+                        .slice(
+                          0,
+                          6
+                        )
+                        .map(
+                          (
+                            appearance,
+                            index
+                          ) => (
+
+                            <div
+                              key={
+                                appearance
+                                  .appearance_id ||
+                                `${appearance.exam_paper_id || 'paper'}-${index}`
+                              }
+
+                              style={{
+                                padding:
+                                  '8px 10px',
+
+                                borderRadius:
+                                  '10px',
+
+                                background:
+                                  'rgba(255,255,255,.04)'
+                              }}
+                            >
+
+                              {
+                                [
+                                  appearance
+                                    .commission,
+
+                                  appearance
+                                    .exam_name,
+
+                                  appearance
+                                    .year,
+
+                                  appearance
+                                    .stage,
+
+                                  appearance
+                                    .paper
+                                ]
+                                  .filter(
+                                    value =>
+                                      value !==
+                                        null &&
+                                      value !==
+                                        undefined &&
+                                      value !==
+                                        ''
+                                  )
+                                  .join(
+                                    ' · '
+                                  )
+                              }
+
+                            </div>
+
+                          )
+                        )
+                    }
+
+                  </div>
+
+                )
+              }
+
+
+              <div
+                style={{
+                  display:
+                    'flex',
+
+                  flexWrap:
+                    'wrap',
+
+                  gap:
+                    '10px',
+
+                  marginTop:
+                    '16px'
+                }}
+              >
+
+                {
+                  duplicateMatch
+                    .match_type ===
+                    'exact' &&
+                  isPyq && (
+
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      disabled={
+                        linkingDuplicate
+                      }
+                      onClick={
+                        linkExistingQuestion
+                      }
+                    >
+
+                      {
+                        linkingDuplicate
+                          ? 'Linking...'
+                          : 'Link This Exam Appearance'
+                      }
+
+                    </button>
+
+                  )
+                }
+
+
+                {
+                  duplicateMatch
+                    .match_type ===
+                    'same_stem' && (
+
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      onClick={
+                        createAsVariant
+                      }
+                    >
+                      Create as Variant
+                    </button>
+
+                  )
+                }
+
+
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  disabled={
+                    linkingDuplicate
+                  }
+                  onClick={
+                    cancelDuplicateDecision
+                  }
+                >
+                  Cancel
+                </button>
+
+              </div>
+
+
+              {
+                duplicateMatch
+                  .match_type ===
+                  'exact' &&
+                !isPyq && (
+
+                  <p
+                    style={{
+                      marginTop:
+                        '12px'
+                    }}
+                  >
+                    This master question already exists.
+                    Mark it as a Previous Year Question only if
+                    you want to connect a real examination
+                    appearance.
+                  </p>
+
+                )
+              }
+
+            </div>
+
+          )}
           {message && (
 
             <p
