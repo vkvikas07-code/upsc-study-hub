@@ -8,36 +8,82 @@ type SessionMode = 'practice' | 'exam';
 type SessionSize = '10' | '20' | '50' | '100' | 'all';
 type Difficulty = 'easy' | 'medium' | 'hard';
 
+type QuestionAppearance = {
+  appearance_id: string | null;
+  stored_question_id: string | null;
+  exam_paper_id: string | null;
+
+  exam_family:
+    | 'upsc_cse'
+    | 'upsc_other'
+    | 'state_psc'
+    | string
+    | null;
+
+  commission: string | null;
+  state: string | null;
+  exam_name: string | null;
+  exam_cycle: string | null;
+  year: number | null;
+  stage: string | null;
+  paper: string | null;
+
+  question_number: string | null;
+  appearance_type: string | null;
+  source_reference: string | null;
+};
+
+
 type LiveQuestion = {
   id: string;
+
   question: string;
+
   options: string[];
+
   correct_index: number;
+
   explanation: string;
 
   subject: string;
+
   difficulty: Difficulty;
+
   topic: string | null;
+
+  paper: string | null;
+
   tags: string[];
 
-  is_pyq: boolean;
-  pyq_year: number | null;
-
-  upsc_exam_name: string | null;
-  upsc_exam_cycle: string | null;
-  upsc_exam_stage: string | null;
-  upsc_exam_paper: string | null;
-  upsc_exam_year: number | null;
-
-  state_psc_state: string | null;
-  state_psc_name: string | null;
-  state_psc_exam_name: string | null;
-  state_psc_year: number | null;
-  state_psc_stage: string | null;
-  state_psc_paper: string | null;
-
   source: string | null;
+
   source_url: string | null;
+
+  is_pyq: boolean;
+
+  appearance_count: number;
+
+  origins: QuestionOrigin[];
+
+  cse_pyq_years: number[];
+
+  upsc_exam_names: string[];
+
+  upsc_exam_cycles: string[];
+
+  upsc_exam_years: number[];
+
+  state_psc_states: string[];
+
+  state_psc_names: string[];
+
+  state_psc_exam_names: string[];
+
+  state_psc_years: number[];
+
+  stored_question_ids: string[];
+
+  appearances: QuestionAppearance[];
 };
 
 type AnswerRecord = {
@@ -96,11 +142,14 @@ const CSE_MARKS_PER_QUESTION = 2;
 const CSE_NEGATIVE_MARK = CSE_MARKS_PER_QUESTION / 3;
 const CSE_SECONDS_PER_QUESTION = 72;
 
-function getQuestionOrigin(item: LiveQuestion): QuestionOrigin {
-  if (item.state_psc_state) {
-    return 'state';
-  }
-
+function hasQuestionOrigin(
+  item: LiveQuestion,
+  origin: QuestionOrigin
+) {
+  return item.origins.includes(
+    origin
+  );
+}
   if (item.upsc_exam_name) {
     return 'upsc';
   }
@@ -467,55 +516,382 @@ export function PracticePage() {
   }
 
   async function loadQuestions() {
-    if (!supabase) {
-      setError(
-        'Practice database is not configured.'
+
+  if (!supabase) {
+
+    setError(
+      'Practice database is not configured.'
+    );
+
+    setLoading(false);
+
+    return;
+  }
+
+
+  setLoading(true);
+
+  setError('');
+
+  setSetupMessage('');
+
+
+  const {
+    data,
+    error: loadError
+  } =
+    await supabase.rpc(
+      'get_canonical_prelims_questions'
+    );
+
+
+  if (loadError) {
+
+    console.error(
+      'Unable to load canonical questions:',
+      loadError
+    );
+
+
+    setError(
+      loadError.message
+    );
+
+
+    setLoading(false);
+
+    return;
+  }
+
+
+  const formatted:
+    LiveQuestion[] =
+      (data || []).map(
+        item => {
+
+          const appearances:
+            QuestionAppearance[] =
+              Array.isArray(
+                item.appearances
+              )
+                ? item.appearances.map(
+                    (
+                      appearance:
+                        any
+                    ) => ({
+
+                      appearance_id:
+                        appearance
+                          .appearance_id ??
+                        null,
+
+                      stored_question_id:
+                        appearance
+                          .stored_question_id ??
+                        null,
+
+                      exam_paper_id:
+                        appearance
+                          .exam_paper_id ??
+                        null,
+
+                      exam_family:
+                        appearance
+                          .exam_family ??
+                        null,
+
+                      commission:
+                        appearance
+                          .commission ??
+                        null,
+
+                      state:
+                        appearance
+                          .state ??
+                        null,
+
+                      exam_name:
+                        appearance
+                          .exam_name ??
+                        null,
+
+                      exam_cycle:
+                        appearance
+                          .exam_cycle ??
+                        null,
+
+                      year:
+                        typeof
+                          appearance
+                            .year ===
+                          'number'
+                          ? appearance
+                              .year
+                          : null,
+
+                      stage:
+                        appearance
+                          .stage ??
+                        null,
+
+                      paper:
+                        appearance
+                          .paper ??
+                        null,
+
+                      question_number:
+                        appearance
+                          .question_number ??
+                        null,
+
+                      appearance_type:
+                        appearance
+                          .appearance_type ??
+                        null,
+
+                      source_reference:
+                        appearance
+                          .source_reference ??
+                        null
+
+                    })
+                  )
+                : [];
+
+
+          const origins:
+            QuestionOrigin[] =
+              Array.isArray(
+                item.origins
+              )
+                ? item.origins
+                    .filter(
+                      (
+                        value:
+                          unknown
+                      ):
+                        value is
+                          QuestionOrigin =>
+                          value ===
+                            'cse' ||
+                          value ===
+                            'upsc' ||
+                          value ===
+                            'state'
+                    )
+                : [];
+
+
+          return {
+
+            id:
+              String(
+                item.id
+              ),
+
+            question:
+              String(
+                item.question ||
+                ''
+              ),
+
+            options:
+              Array.isArray(
+                item.options
+              )
+                ? item.options.map(
+                    (
+                      option:
+                        unknown
+                    ) =>
+                      String(
+                        option
+                      )
+                  )
+                : [],
+
+            correct_index:
+              Number(
+                item.correct_index ??
+                0
+              ),
+
+            explanation:
+              String(
+                item.explanation ||
+                ''
+              ),
+
+            subject:
+              String(
+                item.subject ||
+                ''
+              ),
+
+            difficulty:
+              item.difficulty as
+                Difficulty,
+
+            topic:
+              item.topic
+                ? String(
+                    item.topic
+                  )
+                : null,
+
+            paper:
+              item.paper
+                ? String(
+                    item.paper
+                  )
+                : null,
+
+            tags:
+              Array.isArray(
+                item.tags
+              )
+                ? item.tags.map(
+                    (
+                      tag:
+                        unknown
+                    ) =>
+                      String(tag)
+                  )
+                : [],
+
+            source:
+              item.source
+                ? String(
+                    item.source
+                  )
+                : null,
+
+            source_url:
+              item.source_url
+                ? String(
+                    item.source_url
+                  )
+                : null,
+
+            is_pyq:
+              Boolean(
+                item.is_pyq
+              ),
+
+            appearance_count:
+              Number(
+                item.appearance_count ||
+                0
+              ),
+
+            origins,
+
+            cse_pyq_years:
+              Array.isArray(
+                item.cse_pyq_years
+              )
+                ? item
+                    .cse_pyq_years
+                    .map(Number)
+                : [],
+
+            upsc_exam_names:
+              Array.isArray(
+                item.upsc_exam_names
+              )
+                ? item
+                    .upsc_exam_names
+                    .map(String)
+                : [],
+
+            upsc_exam_cycles:
+              Array.isArray(
+                item.upsc_exam_cycles
+              )
+                ? item
+                    .upsc_exam_cycles
+                    .map(String)
+                : [],
+
+            upsc_exam_years:
+              Array.isArray(
+                item.upsc_exam_years
+              )
+                ? item
+                    .upsc_exam_years
+                    .map(Number)
+                : [],
+
+            state_psc_states:
+              Array.isArray(
+                item.state_psc_states
+              )
+                ? item
+                    .state_psc_states
+                    .map(String)
+                : [],
+
+            state_psc_names:
+              Array.isArray(
+                item.state_psc_names
+              )
+                ? item
+                    .state_psc_names
+                    .map(String)
+                : [],
+
+            state_psc_exam_names:
+              Array.isArray(
+                item.state_psc_exam_names
+              )
+                ? item
+                    .state_psc_exam_names
+                    .map(String)
+                : [],
+
+            state_psc_years:
+              Array.isArray(
+                item.state_psc_years
+              )
+                ? item
+                    .state_psc_years
+                    .map(Number)
+                : [],
+
+            stored_question_ids:
+              Array.isArray(
+                item.stored_question_ids
+              )
+                ? item
+                    .stored_question_ids
+                    .map(String)
+                : [
+                    String(
+                      item.id
+                    )
+                  ],
+
+            appearances
+
+          };
+
+        }
       );
 
-      setLoading(false);
-      return;
-    }
 
-    setLoading(true);
-    setError('');
-    setSetupMessage('');
+  setAllQuestions(
+    formatted
+  );
 
-    const {
-      data,
-      error: loadError
-    } =
-      await supabase
-        .from('questions')
-        .select(QUESTION_SELECT)
-        .eq(
-          'status',
-          'published'
-        )
-        .eq(
-          'exam_stage',
-          'prelims'
-        )
-        .order(
-          'created_at',
-          {
-            ascending: false
-          }
-        );
 
-    if (loadError) {
-      console.error(
-        'Unable to load questions:',
-        loadError
-      );
+  await loadBookmarkedQuestionIds();
 
-      setError(
-        loadError.message
-      );
 
-      setLoading(false);
-      return;
-    }
+  resetActiveSession();
 
+
+  setLoading(false);
+}
     const formatted:
       LiveQuestion[] =
         (data || []).map(
@@ -695,486 +1071,622 @@ export function PracticePage() {
   );
 
   const subjects =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            allQuestions
-              .map(
-                item =>
-                  item.subject
-              )
-              .filter(Boolean)
-          )
-        ).sort(),
-      [allQuestions]
-    );
+  useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allQuestions
+            .map(
+              item =>
+                item.subject
+            )
+            .filter(Boolean)
+        )
+      ).sort(),
+    [allQuestions]
+  );
 
-  const topics =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            allQuestions
-              .filter(
-                item =>
+
+const topics =
+  useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allQuestions
+            .filter(
+              item =>
+                subjectFilter ===
+                  'all' ||
+                item.subject ===
+                  subjectFilter
+            )
+            .map(
+              item =>
+                item.topic
+            )
+            .filter(
+              (
+                value
+              ):
+                value is string =>
+                  Boolean(value)
+            )
+        )
+      ).sort(),
+    [
+      allQuestions,
+      subjectFilter
+    ]
+  );
+
+
+const csePyqYears =
+  useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allQuestions
+            .filter(
+              item =>
+                hasQuestionOrigin(
+                  item,
+                  'cse'
+                ) &&
+                item.is_pyq &&
+                (
                   subjectFilter ===
                     'all' ||
                   item.subject ===
                     subjectFilter
-              )
-              .map(
-                item =>
-                  item.topic
-              )
-              .filter(
+                ) &&
                 (
-                  value
-                ):
-                  value is string =>
-                    Boolean(value)
-              )
-          )
-        ).sort(),
-      [
-        allQuestions,
-        subjectFilter
-      ]
-    );
-
-  const csePyqYears =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            allQuestions
-              .filter(
-                item =>
-                  getQuestionOrigin(
-                    item
-                  ) === 'cse' &&
-                  item.is_pyq &&
-                  (
-                    subjectFilter ===
-                      'all' ||
-                    item.subject ===
-                      subjectFilter
-                  ) &&
-                  (
-                    topicFilter ===
-                      'all' ||
-                    item.topic ===
-                      topicFilter
-                  )
-              )
-              .map(
-                item =>
-                  item.pyq_year
-              )
-              .filter(
-                (
-                  value
-                ):
-                  value is number =>
-                    value !== null
-              )
-          )
-        ).sort(
-          (a, b) =>
-            b - a
-        ),
-      [
-        allQuestions,
-        subjectFilter,
-        topicFilter
-      ]
-    );
-
-  const upscExams =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            allQuestions
-              .map(
-                item =>
-                  item.upsc_exam_name
-              )
-              .filter(
-                (
-                  value
-                ):
-                  value is string =>
-                    Boolean(value)
-              )
-          )
-        ).sort(),
-      [allQuestions]
-    );
-
-  const upscCycles =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            allQuestions
-              .filter(
-                item =>
-                  upscExamFilter ===
+                  topicFilter ===
                     'all' ||
-                  item.upsc_exam_name ===
-                    upscExamFilter
-              )
-              .map(
-                item =>
-                  item.upsc_exam_cycle
-              )
-              .filter(
-                (
-                  value
-                ):
-                  value is string =>
-                    Boolean(value)
-              )
-          )
-        ).sort(),
-      [
-        allQuestions,
-        upscExamFilter
-      ]
-    );
+                  item.topic ===
+                    topicFilter
+                )
+            )
+            .flatMap(
+              item =>
+                item.cse_pyq_years
+            )
+        )
+      ).sort(
+        (a, b) =>
+          b - a
+      ),
+    [
+      allQuestions,
+      subjectFilter,
+      topicFilter
+    ]
+  );
 
-  const upscYears =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            allQuestions
-              .filter(
-                item =>
-                  upscExamFilter ===
-                    'all' ||
-                  item.upsc_exam_name ===
-                    upscExamFilter
-              )
-              .map(
-                item =>
-                  item.upsc_exam_year
-              )
-              .filter(
-                (
-                  value
-                ):
-                  value is number =>
-                    value !== null
-              )
-          )
-        ).sort(
-          (a, b) =>
-            b - a
-        ),
-      [
-        allQuestions,
-        upscExamFilter
-      ]
-    );
 
-  const states =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            allQuestions
-              .map(
-                item =>
-                  item.state_psc_state
-              )
-              .filter(
-                (
-                  value
-                ):
-                  value is string =>
-                    Boolean(value)
-              )
+const upscExams =
+  useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allQuestions.flatMap(
+            item =>
+              item.upsc_exam_names
           )
-        ).sort(),
-      [allQuestions]
-    );
+        )
+      ).sort(),
+    [allQuestions]
+  );
 
-  const stateExams =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            allQuestions
-              .filter(
-                item =>
-                  stateFilter ===
-                    'all' ||
-                  item.state_psc_state ===
-                    stateFilter
-              )
-              .map(
-                item =>
-                  item.state_psc_exam_name
-              )
-              .filter(
-                (
-                  value
-                ):
-                  value is string =>
-                    Boolean(value)
-              )
-          )
-        ).sort(),
-      [
-        allQuestions,
-        stateFilter
-      ]
-    );
 
-  const stateYears =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            allQuestions
-              .filter(
-                item =>
+const upscCycles =
+  useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allQuestions.flatMap(
+            item =>
+              item.appearances
+                .filter(
+                  appearance =>
+                    appearance
+                      .exam_family ===
+                      'upsc_other' &&
+                    (
+                      upscExamFilter ===
+                        'all' ||
+                      appearance
+                        .exam_name ===
+                        upscExamFilter
+                    )
+                )
+                .map(
+                  appearance =>
+                    appearance
+                      .exam_cycle
+                )
+                .filter(
                   (
-                    stateFilter ===
-                      'all' ||
-                    item.state_psc_state ===
-                      stateFilter
-                  ) &&
-                  (
-                    stateExamFilter ===
-                      'all' ||
-                    item.state_psc_exam_name ===
-                      stateExamFilter
-                  )
-              )
-              .map(
-                item =>
-                  item.state_psc_year
-              )
-              .filter(
-                (
-                  value
-                ):
-                  value is number =>
-                    value !== null
-              )
+                    value
+                  ):
+                    value is string =>
+                      Boolean(value)
+                )
           )
-        ).sort(
-          (a, b) =>
-            b - a
-        ),
-      [
-        allQuestions,
-        stateFilter,
-        stateExamFilter
-      ]
-    );
+        )
+      ).sort(),
+    [
+      allQuestions,
+      upscExamFilter
+    ]
+  );
 
-  const filteredQuestions =
-    useMemo(
-      () =>
-        allQuestions.filter(
-          item => {
-            const origin =
-              getQuestionOrigin(
-                item
-              );
 
-            const search =
-              searchText
-                .trim()
-                .toLowerCase();
-
-            const searchableText =
-              [
-                item.question,
-                item.subject,
-                item.topic || '',
-                item.tags.join(' '),
-                item.source || '',
-
-                item.upsc_exam_name || '',
-                item.upsc_exam_cycle || '',
-                item.upsc_exam_stage || '',
-                item.upsc_exam_paper || '',
-
-                item.upsc_exam_year
-                  ? String(
-                      item.upsc_exam_year
+const upscYears =
+  useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allQuestions.flatMap(
+            item =>
+              item.appearances
+                .filter(
+                  appearance =>
+                    appearance
+                      .exam_family ===
+                      'upsc_other' &&
+                    (
+                      upscExamFilter ===
+                        'all' ||
+                      appearance
+                        .exam_name ===
+                        upscExamFilter
                     )
-                  : '',
+                )
+                .map(
+                  appearance =>
+                    appearance.year
+                )
+                .filter(
+                  (
+                    value
+                  ):
+                    value is number =>
+                      value !== null
+                )
+          )
+        )
+      ).sort(
+        (a, b) =>
+          b - a
+      ),
+    [
+      allQuestions,
+      upscExamFilter
+    ]
+  );
 
-                item.state_psc_state || '',
-                item.state_psc_name || '',
-                item.state_psc_exam_name || '',
-                item.state_psc_stage || '',
-                item.state_psc_paper || '',
 
-                item.state_psc_year
-                  ? String(
-                      item.state_psc_year
+const states =
+  useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allQuestions.flatMap(
+            item =>
+              item.state_psc_states
+          )
+        )
+      ).sort(),
+    [allQuestions]
+  );
+
+
+const stateExams =
+  useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allQuestions.flatMap(
+            item =>
+              item.appearances
+                .filter(
+                  appearance =>
+                    appearance
+                      .exam_family ===
+                      'state_psc' &&
+                    (
+                      stateFilter ===
+                        'all' ||
+                      appearance.state ===
+                        stateFilter
                     )
-                  : '',
+                )
+                .map(
+                  appearance =>
+                    appearance.exam_name
+                )
+                .filter(
+                  (
+                    value
+                  ):
+                    value is string =>
+                      Boolean(value)
+                )
+          )
+        )
+      ).sort(),
+    [
+      allQuestions,
+      stateFilter
+    ]
+  );
 
-                item.pyq_year
-                  ? String(
-                      item.pyq_year
+
+const stateYears =
+  useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allQuestions.flatMap(
+            item =>
+              item.appearances
+                .filter(
+                  appearance =>
+                    appearance
+                      .exam_family ===
+                      'state_psc' &&
+                    (
+                      stateFilter ===
+                        'all' ||
+                      appearance.state ===
+                        stateFilter
+                    ) &&
+                    (
+                      stateExamFilter ===
+                        'all' ||
+                      appearance
+                        .exam_name ===
+                        stateExamFilter
                     )
-                  : ''
-              ]
-                .join(' ')
-                .toLowerCase();
+                )
+                .map(
+                  appearance =>
+                    appearance.year
+                )
+                .filter(
+                  (
+                    value
+                  ):
+                    value is number =>
+                      value !== null
+                )
+          )
+        )
+      ).sort(
+        (a, b) =>
+          b - a
+      ),
+    [
+      allQuestions,
+      stateFilter,
+      stateExamFilter
+    ]
+  );
 
-            const matchesSearch =
-              !search ||
-              searchableText.includes(
-                search
-              );
 
-            const matchesOrigin =
-              originFilter ===
-                'all' ||
-              origin ===
-                originFilter;
+const filteredQuestions =
+  useMemo(
+    () =>
+      allQuestions.filter(
+        item => {
 
-            const matchesSubject =
-              subjectFilter ===
-                'all' ||
-              item.subject ===
-                subjectFilter;
+          const search =
+            searchText
+              .trim()
+              .toLowerCase();
 
-            const matchesTopic =
-              topicFilter ===
-                'all' ||
-              item.topic ===
-                topicFilter;
 
-            const matchesDifficulty =
-              difficultyFilter ===
-                'all' ||
-              item.difficulty ===
-                difficultyFilter;
+          const appearanceText =
+            item.appearances
+              .flatMap(
+                appearance => [
 
-            const matchesType =
+                  appearance
+                    .commission ||
+                    '',
+
+                  appearance.state ||
+                    '',
+
+                  appearance
+                    .exam_name ||
+                    '',
+
+                  appearance
+                    .exam_cycle ||
+                    '',
+
+                  appearance.year
+                    ? String(
+                        appearance.year
+                      )
+                    : '',
+
+                  appearance.stage ||
+                    '',
+
+                  appearance.paper ||
+                    ''
+
+                ]
+              )
+              .join(' ');
+
+
+          const searchableText =
+            [
+
+              item.question,
+
+              item.subject,
+
+              item.topic || '',
+
+              item.tags.join(' '),
+
+              item.source || '',
+
+              appearanceText
+
+            ]
+              .join(' ')
+              .toLowerCase();
+
+
+          const matchesSearch =
+            !search ||
+            searchableText.includes(
+              search
+            );
+
+
+          const matchesOrigin =
+            originFilter ===
+              'all' ||
+            hasQuestionOrigin(
+              item,
+              originFilter
+            );
+
+
+          const matchesSubject =
+            subjectFilter ===
+              'all' ||
+            item.subject ===
+              subjectFilter;
+
+
+          const matchesTopic =
+            topicFilter ===
+              'all' ||
+            item.topic ===
+              topicFilter;
+
+
+          const matchesDifficulty =
+            difficultyFilter ===
+              'all' ||
+            item.difficulty ===
+              difficultyFilter;
+
+
+          const matchesType =
+            typeFilter ===
+              'all' ||
+            (
               typeFilter ===
-                'all' ||
-              (
-                typeFilter ===
-                  'pyq' &&
-                item.is_pyq
-              ) ||
-              (
-                typeFilter ===
-                  'practice' &&
-                !item.is_pyq
-              );
+                'pyq' &&
+              item.is_pyq
+            ) ||
+            (
+              typeFilter ===
+                'practice' &&
+              !item.is_pyq
+            );
 
-            const matchesCsePyqYear =
-              csePyqYearFilter ===
-                'all' ||
-              (
-                origin ===
-                  'cse' &&
-                item.is_pyq &&
+
+          const matchesCsePyqYear =
+            csePyqYearFilter ===
+              'all' ||
+
+            item.appearances.some(
+              appearance =>
+
+                appearance
+                  .exam_family ===
+                  'upsc_cse' &&
+
                 String(
-                  item.pyq_year ||
+                  appearance.year ||
                   ''
                 ) ===
                   csePyqYearFilter
-              );
-
-            const matchesUpscExam =
-              upscExamFilter ===
-                'all' ||
-              item.upsc_exam_name ===
-                upscExamFilter;
-
-            const matchesUpscCycle =
-              upscCycleFilter ===
-                'all' ||
-              item.upsc_exam_cycle ===
-                upscCycleFilter;
-
-            const matchesUpscYear =
-              upscYearFilter ===
-                'all' ||
-              String(
-                item.upsc_exam_year ||
-                ''
-              ) ===
-                upscYearFilter;
-
-            const matchesState =
-              stateFilter ===
-                'all' ||
-              item.state_psc_state ===
-                stateFilter;
-
-            const matchesStateExam =
-              stateExamFilter ===
-                'all' ||
-              item.state_psc_exam_name ===
-                stateExamFilter;
-
-            const matchesStateYear =
-              stateYearFilter ===
-                'all' ||
-              String(
-                item.state_psc_year ||
-                ''
-              ) ===
-                stateYearFilter;
-
-            const matchesBookmarked =
-              !bookmarkedOnly ||
-              bookmarkedQuestionIds.includes(
-                item.id
-              );
-
-            return (
-              matchesSearch &&
-              matchesOrigin &&
-              matchesSubject &&
-              matchesTopic &&
-              matchesDifficulty &&
-              matchesType &&
-              matchesCsePyqYear &&
-              matchesUpscExam &&
-              matchesUpscCycle &&
-              matchesUpscYear &&
-              matchesState &&
-              matchesStateExam &&
-              matchesStateYear &&
-              matchesBookmarked
             );
-          }
-        ),
-      [
-        allQuestions,
-        searchText,
-        originFilter,
-        subjectFilter,
-        topicFilter,
-        difficultyFilter,
-        typeFilter,
-        csePyqYearFilter,
-        upscExamFilter,
-        upscCycleFilter,
-        upscYearFilter,
-        stateFilter,
-        stateExamFilter,
-        stateYearFilter,
-        bookmarkedOnly,
-        bookmarkedQuestionIds
-      ]
-    );
+
+
+          const hasUpscFilters =
+            upscExamFilter !==
+              'all' ||
+
+            upscCycleFilter !==
+              'all' ||
+
+            upscYearFilter !==
+              'all';
+
+
+          const matchesUpsc =
+            !hasUpscFilters ||
+
+            item.appearances.some(
+              appearance =>
+
+                appearance
+                  .exam_family ===
+                  'upsc_other' &&
+
+                (
+                  upscExamFilter ===
+                    'all' ||
+                  appearance
+                    .exam_name ===
+                    upscExamFilter
+                ) &&
+
+                (
+                  upscCycleFilter ===
+                    'all' ||
+                  appearance
+                    .exam_cycle ===
+                    upscCycleFilter
+                ) &&
+
+                (
+                  upscYearFilter ===
+                    'all' ||
+                  String(
+                    appearance.year ||
+                    ''
+                  ) ===
+                    upscYearFilter
+                )
+            );
+
+
+          const hasStateFilters =
+            stateFilter !==
+              'all' ||
+
+            stateExamFilter !==
+              'all' ||
+
+            stateYearFilter !==
+              'all';
+
+
+          const matchesState =
+            !hasStateFilters ||
+
+            item.appearances.some(
+              appearance =>
+
+                appearance
+                  .exam_family ===
+                  'state_psc' &&
+
+                (
+                  stateFilter ===
+                    'all' ||
+                  appearance.state ===
+                    stateFilter
+                ) &&
+
+                (
+                  stateExamFilter ===
+                    'all' ||
+                  appearance
+                    .exam_name ===
+                    stateExamFilter
+                ) &&
+
+                (
+                  stateYearFilter ===
+                    'all' ||
+                  String(
+                    appearance.year ||
+                    ''
+                  ) ===
+                    stateYearFilter
+                )
+            );
+
+
+          const matchesBookmarked =
+            !bookmarkedOnly ||
+
+            item
+              .stored_question_ids
+              .some(
+                storedId =>
+                  bookmarkedQuestionIds
+                    .includes(
+                      storedId
+                    )
+              );
+
+
+          return (
+
+            matchesSearch &&
+
+            matchesOrigin &&
+
+            matchesSubject &&
+
+            matchesTopic &&
+
+            matchesDifficulty &&
+
+            matchesType &&
+
+            matchesCsePyqYear &&
+
+            matchesUpsc &&
+
+            matchesState &&
+
+            matchesBookmarked
+
+          );
+
+        }
+      ),
+    [
+
+      allQuestions,
+
+      searchText,
+
+      originFilter,
+
+      subjectFilter,
+
+      topicFilter,
+
+      difficultyFilter,
+
+      typeFilter,
+
+      csePyqYearFilter,
+
+      upscExamFilter,
+
+      upscCycleFilter,
+
+      upscYearFilter,
+
+      stateFilter,
+
+      stateExamFilter,
+
+      stateYearFilter,
+
+      bookmarkedOnly,
+
+      bookmarkedQuestionIds
+
+    ]
+  );
 
   const sessionQuestionCount =
     sessionSize === 'all'
@@ -3474,8 +3986,8 @@ export function PracticePage() {
     return null;
   }
 
-  const origin =
-    getQuestionOrigin(q);
+  const origins =
+  q.origins;
 
   if (sessionMode === 'exam') {
     const chosen =
@@ -3845,11 +4357,19 @@ export function PracticePage() {
             </span>
 
             {q.is_pyq && (
-              <span className="tag">
-                PYQ{' '}
-                {q.pyq_year || ''}
-              </span>
-            )}
+  <span className="tag">
+
+    PYQ
+
+    {
+      q.cse_pyq_years
+        .length > 0
+        ? ` · ${q.cse_pyq_years.join(', ')}`
+        : ''
+    }
+
+  </span>
+)}
 
             {currentMarked && (
               <span
@@ -4103,23 +4623,46 @@ export function PracticePage() {
             {q.difficulty}
           </span>
 
-          {origin === 'cse' && (
-            <span className="tag">
-              CSE / General
-            </span>
-          )}
+          {origins.includes(
+  'cse'
+) && (
+  <span className="tag">
+    CSE / General
+  </span>
+)}
 
-          {origin === 'upsc' && (
-            <span className="tag">
-              UPSC Value Add
-            </span>
-          )}
 
-          {origin === 'state' && (
-            <span className="tag">
-              State PSC
-            </span>
-          )}
+{origins.includes(
+  'upsc'
+) && (
+  <span className="tag">
+    Other UPSC
+  </span>
+)}
+
+
+{origins.includes(
+  'state'
+) && (
+  <span className="tag">
+    State PSC
+  </span>
+)}
+
+
+{q.is_pyq && (
+  <span className="tag">
+
+    PYQ
+
+    {
+      q.appearance_count > 0
+        ? ` · Asked ${q.appearance_count} time${q.appearance_count === 1 ? '' : 's'}`
+        : ''
+    }
+
+  </span>
+)}
 
           {q.is_pyq && (
             <span className="tag">
@@ -4226,9 +4769,146 @@ export function PracticePage() {
               Explanation
             </strong>
 
-            <p>
-              {q.explanation}
-            </p>
+           {q.appearances.length > 0 && (
+
+  <div
+    style={{
+      marginTop:
+        '14px'
+    }}
+  >
+
+    <strong>
+      Previous Exam Appearances
+    </strong>
+
+
+    <div
+      style={{
+        display:
+          'grid',
+
+        gap:
+          '8px',
+
+        marginTop:
+          '10px'
+      }}
+    >
+
+      {q.appearances
+        .slice(
+          0,
+          10
+        )
+        .map(
+          (
+            appearance,
+            appearanceIndex
+          ) => (
+
+            <div
+              key={
+                appearance
+                  .appearance_id ||
+                `${appearance.exam_paper_id || 'paper'}-${appearanceIndex}`
+              }
+
+              style={{
+                padding:
+                  '9px 11px',
+
+                borderRadius:
+                  '10px',
+
+                background:
+                  'rgba(255,255,255,.04)'
+              }}
+            >
+
+              {
+                [
+
+                  appearance
+                    .commission,
+
+                  appearance
+                    .exam_name,
+
+                  appearance.year,
+
+                  appearance.stage,
+
+                  appearance.paper
+
+                ]
+                  .filter(
+                    value =>
+                      value !==
+                        null &&
+                      value !==
+                        undefined &&
+                      value !==
+                        ''
+                  )
+                  .join(
+                    ' · '
+                  )
+              }
+
+              {
+                appearance
+                  .appearance_type ===
+                  'reordered' && (
+
+                  <small
+                    style={{
+                      display:
+                        'block',
+
+                      marginTop:
+                        '4px'
+                    }}
+                  >
+                    Same question with reordered options
+                  </small>
+
+                )
+              }
+
+            </div>
+
+          )
+        )
+      }
+
+    </div>
+
+
+    {q.appearances.length > 10 && (
+
+      <small
+        style={{
+          display:
+            'block',
+
+          marginTop:
+            '8px'
+        }}
+      >
+        +
+        {
+          q.appearances.length -
+          10
+        }{' '}
+        more appearances
+      </small>
+
+    )}
+
+  </div>
+
+)}
 
             {q.upsc_exam_name && (
               <div
