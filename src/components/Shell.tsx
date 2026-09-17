@@ -3,6 +3,10 @@ import {
   useRef
 } from 'react';
 
+import type {
+  ReactNode
+} from 'react';
+
 import {
   IonIcon
 } from '@ionic/react';
@@ -74,29 +78,33 @@ function readSavedScroll(
 
   try {
 
-    const value =
+    const stored =
       sessionStorage.getItem(
         getScrollKey(
           active
         )
       );
 
-    if (!value) {
+
+    if (!stored) {
 
       return 0;
     }
 
 
-    const parsed =
+    const value =
       Number(
-        value
+        stored
       );
 
 
     return Number.isFinite(
-      parsed
+      value
     )
-      ? parsed
+      ? Math.max(
+          0,
+          value
+        )
       : 0;
 
   } catch {
@@ -118,13 +126,18 @@ function saveStoredScroll(
         active
       ),
       String(
-        value
+        Math.max(
+          0,
+          Math.round(
+            value
+          )
+        )
       )
     );
 
   } catch {
 
-    // Ignore storage errors.
+    // Storage may be unavailable in some browsers.
   }
 }
 
@@ -155,14 +168,8 @@ export function Shell({
 }: {
   active: NavKey;
   onNavigate: (key: NavKey) => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-
-  /*
-   * =========================================
-   * REAL APP SCROLL CONTAINER
-   * =========================================
-   */
 
   const mainRef =
     useRef<HTMLElement | null>(
@@ -171,32 +178,27 @@ export function Shell({
 
 
   /*
-   * Keep latest known scroll position in memory.
+   * Used only to throttle scroll saving.
+   *
+   * We no longer repeatedly force the scroll
+   * position while the student is scrolling.
    */
 
-  const savedScrollRef =
-    useRef(
-      0
+  const scrollSaveFrameRef =
+    useRef<number | null>(
+      null
     );
 
 
-  /*
-   * While restoring the page, browser-generated
-   * scroll events must not overwrite our saved
-   * position with zero.
-   */
-
-  const restoringUntilRef =
-    useRef(
-      0
+  const restoreFrameRef =
+    useRef<number | null>(
+      null
     );
 
 
-  /*
-   * =========================================
-   * SAVE + RESTORE SCROLL
-   * =========================================
-   */
+  /* =======================================================
+     SIMPLE + SMOOTH SCROLL STATE
+  ======================================================= */
 
   useEffect(
     () => {
@@ -211,349 +213,191 @@ export function Shell({
       }
 
 
-      /*
-       * Start with any position saved during this
-       * browser session.
-       */
-
-      savedScrollRef.current =
-        readSavedScroll(
-          active
-        );
-
-
-      let timers:
-        number[] = [];
-
-
-      function clearTimers() {
-
-        timers.forEach(
-          timer =>
-            window.clearTimeout(
-              timer
-            )
-        );
-
-
-        timers =
-          [];
-      }
-
-
-      function savePosition() {
-
-        const currentMain =
-          mainRef.current;
-
-
-        if (!currentMain) {
-
-          return;
-        }
-
-
-        const position =
-          currentMain.scrollTop;
-
-
-        savedScrollRef.current =
-          position;
-
-
-        saveStoredScroll(
-          active,
-          position
-        );
-      }
+      let disposed =
+        false;
 
 
       /*
-       * Restore more than once because Supabase /
-       * React can update page height shortly after
-       * the browser tab becomes active again.
+       * Restore once.
+       *
+       * The previous implementation repeatedly
+       * restored at many time intervals and watched
+       * DOM mutations. That could interrupt normal
+       * touch / mouse scrolling.
        */
 
-      function restorePosition() {
+      const restoreSavedPosition =
+        () => {
 
-        const target =
-          savedScrollRef.current;
-
-
-        if (
-          target <=
-          0
-        ) {
-
-          return;
-        }
-
-
-        restoringUntilRef.current =
-          Date.now() +
-          2200;
-
-
-        clearTimers();
-
-
-        function applyPosition() {
-
-          const currentMain =
-            mainRef.current;
-
-
-          if (!currentMain) {
-
-            return;
-          }
+          const saved =
+            readSavedScroll(
+              active
+            );
 
 
           if (
-            Date.now() >
-            restoringUntilRef.current
+            saved <=
+            0
           ) {
 
             return;
           }
 
 
-          const difference =
-            Math.abs(
-              currentMain.scrollTop -
-              target
-            );
-
-
           if (
-            difference >
-            2
+            restoreFrameRef.current !==
+            null
           ) {
 
-            currentMain.scrollTo({
-              top:
-                target,
-
-              behavior:
-                'auto'
-            });
-          }
-        }
-
-
-        window.requestAnimationFrame(
-          applyPosition
-        );
-
-
-        [
-          40,
-          100,
-          200,
-          400,
-          700,
-          1100,
-          1600,
-          2100
-        ].forEach(
-          delay => {
-
-            const timer =
-              window.setTimeout(
-                applyPosition,
-                delay
-              );
-
-
-            timers.push(
-              timer
+            window.cancelAnimationFrame(
+              restoreFrameRef.current
             );
           }
-        );
-      }
+
+
+          restoreFrameRef.current =
+            window.requestAnimationFrame(
+              () => {
+
+                restoreFrameRef.current =
+                  null;
+
+
+                if (
+                  disposed
+                ) {
+
+                  return;
+                }
+
+
+                const maxScroll =
+                  Math.max(
+                    0,
+                    main.scrollHeight -
+                      main.clientHeight
+                  );
+
+
+                main.scrollTop =
+                  Math.min(
+                    saved,
+                    maxScroll
+                  );
+
+              }
+            );
+        };
 
 
       /*
-       * User manually scrolls.
+       * Save at most once per animation frame.
+       *
+       * This avoids doing sessionStorage writes
+       * for every individual scroll event.
        */
 
-      function handleScroll() {
+      const handleScroll =
+        () => {
 
-        /*
-         * Do not save browser's temporary
-         * zero position while restoration
-         * is running.
-         */
+          if (
+            scrollSaveFrameRef.current !==
+            null
+          ) {
 
-        if (
-          Date.now() <=
-          restoringUntilRef.current
-        ) {
-
-          return;
-        }
+            return;
+          }
 
 
-        /*
-         * Only record normal visible-page
-         * scrolling.
-         */
+          scrollSaveFrameRef.current =
+            window.requestAnimationFrame(
+              () => {
 
-        if (
-          document.visibilityState !==
-          'visible'
-        ) {
-
-          return;
-        }
+                scrollSaveFrameRef.current =
+                  null;
 
 
-        savePosition();
-      }
+                if (
+                  document.visibilityState !==
+                  'visible'
+                ) {
+
+                  return;
+                }
+
+
+                saveStoredScroll(
+                  active,
+                  main.scrollTop
+                );
+
+              }
+            );
+        };
 
 
       /*
-       * User changes browser tab.
+       * Save when app/browser is moved into
+       * the background.
        */
 
-      function handleVisibilityChange() {
+      const handleVisibilityChange =
+        () => {
 
-        if (
-          document.visibilityState ===
-          'hidden'
-        ) {
+          if (
+            document.visibilityState ===
+            'hidden'
+          ) {
 
-          savePosition();
+            saveStoredScroll(
+              active,
+              main.scrollTop
+            );
 
-          return;
-        }
-
-
-        /*
-         * Returning from ChatGPT / another tab.
-         */
-
-        restorePosition();
-      }
+            return;
+          }
 
 
-      /*
-       * Extra browser protection.
-       */
+          /*
+           * Some mobile browsers reset an inner
+           * scroll container to zero when returning
+           * to the app.
+           *
+           * Restore only if that actually happened.
+           * Never fight the user's current position.
+           */
 
-      function handleWindowBlur() {
+          if (
+            main.scrollTop <=
+            1
+          ) {
 
-        savePosition();
-      }
-
-
-      function handleWindowFocus() {
-
-        restorePosition();
-      }
-
-
-      /*
-       * Protect browser Back / Forward and BFCache.
-       */
-
-      function handlePageHide() {
-
-        savePosition();
-      }
+            restoreSavedPosition();
+          }
+        };
 
 
-      function handlePageShow() {
+      const handlePageHide =
+        () => {
 
-        const stored =
-          readSavedScroll(
-            active
+          saveStoredScroll(
+            active,
+            main.scrollTop
           );
+        };
 
 
-        if (
-          stored >
-          0
-        ) {
+      const handlePageShow =
+        () => {
 
-          savedScrollRef.current =
-            stored;
-        }
+          if (
+            main.scrollTop <=
+            1
+          ) {
 
-
-        restorePosition();
-      }
-
-
-      /*
-       * React may temporarily change page height
-       * while account/session information updates.
-       * Reapply the position during that short period.
-       */
-
-      const observer =
-        new MutationObserver(
-          () => {
-
-            if (
-              document.visibilityState !==
-              'visible'
-            ) {
-
-              return;
-            }
-
-
-            if (
-              Date.now() >
-              restoringUntilRef.current
-            ) {
-
-              return;
-            }
-
-
-            const target =
-              savedScrollRef.current;
-
-
-            if (
-              target <=
-              0
-            ) {
-
-              return;
-            }
-
-
-            const currentMain =
-              mainRef.current;
-
-
-            if (!currentMain) {
-
-              return;
-            }
-
-
-            if (
-              Math.abs(
-                currentMain.scrollTop -
-                target
-              ) >
-              2
-            ) {
-
-              currentMain.scrollTo({
-                top:
-                  target,
-
-                behavior:
-                  'auto'
-              });
-            }
+            restoreSavedPosition();
           }
-        );
+        };
 
 
       main.addEventListener(
@@ -573,18 +417,6 @@ export function Shell({
 
 
       window.addEventListener(
-        'blur',
-        handleWindowBlur
-      );
-
-
-      window.addEventListener(
-        'focus',
-        handleWindowFocus
-      );
-
-
-      window.addEventListener(
         'pagehide',
         handlePageHide
       );
@@ -596,39 +428,17 @@ export function Shell({
       );
 
 
-      observer.observe(
-        main,
-        {
-          childList:
-            true,
-
-          subtree:
-            true
-        }
-      );
-
-
       /*
-       * Restore position after initial render
-       * if this page came back through browser
-       * history.
+       * Initial restoration.
        */
 
-      if (
-        savedScrollRef.current >
-        0
-      ) {
-
-        restorePosition();
-      }
+      restoreSavedPosition();
 
 
       return () => {
 
-        savePosition();
-
-
-        clearTimers();
+        disposed =
+          true;
 
 
         main.removeEventListener(
@@ -644,18 +454,6 @@ export function Shell({
 
 
         window.removeEventListener(
-          'blur',
-          handleWindowBlur
-        );
-
-
-        window.removeEventListener(
-          'focus',
-          handleWindowFocus
-        );
-
-
-        window.removeEventListener(
           'pagehide',
           handlePageHide
         );
@@ -667,7 +465,33 @@ export function Shell({
         );
 
 
-        observer.disconnect();
+        if (
+          scrollSaveFrameRef.current !==
+          null
+        ) {
+
+          window.cancelAnimationFrame(
+            scrollSaveFrameRef.current
+          );
+
+          scrollSaveFrameRef.current =
+            null;
+        }
+
+
+        if (
+          restoreFrameRef.current !==
+          null
+        ) {
+
+          window.cancelAnimationFrame(
+            restoreFrameRef.current
+          );
+
+          restoreFrameRef.current =
+            null;
+        }
+
       };
 
     },
@@ -677,11 +501,9 @@ export function Shell({
   );
 
 
-  /*
-   * =========================================
-   * APP NAVIGATION
-   * =========================================
-   */
+  /* =======================================================
+     APP NAVIGATION
+  ======================================================= */
 
   function navigate(
     next:
@@ -693,10 +515,12 @@ export function Shell({
 
 
     /*
-     * Save the page we are leaving.
+     * Save page position before leaving.
      */
 
-    if (main) {
+    if (
+      main
+    ) {
 
       saveStoredScroll(
         active,
@@ -706,11 +530,11 @@ export function Shell({
 
 
     /*
-     * Clicking a real navigation item should
-     * open that new page from the top.
+     * Normal app navigation opens the selected
+     * section from the top.
      *
-     * Switching browser tabs does NOT call this,
-     * therefore the My Notes position is preserved.
+     * Browser/app background switching is handled
+     * separately and preserves the position.
      */
 
     if (
@@ -723,21 +547,13 @@ export function Shell({
       );
 
 
-      savedScrollRef.current =
-        0;
+      if (
+        main
+      ) {
 
-
-      restoringUntilRef.current =
-        0;
-
-
-      main?.scrollTo({
-        top:
-          0,
-
-        behavior:
-          'auto'
-      });
+        main.scrollTop =
+          0;
+      }
     }
 
 
@@ -747,11 +563,9 @@ export function Shell({
   }
 
 
-  /*
-   * =========================================
-   * PAGE
-   * =========================================
-   */
+  /* =======================================================
+     PAGE
+  ======================================================= */
 
   return (
 
@@ -807,9 +621,7 @@ export function Shell({
                   className={
                     active ===
                     item.key
-
                       ? 'nav-active'
-
                       : ''
                   }
 
@@ -827,10 +639,13 @@ export function Shell({
                   />
 
                   <span>
-                    {item.label}
+                    {
+                      item.label
+                    }
                   </span>
 
                 </button>
+
               )
             )
           }
@@ -863,7 +678,7 @@ export function Shell({
       </aside>
 
 
-      {/* REAL SCROLLING AREA */}
+      {/* MAIN SCROLL CONTAINER */}
 
       <main
         ref={
@@ -873,7 +688,9 @@ export function Shell({
         className="main-area"
       >
 
-        {children}
+        {
+          children
+        }
 
       </main>
 
@@ -898,9 +715,7 @@ export function Shell({
                 className={
                   active ===
                   item.key
-
                     ? 'nav-active'
-
                     : ''
                 }
 
@@ -918,10 +733,13 @@ export function Shell({
                 />
 
                 <span>
-                  {item.label}
+                  {
+                    item.label
+                  }
                 </span>
 
               </button>
+
             )
           )
         }
@@ -929,5 +747,6 @@ export function Shell({
       </nav>
 
     </div>
+
   );
 }
