@@ -19,6 +19,11 @@ import {
   PrelimsPyqBulkImporter
 } from '../components/PrelimsPyqBulkImporter';
 
+
+import {
+  PrelimsReviewQueue
+} from '../components/PrelimsReviewQueue';
+
 import {
   PrelimsTestManager
 } from '../components/PrelimsTestManager';
@@ -3095,7 +3100,7 @@ export function AdminPage({
       </div>
 
 
-           {/* =====================================
+               {/* =====================================
           PRELIMS MCQ TAB
       ===================================== */}
 
@@ -3124,6 +3129,11 @@ export function AdminPage({
           <PrelimsPyqBulkImporter />
 
 
+          {/* DUPLICATE / VARIANT REVIEW QUEUE */}
+
+          <PrelimsReviewQueue />
+
+
           {/* MANUAL QUESTION ENTRY + QUESTION BANK */}
 
           <QuestionManager />
@@ -3131,7 +3141,6 @@ export function AdminPage({
         </div>
 
       </div>
-
 
       {/* =====================================
           PRELIMS TEST SERIES TAB
