@@ -954,7 +954,169 @@ export function PrelimsReviewQueue() {
       if (
         !confirmed
       ) {
+  async function linkReviewToExisting(
+    review:
+      ReviewRow
+  ) {
 
+    if (
+      !supabase ||
+      processingId
+    ) {
+
+      return;
+    }
+
+
+    const confirmed =
+      window.confirm(
+
+        'Link this imported version to the existing master question?\n\n' +
+
+        'No duplicate master question will be created.\n\n' +
+
+        'The original exam wording, options and question number will still be preserved.'
+
+      );
+
+
+    if (
+      !confirmed
+    ) {
+
+      return;
+    }
+
+
+    setProcessingId(
+      review.id
+    );
+
+
+    setMessage(
+      'Linking to existing master question...'
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase.rpc(
+        'link_prelims_import_review_to_existing',
+        {
+
+          p_review_id:
+            review.id,
+
+          p_notes:
+            notes[
+              review.id
+            ]?.trim() ||
+            null
+
+        }
+      );
+
+
+    if (
+      error
+    ) {
+
+      console.error(
+        'Unable to link review case to existing master:',
+        error
+      );
+
+
+      setMessage(
+        error.message ||
+        'Unable to link this question to the existing master.'
+      );
+
+
+      setProcessingId(
+        null
+      );
+
+
+      return;
+    }
+
+
+    const result =
+      (
+        data ||
+        {}
+      ) as {
+        success?: boolean;
+        question_id?: string;
+        appearance_id?: string;
+        message?: string;
+      };
+
+
+    if (
+      result.success ===
+      false
+    ) {
+
+      setMessage(
+        result.message ||
+        'The question could not be linked.'
+      );
+
+
+      setProcessingId(
+        null
+      );
+
+
+      await loadQueue();
+
+
+      return;
+    }
+
+
+    setReviews(
+      current =>
+        current.filter(
+          item =>
+            item.id !==
+            review.id
+        )
+    );
+
+
+    setNotes(
+      current => {
+
+        const copy = {
+          ...current
+        };
+
+
+        delete copy[
+          review.id
+        ];
+
+
+        return copy;
+      }
+    );
+
+
+    setProcessingId(
+      null
+    );
+
+
+    setMessage(
+      result.message ||
+      'Question linked to existing master successfully. Original paper appearance preserved.'
+    );
+  }
         return;
       }
 
@@ -1939,7 +2101,7 @@ export function PrelimsReviewQueue() {
 
 
 
-                      <div
+                                            <div
                         className="callout"
                       >
 
@@ -1950,9 +2112,20 @@ export function PrelimsReviewQueue() {
 
                         <p>
                           <strong>
+                            Link Existing Master
+                          </strong>{' '}
+                          is for the same underlying question when wording,
+                          option order or distractors differ. No duplicate
+                          master is created, but this exam appearance is preserved.
+                        </p>
+
+
+                        <p>
+                          <strong>
                             Create Variant
                           </strong>{' '}
-                          creates a separate Draft question because its content differs from the existing master.
+                          creates a separate Draft master question when the
+                          actual meaning or answer content is genuinely different.
                         </p>
 
 
@@ -1960,12 +2133,29 @@ export function PrelimsReviewQueue() {
                           <strong>
                             Dismiss
                           </strong>{' '}
-                          closes the case without creating another question.
+                          closes the review case without linking or creating a question.
                         </p>
 
                       </div>
 
 
+                      <div
+                        style={{
+
+                          display:
+                            'flex',
+
+                          gap:
+                            '10px',
+
+                          flexWrap:
+                            'wrap',
+
+                          marginTop:
+                            '14px'
+
+                        }}
+                      >
 
                       <div
                         style={{
@@ -1988,6 +2178,31 @@ export function PrelimsReviewQueue() {
                         <button
                           type="button"
                           className="primary-btn"
+                          disabled={
+                            isProcessing
+                          }
+                          onClick={
+                            () =>
+                              void linkReviewToExisting(
+                                review
+                              )
+                          }
+                        >
+
+                          {
+                            isProcessing
+
+                              ? 'Processing...'
+
+                              : 'Link to Existing Master'
+                          }
+
+                        </button>
+
+
+                        <button
+                          type="button"
+                          className="secondary-btn"
                           disabled={
                             isProcessing
                           }
@@ -2026,6 +2241,9 @@ export function PrelimsReviewQueue() {
                           }
                         >
                           Dismiss
+                        </button>
+
+                      </div>
                         </button>
 
                       </div>
