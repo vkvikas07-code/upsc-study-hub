@@ -7,6 +7,7 @@ import {
 
 import { TopBar } from '../components/TopBar';
 import { PrelimsBookmarkButton } from '../components/PrelimsBookmarkButton';
+import { PrelimsPyqArchive } from '../components/PrelimsPyqArchive';
 import { supabase } from '../lib/supabase';
 
 
@@ -5406,7 +5407,7 @@ export function PracticePage() {
             </button>
 
 
-            <button
+                        <button
               className="secondary-btn"
               type="button"
               onClick={
@@ -5420,6 +5421,60 @@ export function PracticePage() {
 
         </section>
 
+
+        {/* =====================================
+            PRELIMS ORIGINAL PYQ PAPER ARCHIVE
+        ===================================== */}
+
+        <section
+          className="panel"
+          style={{
+            marginTop:
+              '20px'
+          }}
+        >
+
+          <details>
+
+            <summary
+              style={{
+                cursor:
+                  'pointer',
+
+                fontWeight:
+                  700,
+
+                fontSize:
+                  '1.05rem',
+
+                padding:
+                  '4px 0'
+              }}
+            >
+              Browse Original Prelims PYQ Papers
+            </summary>
+
+
+            <p
+              style={{
+                marginTop:
+                  '12px',
+
+                marginBottom:
+                  '16px'
+              }}
+            >
+              Browse UPSC CSE, other UPSC and State PSC
+              Prelims papers in their original question order.
+            </p>
+
+
+            <PrelimsPyqArchive />
+
+          </details>
+
+        </section>
+
       </div>
 
     );
@@ -5430,7 +5485,6 @@ export function PracticePage() {
   if (
     finished
   ) {
-
     if (
       sessionMode ===
         'exam' &&
