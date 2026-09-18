@@ -16,6 +16,10 @@ import {
 } from '../components/QuestionManager';
 
 import {
+  PrelimsPyqBulkImporter
+} from '../components/PrelimsPyqBulkImporter';
+
+import {
   PrelimsTestManager
 } from '../components/PrelimsTestManager';
 
@@ -3091,7 +3095,7 @@ export function AdminPage({
       </div>
 
 
-      {/* =====================================
+           {/* =====================================
           PRELIMS MCQ TAB
       ===================================== */}
 
@@ -3105,7 +3109,26 @@ export function AdminPage({
         }}
       >
 
-        <QuestionManager />
+        <div
+          style={{
+            display:
+              'grid',
+
+            gap:
+              '22px'
+          }}
+        >
+
+          {/* BULK PYQ PAPER IMPORT */}
+
+          <PrelimsPyqBulkImporter />
+
+
+          {/* MANUAL QUESTION ENTRY + QUESTION BANK */}
+
+          <QuestionManager />
+
+        </div>
 
       </div>
 
