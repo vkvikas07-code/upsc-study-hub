@@ -1,85 +1,174 @@
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState
+} from 'react';
 
-import { LearnPage } from './LearnPage';
-import { StudyResources } from '../components/StudyResources';
-import { BookProgressTracker } from '../components/BookProgressTracker';
-import { RevisionScheduleSettings } from '../components/RevisionScheduleSettings';
-import { RevisionWeekCalendar } from '../components/RevisionWeekCalendar';
+import {
+  LearnPage
+} from './LearnPage';
+
+import {
+  StudyResources
+} from '../components/StudyResources';
+
+import {
+  BookProgressTracker
+} from '../components/BookProgressTracker';
+
+import {
+  RevisionScheduleSettings
+} from '../components/RevisionScheduleSettings';
+
+import {
+  RevisionWeekCalendar
+} from '../components/RevisionWeekCalendar';
+
+import {
+  MyReading
+} from '../components/MyReading';
+
 
 export type LearnMode =
   | 'syllabus'
   | 'resources'
   | 'book-progress';
 
+
 type BookWorkspace =
-  | 'books'
+  | 'my-reading'
+  | 'standard-books'
   | 'calendar'
   | 'settings';
+
 
 type LearnHubPageProps = {
   initialSubject?: string | null;
   initialMode?: LearnMode;
 };
 
+
 export function LearnHubPage({
   initialSubject = null,
   initialMode = 'syllabus'
 }: LearnHubPageProps) {
-  const [mode, setMode] =
-    useState<LearnMode>(initialMode);
+  const [
+    mode,
+    setMode
+  ] = useState<LearnMode>(
+    initialMode
+  );
 
-  const [bookWorkspace, setBookWorkspace] =
-    useState<BookWorkspace>('books');
+  const [
+    bookWorkspace,
+    setBookWorkspace
+  ] = useState<BookWorkspace>(
+    'my-reading'
+  );
 
-  useEffect(() => {
-    setMode(initialMode);
 
-    if (initialMode === 'book-progress') {
-      setBookWorkspace('books');
-    }
-  }, [initialMode]);
+  useEffect(
+    () => {
+      setMode(
+        initialMode
+      );
+
+      if (
+        initialMode ===
+        'book-progress'
+      ) {
+        setBookWorkspace(
+          'my-reading'
+        );
+      }
+    },
+    [
+      initialMode
+    ]
+  );
+
 
   const mainButtonStyle = {
-    width: '100%',
-    minWidth: 0,
-    minHeight: '48px',
-    whiteSpace: 'normal' as const,
-    textAlign: 'center' as const,
-    lineHeight: 1.15,
-    padding: '9px 7px'
+    width:
+      '100%',
+    minWidth:
+      0,
+    minHeight:
+      '46px',
+    whiteSpace:
+      'normal' as const,
+    textAlign:
+      'center' as const,
+    lineHeight:
+      1.15,
+    padding:
+      '9px 7px'
   };
 
+
+  const mainTabs: Array<{
+    id: LearnMode;
+    label: string;
+    helper: string;
+  }> = [
+    {
+      id: 'syllabus',
+      label: 'Syllabus',
+      helper:
+        'Track UPSC syllabus topic by topic'
+    },
+    {
+      id: 'resources',
+      label: 'Resources',
+      helper:
+        'Books, official sources, notes and CA'
+    },
+    {
+      id: 'book-progress',
+      label: 'My Books',
+      helper:
+        'Personal reading, standard books and revision'
+    }
+  ];
+
+
   return (
-    <div className="page-wrap">
-
-      {/* =====================================
-          LEARN HEADER
-      ===================================== */}
-
+    <div
+      className="page-wrap"
+    >
       <section
         className="panel"
         style={{
-          marginTop: '10px',
-          padding: '16px'
+          marginTop:
+            '10px',
+          padding:
+            '16px'
         }}
       >
-        <span className="eyebrow">
+        <span
+          className="eyebrow"
+        >
           LEARN
         </span>
 
         <div
           style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexWrap: 'wrap'
+            display:
+              'flex',
+            alignItems:
+              'flex-end',
+            justifyContent:
+              'space-between',
+            gap:
+              '12px',
+            flexWrap:
+              'wrap'
           }}
         >
           <div>
             <h2
               style={{
-                margin: '5px 0 4px'
+                margin:
+                  '5px 0 4px'
               }}
             >
               Study Workspace
@@ -87,96 +176,86 @@ export function LearnHubPage({
 
             <small
               style={{
-                color: '#94a3b8'
+                color:
+                  '#94a3b8'
               }}
             >
-              Choose what you want to study today.
+              One compact workspace for syllabus, study material, reading progress and revision.
             </small>
           </div>
         </div>
 
-        {/* MAIN LEARN NAVIGATION */}
-
         <div
           style={{
-            display: 'grid',
+            display:
+              'grid',
             gridTemplateColumns:
               'repeat(3, minmax(0, 1fr))',
-            gap: '8px',
-            marginTop: '14px'
+            gap:
+              '8px',
+            marginTop:
+              '14px'
           }}
         >
-          <button
-            type="button"
-            className={
-              mode === 'syllabus'
-                ? 'filter active'
-                : 'filter'
-            }
-            style={mainButtonStyle}
-            onClick={() =>
-              setMode('syllabus')
-            }
-          >
-            Syllabus
-          </button>
+          {mainTabs.map(
+            tab => (
+              <button
+                key={tab.id}
+                type="button"
+                className={
+                  mode === tab.id
+                    ? 'filter active'
+                    : 'filter'
+                }
+                style={
+                  mainButtonStyle
+                }
+                onClick={() =>
+                  setMode(tab.id)
+                }
+                title={tab.helper}
+              >
+                {tab.label}
+              </button>
+            )
+          )}
+        </div>
 
-          <button
-            type="button"
-            className={
-              mode === 'resources'
-                ? 'filter active'
-                : 'filter'
-            }
-            style={mainButtonStyle}
-            onClick={() =>
-              setMode('resources')
-            }
-          >
-            Resources
-          </button>
-
-          <button
-            type="button"
-            className={
-              mode === 'book-progress'
-                ? 'filter active'
-                : 'filter'
-            }
-            style={mainButtonStyle}
-            onClick={() =>
-              setMode('book-progress')
-            }
-          >
-            My Books
-          </button>
+        <div
+          className="callout"
+          style={{
+            marginTop:
+              '10px',
+            padding:
+              '10px 12px'
+          }}
+        >
+          {mainTabs.find(
+            tab => tab.id === mode
+          )?.helper}
         </div>
       </section>
-
-      {/* =====================================
-          SYLLABUS
-      ===================================== */}
 
       {mode === 'syllabus' && (
         <div
           style={{
-            marginTop: '12px'
+            marginTop:
+              '12px'
           }}
         >
           <LearnPage
-            initialSubject={initialSubject}
+            initialSubject={
+              initialSubject
+            }
           />
         </div>
       )}
 
-      {/* =====================================
-          RESOURCES
-      ===================================== */}
-
       {mode === 'resources' && (
         <div
           style={{
-            marginTop: '12px'
+            marginTop:
+              '12px'
           }}
         >
           <StudyResources
@@ -185,57 +264,89 @@ export function LearnHubPage({
                 ? 'prelims'
                 : 'all'
             }
-            initialSubject={initialSubject}
+            initialSubject={
+              initialSubject
+            }
           />
         </div>
       )}
-
-      {/* =====================================
-          MY BOOKS WORKSPACE
-      ===================================== */}
 
       {mode === 'book-progress' && (
         <>
           <section
             className="panel"
             style={{
-              marginTop: '12px',
-              padding: '14px'
+              marginTop:
+                '12px',
+              padding:
+                '14px'
             }}
           >
             <div
               style={{
-                display: 'grid',
+                display:
+                  'grid',
                 gridTemplateColumns:
-                  'repeat(3, minmax(0, 1fr))',
-                gap: '8px'
+                  'repeat(4, minmax(0, 1fr))',
+                gap:
+                  '8px'
               }}
             >
               <button
                 type="button"
                 className={
-                  bookWorkspace === 'books'
+                  bookWorkspace ===
+                    'my-reading'
                     ? 'filter active'
                     : 'filter'
                 }
-                style={mainButtonStyle}
+                style={
+                  mainButtonStyle
+                }
                 onClick={() =>
-                  setBookWorkspace('books')
+                  setBookWorkspace(
+                    'my-reading'
+                  )
                 }
               >
-                Books
+                My Reading
               </button>
 
               <button
                 type="button"
                 className={
-                  bookWorkspace === 'calendar'
+                  bookWorkspace ===
+                    'standard-books'
                     ? 'filter active'
                     : 'filter'
                 }
-                style={mainButtonStyle}
+                style={
+                  mainButtonStyle
+                }
                 onClick={() =>
-                  setBookWorkspace('calendar')
+                  setBookWorkspace(
+                    'standard-books'
+                  )
+                }
+              >
+                Standard Books
+              </button>
+
+              <button
+                type="button"
+                className={
+                  bookWorkspace ===
+                    'calendar'
+                    ? 'filter active'
+                    : 'filter'
+                }
+                style={
+                  mainButtonStyle
+                }
+                onClick={() =>
+                  setBookWorkspace(
+                    'calendar'
+                  )
                 }
               >
                 7-Day Plan
@@ -244,13 +355,18 @@ export function LearnHubPage({
               <button
                 type="button"
                 className={
-                  bookWorkspace === 'settings'
+                  bookWorkspace ===
+                    'settings'
                     ? 'filter active'
                     : 'filter'
                 }
-                style={mainButtonStyle}
+                style={
+                  mainButtonStyle
+                }
                 onClick={() =>
-                  setBookWorkspace('settings')
+                  setBookWorkspace(
+                    'settings'
+                  )
                 }
               >
                 Revision Setup
@@ -258,38 +374,52 @@ export function LearnHubPage({
             </div>
           </section>
 
-          {/* BOOK PROGRESS */}
-
-          {bookWorkspace === 'books' && (
+          {bookWorkspace ===
+            'my-reading' && (
             <div
               style={{
-                marginTop: '12px'
+                marginTop:
+                  '12px'
+              }}
+            >
+              <MyReading />
+            </div>
+          )}
+
+          {bookWorkspace ===
+            'standard-books' && (
+            <div
+              style={{
+                marginTop:
+                  '12px'
               }}
             >
               <BookProgressTracker
-                initialSubject={initialSubject}
+                initialSubject={
+                  initialSubject
+                }
               />
             </div>
           )}
 
-          {/* 7-DAY REVISION PLAN */}
-
-          {bookWorkspace === 'calendar' && (
+          {bookWorkspace ===
+            'calendar' && (
             <div
               style={{
-                marginTop: '12px'
+                marginTop:
+                  '12px'
               }}
             >
               <RevisionWeekCalendar />
             </div>
           )}
 
-          {/* REVISION SETTINGS */}
-
-          {bookWorkspace === 'settings' && (
+          {bookWorkspace ===
+            'settings' && (
             <div
               style={{
-                marginTop: '12px'
+                marginTop:
+                  '12px'
               }}
             >
               <RevisionScheduleSettings />
