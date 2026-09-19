@@ -8,7 +8,6 @@ import {
   supabase
 } from '../lib/supabase';
 
-
 type ResourceType =
   | 'standard_book'
   | 'official_source'
@@ -18,29 +17,23 @@ type ResourceType =
   | 'pyq_resource'
   | 'syllabus_resource';
 
-
 type ExamStage =
   | 'prelims'
   | 'mains'
   | 'both';
-
 
 type StageFilter =
   | 'all'
   | 'prelims'
   | 'mains';
 
-
 type ResourceRow = {
   id: string;
   title: string;
   description: string | null;
 
-  resource_type:
-    ResourceType;
-
-  exam_stage:
-    ExamStage;
+  resource_type: ResourceType;
+  exam_stage: ExamStage;
 
   paper: string | null;
   subject: string;
@@ -54,34 +47,19 @@ type ResourceRow = {
 
   language: string;
 
-  edition_year:
-    number |
-    null;
+  edition_year: number | null;
+  month_year: string | null;
 
-  month_year:
-    string |
-    null;
+  is_free: boolean;
+  sort_order: number;
 
-  is_free:
-    boolean;
-
-  sort_order:
-    number;
-
-  created_at:
-    string;
+  created_at: string;
 };
-
 
 type StudyResourcesProps = {
-  initialStage?:
-    StageFilter;
-
-  initialSubject?:
-    string |
-    null;
+  initialStage?: StageFilter;
+  initialSubject?: string | null;
 };
-
 
 const RESOURCE_SELECT = `
   id,
@@ -104,45 +82,22 @@ const RESOURCE_SELECT = `
   created_at
 `;
 
-
-/*
- * SAFE NUMBER
- */
-
 function safeNumber(
-  value:
-    unknown,
-  fallback =
-    0
+  value: unknown,
+  fallback = 0
 ) {
-
   const number =
-    Number(
-      value
-    );
+    Number(value);
 
-
-  return Number.isFinite(
-    number
-  )
+  return Number.isFinite(number)
     ? number
     : fallback;
 }
 
-
-/*
- * RESOURCE TYPE LABEL
- */
-
 function resourceTypeLabel(
-  type:
-    ResourceType
+  type: ResourceType
 ) {
-
-  switch (
-    type
-  ) {
-
+  switch (type) {
     case 'standard_book':
       return 'Standard Book';
 
@@ -163,23 +118,16 @@ function resourceTypeLabel(
 
     case 'syllabus_resource':
       return 'Syllabus Resource';
+
+    default:
+      return 'Resource';
   }
 }
 
-
-/*
- * STAGE LABEL
- */
-
 function stageLabel(
-  stage:
-    ExamStage
+  stage: ExamStage
 ) {
-
-  switch (
-    stage
-  ) {
-
+  switch (stage) {
     case 'prelims':
       return 'Prelims';
 
@@ -188,112 +136,69 @@ function stageLabel(
 
     case 'both':
       return 'Prelims + Mains';
+
+    default:
+      return 'UPSC';
   }
 }
 
-
-/*
- * FORMAT MONTH / YEAR
- */
-
 function formatMonthYear(
-  value:
-    string |
-    null
+  value: string | null
 ) {
-
   if (!value) {
-
     return '';
   }
 
-
   const date =
     new Date(
-      `${value.slice(
-        0,
-        10
-      )}T00:00:00`
+      `${value.slice(0, 10)}T00:00:00`
     );
-
 
   if (
     Number.isNaN(
       date.getTime()
     )
   ) {
-
     return '';
   }
 
-
-  return date
-    .toLocaleDateString(
-      'en-IN',
-      {
-        month:
-          'long',
-
-        year:
-          'numeric'
-      }
-    );
+  return date.toLocaleDateString(
+    'en-IN',
+    {
+      month: 'long',
+      year: 'numeric'
+    }
+  );
 }
 
-
-/*
- * SAFE EXTERNAL URL
- */
-
 function getSafeExternalUrl(
-  value:
-    string |
-    null
+  value: string | null
 ) {
-
   if (!value) {
-
     return null;
   }
 
-
   try {
-
     const url =
-      new URL(
-        value
-      );
-
+      new URL(value);
 
     if (
-      url.protocol !==
-        'https:' &&
-      url.protocol !==
-        'http:'
+      url.protocol !== 'https:' &&
+      url.protocol !== 'http:'
     ) {
-
       return null;
     }
-
 
     return url.toString();
 
   } catch {
-
     return null;
   }
 }
 
-
-/*
- * DISPLAY SOURCE
- */
-
 function getPrimarySource(
-  resource:
-    ResourceRow
+  resource: ResourceRow
 ) {
-
   return (
     resource.source_name ||
     resource.publisher ||
@@ -302,37 +207,26 @@ function getPrimarySource(
   );
 }
 
-
-/*
- * STUDY RESOURCES
- */
-
 export function StudyResources({
   initialStage = 'all',
   initialSubject = null
 }: StudyResourcesProps) {
 
-  /*
-   * RESOURCE DATA
-   */
+  /* =====================================
+     MAIN DATA
+  ===================================== */
 
   const [
     resources,
     setResources
   ] =
-    useState<
-      ResourceRow[]
-    >([]);
-
+    useState<ResourceRow[]>([]);
 
   const [
     loading,
     setLoading
   ] =
-    useState(
-      true
-    );
-
+    useState(true);
 
   const [
     error,
@@ -340,10 +234,9 @@ export function StudyResources({
   ] =
     useState('');
 
-
-  /*
-   * FILTERS
-   */
+  /* =====================================
+     FILTER STATES
+  ===================================== */
 
   const [
     search,
@@ -351,17 +244,13 @@ export function StudyResources({
   ] =
     useState('');
 
-
   const [
     stageFilter,
     setStageFilter
   ] =
-    useState<
-      StageFilter
-    >(
+    useState<StageFilter>(
       initialStage
     );
-
 
   const [
     typeFilter,
@@ -374,7 +263,6 @@ export function StudyResources({
       'all'
     );
 
-
   const [
     subjectFilter,
     setSubjectFilter
@@ -384,91 +272,74 @@ export function StudyResources({
       'all'
     );
 
-
   const [
     languageFilter,
     setLanguageFilter
   ] =
-    useState(
-      'all'
-    );
-
+    useState('all');
 
   const [
     accessFilter,
     setAccessFilter
   ] =
-    useState(
-      'all'
-    );
-
+    useState('all');
 
   /*
-   * SYNC INITIAL STAGE
+   * Secondary filters remain collapsed
+   * for a cleaner beginner experience.
    */
+
+  const [
+    advancedFiltersOpen,
+    setAdvancedFiltersOpen
+  ] =
+    useState(false);
+
+  /* =====================================
+     UPDATE INITIAL FILTERS
+  ===================================== */
 
   useEffect(
     () => {
-
       setStageFilter(
         initialStage
       );
-
     },
     [
       initialStage
     ]
   );
 
-
-  /*
-   * SYNC INITIAL SUBJECT
-   */
-
   useEffect(
     () => {
-
       setSubjectFilter(
         initialSubject ||
         'all'
       );
-
     },
     [
       initialSubject
     ]
   );
 
-
-  /*
-   * LOAD PUBLISHED RESOURCES
-   */
+  /* =====================================
+     LOAD RESOURCES
+  ===================================== */
 
   async function loadResources() {
 
     if (!supabase) {
-
       setError(
         'Supabase is not configured.'
       );
 
-
-      setLoading(
-        false
-      );
-
+      setLoading(false);
 
       return;
     }
 
-
-    setLoading(
-      true
-    );
-
-
+    setLoading(true);
     setError('');
-
 
     const {
       data,
@@ -501,205 +372,179 @@ export function StudyResources({
           }
         );
 
-
     if (
       loadError
     ) {
-
       console.error(
         'Unable to load study resources:',
         loadError
       );
 
-
       setError(
         loadError.message
       );
 
+      setResources([]);
 
-      setResources(
-        []
-      );
-
-
-      setLoading(
-        false
-      );
-
+      setLoading(false);
 
       return;
     }
 
-
     const rows:
       ResourceRow[] =
-        (
-          data ||
-          []
-        ).map(
-          item => ({
+      (
+        data ||
+        []
+      ).map(
+        item => ({
+          id:
+            String(
+              item.id
+            ),
 
-            id:
-              String(
-                item.id
-              ),
+          title:
+            String(
+              item.title ||
+              ''
+            ),
 
-            title:
-              String(
-                item.title ||
-                ''
-              ),
+          description:
+            item.description
+              ? String(
+                  item.description
+                )
+              : null,
 
-            description:
-              item.description
-                ? String(
-                    item.description
-                  )
-                : null,
+          resource_type:
+            (
+              item.resource_type ||
+              'notes'
+            ) as ResourceType,
 
-            resource_type:
-              (
-                item.resource_type ||
-                'notes'
-              ) as
-                ResourceType,
+          exam_stage:
+            (
+              item.exam_stage ||
+              'both'
+            ) as ExamStage,
 
-            exam_stage:
-              (
-                item.exam_stage ||
-                'both'
-              ) as
-                ExamStage,
+          paper:
+            item.paper
+              ? String(
+                  item.paper
+                )
+              : null,
 
-            paper:
-              item.paper
-                ? String(
-                    item.paper
-                  )
-                : null,
+          subject:
+            String(
+              item.subject ||
+              'General'
+            ),
 
-            subject:
-              String(
-                item.subject ||
-                'General'
-              ),
+          author:
+            item.author
+              ? String(
+                  item.author
+                )
+              : null,
 
-            author:
-              item.author
-                ? String(
-                    item.author
-                  )
-                : null,
+          publisher:
+            item.publisher
+              ? String(
+                  item.publisher
+                )
+              : null,
 
-            publisher:
-              item.publisher
-                ? String(
-                    item.publisher
-                  )
-                : null,
+          source_name:
+            item.source_name
+              ? String(
+                  item.source_name
+                )
+              : null,
 
-            source_name:
-              item.source_name
-                ? String(
-                    item.source_name
-                  )
-                : null,
+          external_url:
+            item.external_url
+              ? String(
+                  item.external_url
+                )
+              : null,
 
-            external_url:
-              item.external_url
-                ? String(
-                    item.external_url
-                  )
-                : null,
+          file_path:
+            item.file_path
+              ? String(
+                  item.file_path
+                )
+              : null,
 
-            file_path:
-              item.file_path
-                ? String(
-                    item.file_path
-                  )
-                : null,
+          language:
+            String(
+              item.language ||
+              'English'
+            ),
 
-            language:
-              String(
-                item.language ||
-                'English'
-              ),
+          edition_year:
+            item.edition_year === null ||
+            item.edition_year === undefined
+              ? null
+              : safeNumber(
+                  item.edition_year
+                ),
 
-            edition_year:
-              item.edition_year ===
-                null ||
-              item.edition_year ===
-                undefined
-                ? null
-                : safeNumber(
-                    item.edition_year
-                  ),
+          month_year:
+            item.month_year
+              ? String(
+                  item.month_year
+                )
+              : null,
 
-            month_year:
-              item.month_year
-                ? String(
-                    item.month_year
-                  )
-                : null,
+          is_free:
+            item.is_free ===
+            true,
 
-            is_free:
-              item.is_free ===
-              true,
+          sort_order:
+            safeNumber(
+              item.sort_order
+            ),
 
-            sort_order:
-              safeNumber(
-                item.sort_order
-              ),
-
-            created_at:
-              String(
-                item.created_at ||
-                ''
-              )
-          })
-        );
-
+          created_at:
+            String(
+              item.created_at ||
+              ''
+            )
+        })
+      );
 
     setResources(
       rows
     );
-
 
     setLoading(
       false
     );
   }
 
-
-  /*
-   * INITIAL LOAD
-   */
-
   useEffect(
     () => {
-
       void loadResources();
-
     },
     []
   );
 
-
-  /*
-   * SUBJECT OPTIONS
-   */
+  /* =====================================
+     SUBJECT OPTIONS
+  ===================================== */
 
   const subjects =
     useMemo(
-      () => {
-
-        return Array
+      () =>
+        Array
           .from(
             new Set(
               resources
                 .map(
                   resource =>
-                    resource.subject
+                    resource
+                      .subject
                       .trim()
                 )
                 .filter(
@@ -715,30 +560,27 @@ export function StudyResources({
               first.localeCompare(
                 second
               )
-          );
-
-      },
+          ),
       [
         resources
       ]
     );
 
-
-  /*
-   * LANGUAGE OPTIONS
-   */
+  /* =====================================
+     LANGUAGE OPTIONS
+  ===================================== */
 
   const languages =
     useMemo(
-      () => {
-
-        return Array
+      () =>
+        Array
           .from(
             new Set(
               resources
                 .map(
                   resource =>
-                    resource.language
+                    resource
+                      .language
                       .trim()
                 )
                 .filter(
@@ -754,18 +596,15 @@ export function StudyResources({
               first.localeCompare(
                 second
               )
-          );
-
-      },
+          ),
       [
         resources
       ]
     );
 
-
-  /*
-   * FILTERED RESOURCES
-   */
+  /* =====================================
+     FILTERED RESOURCE LIST
+  ===================================== */
 
   const visibleResources =
     useMemo(
@@ -776,12 +615,11 @@ export function StudyResources({
             .trim()
             .toLowerCase();
 
-
         return resources.filter(
           resource => {
 
             /*
-             * STAGE
+             * Exam stage
              */
 
             if (
@@ -792,10 +630,8 @@ export function StudyResources({
               resource.exam_stage !==
                 'both'
             ) {
-
               return false;
             }
-
 
             if (
               stageFilter ===
@@ -805,13 +641,11 @@ export function StudyResources({
               resource.exam_stage !==
                 'both'
             ) {
-
               return false;
             }
 
-
             /*
-             * TYPE
+             * Resource type
              */
 
             if (
@@ -820,13 +654,11 @@ export function StudyResources({
               resource.resource_type !==
                 typeFilter
             ) {
-
               return false;
             }
 
-
             /*
-             * SUBJECT
+             * Subject
              */
 
             if (
@@ -835,13 +667,11 @@ export function StudyResources({
               resource.subject !==
                 subjectFilter
             ) {
-
               return false;
             }
 
-
             /*
-             * LANGUAGE
+             * Language
              */
 
             if (
@@ -850,13 +680,11 @@ export function StudyResources({
               resource.language !==
                 languageFilter
             ) {
-
               return false;
             }
 
-
             /*
-             * FREE ONLY
+             * Free resource
              */
 
             if (
@@ -864,36 +692,46 @@ export function StudyResources({
                 'free' &&
               !resource.is_free
             ) {
-
               return false;
             }
 
-
             /*
-             * SEARCH
+             * No text search
              */
 
-            if (!query) {
-
+            if (
+              !query
+            ) {
               return true;
             }
 
+            /*
+             * Text search
+             */
 
             const searchable =
               [
                 resource.title,
+
                 resource.description ||
                   '',
+
                 resource.subject,
+
                 resource.paper ||
                   '',
+
                 resource.author ||
                   '',
+
                 resource.publisher ||
                   '',
+
                 resource.source_name ||
                   '',
+
                 resource.language,
+
                 resourceTypeLabel(
                   resource.resource_type
                 )
@@ -903,14 +741,11 @@ export function StudyResources({
                 )
                 .toLowerCase();
 
-
-            return searchable
-              .includes(
-                query
-              );
+            return searchable.includes(
+              query
+            );
           }
         );
-
       },
       [
         resources,
@@ -923,10 +758,9 @@ export function StudyResources({
       ]
     );
 
-
-  /*
-   * SUMMARY COUNTS
-   */
+  /* =====================================
+     RESOURCE COUNTS
+  ===================================== */
 
   const officialCount =
     useMemo(
@@ -941,7 +775,6 @@ export function StudyResources({
       ]
     );
 
-
   const freeCount =
     useMemo(
       () =>
@@ -954,10 +787,9 @@ export function StudyResources({
       ]
     );
 
-
-  /*
-   * OPEN RESOURCE
-   */
+  /* =====================================
+     OPEN EXTERNAL RESOURCE
+  ===================================== */
 
   function openResource(
     resource:
@@ -969,12 +801,11 @@ export function StudyResources({
         resource.external_url
       );
 
-
-    if (!url) {
-
+    if (
+      !url
+    ) {
       return;
     }
-
 
     window.open(
       url,
@@ -983,52 +814,43 @@ export function StudyResources({
     );
   }
 
-
-  /*
-   * CLEAR FILTERS
-   */
+  /* =====================================
+     CLEAR FILTERS
+  ===================================== */
 
   function clearFilters() {
 
     setSearch('');
 
-
     setStageFilter(
       initialStage
     );
 
-
     setTypeFilter(
       'all'
     );
-
 
     setSubjectFilter(
       initialSubject ||
       'all'
     );
 
-
     setLanguageFilter(
       'all'
     );
-
 
     setAccessFilter(
       'all'
     );
   }
 
-
   return (
 
-    <div
-      className="study-resources-page"
-    >
+    <div>
 
-      {/* ======================================
-          HEADER
-      ====================================== */}
+      {/* =====================================
+          RESOURCE HEADER
+      ===================================== */}
 
       <section
         className="panel"
@@ -1040,11 +862,9 @@ export function StudyResources({
           STUDY RESOURCES
         </span>
 
-
         <h2>
           UPSC Resource Library
         </h2>
-
 
         <p>
           Find syllabus-linked books,
@@ -1053,8 +873,7 @@ export function StudyResources({
           resources in one place.
         </p>
 
-
-        {/* SUMMARY CARDS */}
+        {/* RESOURCE METRICS */}
 
         <div
           className="metrics-grid"
@@ -1067,13 +886,11 @@ export function StudyResources({
           <article
             className="metric-card"
           >
-
             <div>
 
               <span>
                 Published Resources
               </span>
-
 
               <strong>
                 {
@@ -1084,20 +901,17 @@ export function StudyResources({
               </strong>
 
             </div>
-
           </article>
 
 
           <article
             className="metric-card"
           >
-
             <div>
 
               <span>
                 Official Sources
               </span>
-
 
               <strong>
                 {
@@ -1108,20 +922,17 @@ export function StudyResources({
               </strong>
 
             </div>
-
           </article>
 
 
           <article
             className="metric-card"
           >
-
             <div>
 
               <span>
                 Free Resources
               </span>
-
 
               <strong>
                 {
@@ -1132,11 +943,11 @@ export function StudyResources({
               </strong>
 
             </div>
-
           </article>
 
         </div>
 
+        {/* REFRESH */}
 
         <button
           type="button"
@@ -1154,11 +965,13 @@ export function StudyResources({
           Refresh Resources
         </button>
 
+        {/* ERROR */}
 
         {error && (
 
           <div
             className="callout"
+
             style={{
               marginTop:
                 '14px'
@@ -1172,12 +985,13 @@ export function StudyResources({
       </section>
 
 
-      {/* ======================================
-          FILTERS
-      ====================================== */}
+      {/* =====================================
+          FILTER RESOURCE PANEL
+      ===================================== */}
 
       <section
         className="panel"
+
         style={{
           marginTop:
             '18px'
@@ -1195,7 +1009,6 @@ export function StudyResources({
             >
               FIND MATERIAL
             </span>
-
 
             <h3>
               Filter resources
@@ -1218,20 +1031,34 @@ export function StudyResources({
         </div>
 
 
+        {/* =====================================
+            PRIMARY FILTERS
+        ===================================== */}
+
         <div
-          className="study-resource-filter-grid"
+          style={{
+            display:
+              'grid',
+
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(180px, 1fr))',
+
+            gap:
+              '10px',
+
+            marginTop:
+              '12px'
+          }}
         >
 
           {/* SEARCH */}
 
           <label>
 
-            <span>
-              Search
-            </span>
+            Search
 
             <input
-              type="text"
+              type="search"
 
               value={
                 search
@@ -1240,9 +1067,7 @@ export function StudyResources({
               onChange={
                 event =>
                   setSearch(
-                    event
-                      .target
-                      .value
+                    event.target.value
                   )
               }
 
@@ -1256,9 +1081,7 @@ export function StudyResources({
 
           <label>
 
-            <span>
-              Exam Stage
-            </span>
+            Exam Stage
 
             <select
               value={
@@ -1268,234 +1091,28 @@ export function StudyResources({
               onChange={
                 event =>
                   setStageFilter(
-                    event
-                      .target
-                      .value as
-                        StageFilter
+                    event.target.value as
+                      StageFilter
                   )
               }
             >
 
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Stages
               </option>
 
-
-              <option value="prelims">
+              <option
+                value="prelims"
+              >
                 Prelims
               </option>
 
-
-              <option value="mains">
+              <option
+                value="mains"
+              >
                 Mains
-              </option>
-
-            </select>
-
-          </label>
-
-
-          {/* RESOURCE TYPE */}
-
-          <label>
-
-            <span>
-              Resource Type
-            </span>
-
-            <select
-              value={
-                typeFilter
-              }
-
-              onChange={
-                event =>
-                  setTypeFilter(
-                    event
-                      .target
-                      .value as
-                        ResourceType |
-                        'all'
-                  )
-              }
-            >
-
-              <option value="all">
-                All Types
-              </option>
-
-
-              <option value="standard_book">
-                Standard Books
-              </option>
-
-
-              <option value="official_source">
-                Official Sources
-              </option>
-
-
-              <option value="monthly_current_affairs">
-                Monthly Current Affairs
-              </option>
-
-
-              <option value="notes">
-                Notes
-              </option>
-
-
-              <option value="report">
-                Reports
-              </option>
-
-
-              <option value="pyq_resource">
-                PYQ Resources
-              </option>
-
-
-              <option value="syllabus_resource">
-                Syllabus Resources
-              </option>
-
-            </select>
-
-          </label>
-
-
-          {/* SUBJECT */}
-
-          <label>
-
-            <span>
-              Subject
-            </span>
-
-            <select
-              value={
-                subjectFilter
-              }
-
-              onChange={
-                event =>
-                  setSubjectFilter(
-                    event
-                      .target
-                      .value
-                  )
-              }
-            >
-
-              <option value="all">
-                All Subjects
-              </option>
-
-
-              {subjects.map(
-                subject => (
-
-                  <option
-                    key={
-                      subject
-                    }
-
-                    value={
-                      subject
-                    }
-                  >
-                    {subject}
-                  </option>
-
-                )
-              )}
-
-            </select>
-
-          </label>
-
-
-          {/* LANGUAGE */}
-
-          <label>
-
-            <span>
-              Language
-            </span>
-
-            <select
-              value={
-                languageFilter
-              }
-
-              onChange={
-                event =>
-                  setLanguageFilter(
-                    event
-                      .target
-                      .value
-                  )
-              }
-            >
-
-              <option value="all">
-                All Languages
-              </option>
-
-
-              {languages.map(
-                language => (
-
-                  <option
-                    key={
-                      language
-                    }
-
-                    value={
-                      language
-                    }
-                  >
-                    {language}
-                  </option>
-
-                )
-              )}
-
-            </select>
-
-          </label>
-
-
-          {/* ACCESS */}
-
-          <label>
-
-            <span>
-              Access
-            </span>
-
-            <select
-              value={
-                accessFilter
-              }
-
-              onChange={
-                event =>
-                  setAccessFilter(
-                    event
-                      .target
-                      .value
-                  )
-              }
-            >
-
-              <option value="all">
-                All Resources
-              </option>
-
-
-              <option value="free">
-                Free Only
               </option>
 
             </select>
@@ -1504,12 +1121,286 @@ export function StudyResources({
 
         </div>
 
+
+        {/* =====================================
+            MORE FILTER BUTTON
+        ===================================== */}
+
+        <button
+          type="button"
+          className="secondary-btn"
+
+          onClick={() =>
+            setAdvancedFiltersOpen(
+              current =>
+                !current
+            )
+          }
+
+          style={{
+            width:
+              '100%',
+
+            marginTop:
+              '10px',
+
+            justifyContent:
+              'space-between'
+          }}
+        >
+
+          <span>
+            More filters
+          </span>
+
+          <span>
+            {
+              advancedFiltersOpen
+                ? 'Hide'
+                : 'Open'
+            }
+          </span>
+
+        </button>
+
+
+        {/* =====================================
+            ADVANCED FILTERS
+        ===================================== */}
+
+        {advancedFiltersOpen && (
+
+          <div
+            style={{
+              display:
+                'grid',
+
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(160px, 1fr))',
+
+              gap:
+                '10px',
+
+              marginTop:
+                '10px'
+            }}
+          >
+
+            {/* RESOURCE TYPE */}
+
+            <label>
+
+              Resource Type
+
+              <select
+                value={
+                  typeFilter
+                }
+
+                onChange={
+                  event =>
+                    setTypeFilter(
+                      event.target.value as
+                        ResourceType |
+                        'all'
+                    )
+                }
+              >
+
+                <option
+                  value="all"
+                >
+                  All Types
+                </option>
+
+                <option
+                  value="standard_book"
+                >
+                  Standard Books
+                </option>
+
+                <option
+                  value="official_source"
+                >
+                  Official Sources
+                </option>
+
+                <option
+                  value="monthly_current_affairs"
+                >
+                  Monthly Current Affairs
+                </option>
+
+                <option
+                  value="notes"
+                >
+                  Notes
+                </option>
+
+                <option
+                  value="report"
+                >
+                  Reports
+                </option>
+
+                <option
+                  value="pyq_resource"
+                >
+                  PYQ Resources
+                </option>
+
+                <option
+                  value="syllabus_resource"
+                >
+                  Syllabus Resources
+                </option>
+
+              </select>
+
+            </label>
+
+
+            {/* SUBJECT */}
+
+            <label>
+
+              Subject
+
+              <select
+                value={
+                  subjectFilter
+                }
+
+                onChange={
+                  event =>
+                    setSubjectFilter(
+                      event.target.value
+                    )
+                }
+              >
+
+                <option
+                  value="all"
+                >
+                  All Subjects
+                </option>
+
+                {subjects.map(
+                  subject => (
+
+                    <option
+                      key={
+                        subject
+                      }
+
+                      value={
+                        subject
+                      }
+                    >
+                      {subject}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+
+            {/* LANGUAGE */}
+
+            <label>
+
+              Language
+
+              <select
+                value={
+                  languageFilter
+                }
+
+                onChange={
+                  event =>
+                    setLanguageFilter(
+                      event.target.value
+                    )
+                }
+              >
+
+                <option
+                  value="all"
+                >
+                  All Languages
+                </option>
+
+                {languages.map(
+                  language => (
+
+                    <option
+                      key={
+                        language
+                      }
+
+                      value={
+                        language
+                      }
+                    >
+                      {language}
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+            </label>
+
+
+            {/* ACCESS */}
+
+            <label>
+
+              Access
+
+              <select
+                value={
+                  accessFilter
+                }
+
+                onChange={
+                  event =>
+                    setAccessFilter(
+                      event.target.value
+                    )
+                }
+              >
+
+                <option
+                  value="all"
+                >
+                  All Resources
+                </option>
+
+                <option
+                  value="free"
+                >
+                  Free Only
+                </option>
+
+              </select>
+
+            </label>
+
+          </div>
+
+        )}
+
       </section>
 
 
-      {/* ======================================
-          RESOURCE LIST
-      ====================================== */}
+      {/* =====================================
+          RESOURCE RESULTS
+      ===================================== */}
 
       <section
         style={{
@@ -1551,7 +1442,6 @@ export function StudyResources({
               No resources found
             </h3>
 
-
             <p>
               Try another filter or clear
               the current search.
@@ -1573,18 +1463,15 @@ export function StudyResources({
                   resource.external_url
                 );
 
-
               const monthYear =
                 formatMonthYear(
                   resource.month_year
                 );
 
-
               const primarySource =
                 getPrimarySource(
                   resource
                 );
-
 
               return (
 
@@ -1664,7 +1551,7 @@ export function StudyResources({
                   </div>
 
 
-                  {/* TITLE */}
+                  {/* RESOURCE TITLE */}
 
                   <h3
                     style={{
@@ -1689,7 +1576,7 @@ export function StudyResources({
                   )}
 
 
-                  {/* DETAILS */}
+                  {/* RESOURCE DETAILS */}
 
                   <div
                     style={{
@@ -1707,6 +1594,8 @@ export function StudyResources({
                     }}
                   >
 
+                    {/* SOURCE */}
+
                     {primarySource && (
 
                       <div>
@@ -1715,19 +1604,18 @@ export function StudyResources({
                           Source
                         </small>
 
-
                         <div>
-
                           <strong>
                             {primarySource}
                           </strong>
-
                         </div>
 
                       </div>
 
                     )}
 
+
+                    {/* PAPER */}
 
                     {resource.paper && (
 
@@ -1737,21 +1625,20 @@ export function StudyResources({
                           Paper
                         </small>
 
-
                         <div>
-
                           <strong>
                             {
                               resource.paper
                             }
                           </strong>
-
                         </div>
 
                       </div>
 
                     )}
 
+
+                    {/* EDITION */}
 
                     {resource.edition_year !==
                       null && (
@@ -1762,21 +1649,20 @@ export function StudyResources({
                           Edition
                         </small>
 
-
                         <div>
-
                           <strong>
                             {
                               resource.edition_year
                             }
                           </strong>
-
                         </div>
 
                       </div>
 
                     )}
 
+
+                    {/* MONTH */}
 
                     {monthYear && (
 
@@ -1786,13 +1672,10 @@ export function StudyResources({
                           Month
                         </small>
 
-
                         <div>
-
                           <strong>
                             {monthYear}
                           </strong>
-
                         </div>
 
                       </div>
@@ -1802,7 +1685,7 @@ export function StudyResources({
                   </div>
 
 
-                  {/* ACTION */}
+                  {/* RESOURCE ACTION */}
 
                   <div
                     style={{
@@ -1827,6 +1710,7 @@ export function StudyResources({
 
                       <button
                         type="button"
+
                         className="primary-btn"
 
                         onClick={() =>
