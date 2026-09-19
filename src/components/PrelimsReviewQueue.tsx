@@ -1790,7 +1790,7 @@ export function PrelimsReviewQueue() {
 
 
                                 <div
-                                  className="callout"
+                                 
                                   style={{
                                     marginTop:
                                       '14px'
@@ -2101,7 +2101,7 @@ export function PrelimsReviewQueue() {
 
 
 
-                                            <div
+                                                                  <div
                         className="callout"
                       >
 
@@ -2153,6 +2153,79 @@ export function PrelimsReviewQueue() {
 
                           marginTop:
                             '14px'
+
+                        }}
+                      >
+
+                        <button
+                          type="button"
+                          className="primary-btn"
+                          disabled={
+                            isProcessing
+                          }
+                          onClick={
+                            () =>
+                              void linkReviewToExisting(
+                                review
+                              )
+                          }
+                        >
+
+                          {
+                            isProcessing
+
+                              ? 'Processing...'
+
+                              : 'Link to Existing Master'
+                          }
+
+                        </button>
+
+
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          disabled={
+                            isProcessing
+                          }
+                          onClick={
+                            () =>
+                              void resolveReview(
+                                review,
+                                'create_variant'
+                              )
+                          }
+                        >
+
+                          {
+                            isProcessing
+
+                              ? 'Processing...'
+
+                              : 'Create Variant as Draft'
+                          }
+
+                        </button>
+
+
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          disabled={
+                            isProcessing
+                          }
+                          onClick={
+                            () =>
+                              void resolveReview(
+                                review,
+                                'dismiss'
+                              )
+                          }
+                        >
+                          Dismiss
+                        </button>
+
+                      </div>
 
                         }}
                       >
