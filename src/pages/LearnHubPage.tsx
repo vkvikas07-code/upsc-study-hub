@@ -1,195 +1,56 @@
-import {
-  useEffect,
-  useState
-} from 'react';
+import { useEffect, useState } from 'react';
 
-import {
-  LearnPage
-} from './LearnPage';
-
-import {
-  MyBooksPage
-} from './MyBooksPage';
-
-import {
-  StudyResources
-} from '../components/StudyResources';
-
-import {
-  BookProgressTracker
-} from '../components/BookProgressTracker';
-
-import {
-  RevisionScheduleSettings
-} from '../components/RevisionScheduleSettings';
-
-import {
-  RevisionWeekCalendar
-} from '../components/RevisionWeekCalendar';
-
-import {
-  PersonalRevisionWeekCalendar
-} from '../components/PersonalRevisionWeekCalendar';
+import { LearnPage } from './LearnPage';
+import { StudyResources } from '../components/StudyResources';
+import { BookProgressTracker } from '../components/BookProgressTracker';
+import { RevisionScheduleSettings } from '../components/RevisionScheduleSettings';
+import { RevisionWeekCalendar } from '../components/RevisionWeekCalendar';
 
 export type LearnMode =
   | 'syllabus'
   | 'resources'
   | 'book-progress';
 
-
 type BookWorkspace =
-  | 'personal'
-  | 'standard'
+  | 'books'
   | 'calendar'
   | 'settings';
 
-
 type LearnHubPageProps = {
-
-  initialSubject?:
-    string |
-    null;
-
-  initialMode?:
-    LearnMode;
+  initialSubject?: string | null;
+  initialMode?: LearnMode;
 };
 
-
 export function LearnHubPage({
-
-  initialSubject =
-    null,
-
-  initialMode =
-    'syllabus'
-
+  initialSubject = null,
+  initialMode = 'syllabus'
 }: LearnHubPageProps) {
+  const [mode, setMode] =
+    useState<LearnMode>(initialMode);
 
-  /*
-   * =========================================
-   * MAIN LEARN MODE
-   * =========================================
-   */
+  const [bookWorkspace, setBookWorkspace] =
+    useState<BookWorkspace>('books');
 
-  const [
-    mode,
-    setMode
-  ] =
-    useState<LearnMode>(
-      initialMode
-    );
+  useEffect(() => {
+    setMode(initialMode);
 
-
-  /*
-   * =========================================
-   * BOOK WORKSPACE
-   * =========================================
-   *
-   * personal  = student's own books
-   * standard  = admin / standard books
-   * calendar  = 7-day revision plan
-   * settings  = revision settings
-   */
-
-  const [
-    bookWorkspace,
-    setBookWorkspace
-  ] =
-    useState<BookWorkspace>(
-      'personal'
-    );
-
-
-  /*
-   * =========================================
-   * SYNC EXTERNAL NAVIGATION
-   * =========================================
-   */
-
-  useEffect(
-    () => {
-
-      setMode(
-        initialMode
-      );
-
-
-      if (
-        initialMode ===
-        'book-progress'
-      ) {
-
-        /*
-         * Open student's personal reading
-         * tracker first.
-         */
-
-        setBookWorkspace(
-          'personal'
-        );
-      }
-
-    },
-    [
-      initialMode
-    ]
-  );
-
-
-  /*
-   * =========================================
-   * COMMON TAB STYLE
-   * =========================================
-   */
+    if (initialMode === 'book-progress') {
+      setBookWorkspace('books');
+    }
+  }, [initialMode]);
 
   const mainButtonStyle = {
-
-    width:
-      '100%',
-
-    minWidth:
-      0,
-
-    minHeight:
-      '48px',
-
-    whiteSpace:
-      'normal' as const,
-
-    textAlign:
-      'center' as const,
-
-    lineHeight:
-      1.15,
-
-    padding:
-      '9px 7px',
-
-    display:
-      'flex',
-
-    alignItems:
-      'center',
-
-    justifyContent:
-      'center',
-
-    overflowWrap:
-      'anywhere' as const
+    width: '100%',
+    minWidth: 0,
+    minHeight: '48px',
+    whiteSpace: 'normal' as const,
+    textAlign: 'center' as const,
+    lineHeight: 1.15,
+    padding: '9px 7px'
   };
 
-
-  /*
-   * =========================================
-   * PAGE
-   * =========================================
-   */
-
   return (
-
-    <div
-      className="page-wrap"
-    >
+    <div className="page-wrap">
 
       {/* =====================================
           LEARN HEADER
@@ -197,548 +58,245 @@ export function LearnHubPage({
 
       <section
         className="panel"
-
         style={{
-          marginTop:
-            '10px',
-
-          padding:
-            '16px'
+          marginTop: '10px',
+          padding: '16px'
         }}
       >
-
-        <span
-          className="eyebrow"
-        >
+        <span className="eyebrow">
           LEARN
         </span>
 
-
         <div
           style={{
-            display:
-              'flex',
-
-            alignItems:
-              'flex-end',
-
-            justifyContent:
-              'space-between',
-
-            gap:
-              '12px',
-
-            flexWrap:
-              'wrap'
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap'
           }}
         >
-
           <div>
-
             <h2
               style={{
-                margin:
-                  '5px 0 4px'
+                margin: '5px 0 4px'
               }}
             >
               Study Workspace
             </h2>
 
-
             <small
               style={{
-                color:
-                  '#94a3b8'
+                color: '#94a3b8'
               }}
             >
-              Open only the section you need.
+              Choose what you want to study today.
             </small>
-
           </div>
-
         </div>
 
-
-        {/* =================================
-            MAIN LEARN TABS
-        ================================= */}
+        {/* MAIN LEARN NAVIGATION */}
 
         <div
           style={{
-            display:
-              'grid',
-
+            display: 'grid',
             gridTemplateColumns:
               'repeat(3, minmax(0, 1fr))',
-
-            gap:
-              '8px',
-
-            marginTop:
-              '14px'
+            gap: '8px',
+            marginTop: '14px'
           }}
         >
-
-          {/* SYLLABUS */}
-
           <button
             type="button"
-
             className={
-              mode ===
-                'syllabus'
+              mode === 'syllabus'
                 ? 'filter active'
                 : 'filter'
             }
-
-            style={
-              mainButtonStyle
+            style={mainButtonStyle}
+            onClick={() =>
+              setMode('syllabus')
             }
-
-            onClick={() => {
-
-              setMode(
-                'syllabus'
-              );
-
-            }}
           >
             Syllabus
           </button>
 
-
-          {/* RESOURCES */}
-
           <button
             type="button"
-
             className={
-              mode ===
-                'resources'
+              mode === 'resources'
                 ? 'filter active'
                 : 'filter'
             }
-
-            style={
-              mainButtonStyle
+            style={mainButtonStyle}
+            onClick={() =>
+              setMode('resources')
             }
-
-            onClick={() => {
-
-              setMode(
-                'resources'
-              );
-
-            }}
           >
             Resources
           </button>
 
-
-          {/* MY BOOKS */}
-
           <button
             type="button"
-
             className={
-              mode ===
-                'book-progress'
+              mode === 'book-progress'
                 ? 'filter active'
                 : 'filter'
             }
-
-            style={
-              mainButtonStyle
+            style={mainButtonStyle}
+            onClick={() =>
+              setMode('book-progress')
             }
-
-            onClick={() => {
-
-              setMode(
-                'book-progress'
-              );
-
-
-              setBookWorkspace(
-                'personal'
-              );
-
-            }}
           >
             My Books
           </button>
-
         </div>
-
       </section>
-
 
       {/* =====================================
           SYLLABUS
       ===================================== */}
 
-      {
-        mode ===
-        'syllabus' && (
-
-          <div
-            style={{
-              marginTop:
-                '12px'
-            }}
-          >
-
-            <LearnPage
-
-              initialSubject={
-                initialSubject
-              }
-
-            />
-
-          </div>
-
-        )
-      }
-
+      {mode === 'syllabus' && (
+        <div
+          style={{
+            marginTop: '12px'
+          }}
+        >
+          <LearnPage
+            initialSubject={initialSubject}
+          />
+        </div>
+      )}
 
       {/* =====================================
-          STUDY RESOURCES
+          RESOURCES
       ===================================== */}
 
-      {
-        mode ===
-        'resources' && (
-
-          <div
-            style={{
-              marginTop:
-                '12px'
-            }}
-          >
-
-            <StudyResources
-
-              initialStage={
-                initialSubject
-                  ? 'prelims'
-                  : 'all'
-              }
-
-              initialSubject={
-                initialSubject
-              }
-
-            />
-
-          </div>
-
-        )
-      }
-
+      {mode === 'resources' && (
+        <div
+          style={{
+            marginTop: '12px'
+          }}
+        >
+          <StudyResources
+            initialStage={
+              initialSubject
+                ? 'prelims'
+                : 'all'
+            }
+            initialSubject={initialSubject}
+          />
+        </div>
+      )}
 
       {/* =====================================
           MY BOOKS WORKSPACE
       ===================================== */}
 
-      {
-        mode ===
-        'book-progress' && (
-
-          <>
-
-            {/* =================================
-                BOOK WORKSPACE NAVIGATION
-            ================================= */}
-
-            <section
-              className="panel"
-
+      {mode === 'book-progress' && (
+        <>
+          <section
+            className="panel"
+            style={{
+              marginTop: '12px',
+              padding: '14px'
+            }}
+          >
+            <div
               style={{
-                marginTop:
-                  '12px',
-
-                padding:
-                  '14px'
+                display: 'grid',
+                gridTemplateColumns:
+                  'repeat(3, minmax(0, 1fr))',
+                gap: '8px'
               }}
             >
-
-              <span
-                className="eyebrow"
+              <button
+                type="button"
+                className={
+                  bookWorkspace === 'books'
+                    ? 'filter active'
+                    : 'filter'
+                }
+                style={mainButtonStyle}
+                onClick={() =>
+                  setBookWorkspace('books')
+                }
               >
-                MY BOOKS
-              </span>
+                Books
+              </button>
 
-
-              <div
-                style={{
-                  display:
-                    'grid',
-
-                  gridTemplateColumns:
-                    'repeat(2, minmax(0, 1fr))',
-
-                  gap:
-                    '8px',
-
-                  marginTop:
-                    '10px'
-                }}
+              <button
+                type="button"
+                className={
+                  bookWorkspace === 'calendar'
+                    ? 'filter active'
+                    : 'filter'
+                }
+                style={mainButtonStyle}
+                onClick={() =>
+                  setBookWorkspace('calendar')
+                }
               >
-
-                {/* PERSONAL READING */}
-
-                <button
-                  type="button"
-
-                  className={
-                    bookWorkspace ===
-                      'personal'
-                      ? 'filter active'
-                      : 'filter'
-                  }
-
-                  style={
-                    mainButtonStyle
-                  }
-
-                  onClick={() => {
-
-                    setBookWorkspace(
-                      'personal'
-                    );
-
-                  }}
-                >
-                  My Reading
-                </button>
-
-
-                {/* STANDARD BOOKS */}
-
-                <button
-                  type="button"
-
-                  className={
-                    bookWorkspace ===
-                      'standard'
-                      ? 'filter active'
-                      : 'filter'
-                  }
-
-                  style={
-                    mainButtonStyle
-                  }
-
-                  onClick={() => {
-
-                    setBookWorkspace(
-                      'standard'
-                    );
-
-                  }}
-                >
-                  Standard Books
-                </button>
-
-
-                {/* 7 DAY PLAN */}
-
-                <button
-                  type="button"
-
-                  className={
-                    bookWorkspace ===
-                      'calendar'
-                      ? 'filter active'
-                      : 'filter'
-                  }
-
-                  style={
-                    mainButtonStyle
-                  }
-
-                  onClick={() => {
-
-                    setBookWorkspace(
-                      'calendar'
-                    );
-
-                  }}
-                >
-                  7-Day Plan
-                </button>
-
-
-                {/* REVISION SETTINGS */}
-
-                <button
-                  type="button"
-
-                  className={
-                    bookWorkspace ===
-                      'settings'
-                      ? 'filter active'
-                      : 'filter'
-                  }
-
-                  style={
-                    mainButtonStyle
-                  }
-
-                  onClick={() => {
-
-                    setBookWorkspace(
-                      'settings'
-                    );
-
-                  }}
-                >
-                  Revision Settings
-                </button>
-
-              </div>
-
-            </section>
-
-
-            {/* =================================
-                PERSONAL READING
-            ================================= */}
-
-            {
-              bookWorkspace ===
-              'personal' && (
-
-                <div
-                  style={{
-                    marginTop:
-                      '12px'
-                  }}
-                >
-
-                  <MyBooksPage />
-
-                </div>
-
-              )
-            }
-
-
-            {/* =================================
-                STANDARD BOOKS
-            ================================= */}
-
-            {
-              bookWorkspace ===
-              'standard' && (
-
-                <div
-                  style={{
-                    marginTop:
-                      '12px'
-                  }}
-                >
-
-                  <BookProgressTracker
-
-                    initialSubject={
-                      initialSubject
-                    }
-
-                  />
-
-                </div>
-
-              )
-            }
-
-
-            {/* =================================
-                REVISION CALENDAR
-            ================================= */}
-
-           {
-  bookWorkspace ===
-  'calendar' && (
-
-    <div
-      style={{
-        marginTop:
-          '12px'
-      }}
-    >
-
-      {/* =================================
-          STANDARD BOOK 7-DAY PLAN
-      ================================= */}
-
-      <RevisionWeekCalendar
-
-        onOpenTracker={() =>
-          setBookWorkspace(
-            'standard'
-          )
-        }
-
-      />
-
-
-      {/* =================================
-          PERSONAL BOOK 7-DAY PLAN
-      ================================= */}
-
-      <div
-        style={{
-          marginTop:
-            '14px'
-        }}
-      >
-
-        <PersonalRevisionWeekCalendar
-
-          onOpenTracker={() =>
-            setBookWorkspace(
-              'personal'
-            )
-          }
-
-        />
-
-      </div>
-
+                7-Day Plan
+              </button>
+
+              <button
+                type="button"
+                className={
+                  bookWorkspace === 'settings'
+                    ? 'filter active'
+                    : 'filter'
+                }
+                style={mainButtonStyle}
+                onClick={() =>
+                  setBookWorkspace('settings')
+                }
+              >
+                Revision Setup
+              </button>
+            </div>
+          </section>
+
+          {/* BOOK PROGRESS */}
+
+          {bookWorkspace === 'books' && (
+            <div
+              style={{
+                marginTop: '12px'
+              }}
+            >
+              <BookProgressTracker
+                initialSubject={initialSubject}
+              />
+            </div>
+          )}
+
+          {/* 7-DAY REVISION PLAN */}
+
+          {bookWorkspace === 'calendar' && (
+            <div
+              style={{
+                marginTop: '12px'
+              }}
+            >
+              <RevisionWeekCalendar />
+            </div>
+          )}
+
+          {/* REVISION SETTINGS */}
+
+          {bookWorkspace === 'settings' && (
+            <div
+              style={{
+                marginTop: '12px'
+              }}
+            >
+              <RevisionScheduleSettings />
+            </div>
+          )}
+        </>
+      )}
     </div>
-
-  )
-}
-
-            {/* =================================
-                REVISION SETTINGS
-            ================================= */}
-
-            {
-              bookWorkspace ===
-              'settings' && (
-
-                <div
-                  style={{
-                    marginTop:
-                      '12px'
-                  }}
-                >
-
-                  <RevisionScheduleSettings />
-
-                </div>
-
-              )
-            }
-
-          </>
-
-        )
-      }
-
-    </div>
-
   );
 }
