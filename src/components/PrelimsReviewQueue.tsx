@@ -16,89 +16,42 @@ type ReviewStatus =
   | 'dismissed';
 
 
+type ReviewOrigin =
+  | 'cse'
+  | 'upsc'
+  | 'state';
+
+
 type ReviewRow = {
-
   id: string;
-
   matched_question_id: string;
-
-  origin:
-    | 'cse'
-    | 'upsc'
-    | 'state';
-
-  paper_metadata:
-    Record<
-      string,
-      unknown
-    >;
-
-  question_number:
-    string | null;
-
-  question:
-    string;
-
-  options:
-    string[];
-
-  correct_index:
-    number;
-
-  explanation:
-    string | null;
-
-  subject:
-    string | null;
-
-  topic:
-    string | null;
-
-  difficulty:
-    string;
-
-  tags:
-    string[];
-
-  review_reason:
-    string;
-
-  status:
-    ReviewStatus;
-
-  created_at:
-    string;
+  origin: ReviewOrigin;
+  paper_metadata: Record<string, unknown>;
+  question_number: string | null;
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string | null;
+  subject: string | null;
+  topic: string | null;
+  difficulty: string;
+  tags: string[];
+  review_reason: string;
+  status: ReviewStatus;
+  created_at: string;
 };
 
 
 type ExistingQuestion = {
-
-  id:
-    string;
-
-  question:
-    string;
-
-  options:
-    string[];
-
-  correct_index:
-    number;
-
-  explanation:
-    string;
-
-  subject:
-    string;
-
-  topic:
-    string | null;
-
-  difficulty:
-    string;
-
-  status:
-    string;
+  id: string;
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+  subject: string;
+  topic: string | null;
+  difficulty: string;
+  status: string;
 };
 
 
@@ -108,29 +61,15 @@ type ResolveAction =
 
 
 type ResolveResult = {
-
-  success?:
-    boolean;
-
-  action?:
-    string;
-
-  status?:
-    string;
-
-  review_id?:
-    string;
-
-  question_id?:
-    string;
-
-  question_status?:
-    string;
-
-  message?:
-    string;
+  success?: boolean;
+  action?: string;
+  status?: string;
+  review_id?: string;
+  question_id?: string;
+  question_status?: string;
+  appearance_id?: string;
+  message?: string;
 };
-
 
 
 const REVIEW_SELECT = `
@@ -166,61 +105,67 @@ const QUESTION_SELECT = `
 `;
 
 
-
 function normalizeOptions(
-  value:
-    unknown
-) {
+  value: unknown
+): string[] {
 
   if (
     !Array.isArray(
       value
     )
   ) {
-
     return [];
   }
 
-
   return value.map(
-    option =>
+    item =>
       String(
-        option
+        item
       )
   );
 }
-
 
 
 function normalizeTags(
-  value:
-    unknown
-) {
+  value: unknown
+): string[] {
 
   if (
     !Array.isArray(
       value
     )
   ) {
-
     return [];
   }
 
-
   return value.map(
-    tag =>
+    item =>
       String(
-        tag
+        item
       )
   );
 }
 
 
+function optionLetter(
+  index: number
+) {
+
+  return String.fromCharCode(
+    65 + index
+  );
+}
+
 
 function formatDate(
-  value:
-    string
+  value: string
 ) {
+
+  if (
+    !value
+  ) {
+    return '';
+  }
 
   try {
 
@@ -235,10 +180,32 @@ function formatDate(
 }
 
 
+function metadataValue(
+  metadata: Record<string, unknown>,
+  key: string
+) {
+
+  const value =
+    metadata[
+      key
+    ];
+
+  if (
+    value === null ||
+    value === undefined ||
+    value === ''
+  ) {
+    return '';
+  }
+
+  return String(
+    value
+  );
+}
+
 
 function formatPaperMetadata(
-  row:
-    ReviewRow
+  row: ReviewRow
 ) {
 
   const metadata =
@@ -252,24 +219,18 @@ function formatPaperMetadata(
   ) {
 
     return [
-
       'UPSC CSE',
-
-      metadata
-        .pyq_year,
-
-      metadata
-        .paper
-
+      metadataValue(
+        metadata,
+        'pyq_year'
+      ),
+      metadataValue(
+        metadata,
+        'paper'
+      )
     ]
       .filter(
-        value =>
-          value !==
-            null &&
-          value !==
-            undefined &&
-          value !==
-            ''
+        Boolean
       )
       .join(
         ' · '
@@ -282,34 +243,40 @@ function formatPaperMetadata(
     'upsc'
   ) {
 
+    const cycle =
+      metadataValue(
+        metadata,
+        'upsc_exam_cycle'
+      );
+
+
     return [
+      metadataValue(
+        metadata,
+        'upsc_exam_name'
+      ),
 
-      metadata
-        .upsc_exam_name,
+      cycle
+        ? `Cycle ${cycle}`
+        : '',
 
-      metadata
-        .upsc_exam_cycle
-        ? `Cycle ${metadata.upsc_exam_cycle}`
-        : null,
+      metadataValue(
+        metadata,
+        'upsc_exam_year'
+      ),
 
-      metadata
-        .upsc_exam_year,
+      metadataValue(
+        metadata,
+        'upsc_exam_stage'
+      ),
 
-      metadata
-        .upsc_exam_stage,
-
-      metadata
-        .upsc_exam_paper
-
+      metadataValue(
+        metadata,
+        'upsc_exam_paper'
+      )
     ]
       .filter(
-        value =>
-          value !==
-            null &&
-          value !==
-            undefined &&
-          value !==
-            ''
+        Boolean
       )
       .join(
         ' · '
@@ -318,34 +285,38 @@ function formatPaperMetadata(
 
 
   return [
+    metadataValue(
+      metadata,
+      'state_psc_state'
+    ),
 
-    metadata
-      .state_psc_state,
+    metadataValue(
+      metadata,
+      'state_psc_name'
+    ),
 
-    metadata
-      .state_psc_name,
+    metadataValue(
+      metadata,
+      'state_psc_exam_name'
+    ),
 
-    metadata
-      .state_psc_exam_name,
+    metadataValue(
+      metadata,
+      'state_psc_year'
+    ),
 
-    metadata
-      .state_psc_year,
+    metadataValue(
+      metadata,
+      'state_psc_stage'
+    ),
 
-    metadata
-      .state_psc_stage,
-
-    metadata
-      .state_psc_paper
-
+    metadataValue(
+      metadata,
+      'state_psc_paper'
+    )
   ]
     .filter(
-      value =>
-        value !==
-          null &&
-        value !==
-          undefined &&
-        value !==
-          ''
+      Boolean
     )
     .join(
       ' · '
@@ -353,18 +324,26 @@ function formatPaperMetadata(
 }
 
 
-
-function optionLetter(
-  index:
-    number
+function originLabel(
+  origin: ReviewOrigin
 ) {
 
-  return String.fromCharCode(
-    65 +
-    index
-  );
-}
+  if (
+    origin ===
+    'cse'
+  ) {
+    return 'CSE';
+  }
 
+  if (
+    origin ===
+    'upsc'
+  ) {
+    return 'Other UPSC';
+  }
+
+  return 'State PSC';
+}
 
 
 export function PrelimsReviewQueue() {
@@ -376,7 +355,9 @@ export function PrelimsReviewQueue() {
   ] =
     useState<
       ReviewRow[]
-    >([]);
+    >(
+      []
+    );
 
 
   const [
@@ -388,7 +369,9 @@ export function PrelimsReviewQueue() {
         string,
         ExistingQuestion
       >
-    >({});
+    >(
+      {}
+    );
 
 
   const [
@@ -400,7 +383,9 @@ export function PrelimsReviewQueue() {
         string,
         string
       >
-    >({});
+    >(
+      {}
+    );
 
 
   const [
@@ -446,7 +431,6 @@ export function PrelimsReviewQueue() {
     );
 
 
-
   async function loadQueue() {
 
     if (
@@ -468,7 +452,6 @@ export function PrelimsReviewQueue() {
     setLoading(
       true
     );
-
 
     setMessage(
       ''
@@ -508,29 +491,30 @@ export function PrelimsReviewQueue() {
         error
       );
 
-
       setMessage(
         error.message ||
         'Unable to load review queue.'
       );
 
-
       setLoading(
         false
       );
-
 
       return;
     }
 
 
+    const rows =
+      Array.isArray(
+        data
+      )
+        ? data
+        : [];
+
+
     const formatted:
       ReviewRow[] =
-
-      (
-        data ||
-        []
-      ).map(
+      rows.map(
         raw => {
 
           const item =
@@ -541,68 +525,60 @@ export function PrelimsReviewQueue() {
               >;
 
 
+          const rawMetadata =
+            item.paper_metadata;
+
+
+          const paperMetadata =
+            rawMetadata &&
+            typeof rawMetadata ===
+              'object' &&
+            !Array.isArray(
+              rawMetadata
+            )
+
+              ? rawMetadata as
+                  Record<
+                    string,
+                    unknown
+                  >
+
+              : {};
+
+
           return {
 
             id:
               String(
-                item.id
+                item.id ||
+                ''
               ),
-
 
             matched_question_id:
               String(
-                item
-                  .matched_question_id
+                item.matched_question_id ||
+                ''
               ),
-
 
             origin:
               String(
-                item.origin
+                item.origin ||
+                'cse'
               ) as
-                ReviewRow[
-                  'origin'
-                ],
-
+                ReviewOrigin,
 
             paper_metadata:
-
-              (
-                item
-                  .paper_metadata &&
-                typeof
-                  item
-                    .paper_metadata ===
-                  'object' &&
-                !Array.isArray(
-                  item
-                    .paper_metadata
-                )
-              )
-
-                ? item
-                    .paper_metadata as
-                      Record<
-                        string,
-                        unknown
-                      >
-
-                : {},
-
+              paperMetadata,
 
             question_number:
-
-              item
-                .question_number ==
+              item.question_number ==
               null
 
                 ? null
 
                 : String(
-                    item
-                      .question_number
+                    item.question_number
                   ),
-
 
             question:
               String(
@@ -610,37 +586,28 @@ export function PrelimsReviewQueue() {
                 ''
               ),
 
-
             options:
               normalizeOptions(
                 item.options
               ),
 
-
             correct_index:
               Number(
-                item
-                  .correct_index ??
+                item.correct_index ??
                 0
               ),
 
-
             explanation:
-
-              item
-                .explanation ==
+              item.explanation ==
               null
 
                 ? null
 
                 : String(
-                    item
-                      .explanation
+                    item.explanation
                   ),
 
-
             subject:
-
               item.subject ==
               null
 
@@ -650,9 +617,7 @@ export function PrelimsReviewQueue() {
                     item.subject
                   ),
 
-
             topic:
-
               item.topic ==
               null
 
@@ -662,39 +627,33 @@ export function PrelimsReviewQueue() {
                     item.topic
                   ),
 
-
             difficulty:
               String(
                 item.difficulty ||
                 'medium'
               ),
 
-
             tags:
               normalizeTags(
                 item.tags
               ),
 
-
             review_reason:
               String(
-                item
-                  .review_reason ||
+                item.review_reason ||
                 ''
               ),
 
-
             status:
               String(
-                item.status
+                item.status ||
+                'pending'
               ) as
                 ReviewStatus,
 
-
             created_at:
               String(
-                item
-                  .created_at ||
+                item.created_at ||
                 ''
               )
 
@@ -709,22 +668,17 @@ export function PrelimsReviewQueue() {
     );
 
 
-
     const matchedIds =
-
       Array.from(
         new Set(
-
           formatted
             .map(
               item =>
-                item
-                  .matched_question_id
+                item.matched_question_id
             )
             .filter(
               Boolean
             )
-
         )
       );
 
@@ -738,15 +692,12 @@ export function PrelimsReviewQueue() {
         {}
       );
 
-
       setLoading(
         false
       );
 
-
       return;
     }
-
 
 
     const {
@@ -777,21 +728,17 @@ export function PrelimsReviewQueue() {
         questionError
       );
 
-
       setMessage(
         questionError.message ||
         'Review queue loaded, but matched questions could not be loaded.'
       );
 
-
       setLoading(
         false
       );
 
-
       return;
     }
-
 
 
     const mapped:
@@ -801,10 +748,15 @@ export function PrelimsReviewQueue() {
       > = {};
 
 
-    (
-      questionData ||
-      []
-    ).forEach(
+    const questionRows =
+      Array.isArray(
+        questionData
+      )
+        ? questionData
+        : [];
+
+
+    questionRows.forEach(
       raw => {
 
         const item =
@@ -817,8 +769,16 @@ export function PrelimsReviewQueue() {
 
         const id =
           String(
-            item.id
+            item.id ||
+            ''
           );
+
+
+        if (
+          !id
+        ) {
+          return;
+        }
 
 
         mapped[
@@ -827,27 +787,22 @@ export function PrelimsReviewQueue() {
 
           id,
 
-
           question:
             String(
               item.question ||
               ''
             ),
 
-
           options:
             normalizeOptions(
               item.options
             ),
 
-
           correct_index:
             Number(
-              item
-                .correct_index ??
+              item.correct_index ??
               0
             ),
-
 
           explanation:
             String(
@@ -855,16 +810,13 @@ export function PrelimsReviewQueue() {
               ''
             ),
 
-
           subject:
             String(
               item.subject ||
               ''
             ),
 
-
           topic:
-
             item.topic ==
             null
 
@@ -874,13 +826,11 @@ export function PrelimsReviewQueue() {
                   item.topic
                 ),
 
-
           difficulty:
             String(
               item.difficulty ||
               'medium'
             ),
-
 
           status:
             String(
@@ -898,12 +848,10 @@ export function PrelimsReviewQueue() {
       mapped
     );
 
-
     setLoading(
       false
     );
   }
-
 
 
   useEffect(
@@ -916,175 +864,16 @@ export function PrelimsReviewQueue() {
   );
 
 
-
-  async function resolveReview(
-
-    review:
-      ReviewRow,
-
-    action:
-      ResolveAction
-
+  function removeResolvedReview(
+    reviewId: string
   ) {
-
-    if (
-      !supabase ||
-      processingId
-    ) {
-
-      return;
-    }
-
-
-    if (
-      action ===
-      'create_variant'
-    ) {
-
-      const confirmed =
-        window.confirm(
-
-          'Create this as a separate variant question?\n\n' +
-
-          'The new question will be saved as Draft so you can review it before publishing.'
-
-        );
-
-
-      if (
-        !confirmed
-      ) {
-  async function linkReviewToExisting(
-    review:
-      ReviewRow
-  ) {
-
-    if (
-      !supabase ||
-      processingId
-    ) {
-
-      return;
-    }
-
-
-    const confirmed =
-      window.confirm(
-
-        'Link this imported version to the existing master question?\n\n' +
-
-        'No duplicate master question will be created.\n\n' +
-
-        'The original exam wording, options and question number will still be preserved.'
-
-      );
-
-
-    if (
-      !confirmed
-    ) {
-
-      return;
-    }
-
-
-    setProcessingId(
-      review.id
-    );
-
-
-    setMessage(
-      'Linking to existing master question...'
-    );
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase.rpc(
-        'link_prelims_import_review_to_existing',
-        {
-
-          p_review_id:
-            review.id,
-
-          p_notes:
-            notes[
-              review.id
-            ]?.trim() ||
-            null
-
-        }
-      );
-
-
-    if (
-      error
-    ) {
-
-      console.error(
-        'Unable to link review case to existing master:',
-        error
-      );
-
-
-      setMessage(
-        error.message ||
-        'Unable to link this question to the existing master.'
-      );
-
-
-      setProcessingId(
-        null
-      );
-
-
-      return;
-    }
-
-
-    const result =
-      (
-        data ||
-        {}
-      ) as {
-        success?: boolean;
-        question_id?: string;
-        appearance_id?: string;
-        message?: string;
-      };
-
-
-    if (
-      result.success ===
-      false
-    ) {
-
-      setMessage(
-        result.message ||
-        'The question could not be linked.'
-      );
-
-
-      setProcessingId(
-        null
-      );
-
-
-      await loadQueue();
-
-
-      return;
-    }
-
 
     setReviews(
       current =>
         current.filter(
           item =>
             item.id !==
-            review.id
+            reviewId
         )
     );
 
@@ -1096,27 +885,44 @@ export function PrelimsReviewQueue() {
           ...current
         };
 
-
         delete copy[
-          review.id
+          reviewId
         ];
-
 
         return copy;
       }
     );
-
-
-    setProcessingId(
-      null
-    );
-
-
-    setMessage(
-      result.message ||
-      'Question linked to existing master successfully. Original paper appearance preserved.'
-    );
   }
+
+
+  async function resolveReview(
+    review: ReviewRow,
+    action: ResolveAction
+  ) {
+
+    if (
+      !supabase ||
+      processingId
+    ) {
+      return;
+    }
+
+
+    if (
+      action ===
+      'create_variant'
+    ) {
+
+      const confirmed =
+        window.confirm(
+          'Create this as a separate variant question?\n\n' +
+          'The new question will be saved as Draft so you can review it before publishing.'
+        );
+
+
+      if (
+        !confirmed
+      ) {
         return;
       }
 
@@ -1124,22 +930,17 @@ export function PrelimsReviewQueue() {
 
       const confirmed =
         window.confirm(
-
           'Dismiss this review case?\n\n' +
-
-          'No new question will be created.'
-
+          'No question or exam appearance will be created.'
         );
 
 
       if (
         !confirmed
       ) {
-
         return;
       }
     }
-
 
 
     setProcessingId(
@@ -1155,7 +956,6 @@ export function PrelimsReviewQueue() {
 
         : 'Dismissing review case...'
     );
-
 
 
     const {
@@ -1191,21 +991,17 @@ export function PrelimsReviewQueue() {
         error
       );
 
-
       setMessage(
         error.message ||
         'Unable to resolve review case.'
       );
 
-
       setProcessingId(
         null
       );
 
-
       return;
     }
-
 
 
     const result =
@@ -1214,7 +1010,6 @@ export function PrelimsReviewQueue() {
         {}
       ) as
         ResolveResult;
-
 
 
     if (
@@ -1227,45 +1022,18 @@ export function PrelimsReviewQueue() {
         'This review case could not be resolved.'
       );
 
-
       setProcessingId(
         null
       );
 
-
       await loadQueue();
-
 
       return;
     }
 
 
-
-    setReviews(
-      current =>
-        current.filter(
-          item =>
-            item.id !==
-            review.id
-        )
-    );
-
-
-    setNotes(
-      current => {
-
-        const copy = {
-          ...current
-        };
-
-
-        delete copy[
-          review.id
-        ];
-
-
-        return copy;
-      }
+    removeResolvedReview(
+      review.id
     );
 
 
@@ -1280,14 +1048,11 @@ export function PrelimsReviewQueue() {
     ) {
 
       setMessage(
-
-        result
-          .question_id
+        result.question_id
 
           ? `Variant created successfully as Draft. Question ID: ${result.question_id}`
 
           : 'Variant created successfully as Draft.'
-
       );
 
     } else {
@@ -1298,6 +1063,130 @@ export function PrelimsReviewQueue() {
     }
   }
 
+
+  async function linkReviewToExisting(
+    review: ReviewRow
+  ) {
+
+    if (
+      !supabase ||
+      processingId
+    ) {
+      return;
+    }
+
+
+    const confirmed =
+      window.confirm(
+        'Link this imported version to the existing master question?\n\n' +
+        'No duplicate master question will be created.\n\n' +
+        'The original paper wording, options, correct answer and question number will be preserved as an exam appearance.'
+      );
+
+
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+
+
+    setProcessingId(
+      review.id
+    );
+
+
+    setMessage(
+      'Linking imported version to existing master...'
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase.rpc(
+        'link_prelims_import_review_to_existing',
+        {
+
+          p_review_id:
+            review.id,
+
+          p_notes:
+            notes[
+              review.id
+            ]?.trim() ||
+            null
+
+        }
+      );
+
+
+    if (
+      error
+    ) {
+
+      console.error(
+        'Unable to link review case to existing master:',
+        error
+      );
+
+      setMessage(
+        error.message ||
+        'Unable to link this question to the existing master.'
+      );
+
+      setProcessingId(
+        null
+      );
+
+      return;
+    }
+
+
+    const result =
+      (
+        data ||
+        {}
+      ) as
+        ResolveResult;
+
+
+    if (
+      result.success ===
+      false
+    ) {
+
+      setMessage(
+        result.message ||
+        'The question could not be linked.'
+      );
+
+      setProcessingId(
+        null
+      );
+
+      await loadQueue();
+
+      return;
+    }
+
+
+    removeResolvedReview(
+      review.id
+    );
+
+
+    setProcessingId(
+      null
+    );
+
+
+    setMessage(
+      result.message ||
+      'Question linked to existing master successfully. Original paper appearance preserved.'
+    );
+  }
 
 
   return (
@@ -1342,11 +1231,10 @@ export function PrelimsReviewQueue() {
 
 
           <p>
-            Review questions that have the same stem as an existing master question but different options or answer content.
+            Compare imported questions with their matched master question before deciding how they should be stored.
           </p>
 
         </div>
-
 
 
         <div
@@ -1355,14 +1243,14 @@ export function PrelimsReviewQueue() {
             display:
               'flex',
 
+            alignItems:
+              'center',
+
             gap:
               '10px',
 
             flexWrap:
-              'wrap',
-
-            alignItems:
-              'center'
+              'wrap'
 
           }}
         >
@@ -1378,26 +1266,26 @@ export function PrelimsReviewQueue() {
             type="button"
             className="secondary-btn"
             disabled={
-              loading
+              loading ||
+              Boolean(
+                processingId
+              )
             }
             onClick={
               () =>
                 void loadQueue()
             }
           >
-
             {
               loading
                 ? 'Loading...'
                 : 'Refresh Queue'
             }
-
           </button>
 
         </div>
 
       </div>
-
 
 
       {
@@ -1413,18 +1301,15 @@ export function PrelimsReviewQueue() {
       }
 
 
-
       {
         loading ? (
 
           <div
             className="callout"
           >
-
             <strong>
               Loading review queue...
             </strong>
-
           </div>
 
         ) : reviews.length ===
@@ -1440,7 +1325,7 @@ export function PrelimsReviewQueue() {
 
 
             <p>
-              Same-stem question variants detected during future bulk imports will appear here automatically.
+              Same-stem questions requiring an editor decision will appear here automatically after bulk import.
             </p>
 
           </div>
@@ -1471,8 +1356,7 @@ export function PrelimsReviewQueue() {
 
                   const existing =
                     existingQuestions[
-                      review
-                        .matched_question_id
+                      review.matched_question_id
                     ];
 
 
@@ -1483,7 +1367,6 @@ export function PrelimsReviewQueue() {
 
 
                   const isProcessing =
-
                     processingId ===
                     review.id;
 
@@ -1517,6 +1400,9 @@ export function PrelimsReviewQueue() {
                           justifyContent:
                             'space-between',
 
+                          alignItems:
+                            'flex-start',
+
                           gap:
                             '12px',
 
@@ -1534,14 +1420,7 @@ export function PrelimsReviewQueue() {
                           <span
                             className="eyebrow"
                           >
-
-                            REVIEW CASE{' '}
-
-                            {
-                              reviewIndex +
-                              1
-                            }
-
+                            REVIEW CASE {reviewIndex + 1}
                           </span>
 
 
@@ -1572,32 +1451,27 @@ export function PrelimsReviewQueue() {
 
 
                           {
-                            review
-                              .question_number && (
+                            review.question_number && (
 
                               <p
                                 style={{
                                   marginTop:
-                                    '6px'
+                                    '6px',
+                                  marginBottom:
+                                    0
                                 }}
                               >
-
                                 Paper Question:{' '}
 
                                 <strong>
-                                  {
-                                    review
-                                      .question_number
-                                  }
+                                  {review.question_number}
                                 </strong>
-
                               </p>
 
                             )
                           }
 
                         </div>
-
 
 
                         <div
@@ -1608,17 +1482,9 @@ export function PrelimsReviewQueue() {
                             className="tag"
                           >
                             {
-                              review.origin ===
-                                'cse'
-
-                                ? 'CSE'
-
-                                : review.origin ===
-                                  'upsc'
-
-                                  ? 'Other UPSC'
-
-                                  : 'State PSC'
+                              originLabel(
+                                review.origin
+                              )
                             }
                           </span>
 
@@ -1641,7 +1507,6 @@ export function PrelimsReviewQueue() {
                       </div>
 
 
-
                       <div
                         style={{
 
@@ -1657,7 +1522,7 @@ export function PrelimsReviewQueue() {
                         }}
                       >
 
-                        {/* EXISTING MASTER */}
+                        {/* EXISTING MASTER QUESTION */}
 
                         <div
                           style={{
@@ -1704,93 +1569,82 @@ export function PrelimsReviewQueue() {
                                 >
 
                                   {
-                                    existing
-                                      .options
-                                      .map(
-                                        (
-                                          option,
-                                          optionIndex
-                                        ) => {
+                                    existing.options.map(
+                                      (
+                                        option,
+                                        optionIndex
+                                      ) => {
 
-                                          const correct =
-
-                                            optionIndex ===
-                                            existing
-                                              .correct_index;
+                                        const correct =
+                                          optionIndex ===
+                                          existing.correct_index;
 
 
-                                          return (
+                                        return (
 
-                                            <div
-                                              key={
-                                                `${existing.id}-${optionIndex}`
-                                              }
-                                              style={{
+                                          <div
+                                            key={
+                                              `${existing.id}-${optionIndex}`
+                                            }
+                                            style={{
 
-                                                padding:
-                                                  '9px 11px',
+                                              padding:
+                                                '9px 11px',
 
-                                                borderRadius:
-                                                  '10px',
+                                              borderRadius:
+                                                '10px',
 
-                                                border:
+                                              border:
+                                                correct
 
-                                                  correct
+                                                  ? '1px solid rgba(45,212,191,.65)'
 
-                                                    ? '1px solid rgba(45,212,191,.65)'
+                                                  : '1px solid rgba(255,255,255,.08)'
 
-                                                    : '1px solid rgba(255,255,255,.08)'
+                                            }}
+                                          >
 
-                                              }}
-                                            >
-
-                                              <strong>
-
-                                                {
-                                                  optionLetter(
-                                                    optionIndex
-                                                  )
-                                                }.
-
-                                              </strong>{' '}
-
-                                              {option}
-
-
+                                            <strong>
                                               {
-                                                correct && (
-
-                                                  <small
-                                                    style={{
-
-                                                      display:
-                                                        'block',
-
-                                                      marginTop:
-                                                        '4px'
-
-                                                    }}
-                                                  >
-                                                    ✓ Correct answer
-                                                  </small>
-
+                                                optionLetter(
+                                                  optionIndex
                                                 )
-                                              }
+                                              }.
+                                            </strong>{' '}
 
-                                            </div>
+                                            {option}
 
-                                          );
 
-                                        }
-                                      )
+                                            {
+                                              correct && (
+
+                                                <small
+                                                  style={{
+                                                    display:
+                                                      'block',
+                                                    marginTop:
+                                                      '4px'
+                                                  }}
+                                                >
+                                                  ✓ Correct answer
+                                                </small>
+
+                                              )
+                                            }
+
+                                          </div>
+
+                                        );
+
+                                      }
+                                    )
                                   }
 
                                 </div>
 
 
-
                                 <div
-                                 
+                                  className="callout"
                                   style={{
                                     marginTop:
                                       '14px'
@@ -1804,8 +1658,7 @@ export function PrelimsReviewQueue() {
 
                                   <p>
                                     {
-                                      existing
-                                        .explanation ||
+                                      existing.explanation ||
                                       'No explanation available.'
                                     }
                                   </p>
@@ -1817,13 +1670,17 @@ export function PrelimsReviewQueue() {
                                   className="tag-row"
                                 >
 
-                                  <span
-                                    className="tag"
-                                  >
-                                    {
-                                      existing.subject
-                                    }
-                                  </span>
+                                  {
+                                    existing.subject && (
+
+                                      <span
+                                        className="tag"
+                                      >
+                                        {existing.subject}
+                                      </span>
+
+                                    )
+                                  }
 
 
                                   {
@@ -1832,9 +1689,7 @@ export function PrelimsReviewQueue() {
                                       <span
                                         className="tag"
                                       >
-                                        {
-                                          existing.topic
-                                        }
+                                        {existing.topic}
                                       </span>
 
                                     )
@@ -1844,9 +1699,7 @@ export function PrelimsReviewQueue() {
                                   <span
                                     className="tag"
                                   >
-                                    Status: {
-                                      existing.status
-                                    }
+                                    Status: {existing.status}
                                   </span>
 
                                 </div>
@@ -1855,9 +1708,20 @@ export function PrelimsReviewQueue() {
 
                             ) : (
 
-                              <p>
-                                Existing matched question could not be loaded.
-                              </p>
+                              <div
+                                className="callout"
+                              >
+
+                                <strong>
+                                  Existing question unavailable
+                                </strong>
+
+
+                                <p>
+                                  The matched master question could not be loaded.
+                                </p>
+
+                              </div>
 
                             )
                           }
@@ -1865,8 +1729,7 @@ export function PrelimsReviewQueue() {
                         </div>
 
 
-
-                        {/* IMPORTED VERSION */}
+                        {/* IMPORTED QUESTION */}
 
                         <div
                           style={{
@@ -1908,89 +1771,78 @@ export function PrelimsReviewQueue() {
                           >
 
                             {
-                              review
-                                .options
-                                .map(
-                                  (
-                                    option,
-                                    optionIndex
-                                  ) => {
+                              review.options.map(
+                                (
+                                  option,
+                                  optionIndex
+                                ) => {
 
-                                    const correct =
-
-                                      optionIndex ===
-                                      review
-                                        .correct_index;
+                                  const correct =
+                                    optionIndex ===
+                                    review.correct_index;
 
 
-                                    return (
+                                  return (
 
-                                      <div
-                                        key={
-                                          `${review.id}-${optionIndex}`
-                                        }
-                                        style={{
+                                    <div
+                                      key={
+                                        `${review.id}-${optionIndex}`
+                                      }
+                                      style={{
 
-                                          padding:
-                                            '9px 11px',
+                                        padding:
+                                          '9px 11px',
 
-                                          borderRadius:
-                                            '10px',
+                                        borderRadius:
+                                          '10px',
 
-                                          border:
+                                        border:
+                                          correct
 
-                                            correct
+                                            ? '1px solid rgba(251,191,36,.70)'
 
-                                              ? '1px solid rgba(251,191,36,.70)'
+                                            : '1px solid rgba(255,255,255,.08)'
 
-                                              : '1px solid rgba(255,255,255,.08)'
+                                      }}
+                                    >
 
-                                        }}
-                                      >
-
-                                        <strong>
-
-                                          {
-                                            optionLetter(
-                                              optionIndex
-                                            )
-                                          }.
-
-                                        </strong>{' '}
-
-                                        {option}
-
-
+                                      <strong>
                                         {
-                                          correct && (
-
-                                            <small
-                                              style={{
-
-                                                display:
-                                                  'block',
-
-                                                marginTop:
-                                                  '4px'
-
-                                              }}
-                                            >
-                                              ✓ Imported correct answer
-                                            </small>
-
+                                          optionLetter(
+                                            optionIndex
                                           )
-                                        }
+                                        }.
+                                      </strong>{' '}
 
-                                      </div>
+                                      {option}
 
-                                    );
 
-                                  }
-                                )
+                                      {
+                                        correct && (
+
+                                          <small
+                                            style={{
+                                              display:
+                                                'block',
+                                              marginTop:
+                                                '4px'
+                                            }}
+                                          >
+                                            ✓ Imported correct answer
+                                          </small>
+
+                                        )
+                                      }
+
+                                    </div>
+
+                                  );
+
+                                }
+                              )
                             }
 
                           </div>
-
 
 
                           <div
@@ -2008,8 +1860,7 @@ export function PrelimsReviewQueue() {
 
                             <p>
                               {
-                                review
-                                  .explanation ||
+                                review.explanation ||
                                 'No explanation supplied.'
                               }
                             </p>
@@ -2046,12 +1897,29 @@ export function PrelimsReviewQueue() {
                               )
                             }
 
+
+                            {
+                              review.tags.map(
+                                tag => (
+
+                                  <span
+                                    className="tag"
+                                    key={
+                                      `${review.id}-${tag}`
+                                    }
+                                  >
+                                    {tag}
+                                  </span>
+
+                                )
+                              )
+                            }
+
                           </div>
 
                         </div>
 
                       </div>
-
 
 
                       <div
@@ -2085,14 +1953,12 @@ export function PrelimsReviewQueue() {
                                     [
                                       review.id
                                     ]:
-                                      event
-                                        .target
-                                        .value
+                                      event.target.value
 
                                   })
                                 )
                             }
-                            placeholder="Example: Options differ from master; verified as genuine paper variant."
+                            placeholder="Example: Same underlying question; only distractors differ."
                           />
 
                         </label>
@@ -2100,9 +1966,12 @@ export function PrelimsReviewQueue() {
                       </div>
 
 
-
-                                                                  <div
+                      <div
                         className="callout"
+                        style={{
+                          marginTop:
+                            '16px'
+                        }}
                       >
 
                         <strong>
@@ -2114,9 +1983,7 @@ export function PrelimsReviewQueue() {
                           <strong>
                             Link Existing Master
                           </strong>{' '}
-                          is for the same underlying question when wording,
-                          option order or distractors differ. No duplicate
-                          master is created, but this exam appearance is preserved.
+                          when this is fundamentally the same question and only wording, option order or distractors differ. No duplicate master is created.
                         </p>
 
 
@@ -2124,8 +1991,7 @@ export function PrelimsReviewQueue() {
                           <strong>
                             Create Variant
                           </strong>{' '}
-                          creates a separate Draft master question when the
-                          actual meaning or answer content is genuinely different.
+                          when the meaning, interpretation or correct answer is genuinely different. A separate Draft master question is created.
                         </p>
 
 
@@ -2133,7 +1999,7 @@ export function PrelimsReviewQueue() {
                           <strong>
                             Dismiss
                           </strong>{' '}
-                          closes the review case without linking or creating a question.
+                          when this review case should not create or link any question.
                         </p>
 
                       </div>
@@ -2161,7 +2027,8 @@ export function PrelimsReviewQueue() {
                           type="button"
                           className="primary-btn"
                           disabled={
-                            isProcessing
+                            isProcessing ||
+                            !existing
                           }
                           onClick={
                             () =>
@@ -2222,105 +2089,14 @@ export function PrelimsReviewQueue() {
                               )
                           }
                         >
-                          Dismiss
-                        </button>
-
-                      </div>
-
-                        }}
-                      >
-
-                      <div
-                        style={{
-
-                          display:
-                            'flex',
-
-                          gap:
-                            '10px',
-
-                          flexWrap:
-                            'wrap',
-
-                          marginTop:
-                            '14px'
-
-                        }}
-                      >
-
-                        <button
-                          type="button"
-                          className="primary-btn"
-                          disabled={
-                            isProcessing
-                          }
-                          onClick={
-                            () =>
-                              void linkReviewToExisting(
-                                review
-                              )
-                          }
-                        >
-
                           {
                             isProcessing
-
                               ? 'Processing...'
-
-                              : 'Link to Existing Master'
+                              : 'Dismiss'
                           }
-
-                        </button>
-
-
-                        <button
-                          type="button"
-                          className="secondary-btn"
-                          disabled={
-                            isProcessing
-                          }
-                          onClick={
-                            () =>
-                              void resolveReview(
-                                review,
-                                'create_variant'
-                              )
-                          }
-                        >
-
-                          {
-                            isProcessing
-
-                              ? 'Processing...'
-
-                              : 'Create Variant as Draft'
-                          }
-
-                        </button>
-
-
-                        <button
-                          type="button"
-                          className="secondary-btn"
-                          disabled={
-                            isProcessing
-                          }
-                          onClick={
-                            () =>
-                              void resolveReview(
-                                review,
-                                'dismiss'
-                              )
-                          }
-                        >
-                          Dismiss
                         </button>
 
                       </div>
-                        </button>
-
-                      </div>
-
 
 
                       <p
@@ -2337,16 +2113,13 @@ export function PrelimsReviewQueue() {
 
                         }}
                       >
-
                         Detected:{' '}
 
                         {
                           formatDate(
-                            review
-                              .created_at
+                            review.created_at
                           )
                         }
-
                       </p>
 
                     </article>
