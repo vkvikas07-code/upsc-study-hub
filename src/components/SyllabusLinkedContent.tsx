@@ -1,204 +1,220 @@
 import {
   useEffect,
   useMemo,
-  useState
+  useState,
+  type ReactNode
 } from 'react';
 
 import {
   supabase
 } from '../lib/supabase';
 
+import {
+  SyllabusLinkedContent
+} from '../components/SyllabusLinkedContent';
+
+
+/* =========================================================
+   TYPES
+========================================================= */
 
 type ExamStage =
   | 'prelims'
   | 'mains';
 
 
-type ResourceType =
-  | 'standard_book'
-  | 'official_source'
-  | 'monthly_current_affairs'
-  | 'notes'
-  | 'report'
-  | 'pyq_resource'
-  | 'syllabus_resource';
-
-
-type ResourceRow = {
+type SyllabusTopic = {
   id: string;
-  title: string;
-  description: string | null;
-  resource_type: ResourceType;
-  exam_stage:
-    | 'prelims'
-    | 'mains'
-    | 'both';
+  exam_stage: ExamStage;
   paper: string | null;
   subject: string;
-  author: string | null;
-  publisher: string | null;
-  source_name: string | null;
-  external_url: string | null;
-  language: string;
-  is_free: boolean;
+  topic: string;
+  parent_id: string | null;
   sort_order: number;
 };
 
 
-type PrelimsPyqRow = {
-  id: string;
-  question: string;
-  options: string[];
-  correct_index: number;
-  explanation: string;
-  subject: string;
-  topic: string | null;
-  difficulty: string;
-  pyq_year: number | null;
-  source: string | null;
+type ProgressRow = {
+  topic_id: string;
+  completion: number;
+  revised_at: string | null;
 };
 
 
-type MainsPyqRow = {
+type StandardBook = {
   id: string;
-  question: string;
-
-  section_type:
-    | 'essay'
-    | 'gs'
-    | 'optional';
-
-  gs_paper: string | null;
-
-  optional_subject:
-    string | null;
-
-  optional_paper:
-    string | null;
-
+  title: string;
   subject: string;
-
-  topic:
-    string | null;
-
-  subtopic:
-    string | null;
-
-  question_number:
-    string | null;
-
-  marks:
-    number | null;
-
-  word_limit:
-    number | null;
-
-  pyq_year:
-    number | null;
-
-  essay_section:
-    string | null;
-
-  relevant_gs_papers:
-    string[];
-
-  status:
-    | 'draft'
-    | 'published'
-    | 'archived';
+  author: string | null;
+  publisher: string | null;
+  sort_order: number;
 };
 
 
-type ContentTab =
-  | 'resources'
-  | 'prelims'
-  | 'mains';
+type LearnPageProps = {
+  initialSubject?: string | null;
+};
 
 
-type SyllabusLinkedContentProps = {
-
-  stage:
-    ExamStage;
-
-  subject:
-    string;
-
-  topic?:
-    string | null;
-
-  paper?:
-    string | null;
+type ProgressOption = {
+  value: number;
+  label: string;
 };
 
 
 /* =========================================================
-   SELECT FIELDS
+   CONSTANTS
 ========================================================= */
 
-const RESOURCE_SELECT = `
-  id,
-  title,
-  description,
-  resource_type,
-  exam_stage,
-  paper,
-  subject,
-  author,
-  publisher,
-  source_name,
-  external_url,
-  language,
-  is_free,
-  sort_order
-`;
+const PROGRESS_OPTIONS: ProgressOption[] = [
 
+  {
+    value: 0,
+    label: 'Not Started'
+  },
 
-const PRELIMS_SELECT = `
-  id,
-  question,
-  options,
-  correct_index,
-  explanation,
-  subject,
-  topic,
-  difficulty,
-  pyq_year,
-  source
-`;
+  {
+    value: 25,
+    label: 'Started'
+  },
 
+  {
+    value: 50,
+    label: 'Studied'
+  },
 
-const MAINS_SELECT = `
-  id,
-  question,
-  section_type,
-  gs_paper,
-  optional_subject,
-  optional_paper,
-  subject,
-  topic,
-  subtopic,
-  question_number,
-  marks,
-  word_limit,
-  pyq_year,
-  essay_section,
-  relevant_gs_papers,
-  status
-`;
+  {
+    value: 75,
+    label: 'Revision'
+  },
+
+  {
+    value: 100,
+    label: 'Completed'
+  }
+
+];
 
 
 /* =========================================================
    HELPERS
 ========================================================= */
 
-function normalise(
-  value: string | null | undefined
+function clampProgress(
+  value: number
+): number {
+
+  if (
+    !Number.isFinite(
+      value
+    )
+  ) {
+
+    return 0;
+
+  }
+
+
+  return Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(
+        value
+      )
+    )
+  );
+
+}
+
+
+function average(
+  values: number[]
+): number {
+
+  if (
+    values.length ===
+    0
+  ) {
+
+    return 0;
+
+  }
+
+
+  const total =
+    values.reduce(
+      (
+        sum,
+        value
+      ) =>
+        sum + value,
+      0
+    );
+
+
+  return Math.round(
+    total /
+    values.length
+  );
+
+}
+
+
+function progressLabel(
+  value: number
 ): string {
 
-  return (
-    value ||
-    ''
-  )
+  if (
+    value >=
+    100
+  ) {
+
+    return 'Completed';
+
+  }
+
+
+  if (
+    value >=
+    75
+  ) {
+
+    return 'Revision';
+
+  }
+
+
+  if (
+    value >=
+    50
+  ) {
+
+    return 'Studied';
+
+  }
+
+
+  if (
+    value >
+    0
+  ) {
+
+    return 'Started';
+
+  }
+
+
+  return 'Not Started';
+
+}
+
+
+function normalise(
+  value: string
+): string {
+
+  return value
     .trim()
     .toLowerCase()
     .replace(
@@ -217,225 +233,75 @@ function normalise(
 }
 
 
-function safeNumber(
-  value: unknown,
-  fallback = 0
-): number {
-
-  const parsed =
-    Number(
-      value
-    );
-
-
-  return Number.isFinite(
-    parsed
-  )
-    ? parsed
-    : fallback;
-
-}
-
-
-function resourceTypeLabel(
-  value: ResourceType
-): string {
-
-  switch (
-    value
-  ) {
-
-    case 'standard_book':
-      return 'Standard Book';
-
-    case 'official_source':
-      return 'Official Source';
-
-    case 'monthly_current_affairs':
-      return 'Monthly CA';
-
-    case 'notes':
-      return 'Notes';
-
-    case 'report':
-      return 'Report';
-
-    case 'pyq_resource':
-      return 'PYQ Resource';
-
-    case 'syllabus_resource':
-      return 'Syllabus Resource';
-
-    default:
-      return 'Resource';
-
-  }
-
-}
-
-
-function safeExternalUrl(
-  value:
-    string |
-    null
-): string | null {
-
-  if (!value) {
-    return null;
-  }
-
-
-  try {
-
-    const url =
-      new URL(
-        value
-      );
-
-
-    if (
-      url.protocol !==
-        'https:' &&
-      url.protocol !==
-        'http:'
-    ) {
-
-      return null;
-
-    }
-
-
-    return url.toString();
-
-  } catch {
-
-    return null;
-
-  }
-
-}
-
-
-function topicRelevant(
-  requestedTopic:
-    string | null | undefined,
-
-  ...values:
-    Array<
-      string |
-      null |
-      undefined
-    >
-): boolean {
-
-  if (
-    !requestedTopic
-  ) {
-
-    return true;
-
-  }
-
-
-  const target =
-    normalise(
-      requestedTopic
-    );
-
-
-  if (
-    !target
-  ) {
-
-    return true;
-
-  }
-
-
-  return values.some(
-    value => {
-
-      const candidate =
-        normalise(
-          value
-        );
-
-
-      if (
-        !candidate
-      ) {
-
-        return false;
-
-      }
-
-
-      return (
-        candidate.includes(
-          target
-        ) ||
-        target.includes(
-          candidate
-        )
-      );
-
-    }
-  );
-
-}
-
-
 /* =========================================================
    COMPONENT
 ========================================================= */
 
-export function SyllabusLinkedContent({
+export function LearnPage({
+  initialSubject = null
+}: LearnPageProps) {
 
-  stage,
-  subject,
-  topic = null,
-  paper = null
-
-}: SyllabusLinkedContentProps) {
-
-  const [
-    activeTab,
-    setActiveTab
-  ] =
-    useState<ContentTab>(
-      stage ===
-        'prelims'
-        ? 'prelims'
-        : 'mains'
-    );
-
+  /* =======================================================
+     DATABASE DATA
+  ======================================================= */
 
   const [
-    resources,
-    setResources
+    topics,
+    setTopics
   ] =
-    useState<ResourceRow[]>(
+    useState<SyllabusTopic[]>(
       []
     );
 
 
   const [
-    prelimsPyqs,
-    setPrelimsPyqs
+    books,
+    setBooks
   ] =
-    useState<PrelimsPyqRow[]>(
+    useState<StandardBook[]>(
       []
     );
 
 
   const [
-    mainsPyqs,
-    setMainsPyqs
+    progressMap,
+    setProgressMap
   ] =
-    useState<MainsPyqRow[]>(
-      []
+    useState<
+      Record<
+        string,
+        number
+      >
+    >(
+      {}
     );
 
+
+  /* =======================================================
+     USER
+  ======================================================= */
+
+  const [
+    userId,
+    setUserId
+  ] =
+    useState<string | null>(
+      null
+    );
+
+
+  const [
+    signedIn,
+    setSignedIn
+  ] =
+    useState(
+      false
+    );
+
+
+  /* =======================================================
+     GENERAL UI
+  ======================================================= */
 
   const [
     loading,
@@ -455,32 +321,116 @@ export function SyllabusLinkedContent({
     );
 
 
-  /* =======================================================
-     UPDATE DEFAULT TAB
-  ======================================================= */
+  const [
+    message,
+    setMessage
+  ] =
+    useState(
+      ''
+    );
 
-  useEffect(
-    () => {
 
-      setActiveTab(
-        stage ===
-          'prelims'
-          ? 'prelims'
-          : 'mains'
-      );
-
-    },
-    [
-      stage
-    ]
-  );
+  const [
+    savingTopicId,
+    setSavingTopicId
+  ] =
+    useState<string | null>(
+      null
+    );
 
 
   /* =======================================================
-     LOAD LINKED CONTENT
+     SYLLABUS FILTERS
   ======================================================= */
 
-  async function loadLinkedContent():
+  const [
+    stage,
+    setStage
+  ] =
+    useState<ExamStage>(
+      'prelims'
+    );
+
+
+  const [
+    paperFilter,
+    setPaperFilter
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
+    searchText,
+    setSearchText
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    filtersOpen,
+    setFiltersOpen
+  ] =
+    useState(
+      false
+    );
+
+
+  const [
+    hideCompleted,
+    setHideCompleted
+  ] =
+    useState(
+      false
+    );
+
+
+  /* =======================================================
+     EXPANSION STATE
+  ======================================================= */
+
+  const [
+    expandedSubject,
+    setExpandedSubject
+  ] =
+    useState<string | null>(
+      null
+    );
+
+
+  const [
+    expandedTopics,
+    setExpandedTopics
+  ] =
+    useState<
+      Set<string>
+    >(
+      new Set()
+    );
+
+
+  /*
+   * Only one topic's linked content
+   * will stay open at a time.
+   */
+
+  const [
+    linkedTopicId,
+    setLinkedTopicId
+  ] =
+    useState<string | null>(
+      null
+    );
+
+
+  /* =======================================================
+     LOAD SYLLABUS
+  ======================================================= */
+
+  async function loadSyllabus():
     Promise<void> {
 
     if (
@@ -508,44 +458,74 @@ export function SyllabusLinkedContent({
       ''
     );
 
+    setMessage(
+      ''
+    );
+
 
     /*
-     * We load the three existing
-     * content sources in parallel.
+     * Load syllabus and standard books
+     * together.
      */
 
     const [
-      resourceResult,
-      prelimsResult,
-      mainsResult
+      topicResult,
+      bookResult
     ] =
       await Promise.all([
 
-        /* ===============================================
-           RESOURCES
-        =============================================== */
+        supabase
+          .from(
+            'syllabus_topics'
+          )
+          .select(
+            `
+              id,
+              exam_stage,
+              paper,
+              subject,
+              topic,
+              parent_id,
+              sort_order
+            `
+          )
+          .order(
+            'sort_order',
+            {
+              ascending:
+                true
+            }
+          ),
+
 
         supabase
           .from(
             'study_resources'
           )
           .select(
-            RESOURCE_SELECT
+            `
+              id,
+              title,
+              subject,
+              author,
+              publisher,
+              sort_order
+            `
+          )
+          .eq(
+            'resource_type',
+            'standard_book'
           )
           .eq(
             'status',
             'published'
           )
-          .ilike(
+          .order(
             'subject',
-            subject
-          )
-          .in(
-            'exam_stage',
-            [
-              stage,
-              'both'
-            ]
+            {
+              ascending:
+                true
+            }
           )
           .order(
             'sort_order',
@@ -554,109 +534,135 @@ export function SyllabusLinkedContent({
                 true
             }
           )
-          .limit(
-            50
-          ),
-
-
-        /* ===============================================
-           PRELIMS PYQ
-        =============================================== */
-
-        supabase
-          .from(
-            'questions'
-          )
-          .select(
-            PRELIMS_SELECT
-          )
-          .eq(
-            'status',
-            'published'
-          )
-          .eq(
-            'exam_stage',
-            'prelims'
-          )
-          .eq(
-            'is_pyq',
-            true
-          )
-          .ilike(
-            'subject',
-            subject
-          )
-          .order(
-            'pyq_year',
-            {
-              ascending:
-                false
-            }
-          )
-          .limit(
-            60
-          ),
-
-
-        /* ===============================================
-           MAINS PYQ
-        =============================================== */
-
-        supabase
-          .from(
-            'mains_questions'
-          )
-          .select(
-            MAINS_SELECT
-          )
-          .eq(
-            'question_type',
-            'pyq'
-          )
-          .eq(
-            'status',
-            'published'
-          )
-          .ilike(
-            'subject',
-            subject
-          )
-          .order(
-            'pyq_year',
-            {
-              ascending:
-                false
-            }
-          )
-          .limit(
-            60
-          )
 
       ]);
 
 
     /* ===================================================
-       RESOURCES
+       SYLLABUS ERROR
     =================================================== */
 
     if (
-      resourceResult.error
+      topicResult.error
     ) {
 
       console.error(
-        'Linked resources error:',
-        resourceResult.error
+        'Unable to load syllabus:',
+        topicResult.error
       );
 
-      setResources(
+
+      setError(
+        topicResult.error.message
+      );
+
+
+      setLoading(
+        false
+      );
+
+
+      return;
+
+    }
+
+
+    /* ===================================================
+       CLEAN SYLLABUS DATA
+    =================================================== */
+
+    const cleanTopics:
+      SyllabusTopic[] =
+      (
+        topicResult.data ||
+        []
+      )
+        .filter(
+          item =>
+
+            item.exam_stage ===
+              'prelims' ||
+
+            item.exam_stage ===
+              'mains'
+        )
+        .map(
+          item => ({
+
+            id:
+              String(
+                item.id
+              ),
+
+            exam_stage:
+              item.exam_stage as
+                ExamStage,
+
+            paper:
+              item.paper
+                ? String(
+                    item.paper
+                  )
+                : null,
+
+            subject:
+              String(
+                item.subject ||
+                'Other'
+              ),
+
+            topic:
+              String(
+                item.topic ||
+                ''
+              ),
+
+            parent_id:
+              item.parent_id
+                ? String(
+                    item.parent_id
+                  )
+                : null,
+
+            sort_order:
+              Number(
+                item.sort_order ||
+                0
+              )
+
+          })
+        );
+
+
+    setTopics(
+      cleanTopics
+    );
+
+
+    /* ===================================================
+       STANDARD BOOKS
+    =================================================== */
+
+    if (
+      bookResult.error
+    ) {
+
+      console.error(
+        'Unable to load standard books:',
+        bookResult.error
+      );
+
+
+      setBooks(
         []
       );
 
     } else {
 
-      const loaded =
+      const cleanBooks:
+        StandardBook[] =
         (
-          resourceResult.data ||
+          bookResult.data ||
           []
         )
           .map(
@@ -673,34 +679,10 @@ export function SyllabusLinkedContent({
                   ''
                 ),
 
-              description:
-                item.description
-                  ? String(
-                      item.description
-                    )
-                  : null,
-
-              resource_type:
-                item.resource_type as
-                  ResourceType,
-
-              exam_stage:
-                item.exam_stage as
-                  | 'prelims'
-                  | 'mains'
-                  | 'both',
-
-              paper:
-                item.paper
-                  ? String(
-                      item.paper
-                    )
-                  : null,
-
               subject:
                 String(
                   item.subject ||
-                  ''
+                  'General'
                 ),
 
               author:
@@ -717,325 +699,167 @@ export function SyllabusLinkedContent({
                     )
                   : null,
 
-              source_name:
-                item.source_name
-                  ? String(
-                      item.source_name
-                    )
-                  : null,
-
-              external_url:
-                item.external_url
-                  ? String(
-                      item.external_url
-                    )
-                  : null,
-
-              language:
-                String(
-                  item.language ||
-                  'English'
-                ),
-
-              is_free:
-                item.is_free ===
-                true,
-
               sort_order:
-                safeNumber(
-                  item.sort_order
-                )
-
-            })
-          );
-
-
-      setResources(
-        loaded
-      );
-
-    }
-
-
-    /* ===================================================
-       PRELIMS
-    =================================================== */
-
-    if (
-      prelimsResult.error
-    ) {
-
-      console.error(
-        'Linked Prelims PYQ error:',
-        prelimsResult.error
-      );
-
-      setPrelimsPyqs(
-        []
-      );
-
-    } else {
-
-      const loaded =
-        (
-          prelimsResult.data ||
-          []
-        )
-          .map(
-            item => ({
-
-              id:
-                String(
-                  item.id
-                ),
-
-              question:
-                String(
-                  item.question ||
-                  ''
-                ),
-
-              options:
-                Array.isArray(
-                  item.options
-                )
-                  ? item.options.map(
-                      option =>
-                        String(
-                          option
-                        )
-                    )
-                  : [],
-
-              correct_index:
-                safeNumber(
-                  item.correct_index,
+                Number(
+                  item.sort_order ||
                   0
-                ),
-
-              explanation:
-                String(
-                  item.explanation ||
-                  ''
-                ),
-
-              subject:
-                String(
-                  item.subject ||
-                  ''
-                ),
-
-              topic:
-                item.topic
-                  ? String(
-                      item.topic
-                    )
-                  : null,
-
-              difficulty:
-                String(
-                  item.difficulty ||
-                  'medium'
-                ),
-
-              pyq_year:
-                item.pyq_year
-                  ? safeNumber(
-                      item.pyq_year
-                    )
-                  : null,
-
-              source:
-                item.source
-                  ? String(
-                      item.source
-                    )
-                  : null
+                )
 
             })
           );
 
 
-      setPrelimsPyqs(
-        loaded
+      setBooks(
+        cleanBooks
       );
 
     }
 
 
     /* ===================================================
-       MAINS
+       AUTH USER
     =================================================== */
 
-    if (
-      mainsResult.error
-    ) {
-
-      console.error(
-        'Linked Mains PYQ error:',
-        mainsResult.error
-      );
-
-      setMainsPyqs(
-        []
-      );
-
-    } else {
-
-      const loaded =
-        (
-          mainsResult.data ||
-          []
-        )
-          .map(
-            item => ({
-
-              id:
-                String(
-                  item.id
-                ),
-
-              question:
-                String(
-                  item.question ||
-                  ''
-                ),
-
-              section_type:
-                item.section_type as
-                  | 'essay'
-                  | 'gs'
-                  | 'optional',
-
-              gs_paper:
-                item.gs_paper
-                  ? String(
-                      item.gs_paper
-                    )
-                  : null,
-
-              optional_subject:
-                item.optional_subject
-                  ? String(
-                      item.optional_subject
-                    )
-                  : null,
-
-              optional_paper:
-                item.optional_paper
-                  ? String(
-                      item.optional_paper
-                    )
-                  : null,
-
-              subject:
-                String(
-                  item.subject ||
-                  ''
-                ),
-
-              topic:
-                item.topic
-                  ? String(
-                      item.topic
-                    )
-                  : null,
-
-              subtopic:
-                item.subtopic
-                  ? String(
-                      item.subtopic
-                    )
-                  : null,
-
-              question_number:
-                item.question_number
-                  ? String(
-                      item.question_number
-                    )
-                  : null,
-
-              marks:
-                item.marks ===
-                  null ||
-                item.marks ===
-                  undefined
-                  ? null
-                  : safeNumber(
-                      item.marks
-                    ),
-
-              word_limit:
-                item.word_limit ===
-                  null ||
-                item.word_limit ===
-                  undefined
-                  ? null
-                  : safeNumber(
-                      item.word_limit
-                    ),
-
-              pyq_year:
-                item.pyq_year
-                  ? safeNumber(
-                      item.pyq_year
-                    )
-                  : null,
-
-              essay_section:
-                item.essay_section
-                  ? String(
-                      item.essay_section
-                    )
-                  : null,
-
-              relevant_gs_papers:
-                Array.isArray(
-                  item.relevant_gs_papers
-                )
-                  ? item
-                      .relevant_gs_papers
-                      .map(
-                        value =>
-                          String(
-                            value
-                          )
-                      )
-                  : [],
-
-              status:
-                item.status as
-                  | 'draft'
-                  | 'published'
-                  | 'archived'
-
-            })
-          );
+    const {
+      data:
+        authData
+    } =
+      await supabase
+        .auth
+        .getUser();
 
 
-      setMainsPyqs(
-        loaded
-      );
-
-    }
+    const user =
+      authData.user;
 
 
     /*
-     * If every query failed,
-     * show a visible error.
+     * Syllabus can still be read
+     * without login.
      */
 
     if (
-      resourceResult.error &&
-      prelimsResult.error &&
-      mainsResult.error
+      !user
     ) {
 
-      setError(
-        'Unable to load linked syllabus content.'
+      setSignedIn(
+        false
       );
 
+      setUserId(
+        null
+      );
+
+      setProgressMap(
+        {}
+      );
+
+      setLoading(
+        false
+      );
+
+      return;
+
     }
+
+
+    setSignedIn(
+      true
+    );
+
+
+    setUserId(
+      user.id
+    );
+
+
+    /* ===================================================
+       USER PROGRESS
+    =================================================== */
+
+    const {
+      data:
+        progressData,
+
+      error:
+        progressError
+    } =
+      await supabase
+        .from(
+          'user_progress'
+        )
+        .select(
+          `
+            topic_id,
+            completion,
+            revised_at
+          `
+        )
+        .eq(
+          'user_id',
+          user.id
+        );
+
+
+    if (
+      progressError
+    ) {
+
+      console.error(
+        'Unable to load syllabus progress:',
+        progressError
+      );
+
+
+      setError(
+        progressError.message
+      );
+
+
+      setLoading(
+        false
+      );
+
+
+      return;
+
+    }
+
+
+    const nextProgress:
+      Record<
+        string,
+        number
+      > =
+      {};
+
+
+    (
+      (
+        progressData ||
+        []
+      ) as ProgressRow[]
+    )
+      .forEach(
+        row => {
+
+          nextProgress[
+            row.topic_id
+          ] =
+            clampProgress(
+              Number(
+                row.completion ||
+                0
+              )
+            );
+
+        }
+      );
+
+
+    setProgressMap(
+      nextProgress
+    );
 
 
     setLoading(
@@ -1045,143 +869,594 @@ export function SyllabusLinkedContent({
   }
 
 
+  /* =======================================================
+     FIRST LOAD
+  ======================================================= */
+
   useEffect(
     () => {
 
-      void loadLinkedContent();
+      void loadSyllabus();
+
+    },
+    []
+  );
+
+
+  /* =======================================================
+     INITIAL SUBJECT
+  ======================================================= */
+
+  useEffect(
+    () => {
+
+      if (
+        initialSubject
+      ) {
+
+        setStage(
+          'prelims'
+        );
+
+
+        setSearchText(
+          initialSubject
+        );
+
+
+        setFiltersOpen(
+          true
+        );
+
+      } else {
+
+        setSearchText(
+          ''
+        );
+
+      }
+
+
+      setPaperFilter(
+        'all'
+      );
 
     },
     [
-      stage,
-      subject,
-      topic,
-      paper
+      initialSubject
     ]
   );
 
 
   /* =======================================================
-     RESOURCE FILTER
+     RESET WHEN STAGE CHANGES
   ======================================================= */
 
-  const visibleResources =
-    useMemo(
-      () => {
+  useEffect(
+    () => {
 
-        return resources.filter(
-          resource => {
-
-            /*
-             * A general subject resource
-             * is allowed even if it has
-             * no paper value.
-             */
-
-            if (
-              paper &&
-              resource.paper &&
-              normalise(
-                resource.paper
-              ) !==
-              normalise(
-                paper
-              )
-            ) {
-
-              return false;
-
-            }
+      setPaperFilter(
+        'all'
+      );
 
 
-            return true;
+      setExpandedSubject(
+        null
+      );
+
+
+      setExpandedTopics(
+        new Set()
+      );
+
+
+      setLinkedTopicId(
+        null
+      );
+
+
+      setHideCompleted(
+        false
+      );
+
+    },
+    [
+      stage
+    ]
+  );
+
+
+  /* =======================================================
+     SAVE TOPIC PROGRESS
+  ======================================================= */
+
+  async function saveProgress(
+    topicId: string,
+    nextValue: number
+  ): Promise<void> {
+
+    if (
+      !supabase ||
+      !userId
+    ) {
+
+      setMessage(
+        'Sign in to save syllabus progress.'
+      );
+
+      return;
+
+    }
+
+
+    const value =
+      clampProgress(
+        nextValue
+      );
+
+
+    const previousValue =
+      progressMap[
+        topicId
+      ] ||
+      0;
+
+
+    /*
+     * Optimistic UI update.
+     */
+
+    setProgressMap(
+      current => ({
+
+        ...current,
+
+        [topicId]:
+          value
+
+      })
+    );
+
+
+    setSavingTopicId(
+      topicId
+    );
+
+
+    setMessage(
+      ''
+    );
+
+
+    const {
+      error:
+        saveError
+    } =
+      await supabase
+        .from(
+          'user_progress'
+        )
+        .upsert(
+          {
+
+            user_id:
+              userId,
+
+            topic_id:
+              topicId,
+
+            completion:
+              value,
+
+            revised_at:
+              new Date()
+                .toISOString()
+
+          },
+          {
+
+            onConflict:
+              'user_id,topic_id'
 
           }
         );
 
-      },
+
+    if (
+      saveError
+    ) {
+
+      console.error(
+        'Unable to save progress:',
+        saveError
+      );
+
+
+      /*
+       * Restore previous value.
+       */
+
+      setProgressMap(
+        current => ({
+
+          ...current,
+
+          [topicId]:
+            previousValue
+
+        })
+      );
+
+
+      setMessage(
+        `Unable to save progress: ${saveError.message}`
+      );
+
+    } else {
+
+      setMessage(
+        `${value}% progress saved.`
+      );
+
+    }
+
+
+    setSavingTopicId(
+      null
+    );
+
+  }
+
+
+  /* =======================================================
+     TOPICS FOR CURRENT EXAM STAGE
+  ======================================================= */
+
+  const stageTopics =
+    useMemo(
+      () =>
+
+        topics.filter(
+          topic =>
+            topic.exam_stage ===
+            stage
+        ),
+
       [
-        resources,
-        paper
+        topics,
+        stage
       ]
     );
 
 
   /* =======================================================
-     PRELIMS TOPIC FILTER
+     CHILD TOPIC MAP
   ======================================================= */
 
-  const visiblePrelims =
+  const childrenMap =
     useMemo(
       () => {
 
-        return prelimsPyqs.filter(
-          question =>
-            topicRelevant(
-              topic,
-              question.topic
-            )
-        );
-
-      },
-      [
-        prelimsPyqs,
-        topic
-      ]
-    );
+        const map =
+          new Map<
+            string,
+            SyllabusTopic[]
+          >();
 
 
-  /* =======================================================
-     MAINS TOPIC FILTER
-  ======================================================= */
-
-  const visibleMains =
-    useMemo(
-      () => {
-
-        return mainsPyqs.filter(
-          question => {
+        stageTopics.forEach(
+          topic => {
 
             if (
-              !topicRelevant(
-                topic,
-                question.topic,
-                question.subtopic
-              )
+              !topic.parent_id
             ) {
 
-              return false;
+              return;
 
             }
 
 
-            /*
-             * When a Mains paper is known,
-             * prefer questions from that paper.
-             *
-             * Questions without a GS paper
-             * are still retained.
-             */
+            const current =
+              map.get(
+                topic.parent_id
+              ) ||
+              [];
 
-            if (
-              paper &&
-              question.gs_paper &&
-              normalise(
-                question.gs_paper
-              ) !==
-              normalise(
-                paper
-              ) &&
-              !question
-                .relevant_gs_papers
-                .some(
-                  relevantPaper =>
-                    normalise(
-                      relevantPaper
-                    ) ===
-                    normalise(
-                      paper
+
+            current.push(
+              topic
+            );
+
+
+            map.set(
+              topic.parent_id,
+              current
+            );
+
+          }
+        );
+
+
+        /*
+         * Keep children in database
+         * sort order.
+         */
+
+        map.forEach(
+          list => {
+
+            list.sort(
+              (
+                first,
+                second
+              ) =>
+
+                first.sort_order -
+                second.sort_order
+            );
+
+          }
+        );
+
+
+        return map;
+
+      },
+      [
+        stageTopics
+      ]
+    );
+
+
+  /* =======================================================
+     GET LEAF IDS
+
+     Explicit return type is required
+     because this function is recursive.
+  ======================================================= */
+
+  function getLeafIds(
+    topicId: string
+  ): string[] {
+
+    const children =
+      childrenMap.get(
+        topicId
+      ) ||
+      [];
+
+
+    if (
+      children.length ===
+      0
+    ) {
+
+      return [
+        topicId
+      ];
+
+    }
+
+
+    return children.flatMap(
+      child =>
+        getLeafIds(
+          child.id
+        )
+    );
+
+  }
+
+
+  /* =======================================================
+     CALCULATE TOPIC PROGRESS
+  ======================================================= */
+
+  function getTopicProgress(
+    topicId: string
+  ): number {
+
+    const leafIds =
+      getLeafIds(
+        topicId
+      );
+
+
+    const values =
+      leafIds.map(
+        id =>
+          progressMap[
+            id
+          ] ||
+          0
+      );
+
+
+    return average(
+      values
+    );
+
+  }
+
+
+  /* =======================================================
+     ROOT TOPICS
+  ======================================================= */
+
+  const rootTopics =
+    useMemo(
+      () =>
+
+        stageTopics.filter(
+          topic =>
+            !topic.parent_id
+        ),
+
+      [
+        stageTopics
+      ]
+    );
+
+
+  /* =======================================================
+     PAPER OPTIONS
+  ======================================================= */
+
+  const paperOptions =
+    useMemo(
+      () => {
+
+        return Array
+          .from(
+            new Set(
+              stageTopics
+                .map(
+                  topic =>
+                    topic.paper
+                      ?.trim()
+                )
+                .filter(
+                  (
+                    value
+                  ): value is string =>
+                    Boolean(
+                      value
                     )
                 )
+            )
+          )
+          .sort(
+            (
+              first,
+              second
+            ) =>
+              first.localeCompare(
+                second
+              )
+          );
+
+      },
+      [
+        stageTopics
+      ]
+    );
+
+
+  /* =======================================================
+     RECURSIVE SEARCH MATCH
+
+     Explicit : boolean prevents
+     TypeScript recursive inference error.
+  ======================================================= */
+
+  function topicMatchesSearch(
+    topic: SyllabusTopic
+  ): boolean {
+
+    const query =
+      searchText
+        .trim()
+        .toLowerCase();
+
+
+    if (
+      !query
+    ) {
+
+      return true;
+
+    }
+
+
+    const topicText =
+      [
+        topic.subject,
+        topic.paper ||
+          '',
+        topic.topic
+      ]
+        .join(
+          ' '
+        )
+        .toLowerCase();
+
+
+    if (
+      topicText.includes(
+        query
+      )
+    ) {
+
+      return true;
+
+    }
+
+
+    const children =
+      childrenMap.get(
+        topic.id
+      ) ||
+      [];
+
+
+    return children.some(
+      child =>
+        topicMatchesSearch(
+          child
+        )
+    );
+
+  }
+
+
+  /* =======================================================
+     FILTER ROOT TOPICS
+  ======================================================= */
+
+  const visibleRootTopics =
+    useMemo(
+      () => {
+
+        return rootTopics.filter(
+          topic => {
+
+            /* paper */
+
+            if (
+              paperFilter !==
+                'all' &&
+
+              topic.paper !==
+                paperFilter
+            ) {
+
+              return false;
+
+            }
+
+
+            /* search */
+
+            if (
+              !topicMatchesSearch(
+                topic
+              )
+            ) {
+
+              return false;
+
+            }
+
+
+            /* completed */
+
+            if (
+              hideCompleted &&
+
+              getTopicProgress(
+                topic.id
+              ) >=
+                100
             ) {
 
               return false;
@@ -1196,317 +1471,1420 @@ export function SyllabusLinkedContent({
 
       },
       [
-        mainsPyqs,
-        topic,
-        paper
+        rootTopics,
+        paperFilter,
+        searchText,
+        hideCompleted,
+        progressMap,
+        childrenMap
       ]
     );
 
 
   /* =======================================================
-     UI
+     SUBJECT NAMES
   ======================================================= */
 
-  return (
+  const subjectNames =
+    useMemo(
+      () => {
 
-    <section
-      className="panel"
+        return Array
+          .from(
+            new Set(
+              visibleRootTopics.map(
+                topic =>
+                  topic.subject
+              )
+            )
+          )
+          .sort(
+            (
+              first,
+              second
+            ) =>
+              first.localeCompare(
+                second
+              )
+          );
 
-      style={{
-        marginTop:
-          '10px',
+      },
+      [
+        visibleRootTopics
+      ]
+    );
 
-        padding:
-          '14px'
-      }}
-    >
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
+  /* =======================================================
+     ROOT TOPICS FOR SUBJECT
+  ======================================================= */
+
+  function rootTopicsForSubject(
+    subject: string
+  ): SyllabusTopic[] {
+
+    return visibleRootTopics.filter(
+      topic =>
+        topic.subject ===
+        subject
+    );
+
+  }
+
+
+  /* =======================================================
+     STANDARD BOOKS FOR SUBJECT
+  ======================================================= */
+
+  function booksForSubject(
+    subject: string
+  ): StandardBook[] {
+
+    const target =
+      normalise(
+        subject
+      );
+
+
+    return books.filter(
+      book =>
+        normalise(
+          book.subject
+        ) ===
+        target
+    );
+
+  }
+
+
+  /* =======================================================
+     SUBJECT PROGRESS
+  ======================================================= */
+
+  function getSubjectProgress(
+    subject: string
+  ): number {
+
+    const roots =
+      stageTopics.filter(
+        topic =>
+
+          !topic.parent_id &&
+
+          topic.subject ===
+            subject
+      );
+
+
+    const ids =
+      roots.flatMap(
+        topic =>
+          getLeafIds(
+            topic.id
+          )
+      );
+
+
+    const values =
+      ids.map(
+        id =>
+          progressMap[
+            id
+          ] ||
+          0
+      );
+
+
+    return average(
+      values
+    );
+
+  }
+
+
+  /* =======================================================
+     ALL LEAF TOPICS
+  ======================================================= */
+
+  const stageLeafIds =
+    useMemo(
+      () => {
+
+        return stageTopics
+          .filter(
+            topic =>
+
+              (
+                childrenMap.get(
+                  topic.id
+                ) ||
+                []
+              ).length ===
+              0
+          )
+          .map(
+            topic =>
+              topic.id
+          );
+
+      },
+      [
+        stageTopics,
+        childrenMap
+      ]
+    );
+
+
+  /* =======================================================
+     OVERALL STAGE PROGRESS
+  ======================================================= */
+
+  const overallProgress =
+    average(
+      stageLeafIds.map(
+        id =>
+          progressMap[
+            id
+          ] ||
+          0
+      )
+    );
+
+
+  const completedTopics =
+    stageLeafIds.filter(
+      id =>
+
+        (
+          progressMap[
+            id
+          ] ||
+          0
+        ) >=
+        100
+    ).length;
+
+
+  const startedTopics =
+    stageLeafIds.filter(
+      id =>
+
+        (
+          progressMap[
+            id
+          ] ||
+          0
+        ) >
+        0
+    ).length;
+
+
+  /* =======================================================
+     EXPAND / COLLAPSE TOPIC
+  ======================================================= */
+
+  function toggleTopic(
+    id: string
+  ): void {
+
+    setExpandedTopics(
+      current => {
+
+        const next =
+          new Set(
+            current
+          );
+
+
+        if (
+          next.has(
+            id
+          )
+        ) {
+
+          next.delete(
+            id
+          );
+
+        } else {
+
+          next.add(
+            id
+          );
+
+        }
+
+
+        return next;
+
+      }
+    );
+
+  }
+
+
+  /* =======================================================
+     RECURSIVE TOPIC RENDERER
+
+     Explicit ReactNode fixes TypeScript
+     recursive return type error.
+  ======================================================= */
+
+  function renderTopic(
+    topic: SyllabusTopic,
+    depth = 0
+  ): ReactNode {
+
+    const children =
+      childrenMap.get(
+        topic.id
+      ) ||
+      [];
+
+
+    const hasChildren =
+      children.length >
+      0;
+
+
+    const expanded =
+      expandedTopics.has(
+        topic.id
+      );
+
+
+    const linkedOpen =
+      linkedTopicId ===
+      topic.id;
+
+
+    const progress =
+      hasChildren
+        ? getTopicProgress(
+            topic.id
+          )
+        : progressMap[
+            topic.id
+          ] ||
+          0;
+
+
+    const searchQuery =
+      searchText
+        .trim()
+        .toLowerCase();
+
+
+    const matchingChildren =
+      children.filter(
+        child =>
+
+          !searchQuery ||
+
+          topicMatchesSearch(
+            child
+          )
+      );
+
+
+    /*
+     * Hide completed topic if
+     * filter is enabled.
+     */
+
+    if (
+      hideCompleted &&
+      progress >=
+      100
+    ) {
+
+      return null;
+
+    }
+
+
+    return (
 
       <div
-        className="panel-head"
+
+        key={
+          topic.id
+        }
+
+        style={{
+
+          marginLeft:
+            `${depth * 10}px`,
+
+          marginTop:
+            '8px',
+
+          padding:
+            '11px 12px',
+
+          border:
+            '1px solid rgba(255,255,255,.08)',
+
+          borderRadius:
+            '12px',
+
+          background:
+            depth >
+            0
+              ? 'rgba(255,255,255,.015)'
+              : 'rgba(255,255,255,.025)'
+
+        }}
+
       >
 
-        <div>
+        {/* =============================================
+            TOPIC HEADER
+        ============================================= */}
 
-          <span
-            className="eyebrow"
-          >
-            LINKED STUDY
-          </span>
+        <div
+          style={{
 
+            display:
+              'flex',
 
-          <h3
-            style={{
-              margin:
-                '5px 0'
+            justifyContent:
+              'space-between',
+
+            alignItems:
+              'center',
+
+            gap:
+              '10px',
+
+            flexWrap:
+              'wrap'
+
+          }}
+        >
+
+          {/* ===========================================
+              TOPIC TITLE
+          =========================================== */}
+
+          <button
+
+            type="button"
+
+            onClick={() => {
+
+              if (
+                hasChildren
+              ) {
+
+                toggleTopic(
+                  topic.id
+                );
+
+              }
+
             }}
-          >
 
-            {
-              topic ||
-              subject
-            }
-
-          </h3>
-
-
-          <small
             style={{
+
+              border:
+                0,
+
+              background:
+                'transparent',
+
               color:
-                '#94a3b8'
+                'inherit',
+
+              cursor:
+                hasChildren
+                  ? 'pointer'
+                  : 'default',
+
+              padding:
+                0,
+
+              textAlign:
+                'left',
+
+              flex:
+                '1 1 220px',
+
+              whiteSpace:
+                'normal'
+
+            }}
+
+          >
+
+            <strong>
+
+              {
+                hasChildren
+                  ? (
+                    expanded
+                      ? '▾ '
+                      : '▸ '
+                  )
+                  : '• '
+              }
+
+              {
+                topic.topic
+              }
+
+            </strong>
+
+
+            <small
+              style={{
+
+                display:
+                  'block',
+
+                color:
+                  '#94a3b8',
+
+                marginTop:
+                  '3px'
+
+              }}
+            >
+
+              {
+                progressLabel(
+                  progress
+                )
+              }
+
+              {' • '}
+
+              {
+                progress
+              }
+
+              %
+
+            </small>
+
+          </button>
+
+
+          {/* ===========================================
+              ACTION AREA
+          =========================================== */}
+
+          <div
+            style={{
+
+              display:
+                'flex',
+
+              alignItems:
+                'center',
+
+              gap:
+                '7px',
+
+              flexWrap:
+                'wrap'
+
             }}
           >
 
-            {
-              subject
-            }
+            {/* =========================================
+                STUDY LINKS BUTTON
+            ========================================= */}
+
+            <button
+
+              type="button"
+
+              className={
+                linkedOpen
+                  ? 'filter active'
+                  : 'filter'
+              }
+
+              onClick={() =>
+
+                setLinkedTopicId(
+                  current =>
+
+                    current ===
+                    topic.id
+
+                      ? null
+
+                      : topic.id
+                )
+
+              }
+
+            >
+
+              {
+                linkedOpen
+                  ? 'Hide Study'
+                  : 'Study Links'
+              }
+
+            </button>
+
+
+            {/* =========================================
+                PROGRESS SELECT
+            ========================================= */}
 
             {
-              paper
-                ? ` • ${paper}`
-                : ''
+              !hasChildren &&
+              signedIn && (
+
+                <select
+
+                  value={
+                    progress
+                  }
+
+                  disabled={
+                    savingTopicId ===
+                    topic.id
+                  }
+
+                  onChange={
+                    event =>
+
+                      void saveProgress(
+                        topic.id,
+                        Number(
+                          event.target.value
+                        )
+                      )
+                  }
+
+                  style={{
+                    minWidth:
+                      '125px'
+                  }}
+
+                >
+
+                  {
+                    PROGRESS_OPTIONS.map(
+                      option => (
+
+                        <option
+
+                          key={
+                            option.value
+                          }
+
+                          value={
+                            option.value
+                          }
+
+                        >
+
+                          {
+                            option.value
+                          }
+
+                          %
+
+                          {' — '}
+
+                          {
+                            option.label
+                          }
+
+                        </option>
+
+                      )
+                    )
+                  }
+
+                </select>
+
+              )
             }
 
-          </small>
+          </div>
 
         </div>
 
 
-        <button
+        {/* =============================================
+            TOPIC PROGRESS BAR
+        ============================================= */}
 
-          type="button"
+        <div
+          style={{
 
-          className="text-btn"
+            height:
+              '5px',
 
-          onClick={() =>
-            void loadLinkedContent()
-          }
+            borderRadius:
+              '999px',
 
+            overflow:
+              'hidden',
+
+            background:
+              'rgba(255,255,255,.08)',
+
+            marginTop:
+              '8px'
+
+          }}
         >
-
-          Refresh
-
-        </button>
-
-      </div>
-
-
-      {/* =================================================
-          COUNTS
-      ================================================= */}
-
-      <div
-        className="metrics-grid"
-
-        style={{
-          marginTop:
-            '12px'
-        }}
-      >
-
-        <article
-          className="metric-card"
-        >
-
-          <div>
-
-            <span>
-              Resources
-            </span>
-
-            <strong>
-              {
-                visibleResources.length
-              }
-            </strong>
-
-          </div>
-
-        </article>
-
-
-        <article
-          className="metric-card"
-        >
-
-          <div>
-
-            <span>
-              Prelims PYQ
-            </span>
-
-            <strong>
-              {
-                visiblePrelims.length
-              }
-            </strong>
-
-          </div>
-
-        </article>
-
-
-        <article
-          className="metric-card"
-        >
-
-          <div>
-
-            <span>
-              Mains PYQ
-            </span>
-
-            <strong>
-              {
-                visibleMains.length
-              }
-            </strong>
-
-          </div>
-
-        </article>
-
-      </div>
-
-
-      {/* =================================================
-          TABS
-      ================================================= */}
-
-      <div
-        style={{
-
-          display:
-            'grid',
-
-          gridTemplateColumns:
-            'repeat(3, minmax(0, 1fr))',
-
-          gap:
-            '7px',
-
-          marginTop:
-            '12px'
-
-        }}
-      >
-
-        <button
-
-          type="button"
-
-          className={
-            activeTab ===
-              'resources'
-              ? 'filter active'
-              : 'filter'
-          }
-
-          onClick={() =>
-            setActiveTab(
-              'resources'
-            )
-          }
-
-        >
-
-          Resources
-
-        </button>
-
-
-        <button
-
-          type="button"
-
-          className={
-            activeTab ===
-              'prelims'
-              ? 'filter active'
-              : 'filter'
-          }
-
-          onClick={() =>
-            setActiveTab(
-              'prelims'
-            )
-          }
-
-        >
-
-          Prelims PYQ
-
-        </button>
-
-
-        <button
-
-          type="button"
-
-          className={
-            activeTab ===
-              'mains'
-              ? 'filter active'
-              : 'filter'
-          }
-
-          onClick={() =>
-            setActiveTab(
-              'mains'
-            )
-          }
-
-        >
-
-          Mains PYQ
-
-        </button>
-
-      </div>
-
-
-      {/* =================================================
-          LOADING
-      ================================================= */}
-
-      {
-        loading && (
 
           <div
+            style={{
+
+              height:
+                '100%',
+
+              width:
+                `${progress}%`,
+
+              background:
+                'currentColor',
+
+              transition:
+                'width .2s ease'
+
+            }}
+          />
+
+        </div>
+
+
+        {/* =============================================
+            LINKED STUDY CONTENT
+
+            Important:
+            Component only mounts after
+            user presses Study Links.
+        ============================================= */}
+
+        {
+          linkedOpen && (
+
+            <SyllabusLinkedContent
+
+              stage={
+                stage
+              }
+
+              subject={
+                topic.subject
+              }
+
+              topic={
+                topic.topic
+              }
+
+              paper={
+                topic.paper
+              }
+
+            />
+
+          )
+        }
+
+
+        {/* =============================================
+            CHILD TOPICS
+        ============================================= */}
+
+        {
+          hasChildren &&
+          expanded && (
+
+            <div
+              style={{
+                marginTop:
+                  '7px'
+              }}
+            >
+
+              {
+                matchingChildren.map(
+                  child =>
+
+                    renderTopic(
+                      child,
+                      depth + 1
+                    )
+                )
+              }
+
+            </div>
+
+          )
+        }
+
+      </div>
+
+    );
+
+  }
+
+
+  /* =======================================================
+     PAGE UI
+  ======================================================= */
+
+  return (
+
+    <>
+
+      {/* ===================================================
+          SYLLABUS HEADER
+      =================================================== */}
+
+      <section
+
+        className="panel"
+
+        style={{
+          padding:
+            '16px'
+        }}
+
+      >
+
+        <span
+          className="eyebrow"
+        >
+          UPSC SYLLABUS
+        </span>
+
+
+        <h2
+          style={{
+            margin:
+              '6px 0 4px'
+          }}
+        >
+          Syllabus Tracker
+        </h2>
+
+
+        <p>
+          Track preparation from subject
+          to topic and subtopic, then open
+          linked study resources and PYQs.
+        </p>
+
+
+        {/* =================================================
+            EXAM STAGE
+        ================================================= */}
+
+        <div
+          style={{
+
+            display:
+              'grid',
+
+            gridTemplateColumns:
+              'repeat(2, minmax(0, 1fr))',
+
+            gap:
+              '8px',
+
+            marginTop:
+              '14px'
+
+          }}
+        >
+
+          <button
+
+            type="button"
+
+            className={
+              stage ===
+              'prelims'
+                ? 'filter active'
+                : 'filter'
+            }
+
+            onClick={() =>
+              setStage(
+                'prelims'
+              )
+            }
+
+          >
+
+            Prelims
+
+          </button>
+
+
+          <button
+
+            type="button"
+
+            className={
+              stage ===
+              'mains'
+                ? 'filter active'
+                : 'filter'
+            }
+
+            onClick={() =>
+              setStage(
+                'mains'
+              )
+            }
+
+          >
+
+            Mains
+
+          </button>
+
+        </div>
+
+      </section>
+
+
+      {/* ===================================================
+          PROGRESS OVERVIEW
+      =================================================== */}
+
+      <section
+
+        className="panel"
+
+        style={{
+          marginTop:
+            '10px'
+        }}
+
+      >
+
+        <div
+          className="panel-head"
+        >
+
+          <div>
+
+            <span
+              className="eyebrow"
+            >
+              YOUR PROGRESS
+            </span>
+
+
+            <h3>
+              {
+                stage ===
+                  'prelims'
+                  ? 'Prelims Preparation'
+                  : 'Mains Preparation'
+              }
+            </h3>
+
+          </div>
+
+        </div>
+
+
+        <div
+
+          className="metrics-grid"
+
+          style={{
+            marginTop:
+              '12px'
+          }}
+
+        >
+
+          {/* OVERALL */}
+
+          <article
+            className="metric-card"
+          >
+
+            <div>
+
+              <span>
+                Overall
+              </span>
+
+
+              <strong>
+                {
+                  overallProgress
+                }%
+              </strong>
+
+            </div>
+
+          </article>
+
+
+          {/* STARTED */}
+
+          <article
+            className="metric-card"
+          >
+
+            <div>
+
+              <span>
+                Started
+              </span>
+
+
+              <strong>
+                {
+                  startedTopics
+                }
+              </strong>
+
+            </div>
+
+          </article>
+
+
+          {/* COMPLETED */}
+
+          <article
+            className="metric-card"
+          >
+
+            <div>
+
+              <span>
+                Completed
+              </span>
+
+
+              <strong>
+                {
+                  completedTopics
+                }
+              </strong>
+
+            </div>
+
+          </article>
+
+
+          {/* TOTAL */}
+
+          <article
+            className="metric-card"
+          >
+
+            <div>
+
+              <span>
+                Total Topics
+              </span>
+
+
+              <strong>
+                {
+                  stageLeafIds.length
+                }
+              </strong>
+
+            </div>
+
+          </article>
+
+        </div>
+
+
+        {/* PROGRESS BAR */}
+
+        <div
+          style={{
+
+            height:
+              '8px',
+
+            marginTop:
+              '12px',
+
+            borderRadius:
+              '999px',
+
+            background:
+              'rgba(255,255,255,.08)',
+
+            overflow:
+              'hidden'
+
+          }}
+        >
+
+          <div
+            style={{
+
+              width:
+                `${overallProgress}%`,
+
+              height:
+                '100%',
+
+              background:
+                'currentColor',
+
+              transition:
+                'width .25s ease'
+
+            }}
+          />
+
+        </div>
+
+
+        {/* NOT LOGGED IN */}
+
+        {
+          !signedIn &&
+          !loading && (
+
+            <div
+
+              className="callout"
+
+              style={{
+                marginTop:
+                  '12px'
+              }}
+
+            >
+
+              Sign in to save your personal
+              syllabus progress.
+
+            </div>
+
+          )
+        }
+
+      </section>
+
+
+      {/* ===================================================
+          FILTERS
+      =================================================== */}
+
+      <section
+
+        className="panel"
+
+        style={{
+          marginTop:
+            '10px'
+        }}
+
+      >
+
+        <button
+
+          type="button"
+
+          className="secondary-btn"
+
+          style={{
+
+            width:
+              '100%',
+
+            justifyContent:
+              'space-between'
+
+          }}
+
+          onClick={() =>
+
+            setFiltersOpen(
+              current =>
+                !current
+            )
+
+          }
+
+        >
+
+          <span>
+            Search & Filters
+          </span>
+
+
+          <span>
+            {
+              filtersOpen
+                ? 'Hide'
+                : 'Open'
+            }
+          </span>
+
+        </button>
+
+
+        {
+          filtersOpen && (
+
+            <div
+              style={{
+
+                display:
+                  'grid',
+
+                gridTemplateColumns:
+                  'repeat(auto-fit, minmax(170px, 1fr))',
+
+                gap:
+                  '10px',
+
+                marginTop:
+                  '12px'
+
+              }}
+            >
+
+              {/* SEARCH */}
+
+              <label>
+
+                Search
+
+                <input
+
+                  type="search"
+
+                  value={
+                    searchText
+                  }
+
+                  onChange={
+                    event =>
+
+                      setSearchText(
+                        event.target.value
+                      )
+                  }
+
+                  placeholder="History, Parliament, Economy..."
+
+                />
+
+              </label>
+
+
+              {/* PAPER */}
+
+              <label>
+
+                Paper
+
+                <select
+
+                  value={
+                    paperFilter
+                  }
+
+                  onChange={
+                    event =>
+
+                      setPaperFilter(
+                        event.target.value
+                      )
+                  }
+
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All Papers
+                  </option>
+
+
+                  {
+                    paperOptions.map(
+                      paper => (
+
+                        <option
+
+                          key={
+                            paper
+                          }
+
+                          value={
+                            paper
+                          }
+
+                        >
+
+                          {
+                            paper
+                          }
+
+                        </option>
+
+                      )
+                    )
+                  }
+
+                </select>
+
+              </label>
+
+
+              {/* DISPLAY */}
+
+              <label>
+
+                Display
+
+                <select
+
+                  value={
+                    hideCompleted
+                      ? 'pending'
+                      : 'all'
+                  }
+
+                  onChange={
+                    event =>
+
+                      setHideCompleted(
+                        event.target.value ===
+                        'pending'
+                      )
+                  }
+
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All Topics
+                  </option>
+
+
+                  <option
+                    value="pending"
+                  >
+                    Hide Completed
+                  </option>
+
+                </select>
+
+              </label>
+
+
+              {/* CLEAR */}
+
+              <button
+
+                type="button"
+
+                className="secondary-btn"
+
+                style={{
+                  alignSelf:
+                    'end'
+                }}
+
+                onClick={() => {
+
+                  setSearchText(
+                    ''
+                  );
+
+                  setPaperFilter(
+                    'all'
+                  );
+
+                  setHideCompleted(
+                    false
+                  );
+
+                  setLinkedTopicId(
+                    null
+                  );
+
+                }}
+
+              >
+
+                Clear Filters
+
+              </button>
+
+            </div>
+
+          )
+        }
+
+      </section>
+
+
+      {/* ===================================================
+          MESSAGE
+      =================================================== */}
+
+      {
+        message && (
+
+          <div
+
             className="callout"
 
             style={{
               marginTop:
-                '12px'
+                '10px'
             }}
+
           >
 
-            Loading linked study material...
+            {
+              message
+            }
 
           </div>
 
         )
       }
 
+
+      {/* ===================================================
+          ERROR
+      =================================================== */}
 
       {
         error && (
 
           <div
+
             className="callout"
 
             style={{
               marginTop:
-                '12px'
+                '10px'
             }}
+
           >
 
-            {
-              error
-            }
+            <strong>
+              {
+                error
+              }
+            </strong>
 
           </div>
 
@@ -1514,704 +2892,480 @@ export function SyllabusLinkedContent({
       }
 
 
-      {/* =================================================
-          RESOURCES
-      ================================================= */}
+      {/* ===================================================
+          LOADING
+      =================================================== */}
 
       {
-        !loading &&
-        activeTab ===
-          'resources' && (
+        loading && (
 
-          <div
+          <section
+
+            className="panel"
+
             style={{
-
-              display:
-                'grid',
-
-              gap:
-                '9px',
-
               marginTop:
-                '12px'
-
+                '10px'
             }}
+
           >
 
-            {
-              visibleResources.length ===
-              0
-                ? (
+            Loading UPSC syllabus...
 
-                  <div
-                    className="callout"
-                  >
-
-                    No linked resources found
-                    for this syllabus area yet.
-
-                  </div>
-
-                )
-
-                : visibleResources.map(
-                    resource => {
-
-                      const url =
-                        safeExternalUrl(
-                          resource
-                            .external_url
-                        );
-
-
-                      const source =
-                        resource
-                          .source_name ||
-                        resource
-                          .publisher ||
-                        resource
-                          .author;
-
-
-                      return (
-
-                        <article
-
-                          key={
-                            resource.id
-                          }
-
-                          style={{
-
-                            padding:
-                              '11px 12px',
-
-                            border:
-                              '1px solid rgba(255,255,255,.08)',
-
-                            borderRadius:
-                              '12px'
-
-                          }}
-
-                        >
-
-                          <div
-                            style={{
-
-                              display:
-                                'flex',
-
-                              gap:
-                                '6px',
-
-                              flexWrap:
-                                'wrap'
-
-                            }}
-                          >
-
-                            <span
-                              className="tag"
-                            >
-
-                              {
-                                resourceTypeLabel(
-                                  resource
-                                    .resource_type
-                                )
-                              }
-
-                            </span>
-
-
-                            <span
-                              className="tag"
-                            >
-
-                              {
-                                resource.language
-                              }
-
-                            </span>
-
-
-                            {
-                              resource.is_free && (
-
-                                <span
-                                  className="tag"
-                                >
-                                  Free
-                                </span>
-
-                              )
-                            }
-
-                          </div>
-
-
-                          <h4
-                            style={{
-                              margin:
-                                '9px 0 4px'
-                            }}
-                          >
-
-                            {
-                              resource.title
-                            }
-
-                          </h4>
-
-
-                          {
-                            source && (
-
-                              <small
-                                style={{
-                                  color:
-                                    '#94a3b8'
-                                }}
-                              >
-
-                                {
-                                  source
-                                }
-
-                              </small>
-
-                            )
-                          }
-
-
-                          {
-                            resource.description && (
-
-                              <p>
-                                {
-                                  resource.description
-                                }
-                              </p>
-
-                            )
-                          }
-
-
-                          {
-                            url && (
-
-                              <button
-
-                                type="button"
-
-                                className="secondary-btn"
-
-                                onClick={() =>
-                                  window.open(
-                                    url,
-                                    '_blank',
-                                    'noopener,noreferrer'
-                                  )
-                                }
-
-                              >
-
-                                Open Resource
-
-                              </button>
-
-                            )
-                          }
-
-                        </article>
-
-                      );
-
-                    }
-                  )
-            }
-
-          </div>
+          </section>
 
         )
       }
 
 
-      {/* =================================================
-          PRELIMS PYQ
-      ================================================= */}
+      {/* ===================================================
+          EMPTY FILTER RESULT
+      =================================================== */}
 
       {
         !loading &&
-        activeTab ===
-          'prelims' && (
+        subjectNames.length ===
+        0 && (
 
-          <div
+          <section
+
+            className="panel"
+
             style={{
-
-              display:
-                'grid',
-
-              gap:
-                '9px',
-
               marginTop:
-                '12px'
-
+                '10px'
             }}
+
           >
 
-            {
-              visiblePrelims.length ===
-              0
-                ? (
+            <h3>
+              No syllabus topics found
+            </h3>
 
-                  <div
-                    className="callout"
-                  >
 
-                    No topic-linked Prelims
-                    PYQs found yet.
+            <p>
+              Change your search,
+              paper or display filter.
+            </p>
+
+          </section>
+
+        )
+      }
+
+
+      {/* ===================================================
+          SUBJECT LIST
+      =================================================== */}
+
+      {
+        !loading &&
+
+        subjectNames.map(
+          subject => {
+
+            const expanded =
+              expandedSubject ===
+              subject;
+
+
+            const subjectTopics =
+              rootTopicsForSubject(
+                subject
+              );
+
+
+            const subjectProgress =
+              getSubjectProgress(
+                subject
+              );
+
+
+            const subjectBooks =
+              booksForSubject(
+                subject
+              );
+
+
+            return (
+
+              <section
+
+                className="panel"
+
+                key={
+                  subject
+                }
+
+                style={{
+
+                  marginTop:
+                    '10px',
+
+                  padding:
+                    '14px'
+
+                }}
+
+              >
+
+                {/* =======================================
+                    SUBJECT HEADER
+                ======================================= */}
+
+                <button
+
+                  type="button"
+
+                  onClick={() =>
+
+                    setExpandedSubject(
+                      current =>
+
+                        current ===
+                        subject
+
+                          ? null
+
+                          : subject
+                    )
+
+                  }
+
+                  style={{
+
+                    width:
+                      '100%',
+
+                    padding:
+                      0,
+
+                    border:
+                      0,
+
+                    background:
+                      'transparent',
+
+                    color:
+                      'inherit',
+
+                    display:
+                      'grid',
+
+                    gridTemplateColumns:
+                      '1fr auto',
+
+                    alignItems:
+                      'center',
+
+                    gap:
+                      '12px',
+
+                    textAlign:
+                      'left',
+
+                    cursor:
+                      'pointer',
+
+                    whiteSpace:
+                      'normal'
+
+                  }}
+
+                >
+
+                  <div>
+
+                    <strong
+                      style={{
+                        fontSize:
+                          '1rem'
+                      }}
+                    >
+
+                      {
+                        expanded
+                          ? '▾ '
+                          : '▸ '
+                      }
+
+                      {
+                        subject
+                      }
+
+                    </strong>
+
+
+                    <small
+                      style={{
+
+                        display:
+                          'block',
+
+                        marginTop:
+                          '4px',
+
+                        color:
+                          '#94a3b8'
+
+                      }}
+                    >
+
+                      {
+                        subjectTopics.length
+                      }
+
+                      {' major topics • '}
+
+                      {
+                        progressLabel(
+                          subjectProgress
+                        )
+                      }
+
+                    </small>
 
                   </div>
 
-                )
 
-                : visiblePrelims.map(
-                    (
-                      question,
-                      index
-                    ) => (
+                  <strong>
+                    {
+                      subjectProgress
+                    }%
+                  </strong>
 
-                      <details
+                </button>
 
-                        key={
-                          question.id
-                        }
 
-                        style={{
+                {/* =======================================
+                    SUBJECT PROGRESS
+                ======================================= */}
 
-                          padding:
-                            '11px 12px',
+                <div
+                  style={{
 
-                          border:
-                            '1px solid rgba(255,255,255,.08)',
+                    height:
+                      '6px',
 
-                          borderRadius:
-                            '12px'
+                    marginTop:
+                      '10px',
 
-                        }}
+                    borderRadius:
+                      '999px',
 
+                    background:
+                      'rgba(255,255,255,.08)',
+
+                    overflow:
+                      'hidden'
+
+                  }}
+                >
+
+                  <div
+                    style={{
+
+                      width:
+                        `${subjectProgress}%`,
+
+                      height:
+                        '100%',
+
+                      background:
+                        'currentColor',
+
+                      transition:
+                        'width .2s ease'
+
+                    }}
+                  />
+
+                </div>
+
+
+                {/* =======================================
+                    SUBJECT CONTENT
+                ======================================= */}
+
+                {
+                  expanded && (
+
+                    <div
+                      style={{
+                        marginTop:
+                          '14px'
+                      }}
+                    >
+
+                      {/* =================================
+                          STANDARD BOOKS
+                      ================================= */}
+
+                      <div
+                        className="callout"
                       >
 
-                        <summary
+                        <small
                           style={{
-                            cursor:
-                              'pointer'
+
+                            fontWeight:
+                              800,
+
+                            letterSpacing:
+                              '.04em'
+
                           }}
                         >
 
-                          <strong>
+                          STANDARD BOOKS
 
-                            {
-                              question.pyq_year
-                                ? `${question.pyq_year} • `
-                                : ''
-                            }
-
-                            Q{
-                              index + 1
-                            }
-
-                          </strong>
+                        </small>
 
 
-                          <div
-                            style={{
-                              marginTop:
-                                '5px'
-                            }}
-                          >
-
-                            {
-                              question.question
-                            }
-
-                          </div>
-
-                        </summary>
-
-
-                        <div
-                          style={{
-                            marginTop:
-                              '12px'
-                          }}
-                        >
-
-                          {
-                            question.options
-                              .map(
-                                (
-                                  option,
-                                  optionIndex
-                                ) => (
-
-                                  <div
-
-                                    key={
-                                      optionIndex
-                                    }
-
-                                    style={{
-
-                                      padding:
-                                        '7px 9px',
-
-                                      marginTop:
-                                        '5px',
-
-                                      borderRadius:
-                                        '9px',
-
-                                      border:
-                                        '1px solid rgba(255,255,255,.07)'
-
-                                    }}
-
-                                  >
-
-                                    {
-                                      String
-                                        .fromCharCode(
-                                          65 +
-                                          optionIndex
-                                        )
-                                    }.
-
-                                    {' '}
-
-                                    {
-                                      option
-                                    }
-
-                                  </div>
-
-                                )
-                              )
-                          }
-
-
-                          <div
-                            className="callout"
-
-                            style={{
-                              marginTop:
-                                '10px'
-                            }}
-                          >
-
-                            <strong>
-                              Correct Answer:
-                            </strong>
-
-                            {' '}
-
-                            {
-                              String
-                                .fromCharCode(
-                                  65 +
-                                  question
-                                    .correct_index
-                                )
-                            }
-
-                          </div>
-
-
-                          {
-                            question.explanation && (
+                        {
+                          subjectBooks.length >
+                          0
+                            ? (
 
                               <div
                                 style={{
+
+                                  display:
+                                    'grid',
+
+                                  gap:
+                                    '7px',
+
                                   marginTop:
-                                    '10px'
+                                    '8px'
+
                                 }}
                               >
 
-                                <strong>
-                                  Explanation
-                                </strong>
+                                {
+                                  subjectBooks.map(
+                                    book => (
 
-                                <p>
-                                  {
-                                    question
-                                      .explanation
-                                  }
-                                </p>
+                                      <div
+                                        key={
+                                          book.id
+                                        }
+                                      >
+
+                                        <strong>
+                                          {
+                                            book.title
+                                          }
+                                        </strong>
+
+
+                                        {
+                                          (
+                                            book.author ||
+                                            book.publisher
+                                          ) && (
+
+                                            <small
+                                              style={{
+
+                                                display:
+                                                  'block',
+
+                                                color:
+                                                  '#94a3b8',
+
+                                                marginTop:
+                                                  '2px'
+
+                                              }}
+                                            >
+
+                                              {
+                                                book.author ||
+                                                book.publisher
+                                              }
+
+                                            </small>
+
+                                          )
+                                        }
+
+                                      </div>
+
+                                    )
+                                  )
+                                }
 
                               </div>
 
                             )
-                          }
 
+                            : (
 
-                          <small
-                            style={{
-                              color:
-                                '#94a3b8'
-                            }}
-                          >
+                              <small
+                                style={{
 
-                            {
-                              question.topic ||
-                              subject
-                            }
+                                  display:
+                                    'block',
 
-                            {' • '}
+                                  marginTop:
+                                    '6px',
 
-                            {
-                              question.difficulty
-                            }
+                                  color:
+                                    '#94a3b8'
 
-                          </small>
+                                }}
+                              >
 
-                        </div>
+                                No standard book is
+                                assigned to this
+                                subject yet.
 
-                      </details>
+                              </small>
 
-                    )
-                  )
-            }
-
-          </div>
-
-        )
-      }
-
-
-      {/* =================================================
-          MAINS PYQ
-      ================================================= */}
-
-      {
-        !loading &&
-        activeTab ===
-          'mains' && (
-
-          <div
-            style={{
-
-              display:
-                'grid',
-
-              gap:
-                '9px',
-
-              marginTop:
-                '12px'
-
-            }}
-          >
-
-            {
-              visibleMains.length ===
-              0
-                ? (
-
-                  <div
-                    className="callout"
-                  >
-
-                    No topic-linked Mains
-                    PYQs found yet.
-
-                  </div>
-
-                )
-
-                : visibleMains.map(
-                    (
-                      question,
-                      index
-                    ) => (
-
-                      <article
-
-                        key={
-                          question.id
+                            )
                         }
 
+                      </div>
+
+
+                      {/* =================================
+                          SYLLABUS TOPICS
+                      ================================= */}
+
+                      <div
                         style={{
-
-                          padding:
-                            '12px',
-
-                          border:
-                            '1px solid rgba(255,255,255,.08)',
-
-                          borderRadius:
-                            '12px'
-
+                          marginTop:
+                            '10px'
                         }}
-
                       >
 
-                        <div
-                          style={{
-
-                            display:
-                              'flex',
-
-                            gap:
-                              '6px',
-
-                            flexWrap:
-                              'wrap',
-
-                            marginBottom:
-                              '8px'
-
-                          }}
-                        >
-
-                          {
-                            question.pyq_year && (
-
-                              <span
-                                className="tag"
-                              >
-
-                                {
-                                  question.pyq_year
-                                }
-
-                              </span>
-
-                            )
-                          }
-
-
-                          {
-                            question.gs_paper && (
-
-                              <span
-                                className="tag"
-                              >
-
-                                {
-                                  question.gs_paper
-                                }
-
-                              </span>
-
-                            )
-                          }
-
-
-                          {
-                            question.marks !==
-                            null && (
-
-                              <span
-                                className="tag"
-                              >
-
-                                {
-                                  question.marks
-                                } Marks
-
-                              </span>
-
-                            )
-                          }
-
-
-                          {
-                            question.word_limit !==
-                            null && (
-
-                              <span
-                                className="tag"
-                              >
-
-                                {
-                                  question.word_limit
-                                } Words
-
-                              </span>
-
-                            )
-                          }
-
-                        </div>
-
-
-                        <strong>
-
-                          {
-                            question.question_number
-                              ? `Q${question.question_number}. `
-                              : `Q${index + 1}. `
-                          }
-
-                          {
-                            question.question
-                          }
-
-                        </strong>
-
-
                         {
-                          (
-                            question.topic ||
-                            question.subtopic
-                          ) && (
+                          subjectTopics.map(
+                            topic =>
 
-                            <small
-                              style={{
-
-                                display:
-                                  'block',
-
-                                marginTop:
-                                  '8px',
-
-                                color:
-                                  '#94a3b8'
-
-                              }}
-                            >
-
-                              {
-                                question.topic ||
-                                subject
-                              }
-
-                              {
-                                question.subtopic
-                                  ? ` → ${question.subtopic}`
-                                  : ''
-                              }
-
-                            </small>
-
+                              renderTopic(
+                                topic
+                              )
                           )
                         }
 
-                      </article>
+                      </div>
 
-                    )
+                    </div>
+
                   )
-            }
+                }
 
-          </div>
+              </section>
 
+            );
+
+          }
         )
       }
 
-    </section>
+    </>
 
   );
 
