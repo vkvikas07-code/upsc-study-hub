@@ -9,25 +9,24 @@ import {
 } from '../lib/supabase';
 
 
-type ExamStage =
-  | 'prelims'
-  | 'mains';
+export type SavedTopicTarget = {
+  stage: 'prelims' | 'mains';
+  subject: string;
+  topic: string;
+  paper: string | null;
+};
 
 
-type StageFilter =
-  | 'all'
-  | ExamStage;
-
-
-type SavedFilter =
-  | 'all'
-  | 'bookmarks'
-  | 'notes';
+type SavedTopicsProps = {
+  onOpenTopic?: (
+    target: SavedTopicTarget
+  ) => void;
+};
 
 
 type SavedTopic = {
   id: string;
-  exam_stage: ExamStage;
+  exam_stage: 'prelims' | 'mains';
   subject: string;
   topic: string;
   paper: string;
@@ -37,35 +36,36 @@ type SavedTopic = {
 };
 
 
+type StageFilter =
+  | 'all'
+  | 'prelims'
+  | 'mains';
+
+
+type SavedFilter =
+  | 'all'
+  | 'bookmarks'
+  | 'notes';
+
+
 function formatDate(
   value: string
 ): string {
 
-  if (
-    !value
-  ) {
-
+  if (!value) {
     return '';
-
   }
 
-
   const date =
-    new Date(
-      value
-    );
-
+    new Date(value);
 
   if (
     Number.isNaN(
       date.getTime()
     )
   ) {
-
     return '';
-
   }
-
 
   return date.toLocaleDateString(
     undefined,
@@ -78,169 +78,108 @@ function formatDate(
 }
 
 
-export function SavedTopics() {
+export function SavedTopics({
+  onOpenTopic
+}: SavedTopicsProps) {
 
   const [
     rows,
     setRows
   ] =
-    useState<SavedTopic[]>(
-      []
-    );
-
+    useState<SavedTopic[]>([]);
 
   const [
     loading,
     setLoading
   ] =
-    useState(
-      true
-    );
-
+    useState(true);
 
   const [
     signedIn,
     setSignedIn
   ] =
-    useState(
-      false
-    );
-
+    useState(false);
 
   const [
     message,
     setMessage
   ] =
-    useState(
-      ''
-    );
-
+    useState('');
 
   const [
     search,
     setSearch
   ] =
-    useState(
-      ''
-    );
-
+    useState('');
 
   const [
     stageFilter,
     setStageFilter
   ] =
-    useState<StageFilter>(
-      'all'
-    );
-
+    useState<StageFilter>('all');
 
   const [
     savedFilter,
     setSavedFilter
   ] =
-    useState<SavedFilter>(
-      'all'
-    );
-
+    useState<SavedFilter>('all');
 
   const [
     editingId,
     setEditingId
   ] =
-    useState<string | null>(
-      null
-    );
-
+    useState<string | null>(null);
 
   const [
     draftNotes,
     setDraftNotes
   ] =
-    useState(
-      ''
-    );
-
+    useState('');
 
   const [
     savingId,
     setSavingId
   ] =
-    useState<string | null>(
-      null
-    );
+    useState<string | null>(null);
 
 
   async function loadSavedTopics():
     Promise<void> {
 
-    if (
-      !supabase
-    ) {
+    if (!supabase) {
 
       setMessage(
         'Supabase is not configured.'
       );
 
-
-      setLoading(
-        false
-      );
-
+      setLoading(false);
 
       return;
     }
 
-
-    setLoading(
-      true
-    );
-
-
-    setMessage(
-      ''
-    );
-
+    setLoading(true);
+    setMessage('');
 
     const {
-      data:
-        authData
+      data: authData
     } =
       await supabase
         .auth
         .getUser();
 
-
     const user =
       authData.user;
 
+    if (!user) {
 
-    if (
-      !user
-    ) {
-
-      setSignedIn(
-        false
-      );
-
-
-      setRows(
-        []
-      );
-
-
-      setLoading(
-        false
-      );
-
+      setSignedIn(false);
+      setRows([]);
+      setLoading(false);
 
       return;
     }
 
-
-    setSignedIn(
-      true
-    );
-
+    setSignedIn(true);
 
     const {
       data,
@@ -252,14 +191,14 @@ export function SavedTopics() {
         )
         .select(
           `
-            id,
-            exam_stage,
-            subject,
-            topic,
-            paper,
-            bookmarked,
-            notes,
-            updated_at
+          id,
+          exam_stage,
+          subject,
+          topic,
+          paper,
+          bookmarked,
+          notes,
+          updated_at
           `
         )
         .eq(
@@ -269,125 +208,83 @@ export function SavedTopics() {
         .order(
           'updated_at',
           {
-            ascending:
-              false
+            ascending: false
           }
         );
 
-
-    if (
-      error
-    ) {
+    if (error) {
 
       console.error(
-        'Unable to load saved topics:',
+        'Saved topics load error:',
         error
       );
 
-
-      setRows(
-        []
-      );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      setLoading(
-        false
-      );
-
+      setRows([]);
+      setMessage(error.message);
+      setLoading(false);
 
       return;
     }
 
-
-    const loadedRows:
+    const loaded:
       SavedTopic[] =
-      (
-        data ||
-        []
-      )
+      (data || [])
         .map(
           item => ({
-
             id:
-              String(
-                item.id
-              ),
+              String(item.id),
 
             exam_stage:
               (
                 item.exam_stage ||
                 'prelims'
-              ) as ExamStage,
+              ) as
+                | 'prelims'
+                | 'mains',
 
             subject:
               String(
-                item.subject ||
-                ''
+                item.subject || ''
               ),
 
             topic:
               String(
-                item.topic ||
-                ''
+                item.topic || ''
               ),
 
             paper:
               String(
-                item.paper ||
-                ''
+                item.paper || ''
               ),
 
             bookmarked:
-              item.bookmarked ===
-              true,
+              item.bookmarked === true,
 
             notes:
               String(
-                item.notes ||
-                ''
+                item.notes || ''
               ),
 
             updated_at:
               String(
-                item.updated_at ||
-                ''
+                item.updated_at || ''
               )
-
           })
         )
         .filter(
           item =>
-
             item.bookmarked ||
-
-            item.notes
-              .trim()
-              .length >
-              0
+            item.notes.trim().length > 0
         );
 
-
-    setRows(
-      loadedRows
-    );
-
-
-    setLoading(
-      false
-    );
+    setRows(loaded);
+    setLoading(false);
   }
 
 
   useEffect(
     () => {
-
       void loadSavedTopics();
-
     },
     []
   );
@@ -402,56 +299,35 @@ export function SavedTopics() {
             .trim()
             .toLowerCase();
 
-
         return rows.filter(
           row => {
 
             if (
-              stageFilter !==
-                'all' &&
-
-              row.exam_stage !==
-                stageFilter
+              stageFilter !== 'all' &&
+              row.exam_stage !== stageFilter
             ) {
-
               return false;
             }
 
-
             if (
-              savedFilter ===
-                'bookmarks' &&
-
+              savedFilter === 'bookmarks' &&
               !row.bookmarked
             ) {
-
               return false;
             }
 
-
             if (
-              savedFilter ===
-                'notes' &&
-
-              row.notes
-                .trim()
-                .length ===
-                0
+              savedFilter === 'notes' &&
+              row.notes.trim().length === 0
             ) {
-
               return false;
             }
 
-
-            if (
-              !query
-            ) {
-
+            if (!query) {
               return true;
             }
 
-
-            const searchable =
+            const text =
               [
                 row.exam_stage,
                 row.paper,
@@ -459,19 +335,12 @@ export function SavedTopics() {
                 row.topic,
                 row.notes
               ]
-                .join(
-                  ' '
-                )
+                .join(' ')
                 .toLowerCase();
 
-
-            return searchable.includes(
-              query
-            );
-
+            return text.includes(query);
           }
         );
-
       },
       [
         rows,
@@ -483,95 +352,66 @@ export function SavedTopics() {
 
 
   const bookmarkCount =
-    useMemo(
-      () =>
-
-        rows.filter(
-          row =>
-            row.bookmarked
-        ).length,
-
-      [
-        rows
-      ]
-    );
-
+    rows.filter(
+      row => row.bookmarked
+    ).length;
 
   const noteCount =
-    useMemo(
-      () =>
-
-        rows.filter(
-          row =>
-            row.notes
-              .trim()
-              .length >
-            0
-        ).length,
-
-      [
-        rows
-      ]
-    );
-
+    rows.filter(
+      row =>
+        row.notes.trim().length > 0
+    ).length;
 
   const prelimsCount =
-    useMemo(
-      () =>
-
-        rows.filter(
-          row =>
-            row.exam_stage ===
-            'prelims'
-        ).length,
-
-      [
-        rows
-      ]
-    );
-
+    rows.filter(
+      row =>
+        row.exam_stage === 'prelims'
+    ).length;
 
   const mainsCount =
-    useMemo(
-      () =>
+    rows.filter(
+      row =>
+        row.exam_stage === 'mains'
+    ).length;
 
-        rows.filter(
-          row =>
-            row.exam_stage ===
-            'mains'
-        ).length,
 
-      [
-        rows
-      ]
-    );
+  function openTopic(
+    row: SavedTopic
+  ): void {
+
+    if (!onOpenTopic) {
+      return;
+    }
+
+    onOpenTopic({
+      stage:
+        row.exam_stage,
+
+      subject:
+        row.subject,
+
+      topic:
+        row.topic,
+
+      paper:
+        row.paper || null
+    });
+  }
 
 
   async function toggleBookmark(
     row: SavedTopic
   ): Promise<void> {
 
-    if (
-      !supabase
-    ) {
-
+    if (!supabase) {
       return;
     }
-
 
     const next =
       !row.bookmarked;
 
-
-    setSavingId(
-      row.id
-    );
-
-
-    setMessage(
-      ''
-    );
-
+    setSavingId(row.id);
+    setMessage('');
 
     const {
       error
@@ -580,56 +420,32 @@ export function SavedTopics() {
         .from(
           'syllabus_topic_workspace'
         )
-        .update(
-          {
-            bookmarked:
-              next
-          }
-        )
+        .update({
+          bookmarked: next
+        })
         .eq(
           'id',
           row.id
         );
 
+    if (error) {
 
-    if (
-      error
-    ) {
-
-      console.error(
-        'Unable to update bookmark:',
-        error
-      );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      setSavingId(
-        null
-      );
-
+      setMessage(error.message);
+      setSavingId(null);
 
       return;
     }
 
-
     if (
       !next &&
-      row.notes
-        .trim()
-        .length ===
-        0
+      row.notes.trim().length === 0
     ) {
 
       setRows(
         current =>
           current.filter(
             item =>
-              item.id !==
-              row.id
+              item.id !== row.id
           )
       );
 
@@ -639,31 +455,17 @@ export function SavedTopics() {
         current =>
           current.map(
             item =>
-
-              item.id ===
-              row.id
+              item.id === row.id
                 ? {
                     ...item,
-                    bookmarked:
-                      next
+                    bookmarked: next
                   }
                 : item
           )
       );
-
     }
 
-
-    setMessage(
-      next
-        ? 'Topic bookmarked.'
-        : 'Bookmark removed.'
-    );
-
-
-    setSavingId(
-      null
-    );
+    setSavingId(null);
   }
 
 
@@ -671,33 +473,16 @@ export function SavedTopics() {
     row: SavedTopic
   ): void {
 
-    setEditingId(
-      row.id
-    );
-
-
-    setDraftNotes(
-      row.notes
-    );
-
-
-    setMessage(
-      ''
-    );
+    setEditingId(row.id);
+    setDraftNotes(row.notes);
   }
 
 
   function cancelEditing():
     void {
 
-    setEditingId(
-      null
-    );
-
-
-    setDraftNotes(
-      ''
-    );
+    setEditingId(null);
+    setDraftNotes('');
   }
 
 
@@ -705,27 +490,14 @@ export function SavedTopics() {
     row: SavedTopic
   ): Promise<void> {
 
-    if (
-      !supabase
-    ) {
-
+    if (!supabase) {
       return;
     }
 
-
-    const cleanedNotes =
+    const cleanNotes =
       draftNotes.trim();
 
-
-    setSavingId(
-      row.id
-    );
-
-
-    setMessage(
-      ''
-    );
-
+    setSavingId(row.id);
 
     const {
       error
@@ -734,54 +506,32 @@ export function SavedTopics() {
         .from(
           'syllabus_topic_workspace'
         )
-        .update(
-          {
-            notes:
-              cleanedNotes
-          }
-        )
+        .update({
+          notes: cleanNotes
+        })
         .eq(
           'id',
           row.id
         );
 
+    if (error) {
 
-    if (
-      error
-    ) {
-
-      console.error(
-        'Unable to save notes:',
-        error
-      );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      setSavingId(
-        null
-      );
-
+      setMessage(error.message);
+      setSavingId(null);
 
       return;
     }
 
-
     if (
       !row.bookmarked &&
-      cleanedNotes.length ===
-        0
+      cleanNotes.length === 0
     ) {
 
       setRows(
         current =>
           current.filter(
             item =>
-              item.id !==
-              row.id
+              item.id !== row.id
           )
       );
 
@@ -791,77 +541,41 @@ export function SavedTopics() {
         current =>
           current.map(
             item =>
-
-              item.id ===
-              row.id
+              item.id === row.id
                 ? {
                     ...item,
-                    notes:
-                      cleanedNotes
+                    notes: cleanNotes
                   }
                 : item
           )
       );
-
     }
 
-
-    setEditingId(
-      null
-    );
-
-
-    setDraftNotes(
-      ''
-    );
-
-
-    setSavingId(
-      null
-    );
-
-
-    setMessage(
-      'Notes saved.'
-    );
+    setEditingId(null);
+    setDraftNotes('');
+    setSavingId(null);
+    setMessage('Notes saved.');
   }
 
 
-  async function deleteWorkspace(
+  async function removeSavedItem(
     row: SavedTopic
   ): Promise<void> {
 
-    if (
-      !supabase
-    ) {
-
+    if (!supabase) {
       return;
     }
-
 
     const confirmed =
       window.confirm(
         `Remove saved data for "${row.topic}"?`
       );
 
-
-    if (
-      !confirmed
-    ) {
-
+    if (!confirmed) {
       return;
     }
 
-
-    setSavingId(
-      row.id
-    );
-
-
-    setMessage(
-      ''
-    );
-
+    setSavingId(row.id);
 
     const {
       error
@@ -876,49 +590,23 @@ export function SavedTopics() {
           row.id
         );
 
+    if (error) {
 
-    if (
-      error
-    ) {
-
-      console.error(
-        'Unable to remove saved topic:',
-        error
-      );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      setSavingId(
-        null
-      );
-
+      setMessage(error.message);
+      setSavingId(null);
 
       return;
     }
-
 
     setRows(
       current =>
         current.filter(
           item =>
-            item.id !==
-            row.id
+            item.id !== row.id
         )
     );
 
-
-    setSavingId(
-      null
-    );
-
-
-    setMessage(
-      'Saved topic removed.'
-    );
+    setSavingId(null);
   }
 
 
@@ -926,52 +614,38 @@ export function SavedTopics() {
 
     <div>
 
-      <section
-        className="panel"
-      >
+      <section className="panel">
 
-        <div
-          className="panel-head"
-        >
+        <div className="panel-head">
 
           <div>
 
-            <span
-              className="eyebrow"
-            >
+            <span className="eyebrow">
               SAVED STUDY
             </span>
-
 
             <h2>
               Saved Topics & Notes
             </h2>
 
-
             <p>
-              Review your bookmarked syllabus
-              topics and personal study notes.
+              Open bookmarked topics directly
+              inside the syllabus workspace.
             </p>
 
           </div>
 
-
           <button
-
             type="button"
-
             className="secondary-btn"
-
             onClick={() =>
               void loadSavedTopics()
             }
-
           >
             Refresh
           </button>
 
         </div>
-
 
         {
           !signedIn &&
@@ -979,38 +653,26 @@ export function SavedTopics() {
 
             <div
               className="callout"
-
               style={{
-                marginTop:
-                  '12px'
+                marginTop: '12px'
               }}
             >
-
-              Sign in to view your saved
-              syllabus topics and notes.
-
+              Sign in to view saved topics.
             </div>
 
           )
         }
-
 
         {
           message && (
 
             <div
               className="callout"
-
               style={{
-                marginTop:
-                  '12px'
+                marginTop: '12px'
               }}
             >
-
-              {
-                message
-              }
-
+              {message}
             </div>
 
           )
@@ -1023,101 +685,40 @@ export function SavedTopics() {
         signedIn && (
 
           <section
-
             className="panel"
-
             style={{
-              marginTop:
-                '12px'
+              marginTop: '12px'
             }}
-
           >
 
-            <div
-              className="metrics-grid"
-            >
+            <div className="metrics-grid">
 
-              <article
-                className="metric-card"
-              >
-
+              <article className="metric-card">
                 <div>
-
-                  <span>
-                    Bookmarks
-                  </span>
-
-                  <strong>
-                    {
-                      bookmarkCount
-                    }
-                  </strong>
-
+                  <span>Bookmarks</span>
+                  <strong>{bookmarkCount}</strong>
                 </div>
-
               </article>
 
-
-              <article
-                className="metric-card"
-              >
-
+              <article className="metric-card">
                 <div>
-
-                  <span>
-                    Notes
-                  </span>
-
-                  <strong>
-                    {
-                      noteCount
-                    }
-                  </strong>
-
+                  <span>Notes</span>
+                  <strong>{noteCount}</strong>
                 </div>
-
               </article>
 
-
-              <article
-                className="metric-card"
-              >
-
+              <article className="metric-card">
                 <div>
-
-                  <span>
-                    Prelims
-                  </span>
-
-                  <strong>
-                    {
-                      prelimsCount
-                    }
-                  </strong>
-
+                  <span>Prelims</span>
+                  <strong>{prelimsCount}</strong>
                 </div>
-
               </article>
 
-
-              <article
-                className="metric-card"
-              >
-
+              <article className="metric-card">
                 <div>
-
-                  <span>
-                    Mains
-                  </span>
-
-                  <strong>
-                    {
-                      mainsCount
-                    }
-                  </strong>
-
+                  <span>Mains</span>
+                  <strong>{mainsCount}</strong>
                 </div>
-
               </article>
 
             </div>
@@ -1132,28 +733,18 @@ export function SavedTopics() {
         signedIn && (
 
           <section
-
             className="panel"
-
             style={{
-              marginTop:
-                '12px'
+              marginTop: '12px'
             }}
-
           >
 
             <div
               style={{
-
-                display:
-                  'grid',
-
+                display: 'grid',
                 gridTemplateColumns:
                   'repeat(auto-fit, minmax(170px, 1fr))',
-
-                gap:
-                  '10px'
-
+                gap: '10px'
               }}
             >
 
@@ -1162,22 +753,15 @@ export function SavedTopics() {
                 Search
 
                 <input
-
                   type="search"
-
-                  value={
-                    search
-                  }
-
+                  value={search}
                   onChange={
                     event =>
                       setSearch(
                         event.target.value
                       )
                   }
-
                   placeholder="Topic, subject or notes..."
-
                 />
 
               </label>
@@ -1188,11 +772,7 @@ export function SavedTopics() {
                 Exam Stage
 
                 <select
-
-                  value={
-                    stageFilter
-                  }
-
+                  value={stageFilter}
                   onChange={
                     event =>
                       setStageFilter(
@@ -1200,26 +780,17 @@ export function SavedTopics() {
                           StageFilter
                       )
                   }
-
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All
                   </option>
 
-
-                  <option
-                    value="prelims"
-                  >
+                  <option value="prelims">
                     Prelims
                   </option>
 
-
-                  <option
-                    value="mains"
-                  >
+                  <option value="mains">
                     Mains
                   </option>
 
@@ -1233,11 +804,7 @@ export function SavedTopics() {
                 Saved Type
 
                 <select
-
-                  value={
-                    savedFilter
-                  }
-
+                  value={savedFilter}
                   onChange={
                     event =>
                       setSavedFilter(
@@ -1245,66 +812,23 @@ export function SavedTopics() {
                           SavedFilter
                       )
                   }
-
                 >
 
-                  <option
-                    value="all"
-                  >
+                  <option value="all">
                     All Saved
                   </option>
 
-
-                  <option
-                    value="bookmarks"
-                  >
+                  <option value="bookmarks">
                     Bookmarks
                   </option>
 
-
-                  <option
-                    value="notes"
-                  >
+                  <option value="notes">
                     Notes
                   </option>
 
                 </select>
 
               </label>
-
-
-              <button
-
-                type="button"
-
-                className="secondary-btn"
-
-                style={{
-                  alignSelf:
-                    'end'
-                }}
-
-                onClick={() => {
-
-                  setSearch(
-                    ''
-                  );
-
-
-                  setStageFilter(
-                    'all'
-                  );
-
-
-                  setSavedFilter(
-                    'all'
-                  );
-
-                }}
-
-              >
-                Clear Filters
-              </button>
 
             </div>
 
@@ -1318,14 +842,10 @@ export function SavedTopics() {
         loading && (
 
           <section
-
             className="panel"
-
             style={{
-              marginTop:
-                '12px'
+              marginTop: '12px'
             }}
-
           >
             Loading saved topics...
           </section>
@@ -1337,29 +857,18 @@ export function SavedTopics() {
       {
         !loading &&
         signedIn &&
-        visibleRows.length ===
-        0 && (
+        visibleRows.length === 0 && (
 
           <section
-
             className="panel"
-
             style={{
-              marginTop:
-                '12px'
+              marginTop: '12px'
             }}
-
           >
 
             <h3>
               No saved topics found
             </h3>
-
-
-            <p>
-              Open a syllabus topic and
-              use Bookmark or My Notes.
-            </p>
 
           </section>
 
@@ -1370,21 +879,13 @@ export function SavedTopics() {
       {
         !loading &&
         signedIn &&
-        visibleRows.length >
-        0 && (
+        visibleRows.length > 0 && (
 
           <section
             style={{
-
-              display:
-                'grid',
-
-              gap:
-                '10px',
-
-              marginTop:
-                '12px'
-
+              display: 'grid',
+              gap: '10px',
+              marginTop: '12px'
             }}
           >
 
@@ -1393,45 +894,25 @@ export function SavedTopics() {
                 row => {
 
                   const editing =
-                    editingId ===
-                    row.id;
-
+                    editingId === row.id;
 
                   return (
 
                     <article
-
                       className="panel"
-
-                      key={
-                        row.id
-                      }
-
+                      key={row.id}
                       style={{
-                        padding:
-                          '14px'
+                        padding: '14px'
                       }}
-
                     >
 
                       <div
                         style={{
-
-                          display:
-                            'flex',
-
+                          display: 'flex',
                           justifyContent:
                             'space-between',
-
-                          alignItems:
-                            'flex-start',
-
-                          gap:
-                            '12px',
-
-                          flexWrap:
-                            'wrap'
-
+                          gap: '12px',
+                          flexWrap: 'wrap'
                         }}
                       >
 
@@ -1439,92 +920,54 @@ export function SavedTopics() {
 
                           <div
                             style={{
-
-                              display:
-                                'flex',
-
-                              gap:
-                                '6px',
-
-                              flexWrap:
-                                'wrap'
-
+                              display: 'flex',
+                              gap: '6px',
+                              flexWrap: 'wrap'
                             }}
                           >
 
-                            <span
-                              className="tag"
-                            >
-
+                            <span className="tag">
                               {
                                 row.exam_stage ===
                                   'prelims'
                                   ? 'Prelims'
                                   : 'Mains'
                               }
-
                             </span>
-
 
                             {
                               row.paper && (
-
-                                <span
-                                  className="tag"
-                                >
-                                  {
-                                    row.paper
-                                  }
+                                <span className="tag">
+                                  {row.paper}
                                 </span>
-
                               )
                             }
 
-
                             {
                               row.bookmarked && (
-
-                                <span
-                                  className="tag"
-                                >
+                                <span className="tag">
                                   ★ Saved
                                 </span>
-
                               )
                             }
 
                           </div>
 
-
-                          <h3
-                            style={{
-                              margin:
-                                '8px 0 4px'
-                            }}
-                          >
-
-                            {
-                              row.topic
-                            }
-
+                          <h3>
+                            {row.topic}
                           </h3>
-
 
                           <small
                             style={{
-                              color:
-                                '#94a3b8'
+                              color: '#94a3b8'
                             }}
                           >
 
-                            {
-                              row.subject
-                            }
-
+                            {row.subject}
 
                             {
                               row.updated_at
-                                ? ` • Updated ${formatDate(
+                                ? ` • ${formatDate(
                                     row.updated_at
                                   )}`
                                 : ''
@@ -1534,80 +977,32 @@ export function SavedTopics() {
 
                         </div>
 
-
-                        <button
-
-                          type="button"
-
-                          className={
-                            row.bookmarked
-                              ? 'filter active'
-                              : 'filter'
-                          }
-
-                          disabled={
-                            savingId ===
-                            row.id
-                          }
-
-                          onClick={() =>
-                            void toggleBookmark(
-                              row
-                            )
-                          }
-
-                        >
-
-                          {
-                            row.bookmarked
-                              ? '★'
-                              : '☆'
-                          }
-
-                        </button>
-
                       </div>
 
 
                       {
                         !editing &&
-                        row.notes
-                          .trim()
-                          .length >
-                        0 && (
+                        row.notes.trim() && (
 
                           <div
-
                             className="callout"
-
                             style={{
-                              marginTop:
-                                '12px'
+                              marginTop: '12px'
                             }}
-
                           >
 
                             <strong>
                               My Notes
                             </strong>
 
-
                             <p
                               style={{
-
-                                marginBottom:
-                                  0,
-
                                 whiteSpace:
-                                  'pre-wrap'
-
+                                  'pre-wrap',
+                                marginBottom: 0
                               }}
                             >
-
-                              {
-                                row.notes
-                              }
-
+                              {row.notes}
                             </p>
 
                           </div>
@@ -1621,87 +1016,45 @@ export function SavedTopics() {
 
                           <div
                             style={{
-                              marginTop:
-                                '12px'
+                              marginTop: '12px'
                             }}
                           >
 
-                            <label>
-
-                              Personal Notes
-
-                              <textarea
-
-                                rows={
-                                  8
-                                }
-
-                                value={
-                                  draftNotes
-                                }
-
-                                onChange={
-                                  event =>
-                                    setDraftNotes(
-                                      event.target.value
-                                    )
-                                }
-
-                              />
-
-                            </label>
-
+                            <textarea
+                              rows={8}
+                              value={draftNotes}
+                              onChange={
+                                event =>
+                                  setDraftNotes(
+                                    event.target.value
+                                  )
+                              }
+                            />
 
                             <div
                               style={{
-
-                                display:
-                                  'flex',
-
-                                gap:
-                                  '8px',
-
-                                flexWrap:
-                                  'wrap',
-
-                                marginTop:
-                                  '10px'
-
+                                display: 'flex',
+                                gap: '8px',
+                                marginTop: '8px'
                               }}
                             >
 
                               <button
-
                                 type="button"
-
                                 className="primary-btn"
-
-                                disabled={
-                                  savingId ===
-                                  row.id
-                                }
-
                                 onClick={() =>
-                                  void saveNote(
-                                    row
-                                  )
+                                  void saveNote(row)
                                 }
-
                               >
                                 Save Notes
                               </button>
 
-
                               <button
-
                                 type="button"
-
                                 className="secondary-btn"
-
                                 onClick={
                                   cancelEditing
                                 }
-
                               >
                                 Cancel
                               </button>
@@ -1719,65 +1072,77 @@ export function SavedTopics() {
 
                           <div
                             style={{
-
-                              display:
-                                'flex',
-
-                              gap:
-                                '8px',
-
-                              flexWrap:
-                                'wrap',
-
-                              marginTop:
-                                '12px'
-
+                              display: 'flex',
+                              gap: '8px',
+                              flexWrap: 'wrap',
+                              marginTop: '12px'
                             }}
                           >
 
+                            {
+                              onOpenTopic && (
+
+                                <button
+                                  type="button"
+                                  className="primary-btn"
+                                  onClick={() =>
+                                    openTopic(row)
+                                  }
+                                >
+                                  Open Topic
+                                </button>
+
+                              )
+                            }
+
                             <button
-
                               type="button"
-
-                              className="secondary-btn"
-
+                              className={
+                                row.bookmarked
+                                  ? 'filter active'
+                                  : 'filter'
+                              }
+                              disabled={
+                                savingId === row.id
+                              }
                               onClick={() =>
-                                startEditing(
+                                void toggleBookmark(
                                   row
                                 )
                               }
-
                             >
-
                               {
-                                row.notes
-                                  .trim()
-                                  .length >
-                                0
+                                row.bookmarked
+                                  ? '★ Bookmarked'
+                                  : '☆ Bookmark'
+                              }
+                            </button>
+
+                            <button
+                              type="button"
+                              className="secondary-btn"
+                              onClick={() =>
+                                startEditing(row)
+                              }
+                            >
+                              {
+                                row.notes.trim()
                                   ? 'Edit Notes'
                                   : '+ Add Notes'
                               }
-
                             </button>
 
-
                             <button
-
                               type="button"
-
                               className="text-btn"
-
                               disabled={
-                                savingId ===
-                                row.id
+                                savingId === row.id
                               }
-
                               onClick={() =>
-                                void deleteWorkspace(
+                                void removeSavedItem(
                                   row
                                 )
                               }
-
                             >
                               Remove
                             </button>
@@ -1790,7 +1155,6 @@ export function SavedTopics() {
                     </article>
 
                   );
-
                 }
               )
             }
@@ -1801,6 +1165,5 @@ export function SavedTopics() {
       }
 
     </div>
-
   );
 }
