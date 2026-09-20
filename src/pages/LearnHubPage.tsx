@@ -1,1801 +1,829 @@
 import {
   useEffect,
-  useMemo,
   useState
 } from 'react';
 
 import {
-  supabase
-} from '../lib/supabase';
+  LearnPage
+} from './LearnPage';
+
+import {
+  StudyResources
+} from '../components/StudyResources';
+
+import {
+  SavedTopics
+} from '../components/SavedTopics';
+
+import {
+  MyReading
+} from '../components/MyReading';
+
+import {
+  BookProgressTracker
+} from '../components/BookProgressTracker';
+
+import {
+  RevisionWeekCalendar
+} from '../components/RevisionWeekCalendar';
+
+import {
+  RevisionScheduleSettings
+} from '../components/RevisionScheduleSettings';
 
 
-type ExamStage =
-  | 'prelims'
-  | 'mains';
+/* =========================================================
+   EXPORTED LEARN MODE
+
+   IMPORTANT:
+   App.tsx and SecureApp.tsx import this type.
+========================================================= */
+
+export type LearnMode =
+  | 'syllabus'
+  | 'resources'
+  | 'saved'
+  | 'book-progress';
 
 
-type StageFilter =
-  | 'all'
-  | ExamStage;
+/* =========================================================
+   MY BOOKS SUB WORKSPACE
+========================================================= */
+
+type BookWorkspace =
+  | 'my-reading'
+  | 'standard-books'
+  | 'calendar'
+  | 'settings';
 
 
-type SavedFilter =
-  | 'all'
-  | 'bookmarks'
-  | 'notes';
+/* =========================================================
+   PROPS
+========================================================= */
 
+type LearnHubPageProps = {
 
-type SavedTopic = {
-  id: string;
-  exam_stage: ExamStage;
-  subject: string;
-  topic: string;
-  paper: string;
-  bookmarked: boolean;
-  notes: string;
-  updated_at: string;
+  initialSubject?:
+    string |
+    null;
+
+  initialMode?:
+    LearnMode;
+
 };
 
 
-function formatDate(
-  value: string
-): string {
+/* =========================================================
+   COMPONENT
 
-  if (
-    !value
-  ) {
+   IMPORTANT:
+   This is a NAMED EXPORT because App.tsx and SecureApp.tsx
+   already import { LearnHubPage }.
+========================================================= */
 
-    return '';
+export function LearnHubPage({
 
-  }
+  initialSubject =
+    null,
 
+  initialMode =
+    'syllabus'
 
-  const date =
-    new Date(
-      value
-    );
+}: LearnHubPageProps) {
 
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-
-    return '';
-
-  }
-
-
-  return date.toLocaleDateString(
-    undefined,
-    {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    }
-  );
-}
-
-
-export function SavedTopics() {
+  /* =======================================================
+     MAIN WORKSPACE
+  ======================================================= */
 
   const [
-    rows,
-    setRows
+    mode,
+    setMode
   ] =
-    useState<SavedTopic[]>(
-      []
+    useState<LearnMode>(
+      initialMode
     );
 
+
+  /* =======================================================
+     MY BOOKS WORKSPACE
+  ======================================================= */
 
   const [
-    loading,
-    setLoading
+    bookWorkspace,
+    setBookWorkspace
   ] =
-    useState(
-      true
+    useState<BookWorkspace>(
+      'my-reading'
     );
 
 
-  const [
-    signedIn,
-    setSignedIn
-  ] =
-    useState(
-      false
-    );
-
-
-  const [
-    message,
-    setMessage
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    search,
-    setSearch
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    stageFilter,
-    setStageFilter
-  ] =
-    useState<StageFilter>(
-      'all'
-    );
-
-
-  const [
-    savedFilter,
-    setSavedFilter
-  ] =
-    useState<SavedFilter>(
-      'all'
-    );
-
-
-  const [
-    editingId,
-    setEditingId
-  ] =
-    useState<string | null>(
-      null
-    );
-
-
-  const [
-    draftNotes,
-    setDraftNotes
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    savingId,
-    setSavingId
-  ] =
-    useState<string | null>(
-      null
-    );
-
-
-  async function loadSavedTopics():
-    Promise<void> {
-
-    if (
-      !supabase
-    ) {
-
-      setMessage(
-        'Supabase is not configured.'
-      );
-
-
-      setLoading(
-        false
-      );
-
-
-      return;
-    }
-
-
-    setLoading(
-      true
-    );
-
-
-    setMessage(
-      ''
-    );
-
-
-    const {
-      data:
-        authData
-    } =
-      await supabase
-        .auth
-        .getUser();
-
-
-    const user =
-      authData.user;
-
-
-    if (
-      !user
-    ) {
-
-      setSignedIn(
-        false
-      );
-
-
-      setRows(
-        []
-      );
-
-
-      setLoading(
-        false
-      );
-
-
-      return;
-    }
-
-
-    setSignedIn(
-      true
-    );
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from(
-          'syllabus_topic_workspace'
-        )
-        .select(
-          `
-            id,
-            exam_stage,
-            subject,
-            topic,
-            paper,
-            bookmarked,
-            notes,
-            updated_at
-          `
-        )
-        .eq(
-          'user_id',
-          user.id
-        )
-        .order(
-          'updated_at',
-          {
-            ascending:
-              false
-          }
-        );
-
-
-    if (
-      error
-    ) {
-
-      console.error(
-        'Unable to load saved topics:',
-        error
-      );
-
-
-      setRows(
-        []
-      );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      setLoading(
-        false
-      );
-
-
-      return;
-    }
-
-
-    const loadedRows:
-      SavedTopic[] =
-      (
-        data ||
-        []
-      )
-        .map(
-          item => ({
-
-            id:
-              String(
-                item.id
-              ),
-
-            exam_stage:
-              (
-                item.exam_stage ||
-                'prelims'
-              ) as ExamStage,
-
-            subject:
-              String(
-                item.subject ||
-                ''
-              ),
-
-            topic:
-              String(
-                item.topic ||
-                ''
-              ),
-
-            paper:
-              String(
-                item.paper ||
-                ''
-              ),
-
-            bookmarked:
-              item.bookmarked ===
-              true,
-
-            notes:
-              String(
-                item.notes ||
-                ''
-              ),
-
-            updated_at:
-              String(
-                item.updated_at ||
-                ''
-              )
-
-          })
-        )
-        .filter(
-          item =>
-
-            item.bookmarked ||
-
-            item.notes
-              .trim()
-              .length >
-              0
-        );
-
-
-    setRows(
-      loadedRows
-    );
-
-
-    setLoading(
-      false
-    );
-  }
-
+  /* =======================================================
+     PROP UPDATES
+  ======================================================= */
 
   useEffect(
     () => {
 
-      void loadSavedTopics();
+      setMode(
+        initialMode
+      );
+
+
+      if (
+        initialMode ===
+        'book-progress'
+      ) {
+
+        setBookWorkspace(
+          'my-reading'
+        );
+
+      }
 
     },
-    []
+    [
+      initialMode
+    ]
   );
 
 
-  const visibleRows =
-    useMemo(
-      () => {
+  /* =======================================================
+     COMMON BUTTON STYLE
+  ======================================================= */
 
-        const query =
-          search
-            .trim()
-            .toLowerCase();
+  const mainButtonStyle = {
 
+    width:
+      '100%',
 
-        return rows.filter(
-          row => {
+    minWidth:
+      0,
 
-            if (
-              stageFilter !==
-                'all' &&
+    minHeight:
+      '46px',
 
-              row.exam_stage !==
-                stageFilter
-            ) {
+    padding:
+      '9px 7px',
 
-              return false;
-            }
+    whiteSpace:
+      'normal' as const,
 
+    textAlign:
+      'center' as const,
 
-            if (
-              savedFilter ===
-                'bookmarks' &&
+    lineHeight:
+      1.15
 
-              !row.bookmarked
-            ) {
-
-              return false;
-            }
+  };
 
 
-            if (
-              savedFilter ===
-                'notes' &&
+  /* =======================================================
+     MAIN LEARN TABS
+  ======================================================= */
 
-              row.notes
-                .trim()
-                .length ===
-                0
-            ) {
+  const mainTabs:
+    Array<{
 
-              return false;
-            }
+      id:
+        LearnMode;
 
+      label:
+        string;
 
-            if (
-              !query
-            ) {
+      helper:
+        string;
 
-              return true;
-            }
+    }> =
+    [
 
+      {
+        id:
+          'syllabus',
 
-            const searchable =
-              [
-                row.exam_stage,
-                row.paper,
-                row.subject,
-                row.topic,
-                row.notes
-              ]
-                .join(
-                  ' '
-                )
-                .toLowerCase();
+        label:
+          'Syllabus',
 
-
-            return searchable.includes(
-              query
-            );
-
-          }
-        );
-
+        helper:
+          'Track the UPSC syllabus topic by topic'
       },
-      [
-        rows,
-        search,
-        stageFilter,
-        savedFilter
-      ]
-    );
 
+      {
+        id:
+          'resources',
 
-  const bookmarkCount =
-    useMemo(
-      () =>
+        label:
+          'Resources',
 
-        rows.filter(
-          row =>
-            row.bookmarked
-        ).length,
+        helper:
+          'Books, official sources, notes and current affairs'
+      },
 
-      [
-        rows
-      ]
-    );
+      {
+        id:
+          'saved',
 
+        label:
+          'Saved',
 
-  const noteCount =
-    useMemo(
-      () =>
+        helper:
+          'Bookmarks and personal syllabus notes'
+      },
 
-        rows.filter(
-          row =>
-            row.notes
-              .trim()
-              .length >
-            0
-        ).length,
+      {
+        id:
+          'book-progress',
 
-      [
-        rows
-      ]
-    );
+        label:
+          'My Books',
 
+        helper:
+          'Personal reading, standard books and revision'
+      }
 
-  const prelimsCount =
-    useMemo(
-      () =>
+    ];
 
-        rows.filter(
-          row =>
-            row.exam_stage ===
-            'prelims'
-        ).length,
 
-      [
-        rows
-      ]
-    );
+  /* =======================================================
+     CURRENT TAB HELPER
+  ======================================================= */
 
+  const activeHelper =
+    mainTabs.find(
+      tab =>
+        tab.id ===
+        mode
+    )?.helper ||
+    'UPSC study workspace';
 
-  const mainsCount =
-    useMemo(
-      () =>
 
-        rows.filter(
-          row =>
-            row.exam_stage ===
-            'mains'
-        ).length,
-
-      [
-        rows
-      ]
-    );
-
-
-  async function toggleBookmark(
-    row: SavedTopic
-  ): Promise<void> {
-
-    if (
-      !supabase
-    ) {
-
-      return;
-    }
-
-
-    const next =
-      !row.bookmarked;
-
-
-    setSavingId(
-      row.id
-    );
-
-
-    setMessage(
-      ''
-    );
-
-
-    const {
-      error
-    } =
-      await supabase
-        .from(
-          'syllabus_topic_workspace'
-        )
-        .update(
-          {
-            bookmarked:
-              next
-          }
-        )
-        .eq(
-          'id',
-          row.id
-        );
-
-
-    if (
-      error
-    ) {
-
-      console.error(
-        'Unable to update bookmark:',
-        error
-      );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      setSavingId(
-        null
-      );
-
-
-      return;
-    }
-
-
-    if (
-      !next &&
-      row.notes
-        .trim()
-        .length ===
-        0
-    ) {
-
-      setRows(
-        current =>
-          current.filter(
-            item =>
-              item.id !==
-              row.id
-          )
-      );
-
-    } else {
-
-      setRows(
-        current =>
-          current.map(
-            item =>
-
-              item.id ===
-              row.id
-                ? {
-                    ...item,
-                    bookmarked:
-                      next
-                  }
-                : item
-          )
-      );
-
-    }
-
-
-    setMessage(
-      next
-        ? 'Topic bookmarked.'
-        : 'Bookmark removed.'
-    );
-
-
-    setSavingId(
-      null
-    );
-  }
-
-
-  function startEditing(
-    row: SavedTopic
-  ): void {
-
-    setEditingId(
-      row.id
-    );
-
-
-    setDraftNotes(
-      row.notes
-    );
-
-
-    setMessage(
-      ''
-    );
-  }
-
-
-  function cancelEditing():
-    void {
-
-    setEditingId(
-      null
-    );
-
-
-    setDraftNotes(
-      ''
-    );
-  }
-
-
-  async function saveNote(
-    row: SavedTopic
-  ): Promise<void> {
-
-    if (
-      !supabase
-    ) {
-
-      return;
-    }
-
-
-    const cleanedNotes =
-      draftNotes.trim();
-
-
-    setSavingId(
-      row.id
-    );
-
-
-    setMessage(
-      ''
-    );
-
-
-    const {
-      error
-    } =
-      await supabase
-        .from(
-          'syllabus_topic_workspace'
-        )
-        .update(
-          {
-            notes:
-              cleanedNotes
-          }
-        )
-        .eq(
-          'id',
-          row.id
-        );
-
-
-    if (
-      error
-    ) {
-
-      console.error(
-        'Unable to save notes:',
-        error
-      );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      setSavingId(
-        null
-      );
-
-
-      return;
-    }
-
-
-    if (
-      !row.bookmarked &&
-      cleanedNotes.length ===
-        0
-    ) {
-
-      setRows(
-        current =>
-          current.filter(
-            item =>
-              item.id !==
-              row.id
-          )
-      );
-
-    } else {
-
-      setRows(
-        current =>
-          current.map(
-            item =>
-
-              item.id ===
-              row.id
-                ? {
-                    ...item,
-                    notes:
-                      cleanedNotes
-                  }
-                : item
-          )
-      );
-
-    }
-
-
-    setEditingId(
-      null
-    );
-
-
-    setDraftNotes(
-      ''
-    );
-
-
-    setSavingId(
-      null
-    );
-
-
-    setMessage(
-      'Notes saved.'
-    );
-  }
-
-
-  async function deleteWorkspace(
-    row: SavedTopic
-  ): Promise<void> {
-
-    if (
-      !supabase
-    ) {
-
-      return;
-    }
-
-
-    const confirmed =
-      window.confirm(
-        `Remove saved data for "${row.topic}"?`
-      );
-
-
-    if (
-      !confirmed
-    ) {
-
-      return;
-    }
-
-
-    setSavingId(
-      row.id
-    );
-
-
-    setMessage(
-      ''
-    );
-
-
-    const {
-      error
-    } =
-      await supabase
-        .from(
-          'syllabus_topic_workspace'
-        )
-        .delete()
-        .eq(
-          'id',
-          row.id
-        );
-
-
-    if (
-      error
-    ) {
-
-      console.error(
-        'Unable to remove saved topic:',
-        error
-      );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      setSavingId(
-        null
-      );
-
-
-      return;
-    }
-
-
-    setRows(
-      current =>
-        current.filter(
-          item =>
-            item.id !==
-            row.id
-        )
-    );
-
-
-    setSavingId(
-      null
-    );
-
-
-    setMessage(
-      'Saved topic removed.'
-    );
-  }
-
+  /* =======================================================
+     PAGE
+  ======================================================= */
 
   return (
 
-    <div>
+    <div
+      className="page-wrap"
+    >
+
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
       <section
+
         className="panel"
+
+        style={{
+
+          marginTop:
+            '10px',
+
+          padding:
+            '16px'
+
+        }}
+
       >
 
+        <span
+          className="eyebrow"
+        >
+          LEARN
+        </span>
+
+
         <div
-          className="panel-head"
+          style={{
+
+            display:
+              'flex',
+
+            justifyContent:
+              'space-between',
+
+            alignItems:
+              'flex-end',
+
+            gap:
+              '12px',
+
+            flexWrap:
+              'wrap'
+
+          }}
         >
 
           <div>
 
-            <span
-              className="eyebrow"
+            <h2
+              style={{
+
+                margin:
+                  '5px 0 4px'
+
+              }}
             >
-              SAVED STUDY
-            </span>
 
+              Study Workspace
 
-            <h2>
-              Saved Topics & Notes
             </h2>
 
 
-            <p>
-              Review your bookmarked syllabus
-              topics and personal study notes.
-            </p>
+            <small
+              style={{
+
+                color:
+                  '#94a3b8'
+
+              }}
+            >
+
+              Syllabus, resources, saved topics,
+              books and revision in one place.
+
+            </small>
 
           </div>
-
-
-          <button
-
-            type="button"
-
-            className="secondary-btn"
-
-            onClick={() =>
-              void loadSavedTopics()
-            }
-
-          >
-            Refresh
-          </button>
 
         </div>
 
 
-        {
-          !signedIn &&
-          !loading && (
+        {/* ===============================================
+            MAIN NAVIGATION
+        =============================================== */}
 
-            <div
-              className="callout"
+        <div
+          style={{
 
-              style={{
-                marginTop:
-                  '12px'
-              }}
-            >
+            display:
+              'grid',
 
-              Sign in to view your saved
-              syllabus topics and notes.
+            gridTemplateColumns:
+              'repeat(4, minmax(0, 1fr))',
 
-            </div>
+            gap:
+              '8px',
 
-          )
-        }
+            marginTop:
+              '14px'
+
+          }}
+        >
+
+          {
+            mainTabs.map(
+              tab => (
+
+                <button
+
+                  key={
+                    tab.id
+                  }
+
+                  type="button"
+
+                  className={
+                    mode ===
+                    tab.id
+                      ? 'filter active'
+                      : 'filter'
+                  }
+
+                  style={
+                    mainButtonStyle
+                  }
+
+                  onClick={() =>
+                    setMode(
+                      tab.id
+                    )
+                  }
+
+                  title={
+                    tab.helper
+                  }
+
+                >
+
+                  {
+                    tab.label
+                  }
+
+                </button>
+
+              )
+            )
+          }
+
+        </div>
 
 
-        {
-          message && (
+        {/* ===============================================
+            ACTIVE SECTION INFO
+        =============================================== */}
 
-            <div
-              className="callout"
+        <div
 
-              style={{
-                marginTop:
-                  '12px'
-              }}
-            >
+          className="callout"
 
-              {
-                message
-              }
+          style={{
 
-            </div>
+            marginTop:
+              '10px',
 
-          )
-        }
+            padding:
+              '10px 12px'
+
+          }}
+
+        >
+
+          {
+            activeHelper
+          }
+
+        </div>
 
       </section>
 
 
+      {/* =================================================
+          SYLLABUS
+      ================================================= */}
+
       {
-        signedIn && (
+        mode ===
+          'syllabus' && (
 
-          <section
-
-            className="panel"
-
+          <div
             style={{
+
               marginTop:
                 '12px'
-            }}
 
+            }}
           >
 
-            <div
-              className="metrics-grid"
-            >
+            <LearnPage
 
-              <article
-                className="metric-card"
-              >
+              initialSubject={
+                initialSubject
+              }
 
-                <div>
+            />
 
-                  <span>
-                    Bookmarks
-                  </span>
-
-                  <strong>
-                    {
-                      bookmarkCount
-                    }
-                  </strong>
-
-                </div>
-
-              </article>
-
-
-              <article
-                className="metric-card"
-              >
-
-                <div>
-
-                  <span>
-                    Notes
-                  </span>
-
-                  <strong>
-                    {
-                      noteCount
-                    }
-                  </strong>
-
-                </div>
-
-              </article>
-
-
-              <article
-                className="metric-card"
-              >
-
-                <div>
-
-                  <span>
-                    Prelims
-                  </span>
-
-                  <strong>
-                    {
-                      prelimsCount
-                    }
-                  </strong>
-
-                </div>
-
-              </article>
-
-
-              <article
-                className="metric-card"
-              >
-
-                <div>
-
-                  <span>
-                    Mains
-                  </span>
-
-                  <strong>
-                    {
-                      mainsCount
-                    }
-                  </strong>
-
-                </div>
-
-              </article>
-
-            </div>
-
-          </section>
+          </div>
 
         )
       }
 
 
+      {/* =================================================
+          RESOURCES
+      ================================================= */}
+
       {
-        signedIn && (
+        mode ===
+          'resources' && (
 
-          <section
-
-            className="panel"
-
+          <div
             style={{
+
               marginTop:
                 '12px'
-            }}
 
+            }}
           >
 
-            <div
+            <StudyResources
+
+              initialStage={
+                initialSubject
+                  ? 'prelims'
+                  : 'all'
+              }
+
+              initialSubject={
+                initialSubject
+              }
+
+            />
+
+          </div>
+
+        )
+      }
+
+
+      {/* =================================================
+          SAVED TOPICS
+      ================================================= */}
+
+      {
+        mode ===
+          'saved' && (
+
+          <div
+            style={{
+
+              marginTop:
+                '12px'
+
+            }}
+          >
+
+            <SavedTopics />
+
+          </div>
+
+        )
+      }
+
+
+      {/* =================================================
+          MY BOOKS
+      ================================================= */}
+
+      {
+        mode ===
+          'book-progress' && (
+
+          <>
+
+            {/* ===========================================
+                MY BOOKS NAVIGATION
+            =========================================== */}
+
+            <section
+
+              className="panel"
+
               style={{
 
-                display:
-                  'grid',
+                marginTop:
+                  '12px',
 
-                gridTemplateColumns:
-                  'repeat(auto-fit, minmax(170px, 1fr))',
-
-                gap:
-                  '10px'
+                padding:
+                  '14px'
 
               }}
+
             >
 
-              <label>
-
-                Search
-
-                <input
-
-                  type="search"
-
-                  value={
-                    search
-                  }
-
-                  onChange={
-                    event =>
-                      setSearch(
-                        event.target.value
-                      )
-                  }
-
-                  placeholder="Topic, subject or notes..."
-
-                />
-
-              </label>
-
-
-              <label>
-
-                Exam Stage
-
-                <select
-
-                  value={
-                    stageFilter
-                  }
-
-                  onChange={
-                    event =>
-                      setStageFilter(
-                        event.target.value as
-                          StageFilter
-                      )
-                  }
-
-                >
-
-                  <option
-                    value="all"
-                  >
-                    All
-                  </option>
-
-
-                  <option
-                    value="prelims"
-                  >
-                    Prelims
-                  </option>
-
-
-                  <option
-                    value="mains"
-                  >
-                    Mains
-                  </option>
-
-                </select>
-
-              </label>
-
-
-              <label>
-
-                Saved Type
-
-                <select
-
-                  value={
-                    savedFilter
-                  }
-
-                  onChange={
-                    event =>
-                      setSavedFilter(
-                        event.target.value as
-                          SavedFilter
-                      )
-                  }
-
-                >
-
-                  <option
-                    value="all"
-                  >
-                    All Saved
-                  </option>
-
-
-                  <option
-                    value="bookmarks"
-                  >
-                    Bookmarks
-                  </option>
-
-
-                  <option
-                    value="notes"
-                  >
-                    Notes
-                  </option>
-
-                </select>
-
-              </label>
-
-
-              <button
-
-                type="button"
-
-                className="secondary-btn"
-
+              <div
                 style={{
-                  alignSelf:
-                    'end'
-                }}
 
-                onClick={() => {
+                  display:
+                    'grid',
 
-                  setSearch(
-                    ''
-                  );
+                  gridTemplateColumns:
+                    'repeat(4, minmax(0, 1fr))',
 
-
-                  setStageFilter(
-                    'all'
-                  );
-
-
-                  setSavedFilter(
-                    'all'
-                  );
+                  gap:
+                    '8px'
 
                 }}
-
               >
-                Clear Filters
-              </button>
 
-            </div>
+                {/* =======================================
+                    MY READING
+                ======================================= */}
 
-          </section>
+                <button
 
-        )
-      }
+                  type="button"
 
+                  className={
+                    bookWorkspace ===
+                      'my-reading'
+                      ? 'filter active'
+                      : 'filter'
+                  }
 
-      {
-        loading && (
+                  style={
+                    mainButtonStyle
+                  }
 
-          <section
+                  onClick={() =>
+                    setBookWorkspace(
+                      'my-reading'
+                    )
+                  }
 
-            className="panel"
+                >
 
-            style={{
-              marginTop:
-                '12px'
-            }}
+                  My Reading
 
-          >
-            Loading saved topics...
-          </section>
-
-        )
-      }
-
-
-      {
-        !loading &&
-        signedIn &&
-        visibleRows.length ===
-        0 && (
-
-          <section
-
-            className="panel"
-
-            style={{
-              marginTop:
-                '12px'
-            }}
-
-          >
-
-            <h3>
-              No saved topics found
-            </h3>
+                </button>
 
 
-            <p>
-              Open a syllabus topic and
-              use Bookmark or My Notes.
-            </p>
+                {/* =======================================
+                    STANDARD BOOKS
+                ======================================= */}
 
-          </section>
+                <button
 
-        )
-      }
+                  type="button"
+
+                  className={
+                    bookWorkspace ===
+                      'standard-books'
+                      ? 'filter active'
+                      : 'filter'
+                  }
+
+                  style={
+                    mainButtonStyle
+                  }
+
+                  onClick={() =>
+                    setBookWorkspace(
+                      'standard-books'
+                    )
+                  }
+
+                >
+
+                  Standard Books
+
+                </button>
 
 
-      {
-        !loading &&
-        signedIn &&
-        visibleRows.length >
-        0 && (
+                {/* =======================================
+                    7-DAY PLAN
+                ======================================= */}
 
-          <section
-            style={{
+                <button
 
-              display:
-                'grid',
+                  type="button"
 
-              gap:
-                '10px',
+                  className={
+                    bookWorkspace ===
+                      'calendar'
+                      ? 'filter active'
+                      : 'filter'
+                  }
 
-              marginTop:
-                '12px'
+                  style={
+                    mainButtonStyle
+                  }
 
-            }}
-          >
+                  onClick={() =>
+                    setBookWorkspace(
+                      'calendar'
+                    )
+                  }
+
+                >
+
+                  7-Day Plan
+
+                </button>
+
+
+                {/* =======================================
+                    REVISION SETUP
+                ======================================= */}
+
+                <button
+
+                  type="button"
+
+                  className={
+                    bookWorkspace ===
+                      'settings'
+                      ? 'filter active'
+                      : 'filter'
+                  }
+
+                  style={
+                    mainButtonStyle
+                  }
+
+                  onClick={() =>
+                    setBookWorkspace(
+                      'settings'
+                    )
+                  }
+
+                >
+
+                  Revision Setup
+
+                </button>
+
+              </div>
+
+            </section>
+
+
+            {/* ===========================================
+                MY READING CONTENT
+            =========================================== */}
 
             {
-              visibleRows.map(
-                row => {
+              bookWorkspace ===
+                'my-reading' && (
 
-                  const editing =
-                    editingId ===
-                    row.id;
+                <div
+                  style={{
 
+                    marginTop:
+                      '12px'
 
-                  return (
+                  }}
+                >
 
-                    <article
+                  <MyReading />
 
-                      className="panel"
+                </div>
 
-                      key={
-                        row.id
-                      }
-
-                      style={{
-                        padding:
-                          '14px'
-                      }}
-
-                    >
-
-                      <div
-                        style={{
-
-                          display:
-                            'flex',
-
-                          justifyContent:
-                            'space-between',
-
-                          alignItems:
-                            'flex-start',
-
-                          gap:
-                            '12px',
-
-                          flexWrap:
-                            'wrap'
-
-                        }}
-                      >
-
-                        <div>
-
-                          <div
-                            style={{
-
-                              display:
-                                'flex',
-
-                              gap:
-                                '6px',
-
-                              flexWrap:
-                                'wrap'
-
-                            }}
-                          >
-
-                            <span
-                              className="tag"
-                            >
-
-                              {
-                                row.exam_stage ===
-                                  'prelims'
-                                  ? 'Prelims'
-                                  : 'Mains'
-                              }
-
-                            </span>
-
-
-                            {
-                              row.paper && (
-
-                                <span
-                                  className="tag"
-                                >
-                                  {
-                                    row.paper
-                                  }
-                                </span>
-
-                              )
-                            }
-
-
-                            {
-                              row.bookmarked && (
-
-                                <span
-                                  className="tag"
-                                >
-                                  ★ Saved
-                                </span>
-
-                              )
-                            }
-
-                          </div>
-
-
-                          <h3
-                            style={{
-                              margin:
-                                '8px 0 4px'
-                            }}
-                          >
-
-                            {
-                              row.topic
-                            }
-
-                          </h3>
-
-
-                          <small
-                            style={{
-                              color:
-                                '#94a3b8'
-                            }}
-                          >
-
-                            {
-                              row.subject
-                            }
-
-
-                            {
-                              row.updated_at
-                                ? ` • Updated ${formatDate(
-                                    row.updated_at
-                                  )}`
-                                : ''
-                            }
-
-                          </small>
-
-                        </div>
-
-
-                        <button
-
-                          type="button"
-
-                          className={
-                            row.bookmarked
-                              ? 'filter active'
-                              : 'filter'
-                          }
-
-                          disabled={
-                            savingId ===
-                            row.id
-                          }
-
-                          onClick={() =>
-                            void toggleBookmark(
-                              row
-                            )
-                          }
-
-                        >
-
-                          {
-                            row.bookmarked
-                              ? '★'
-                              : '☆'
-                          }
-
-                        </button>
-
-                      </div>
-
-
-                      {
-                        !editing &&
-                        row.notes
-                          .trim()
-                          .length >
-                        0 && (
-
-                          <div
-
-                            className="callout"
-
-                            style={{
-                              marginTop:
-                                '12px'
-                            }}
-
-                          >
-
-                            <strong>
-                              My Notes
-                            </strong>
-
-
-                            <p
-                              style={{
-
-                                marginBottom:
-                                  0,
-
-                                whiteSpace:
-                                  'pre-wrap'
-
-                              }}
-                            >
-
-                              {
-                                row.notes
-                              }
-
-                            </p>
-
-                          </div>
-
-                        )
-                      }
-
-
-                      {
-                        editing && (
-
-                          <div
-                            style={{
-                              marginTop:
-                                '12px'
-                            }}
-                          >
-
-                            <label>
-
-                              Personal Notes
-
-                              <textarea
-
-                                rows={
-                                  8
-                                }
-
-                                value={
-                                  draftNotes
-                                }
-
-                                onChange={
-                                  event =>
-                                    setDraftNotes(
-                                      event.target.value
-                                    )
-                                }
-
-                              />
-
-                            </label>
-
-
-                            <div
-                              style={{
-
-                                display:
-                                  'flex',
-
-                                gap:
-                                  '8px',
-
-                                flexWrap:
-                                  'wrap',
-
-                                marginTop:
-                                  '10px'
-
-                              }}
-                            >
-
-                              <button
-
-                                type="button"
-
-                                className="primary-btn"
-
-                                disabled={
-                                  savingId ===
-                                  row.id
-                                }
-
-                                onClick={() =>
-                                  void saveNote(
-                                    row
-                                  )
-                                }
-
-                              >
-                                Save Notes
-                              </button>
-
-
-                              <button
-
-                                type="button"
-
-                                className="secondary-btn"
-
-                                onClick={
-                                  cancelEditing
-                                }
-
-                              >
-                                Cancel
-                              </button>
-
-                            </div>
-
-                          </div>
-
-                        )
-                      }
-
-
-                      {
-                        !editing && (
-
-                          <div
-                            style={{
-
-                              display:
-                                'flex',
-
-                              gap:
-                                '8px',
-
-                              flexWrap:
-                                'wrap',
-
-                              marginTop:
-                                '12px'
-
-                            }}
-                          >
-
-                            <button
-
-                              type="button"
-
-                              className="secondary-btn"
-
-                              onClick={() =>
-                                startEditing(
-                                  row
-                                )
-                              }
-
-                            >
-
-                              {
-                                row.notes
-                                  .trim()
-                                  .length >
-                                0
-                                  ? 'Edit Notes'
-                                  : '+ Add Notes'
-                              }
-
-                            </button>
-
-
-                            <button
-
-                              type="button"
-
-                              className="text-btn"
-
-                              disabled={
-                                savingId ===
-                                row.id
-                              }
-
-                              onClick={() =>
-                                void deleteWorkspace(
-                                  row
-                                )
-                              }
-
-                            >
-                              Remove
-                            </button>
-
-                          </div>
-
-                        )
-                      }
-
-                    </article>
-
-                  );
-
-                }
               )
             }
 
-          </section>
+
+            {/* ===========================================
+                STANDARD BOOKS CONTENT
+            =========================================== */}
+
+            {
+              bookWorkspace ===
+                'standard-books' && (
+
+                <div
+                  style={{
+
+                    marginTop:
+                      '12px'
+
+                  }}
+                >
+
+                  <BookProgressTracker
+
+                    initialSubject={
+                      initialSubject
+                    }
+
+                  />
+
+                </div>
+
+              )
+            }
+
+
+            {/* ===========================================
+                REVISION CALENDAR
+            =========================================== */}
+
+            {
+              bookWorkspace ===
+                'calendar' && (
+
+                <div
+                  style={{
+
+                    marginTop:
+                      '12px'
+
+                  }}
+                >
+
+                  <RevisionWeekCalendar />
+
+                </div>
+
+              )
+            }
+
+
+            {/* ===========================================
+                REVISION SETTINGS
+            =========================================== */}
+
+            {
+              bookWorkspace ===
+                'settings' && (
+
+                <div
+                  style={{
+
+                    marginTop:
+                      '12px'
+
+                  }}
+                >
+
+                  <RevisionScheduleSettings />
+
+                </div>
+
+              )
+            }
+
+          </>
 
         )
       }
@@ -1804,3 +832,14 @@ export function SavedTopics() {
 
   );
 }
+
+
+/* =========================================================
+   DEFAULT EXPORT
+
+   Named export above is still the important one.
+   This additional export makes the file compatible
+   with either named or default importing in future.
+========================================================= */
+
+export default LearnHubPage;
