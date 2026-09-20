@@ -32,10 +32,54 @@ type ProgressRow = {
 };
 
 
+type StandardBook = {
+  id: string;
+  title: string;
+  subject: string;
+  author: string | null;
+  publisher: string | null;
+  sort_order: number;
+};
+
+
 type LearnPageProps = {
   initialSubject?: string | null;
 };
 
+
+type ProgressOption = {
+  value: number;
+  label: string;
+};
+
+
+const PROGRESS_OPTIONS: ProgressOption[] = [
+  {
+    value: 0,
+    label: 'Not Started'
+  },
+  {
+    value: 25,
+    label: 'Started'
+  },
+  {
+    value: 50,
+    label: 'Studied'
+  },
+  {
+    value: 75,
+    label: 'Revision'
+  },
+  {
+    value: 100,
+    label: 'Completed'
+  }
+];
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
 
 function clampProgress(
   value: number
@@ -49,6 +93,7 @@ function clampProgress(
     return 0;
   }
 
+
   return Math.min(
     100,
     Math.max(
@@ -58,6 +103,7 @@ function clampProgress(
       )
     )
   );
+
 }
 
 
@@ -66,11 +112,11 @@ function average(
 ) {
 
   if (
-    values.length ===
-    0
+    values.length === 0
   ) {
     return 0;
   }
+
 
   const total =
     values.reduce(
@@ -82,66 +128,128 @@ function average(
       0
     );
 
+
   return Math.round(
     total /
     values.length
   );
+
 }
 
+
+function progressLabel(
+  value: number
+) {
+
+  if (
+    value >= 100
+  ) {
+    return 'Completed';
+  }
+
+
+  if (
+    value >= 75
+  ) {
+    return 'Revision';
+  }
+
+
+  if (
+    value >= 50
+  ) {
+    return 'Studied';
+  }
+
+
+  if (
+    value > 0
+  ) {
+    return 'Started';
+  }
+
+
+  return 'Not Started';
+
+}
+
+
+function normalise(
+  value: string
+) {
+
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(
+      /&/g,
+      'and'
+    )
+    .replace(
+      /[^a-z0-9]/g,
+      ''
+    )
+    .replace(
+      /economics/g,
+      'economy'
+    );
+
+}
+
+
+/* =========================================================
+   COMPONENT
+========================================================= */
 
 export function LearnPage({
   initialSubject = null
 }: LearnPageProps) {
 
-  const [
-    loading,
-    setLoading
-  ] =
-    useState(
-      true
-    );
-
-  const [
-    error,
-    setError
-  ] =
-    useState('');
-
-  const [
-    message,
-    setMessage
-  ] =
-    useState('');
+  /* =======================================================
+     DATA
+  ======================================================= */
 
   const [
     topics,
     setTopics
   ] =
-    useState<
-      SyllabusTopic[]
-    >([]);
+    useState<SyllabusTopic[]>(
+      []
+    );
+
+
+  const [
+    books,
+    setBooks
+  ] =
+    useState<StandardBook[]>(
+      []
+    );
+
 
   const [
     progressMap,
     setProgressMap
   ] =
     useState<
-      Record<
-        string,
-        number
-      >
-    >({});
+      Record<string, number>
+    >(
+      {}
+    );
+
+
+  /* =======================================================
+     USER
+  ======================================================= */
 
   const [
     userId,
     setUserId
   ] =
-    useState<
-      string |
-      null
-    >(
+    useState<string | null>(
       null
     );
+
 
   const [
     signedIn,
@@ -151,6 +259,47 @@ export function LearnPage({
       false
     );
 
+
+  /* =======================================================
+     UI
+  ======================================================= */
+
+  const [
+    loading,
+    setLoading
+  ] =
+    useState(
+      true
+    );
+
+
+  const [
+    error,
+    setError
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    message,
+    setMessage
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    savingTopicId,
+    setSavingTopicId
+  ] =
+    useState<string | null>(
+      null
+    );
+
+
   const [
     stage,
     setStage
@@ -159,43 +308,70 @@ export function LearnPage({
       'prelims'
     );
 
+
+  const [
+    paperFilter,
+    setPaperFilter
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
+    searchText,
+    setSearchText
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    filtersOpen,
+    setFiltersOpen
+  ] =
+    useState(
+      false
+    );
+
+
   const [
     expandedSubject,
     setExpandedSubject
   ] =
-    useState<
-      string |
-      null
-    >(
+    useState<string | null>(
       null
     );
+
 
   const [
-    expandedTopic,
-    setExpandedTopic
+    expandedTopics,
+    setExpandedTopics
   ] =
-    useState<
-      string |
-      null
-    >(
-      null
+    useState<Set<string>>(
+      new Set()
     );
+
 
   const [
-    savingTopicId,
-    setSavingTopicId
+    hideCompleted,
+    setHideCompleted
   ] =
-    useState<
-      string |
-      null
-    >(
-      null
+    useState(
+      false
     );
 
+
+  /* =======================================================
+     LOAD SYLLABUS
+  ======================================================= */
 
   async function loadSyllabus() {
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
 
       setError(
         'Supabase is not configured.'
@@ -213,47 +389,96 @@ export function LearnPage({
       true
     );
 
-    setError('');
-    setMessage('');
+    setError(
+      ''
+    );
 
 
-    const {
-      data:
-        topicData,
+    const [
+      topicResult,
+      bookResult
+    ] =
+      await Promise.all([
 
-      error:
-        topicError
-    } =
-      await supabase
-        .from(
-          'syllabus_topics'
-        )
-        .select(
-          `
-          id,
-          exam_stage,
-          paper,
-          subject,
-          topic,
-          parent_id,
-          sort_order
-          `
-        )
-        .order(
-          'sort_order',
-          {
-            ascending:
-              true
-          }
-        );
+        supabase
+          .from(
+            'syllabus_topics'
+          )
+          .select(
+            `
+              id,
+              exam_stage,
+              paper,
+              subject,
+              topic,
+              parent_id,
+              sort_order
+            `
+          )
+          .order(
+            'sort_order',
+            {
+              ascending:
+                true
+            }
+          ),
 
+
+        supabase
+          .from(
+            'study_resources'
+          )
+          .select(
+            `
+              id,
+              title,
+              subject,
+              author,
+              publisher,
+              sort_order
+            `
+          )
+          .eq(
+            'resource_type',
+            'standard_book'
+          )
+          .eq(
+            'status',
+            'published'
+          )
+          .order(
+            'subject',
+            {
+              ascending:
+                true
+            }
+          )
+          .order(
+            'sort_order',
+            {
+              ascending:
+                true
+            }
+          )
+
+      ]);
+
+
+    /* -----------------------------------------------------
+       SYLLABUS ERROR
+    ----------------------------------------------------- */
 
     if (
-      topicError
+      topicResult.error
     ) {
 
+      console.error(
+        'Unable to load syllabus:',
+        topicResult.error
+      );
+
       setError(
-        topicError.message
+        topicResult.error.message
       );
 
       setLoading(
@@ -264,12 +489,23 @@ export function LearnPage({
     }
 
 
-    const cleanTopics:
-      SyllabusTopic[] =
-        (
-          topicData ||
-          []
-        ).map(
+    /* -----------------------------------------------------
+       CLEAN TOPICS
+    ----------------------------------------------------- */
+
+    const cleanTopics =
+      (
+        topicResult.data ||
+        []
+      )
+        .filter(
+          item =>
+            item.exam_stage ===
+              'prelims' ||
+            item.exam_stage ===
+              'mains'
+        )
+        .map(
           item => ({
 
             id:
@@ -322,17 +558,100 @@ export function LearnPage({
     );
 
 
+    /* -----------------------------------------------------
+       CLEAN BOOKS
+    ----------------------------------------------------- */
+
+    if (
+      bookResult.error
+    ) {
+
+      console.error(
+        'Unable to load standard books:',
+        bookResult.error
+      );
+
+      setBooks(
+        []
+      );
+
+    } else {
+
+      const cleanBooks =
+        (
+          bookResult.data ||
+          []
+        )
+          .map(
+            item => ({
+
+              id:
+                String(
+                  item.id
+                ),
+
+              title:
+                String(
+                  item.title ||
+                  ''
+                ),
+
+              subject:
+                String(
+                  item.subject ||
+                  'General'
+                ),
+
+              author:
+                item.author
+                  ? String(
+                      item.author
+                    )
+                  : null,
+
+              publisher:
+                item.publisher
+                  ? String(
+                      item.publisher
+                    )
+                  : null,
+
+              sort_order:
+                Number(
+                  item.sort_order ||
+                  0
+                )
+
+            })
+          );
+
+
+      setBooks(
+        cleanBooks
+      );
+
+    }
+
+
+    /* -----------------------------------------------------
+       AUTH
+    ----------------------------------------------------- */
+
     const {
-      data: {
-        user
-      }
+      data: authData
     } =
       await supabase
         .auth
         .getUser();
 
 
-    if (!user) {
+    const user =
+      authData.user;
+
+
+    if (
+      !user
+    ) {
 
       setSignedIn(
         false
@@ -363,12 +682,13 @@ export function LearnPage({
     );
 
 
-    const {
-      data:
-        progressData,
+    /* -----------------------------------------------------
+       LOAD PROGRESS
+    ----------------------------------------------------- */
 
-      error:
-        progressError
+    const {
+      data: progressData,
+      error: progressError
     } =
       await supabase
         .from(
@@ -376,9 +696,9 @@ export function LearnPage({
         )
         .select(
           `
-          topic_id,
-          completion,
-          revised_at
+            topic_id,
+            completion,
+            revised_at
           `
         )
         .eq(
@@ -390,6 +710,11 @@ export function LearnPage({
     if (
       progressError
     ) {
+
+      console.error(
+        'Unable to load progress:',
+        progressError
+      );
 
       setError(
         progressError.message
@@ -404,45 +729,48 @@ export function LearnPage({
 
 
     const nextMap:
-      Record<
-        string,
-        number
-      > = {};
+      Record<string, number> =
+      {};
 
 
     (
-      progressData ||
-      []
-    ).forEach(
-      item => {
+      (
+        progressData ||
+        []
+      ) as ProgressRow[]
+    )
+      .forEach(
+        row => {
 
-        const row =
-          item as
-            ProgressRow;
+          nextMap[
+            row.topic_id
+          ] =
+            clampProgress(
+              Number(
+                row.completion ||
+                0
+              )
+            );
 
-        nextMap[
-          row.topic_id
-        ] =
-          clampProgress(
-            Number(
-              row.completion ||
-              0
-            )
-          );
-
-      }
-    );
+        }
+      );
 
 
     setProgressMap(
       nextMap
     );
 
+
     setLoading(
       false
     );
+
   }
 
+
+  /* =======================================================
+     INITIAL LOAD
+  ======================================================= */
 
   useEffect(
     () => {
@@ -453,6 +781,10 @@ export function LearnPage({
     []
   );
 
+
+  /* =======================================================
+     INITIAL SUBJECT
+  ======================================================= */
 
   useEffect(
     () => {
@@ -465,9 +797,14 @@ export function LearnPage({
           'prelims'
         );
 
-        setExpandedSubject(
+        setSearchText(
           initialSubject
         );
+
+        setFiltersOpen(
+          true
+        );
+
       }
 
     },
@@ -477,11 +814,23 @@ export function LearnPage({
   );
 
 
+  /* =======================================================
+     STAGE CHANGE
+  ======================================================= */
+
   useEffect(
     () => {
 
-      setExpandedTopic(
+      setPaperFilter(
+        'all'
+      );
+
+      setExpandedSubject(
         null
+      );
+
+      setExpandedTopics(
+        new Set()
       );
 
     },
@@ -491,9 +840,13 @@ export function LearnPage({
   );
 
 
+  /* =======================================================
+     SAVE PROGRESS
+  ======================================================= */
+
   async function saveProgress(
     topicId: string,
-    newValue: number
+    nextValue: number
   ) {
 
     if (
@@ -502,7 +855,7 @@ export function LearnPage({
     ) {
 
       setMessage(
-        'Sign in to save progress.'
+        'Sign in to save syllabus progress.'
       );
 
       return;
@@ -511,20 +864,23 @@ export function LearnPage({
 
     const value =
       clampProgress(
-        newValue
+        nextValue
       );
 
 
-    const previousValue =
+    const previous =
       progressMap[
         topicId
       ] ||
       0;
 
 
+    /* optimistic update */
+
     setProgressMap(
       current => ({
         ...current,
+
         [topicId]:
           value
       })
@@ -537,8 +893,7 @@ export function LearnPage({
 
 
     const {
-      error:
-        saveError
+      error: saveError
     } =
       await supabase
         .from(
@@ -546,6 +901,7 @@ export function LearnPage({
         )
         .upsert(
           {
+
             user_id:
               userId,
 
@@ -558,6 +914,7 @@ export function LearnPage({
             revised_at:
               new Date()
                 .toISOString()
+
           },
           {
             onConflict:
@@ -570,50 +927,65 @@ export function LearnPage({
       saveError
     ) {
 
+      console.error(
+        saveError
+      );
+
+
       setProgressMap(
         current => ({
           ...current,
+
           [topicId]:
-            previousValue
+            previous
         })
       );
 
+
       setMessage(
-        `Unable to save: ${saveError.message}`
+        `Unable to save progress: ${saveError.message}`
       );
 
-      setSavingTopicId(
-        null
+    } else {
+
+      setMessage(
+        `${value}% progress saved.`
       );
 
-      return;
     }
 
-
-    setMessage(
-      `${value}% completed saved.`
-    );
 
     setSavingTopicId(
       null
     );
+
   }
 
+
+  /* =======================================================
+     STAGE TOPICS
+  ======================================================= */
 
   const stageTopics =
     useMemo(
       () =>
+
         topics.filter(
           topic =>
             topic.exam_stage ===
             stage
         ),
+
       [
         topics,
         stage
       ]
     );
 
+
+  /* =======================================================
+     CHILD MAP
+  ======================================================= */
 
   const childrenMap =
     useMemo(
@@ -636,31 +1008,37 @@ export function LearnPage({
             }
 
 
-            const existing =
+            const current =
               map.get(
                 topic.parent_id
               ) ||
               [];
 
 
-            existing.push(
+            current.push(
               topic
             );
 
 
-            existing.sort(
+            map.set(
+              topic.parent_id,
+              current
+            );
+
+          }
+        );
+
+
+        map.forEach(
+          list => {
+
+            list.sort(
               (
                 first,
                 second
               ) =>
                 first.sort_order -
                 second.sort_order
-            );
-
-
-            map.set(
-              topic.parent_id,
-              existing
             );
 
           }
@@ -676,32 +1054,13 @@ export function LearnPage({
     );
 
 
+  /* =======================================================
+     LEAF IDS UNDER TOPIC
+  ======================================================= */
+
   function getLeafIds(
-    topicId: string,
-    visited =
-      new Set<string>()
-  ):
-    string[] {
-
-    if (
-      visited.has(
-        topicId
-      )
-    ) {
-      return [];
-    }
-
-
-    const nextVisited =
-      new Set(
-        visited
-      );
-
-
-    nextVisited.add(
-      topicId
-    );
-
+    topicId: string
+  ): string[] {
 
     const children =
       childrenMap.get(
@@ -718,20 +1077,25 @@ export function LearnPage({
       return [
         topicId
       ];
+
     }
 
 
     return children.flatMap(
       child =>
         getLeafIds(
-          child.id,
-          nextVisited
+          child.id
         )
     );
+
   }
 
 
-  function topicProgress(
+  /* =======================================================
+     TOPIC PROGRESS
+  ======================================================= */
+
+  function getTopicProgress(
     topicId: string
   ) {
 
@@ -750,308 +1114,417 @@ export function LearnPage({
           0
       )
     );
+
   }
 
 
-  const subjectNames =
+  /* =======================================================
+     ROOT TOPICS
+  ======================================================= */
+
+  const rootTopics =
     useMemo(
-      () => {
+      () =>
 
-        return Array.from(
-          new Set(
-            stageTopics.map(
-              topic =>
-                topic.subject
-            )
-          )
-        ).sort();
+        stageTopics.filter(
+          topic =>
+            !topic.parent_id
+        ),
 
-      },
       [
         stageTopics
       ]
     );
 
 
-  function rootTopicsForSubject(
-    subject: string
-  ) {
+  /* =======================================================
+     PAPER OPTIONS
+  ======================================================= */
 
-    const ids =
-      new Set(
-        stageTopics
-          .filter(
-            item =>
-              item.subject ===
-              subject
-          )
-          .map(
-            item =>
-              item.id
-          )
-      );
+  const paperOptions =
+    useMemo(
+      () =>
 
-
-    return stageTopics
-      .filter(
-        topic =>
-          topic.subject ===
-            subject &&
-          (
-            !topic.parent_id ||
-            !ids.has(
-              topic.parent_id
+        Array
+          .from(
+            new Set(
+              stageTopics
+                .map(
+                  topic =>
+                    topic.paper
+                      ?.trim()
+                )
+                .filter(
+                  (
+                    item
+                  ): item is string =>
+                    Boolean(item)
+                )
             )
           )
-      )
-      .sort(
-        (
-          first,
-          second
-        ) =>
-          first.sort_order -
-          second.sort_order
-      );
-  }
+          .sort(),
+
+      [
+        stageTopics
+      ]
+    );
 
 
-  function renderSubtypes(
-    parent:
-      SyllabusTopic
+  /* =======================================================
+     SEARCH MATCH
+  ======================================================= */
+
+  function topicMatchesSearch(
+    topic: SyllabusTopic
   ) {
+
+    const query =
+      searchText
+        .trim()
+        .toLowerCase();
+
+
+    if (
+      !query
+    ) {
+      return true;
+    }
+
+
+    const selfText =
+      [
+        topic.subject,
+        topic.paper || '',
+        topic.topic
+      ]
+        .join(' ')
+        .toLowerCase();
+
+
+    if (
+      selfText.includes(
+        query
+      )
+    ) {
+      return true;
+    }
+
 
     const children =
       childrenMap.get(
-        parent.id
+        topic.id
       ) ||
       [];
 
 
-    if (
-      children.length ===
-      0
-    ) {
-
-      return null;
-    }
-
-
-    return (
-
-      <div
-        style={{
-          marginTop:
-            '10px',
-
-          display:
-            'grid',
-
-          gap:
-            '8px'
-        }}
-      >
-
-        {children.map(
-          child => {
-
-            const grandchildren =
-              childrenMap.get(
-                child.id
-              ) ||
-              [];
-
-
-            const hasNested =
-              grandchildren.length >
-              0;
-
-
-            const progress =
-              topicProgress(
-                child.id
-              );
-
-
-            return (
-
-              <div
-                key={
-                  child.id
-                }
-
-                style={{
-                  border:
-                    '1px solid rgba(255,255,255,.08)',
-
-                  borderRadius:
-                    '12px',
-
-                  background:
-                    '#0e1525',
-
-                  padding:
-                    '11px 12px'
-                }}
-              >
-
-                <div
-                  style={{
-                    display:
-                      'grid',
-
-                    gridTemplateColumns:
-                      'minmax(0,1fr) auto',
-
-                    gap:
-                      '10px',
-
-                    alignItems:
-                      'center'
-                  }}
-                >
-
-                  <div
-                    style={{
-                      minWidth:
-                        0
-                    }}
-                  >
-
-                    <strong
-                      style={{
-                        display:
-                          'block',
-
-                        overflowWrap:
-                          'anywhere'
-                      }}
-                    >
-                      {child.topic}
-                    </strong>
-
-
-                    <small
-                      style={{
-                        display:
-                          'block',
-
-                        marginTop:
-                          '4px',
-
-                        color:
-                          '#5eead4',
-
-                        fontWeight:
-                          700
-                      }}
-                    >
-                      {progress}% completed
-                    </small>
-
-                  </div>
-
-
-                  {!hasNested && (
-
-                    <select
-                      value={
-                        progress
-                      }
-
-                      disabled={
-                        !signedIn ||
-                        savingTopicId ===
-                          child.id
-                      }
-
-                      onChange={
-                        event => {
-
-                          void saveProgress(
-                            child.id,
-                            Number(
-                              event
-                                .target
-                                .value
-                            )
-                          );
-
-                        }
-                      }
-                    >
-
-                      <option value="0">
-                        0%
-                      </option>
-
-                      <option value="10">
-                        10%
-                      </option>
-
-                      <option value="20">
-                        20%
-                      </option>
-
-                      <option value="30">
-                        30%
-                      </option>
-
-                      <option value="40">
-                        40%
-                      </option>
-
-                      <option value="50">
-                        50%
-                      </option>
-
-                      <option value="60">
-                        60%
-                      </option>
-
-                      <option value="70">
-                        70%
-                      </option>
-
-                      <option value="80">
-                        80%
-                      </option>
-
-                      <option value="90">
-                        90%
-                      </option>
-
-                      <option value="100">
-                        100%
-                      </option>
-
-                    </select>
-
-                  )}
-
-                </div>
-
-
-                {hasNested &&
-                  renderSubtypes(
-                    child
-                  )}
-
-              </div>
-
-            );
-
-          }
-        )}
-
-      </div>
-
+    return children.some(
+      child =>
+        topicMatchesSearch(
+          child
+        )
     );
+
   }
 
 
-  function renderMainTopic(
-    topic:
-      SyllabusTopic
+  /* =======================================================
+     FILTER ROOT TOPICS
+  ======================================================= */
+
+  const visibleRootTopics =
+    useMemo(
+      () =>
+
+        rootTopics.filter(
+          topic => {
+
+            if (
+              paperFilter !==
+                'all' &&
+              topic.paper !==
+                paperFilter
+            ) {
+              return false;
+            }
+
+
+            if (
+              !topicMatchesSearch(
+                topic
+              )
+            ) {
+              return false;
+            }
+
+
+            if (
+              hideCompleted &&
+              getTopicProgress(
+                topic.id
+              ) >=
+                100
+            ) {
+              return false;
+            }
+
+
+            return true;
+
+          }
+        ),
+
+      [
+        rootTopics,
+        paperFilter,
+        searchText,
+        hideCompleted,
+        progressMap,
+        childrenMap
+      ]
+    );
+
+
+  /* =======================================================
+     SUBJECT NAMES
+  ======================================================= */
+
+  const subjectNames =
+    useMemo(
+      () => {
+
+        const names =
+          Array.from(
+            new Set(
+              visibleRootTopics.map(
+                topic =>
+                  topic.subject
+              )
+            )
+          );
+
+
+        return names.sort(
+          (
+            first,
+            second
+          ) =>
+            first.localeCompare(
+              second
+            )
+        );
+
+      },
+      [
+        visibleRootTopics
+      ]
+    );
+
+
+  /* =======================================================
+     SUBJECT TOPICS
+  ======================================================= */
+
+  function rootTopicsForSubject(
+    subject: string
+  ) {
+
+    return visibleRootTopics.filter(
+      topic =>
+        topic.subject ===
+        subject
+    );
+
+  }
+
+
+  /* =======================================================
+     BOOKS FOR SUBJECT
+  ======================================================= */
+
+  function booksForSubject(
+    subject: string
+  ) {
+
+    const target =
+      normalise(
+        subject
+      );
+
+
+    return books.filter(
+      book =>
+        normalise(
+          book.subject
+        ) ===
+        target
+    );
+
+  }
+
+
+  /* =======================================================
+     SUBJECT PROGRESS
+  ======================================================= */
+
+  function getSubjectProgress(
+    subject: string
+  ) {
+
+    const roots =
+      stageTopics.filter(
+        topic =>
+          !topic.parent_id &&
+          topic.subject ===
+            subject
+      );
+
+
+    const ids =
+      roots.flatMap(
+        topic =>
+          getLeafIds(
+            topic.id
+          )
+      );
+
+
+    return average(
+      ids.map(
+        id =>
+          progressMap[
+            id
+          ] ||
+          0
+      )
+    );
+
+  }
+
+
+  /* =======================================================
+     STAGE LEAF IDS
+  ======================================================= */
+
+  const stageLeafIds =
+    useMemo(
+      () =>
+
+        stageTopics
+          .filter(
+            topic =>
+              (
+                childrenMap.get(
+                  topic.id
+                ) ||
+                []
+              ).length ===
+              0
+          )
+          .map(
+            topic =>
+              topic.id
+          ),
+
+      [
+        stageTopics,
+        childrenMap
+      ]
+    );
+
+
+  /* =======================================================
+     OVERALL PROGRESS
+  ======================================================= */
+
+  const overallProgress =
+    average(
+      stageLeafIds.map(
+        id =>
+          progressMap[
+            id
+          ] ||
+          0
+      )
+    );
+
+
+  const completedTopics =
+    stageLeafIds.filter(
+      id =>
+        (
+          progressMap[
+            id
+          ] ||
+          0
+        ) >=
+        100
+    ).length;
+
+
+  const startedTopics =
+    stageLeafIds.filter(
+      id =>
+        (
+          progressMap[
+            id
+          ] ||
+          0
+        ) >
+        0
+    ).length;
+
+
+  /* =======================================================
+     EXPAND TOPIC
+  ======================================================= */
+
+  function toggleTopic(
+    id: string
+  ) {
+
+    setExpandedTopics(
+      current => {
+
+        const next =
+          new Set(
+            current
+          );
+
+
+        if (
+          next.has(
+            id
+          )
+        ) {
+
+          next.delete(
+            id
+          );
+
+        } else {
+
+          next.add(
+            id
+          );
+
+        }
+
+
+        return next;
+
+      }
+    );
+
+  }
+
+
+  /* =======================================================
+     RECURSIVE TOPIC
+  ======================================================= */
+
+  function renderTopic(
+    topic: SyllabusTopic,
+    depth = 0
   ) {
 
     const children =
@@ -1066,213 +1539,365 @@ export function LearnPage({
       0;
 
 
-    const progress =
-      topicProgress(
+    const expanded =
+      expandedTopics.has(
         topic.id
       );
 
 
-    const expanded =
-      expandedTopic ===
-      topic.id;
+    const progress =
+      hasChildren
+        ? getTopicProgress(
+            topic.id
+          )
+        : progressMap[
+            topic.id
+          ] ||
+          0;
+
+
+    const searchQuery =
+      searchText
+        .trim()
+        .toLowerCase();
+
+
+    const matchingChildren =
+      children.filter(
+        child =>
+          !searchQuery ||
+          topicMatchesSearch(
+            child
+          )
+      );
+
+
+    if (
+      hideCompleted &&
+      progress >=
+      100
+    ) {
+
+      return null;
+    }
 
 
     return (
 
-      <article
+      <div
+
         key={
           topic.id
         }
 
         style={{
+
+          marginLeft:
+            `${depth * 10}px`,
+
+          marginTop:
+            '8px',
+
+          padding:
+            '11px 12px',
+
           border:
             '1px solid rgba(255,255,255,.08)',
 
           borderRadius:
-            '14px',
+            '12px',
 
           background:
-            'rgba(255,255,255,.025)',
+            depth > 0
+              ? 'rgba(255,255,255,.015)'
+              : 'rgba(255,255,255,.025)'
 
-          padding:
-            '13px'
         }}
+
       >
 
         <div
           style={{
+
             display:
-              'grid',
+              'flex',
 
-            gridTemplateColumns:
-              'minmax(0,1fr) auto',
-
-            gap:
-              '12px',
+            justifyContent:
+              'space-between',
 
             alignItems:
-              'center'
+              'center',
+
+            gap:
+              '10px',
+
+            flexWrap:
+              'wrap'
+
           }}
         >
 
-          <div
-            style={{
-              minWidth:
-                0
+          <button
+
+            type="button"
+
+            onClick={() => {
+
+              if (
+                hasChildren
+              ) {
+
+                toggleTopic(
+                  topic.id
+                );
+
+              }
+
             }}
+
+            style={{
+
+              border:
+                0,
+
+              background:
+                'transparent',
+
+              color:
+                'inherit',
+
+              cursor:
+                hasChildren
+                  ? 'pointer'
+                  : 'default',
+
+              padding:
+                0,
+
+              textAlign:
+                'left',
+
+              flex:
+                '1 1 220px',
+
+              whiteSpace:
+                'normal'
+
+            }}
+
           >
 
-            <strong
-              style={{
-                display:
-                  'block',
+            <strong>
 
-                fontSize:
-                  '1rem'
-              }}
-            >
-              {topic.topic}
+              {
+                hasChildren
+                  ? (
+                    expanded
+                      ? '▾ '
+                      : '▸ '
+                  )
+                  : '• '
+              }
+
+              {
+                topic.topic
+              }
+
             </strong>
 
 
             <small
               style={{
+
                 display:
                   'block',
 
-                marginTop:
-                  '4px',
-
                 color:
-                  '#5eead4',
+                  '#94a3b8',
 
-                fontWeight:
-                  700
+                marginTop:
+                  '3px'
+
               }}
             >
-              {progress}% completed
-            </small>
 
-          </div>
-
-
-          {hasChildren ? (
-
-            <button
-              type="button"
-
-              className="secondary-btn"
-
-              onClick={() =>
-                setExpandedTopic(
-                  current =>
-                    current ===
-                      topic.id
-                      ? null
-                      : topic.id
+              {
+                progressLabel(
+                  progress
                 )
               }
-            >
-              {expanded
-                ? 'Hide'
-                : 'Subtypes'}
-            </button>
 
-          ) : (
+              {' • '}
 
-            <select
-              value={
+              {
                 progress
               }
 
-              disabled={
-                !signedIn ||
-                savingTopicId ===
-                  topic.id
-              }
+              %
 
-              onChange={
-                event => {
+            </small>
 
-                  void saveProgress(
-                    topic.id,
-                    Number(
-                      event
-                        .target
-                        .value
-                    )
-                  );
+          </button>
 
+
+          {
+            !hasChildren &&
+            signedIn && (
+
+              <select
+
+                value={
+                  progress
                 }
-              }
-            >
 
-              <option value="0">
-                0%
-              </option>
+                disabled={
+                  savingTopicId ===
+                  topic.id
+                }
 
-              <option value="10">
-                10%
-              </option>
+                onChange={
+                  event =>
+                    void saveProgress(
+                      topic.id,
+                      Number(
+                        event.target.value
+                      )
+                    )
+                }
 
-              <option value="20">
-                20%
-              </option>
+                style={{
+                  minWidth:
+                    '125px'
+                }}
 
-              <option value="30">
-                30%
-              </option>
+              >
 
-              <option value="40">
-                40%
-              </option>
+                {
+                  PROGRESS_OPTIONS.map(
+                    option => (
 
-              <option value="50">
-                50%
-              </option>
+                      <option
 
-              <option value="60">
-                60%
-              </option>
+                        key={
+                          option.value
+                        }
 
-              <option value="70">
-                70%
-              </option>
+                        value={
+                          option.value
+                        }
 
-              <option value="80">
-                80%
-              </option>
+                      >
 
-              <option value="90">
-                90%
-              </option>
+                        {
+                          option.value
+                        }
 
-              <option value="100">
-                100%
-              </option>
+                        %
 
-            </select>
+                      </option>
 
-          )}
+                    )
+                  )
+                }
+
+              </select>
+
+            )
+          }
 
         </div>
 
 
-        {hasChildren &&
-          expanded &&
-          renderSubtypes(
-            topic
-          )}
+        {/* PROGRESS BAR */}
 
-      </article>
+        <div
+          style={{
+
+            height:
+              '5px',
+
+            borderRadius:
+              '999px',
+
+            overflow:
+              'hidden',
+
+            background:
+              'rgba(255,255,255,.08)',
+
+            marginTop:
+              '8px'
+
+          }}
+        >
+
+          <div
+            style={{
+
+              height:
+                '100%',
+
+              width:
+                `${progress}%`,
+
+              background:
+                'currentColor',
+
+              transition:
+                'width .2s ease'
+
+            }}
+          />
+
+        </div>
+
+
+        {/* CHILD TOPICS */}
+
+        {
+          hasChildren &&
+          expanded && (
+
+            <div
+              style={{
+                marginTop:
+                  '7px'
+              }}
+            >
+
+              {
+                matchingChildren.map(
+                  child =>
+                    renderTopic(
+                      child,
+                      depth + 1
+                    )
+                )
+              }
+
+            </div>
+
+          )
+        }
+
+      </div>
 
     );
+
   }
 
+
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
 
     <>
+
+      {/* ===================================================
+          STAGE SELECTOR
+      =================================================== */}
 
       <section
         className="panel"
@@ -1283,25 +1908,54 @@ export function LearnPage({
         }}
       >
 
+        <span
+          className="eyebrow"
+        >
+          UPSC SYLLABUS
+        </span>
+
+
+        <h2
+          style={{
+            margin:
+              '6px 0 4px'
+          }}
+        >
+          Syllabus Tracker
+        </h2>
+
+
+        <p>
+          Track your preparation from subject
+          to topic and subtopic.
+        </p>
+
+
         <div
           style={{
+
             display:
               'grid',
 
             gridTemplateColumns:
-              'repeat(2,minmax(0,1fr))',
+              'repeat(2, minmax(0, 1fr))',
 
             gap:
-              '8px'
+              '8px',
+
+            marginTop:
+              '14px'
+
           }}
         >
 
           <button
+
             type="button"
 
             className={
               stage ===
-                'prelims'
+              'prelims'
                 ? 'filter active'
                 : 'filter'
             }
@@ -1311,17 +1965,21 @@ export function LearnPage({
                 'prelims'
               )
             }
+
           >
+
             Prelims
+
           </button>
 
 
           <button
+
             type="button"
 
             className={
               stage ===
-                'mains'
+              'mains'
                 ? 'filter active'
                 : 'filter'
             }
@@ -1331,8 +1989,11 @@ export function LearnPage({
                 'mains'
               )
             }
+
           >
+
             Mains
+
           </button>
 
         </div>
@@ -1340,72 +2001,524 @@ export function LearnPage({
       </section>
 
 
-      {!loading &&
-        !signedIn && (
+      {/* ===================================================
+          OVERVIEW
+      =================================================== */}
+
+      <section
+        className="panel"
+
+        style={{
+          marginTop:
+            '10px'
+        }}
+      >
+
+        <span
+          className="eyebrow"
+        >
+          YOUR PROGRESS
+        </span>
+
 
         <div
-          className="callout"
+          className="metrics-grid"
 
           style={{
             marginTop:
-              '10px'
+              '12px'
           }}
         >
-          Sign in to save progress percentages.
+
+          <article
+            className="metric-card"
+          >
+
+            <div>
+
+              <span>
+                Overall
+              </span>
+
+              <strong>
+                {
+                  overallProgress
+                }%
+              </strong>
+
+            </div>
+
+          </article>
+
+
+          <article
+            className="metric-card"
+          >
+
+            <div>
+
+              <span>
+                Started
+              </span>
+
+              <strong>
+                {
+                  startedTopics
+                }
+              </strong>
+
+            </div>
+
+          </article>
+
+
+          <article
+            className="metric-card"
+          >
+
+            <div>
+
+              <span>
+                Completed
+              </span>
+
+              <strong>
+                {
+                  completedTopics
+                }
+              </strong>
+
+            </div>
+
+          </article>
+
+
+          <article
+            className="metric-card"
+          >
+
+            <div>
+
+              <span>
+                Total Topics
+              </span>
+
+              <strong>
+                {
+                  stageLeafIds.length
+                }
+              </strong>
+
+            </div>
+
+          </article>
+
         </div>
 
-      )}
-
-
-      {message && (
 
         <div
-          className="callout"
-
           style={{
+
+            height:
+              '8px',
+
             marginTop:
-              '10px'
+              '12px',
+
+            borderRadius:
+              '999px',
+
+            background:
+              'rgba(255,255,255,.08)',
+
+            overflow:
+              'hidden'
+
           }}
         >
-          {message}
+
+          <div
+            style={{
+
+              width:
+                `${overallProgress}%`,
+
+              height:
+                '100%',
+
+              background:
+                'currentColor',
+
+              transition:
+                'width .25s ease'
+
+            }}
+          />
+
         </div>
 
-      )}
+
+        {
+          !signedIn &&
+          !loading && (
+
+            <div
+              className="callout"
+
+              style={{
+                marginTop:
+                  '12px'
+              }}
+            >
+
+              Sign in to save your personal
+              syllabus progress.
+
+            </div>
+
+          )
+        }
+
+      </section>
 
 
-      {error && (
+      {/* ===================================================
+          FILTERS
+      =================================================== */}
 
-        <div
-          className="callout"
+      <section
+        className="panel"
+
+        style={{
+          marginTop:
+            '10px'
+        }}
+      >
+
+        <button
+
+          type="button"
+
+          className="secondary-btn"
 
           style={{
-            marginTop:
-              '10px'
+            width:
+              '100%',
+
+            justifyContent:
+              'space-between'
           }}
+
+          onClick={() =>
+            setFiltersOpen(
+              current =>
+                !current
+            )
+          }
+
         >
-          {error}
-        </div>
 
-      )}
+          <span>
+            Search & Filters
+          </span>
 
+          <span>
+            {
+              filtersOpen
+                ? 'Hide'
+                : 'Open'
+            }
+          </span>
 
-      {loading && (
-
-        <section
-          className="panel"
-
-          style={{
-            marginTop:
-              '10px'
-          }}
-        >
-          Loading syllabus...
-        </section>
-
-      )}
+        </button>
 
 
-      {!loading &&
+        {
+          filtersOpen && (
+
+            <div
+              style={{
+
+                display:
+                  'grid',
+
+                gridTemplateColumns:
+                  'repeat(auto-fit, minmax(170px, 1fr))',
+
+                gap:
+                  '10px',
+
+                marginTop:
+                  '12px'
+
+              }}
+            >
+
+              <label>
+
+                Search
+
+                <input
+
+                  type="search"
+
+                  value={
+                    searchText
+                  }
+
+                  onChange={
+                    event =>
+                      setSearchText(
+                        event.target.value
+                      )
+                  }
+
+                  placeholder="History, Parliament, Economy..."
+
+                />
+
+              </label>
+
+
+              <label>
+
+                Paper
+
+                <select
+
+                  value={
+                    paperFilter
+                  }
+
+                  onChange={
+                    event =>
+                      setPaperFilter(
+                        event.target.value
+                      )
+                  }
+
+                >
+
+                  <option value="all">
+                    All Papers
+                  </option>
+
+
+                  {
+                    paperOptions.map(
+                      paper => (
+
+                        <option
+
+                          key={
+                            paper
+                          }
+
+                          value={
+                            paper
+                          }
+
+                        >
+
+                          {
+                            paper
+                          }
+
+                        </option>
+
+                      )
+                    )
+                  }
+
+                </select>
+
+              </label>
+
+
+              <label>
+
+                Display
+
+                <select
+
+                  value={
+                    hideCompleted
+                      ? 'pending'
+                      : 'all'
+                  }
+
+                  onChange={
+                    event =>
+                      setHideCompleted(
+                        event.target.value ===
+                        'pending'
+                      )
+                  }
+
+                >
+
+                  <option value="all">
+                    All Topics
+                  </option>
+
+                  <option value="pending">
+                    Hide Completed
+                  </option>
+
+                </select>
+
+              </label>
+
+
+              <button
+
+                type="button"
+
+                className="secondary-btn"
+
+                style={{
+                  alignSelf:
+                    'end'
+                }}
+
+                onClick={() => {
+
+                  setSearchText(
+                    ''
+                  );
+
+                  setPaperFilter(
+                    'all'
+                  );
+
+                  setHideCompleted(
+                    false
+                  );
+
+                }}
+
+              >
+
+                Clear Filters
+
+              </button>
+
+            </div>
+
+          )
+        }
+
+      </section>
+
+
+      {/* ===================================================
+          MESSAGES
+      =================================================== */}
+
+      {
+        message && (
+
+          <div
+            className="callout"
+
+            style={{
+              marginTop:
+                '10px'
+            }}
+          >
+
+            {
+              message
+            }
+
+          </div>
+
+        )
+      }
+
+
+      {
+        error && (
+
+          <div
+            className="callout"
+
+            style={{
+              marginTop:
+                '10px'
+            }}
+          >
+
+            <strong>
+              {
+                error
+              }
+            </strong>
+
+          </div>
+
+        )
+      }
+
+
+      {
+        loading && (
+
+          <section
+            className="panel"
+
+            style={{
+              marginTop:
+                '10px'
+            }}
+          >
+
+            Loading UPSC syllabus...
+
+          </section>
+
+        )
+      }
+
+
+      {/* ===================================================
+          EMPTY SEARCH
+      =================================================== */}
+
+      {
+        !loading &&
+        subjectNames.length ===
+        0 && (
+
+          <section
+            className="panel"
+
+            style={{
+              marginTop:
+                '10px'
+            }}
+          >
+
+            <h3>
+              No syllabus topics found
+            </h3>
+
+            <p>
+              Change your search or paper filter.
+            </p>
+
+          </section>
+
+        )
+      }
+
+
+      {/* ===================================================
+          SUBJECTS
+      =================================================== */}
+
+      {
+        !loading &&
         subjectNames.map(
           subject => {
 
@@ -1414,32 +2527,28 @@ export function LearnPage({
               subject;
 
 
-            const rootTopics =
+            const subjectTopics =
               rootTopicsForSubject(
                 subject
               );
 
 
             const subjectProgress =
-              average(
-                rootTopics.flatMap(
-                  topic =>
-                    getLeafIds(
-                      topic.id
-                    )
-                ).map(
-                  id =>
-                    progressMap[
-                      id
-                    ] ||
-                    0
-                )
+              getSubjectProgress(
+                subject
+              );
+
+
+            const subjectBooks =
+              booksForSubject(
+                subject
               );
 
 
             return (
 
               <section
+
                 className="panel"
 
                 key={
@@ -1447,30 +2556,40 @@ export function LearnPage({
                 }
 
                 style={{
+
                   marginTop:
                     '10px',
 
                   padding:
                     '14px'
+
                 }}
+
               >
 
+                {/* SUBJECT HEADER */}
+
                 <button
+
                   type="button"
 
                   onClick={() =>
                     setExpandedSubject(
                       current =>
                         current ===
-                          subject
+                        subject
                           ? null
                           : subject
                     )
                   }
 
                   style={{
+
                     width:
                       '100%',
+
+                    padding:
+                      0,
 
                     border:
                       0,
@@ -1485,13 +2604,13 @@ export function LearnPage({
                       'grid',
 
                     gridTemplateColumns:
-                      'minmax(0,1fr) auto',
-
-                    gap:
-                      '12px',
+                      '1fr auto',
 
                     alignItems:
                       'center',
+
+                    gap:
+                      '12px',
 
                     textAlign:
                       'left',
@@ -1501,18 +2620,36 @@ export function LearnPage({
 
                     whiteSpace:
                       'normal'
+
                   }}
+
                 >
 
                   <div>
 
-                    <strong>
-                      {subject}
+                    <strong
+                      style={{
+                        fontSize:
+                          '1rem'
+                      }}
+                    >
+
+                      {
+                        expanded
+                          ? '▾ '
+                          : '▸ '
+                      }
+
+                      {
+                        subject
+                      }
+
                     </strong>
 
 
                     <small
                       style={{
+
                         display:
                           'block',
 
@@ -1521,71 +2658,252 @@ export function LearnPage({
 
                         color:
                           '#94a3b8'
+
                       }}
                     >
-                      {subjectProgress}% completed
+
+                      {
+                        subjectTopics.length
+                      }
+
+                      {' major topics • '}
+
+                      {
+                        progressLabel(
+                          subjectProgress
+                        )
+                      }
+
                     </small>
 
                   </div>
 
 
-                  <span
-                    style={{
-                      color:
-                        '#5eead4',
-
-                      fontWeight:
-                        700
-                    }}
-                  >
-                    {expanded
-                      ? 'Close'
-                      : 'Open'}
-                  </span>
+                  <strong>
+                    {
+                      subjectProgress
+                    }%
+                  </strong>
 
                 </button>
 
 
-                {expanded && (
+                {/* SUBJECT PROGRESS */}
+
+                <div
+                  style={{
+
+                    height:
+                      '6px',
+
+                    marginTop:
+                      '10px',
+
+                    borderRadius:
+                      '999px',
+
+                    background:
+                      'rgba(255,255,255,.08)',
+
+                    overflow:
+                      'hidden'
+
+                  }}
+                >
 
                   <div
                     style={{
-                      display:
-                        'grid',
 
-                      gap:
-                        '9px',
+                      width:
+                        `${subjectProgress}%`,
 
-                      marginTop:
-                        '12px',
+                      height:
+                        '100%',
 
-                      paddingTop:
-                        '12px',
+                      background:
+                        'currentColor'
 
-                      borderTop:
-                        '1px solid rgba(255,255,255,.08)'
                     }}
-                  >
+                  />
 
-                    {rootTopics.map(
-                      topic =>
-                        renderMainTopic(
-                          topic
-                        )
-                    )}
+                </div>
 
-                  </div>
 
-                )}
+                {/* EXPANDED SUBJECT */}
+
+                {
+                  expanded && (
+
+                    <div
+                      style={{
+                        marginTop:
+                          '14px'
+                      }}
+                    >
+
+                      {/* STANDARD BOOKS */}
+
+                      <div
+                        className="callout"
+                      >
+
+                        <small
+                          style={{
+
+                            fontWeight:
+                              800,
+
+                            letterSpacing:
+                              '.04em'
+
+                          }}
+                        >
+
+                          STANDARD BOOKS
+
+                        </small>
+
+
+                        {
+                          subjectBooks.length >
+                          0
+                            ? (
+
+                              <div
+                                style={{
+
+                                  display:
+                                    'grid',
+
+                                  gap:
+                                    '7px',
+
+                                  marginTop:
+                                    '8px'
+
+                                }}
+                              >
+
+                                {
+                                  subjectBooks.map(
+                                    book => (
+
+                                      <div
+                                        key={
+                                          book.id
+                                        }
+                                      >
+
+                                        <strong>
+                                          {
+                                            book.title
+                                          }
+                                        </strong>
+
+
+                                        {
+                                          (
+                                            book.author ||
+                                            book.publisher
+                                          ) && (
+
+                                            <small
+                                              style={{
+
+                                                display:
+                                                  'block',
+
+                                                color:
+                                                  '#94a3b8',
+
+                                                marginTop:
+                                                  '2px'
+
+                                              }}
+                                            >
+
+                                              {
+                                                book.author ||
+                                                book.publisher
+                                              }
+
+                                            </small>
+
+                                          )
+                                        }
+
+                                      </div>
+
+                                    )
+                                  )
+                                }
+
+                              </div>
+
+                            )
+                            : (
+
+                              <small
+                                style={{
+
+                                  display:
+                                    'block',
+
+                                  marginTop:
+                                    '6px',
+
+                                  color:
+                                    '#94a3b8'
+
+                                }}
+                              >
+
+                                No standard book linked
+                                to this subject yet.
+
+                              </small>
+
+                            )
+                        }
+
+                      </div>
+
+
+                      {/* TOPICS */}
+
+                      <div
+                        style={{
+                          marginTop:
+                            '10px'
+                        }}
+                      >
+
+                        {
+                          subjectTopics.map(
+                            topic =>
+                              renderTopic(
+                                topic
+                              )
+                          )
+                        }
+
+                      </div>
+
+                    </div>
+
+                  )
+                }
 
               </section>
 
             );
 
           }
-        )}
+        )
+      }
 
     </>
 
   );
+
 }
