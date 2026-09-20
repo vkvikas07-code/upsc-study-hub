@@ -16,12 +16,18 @@ type NodeLevel =
   | 'subtopic';
 
 
+type ExamStage =
+  | 'prelims'
+  | 'mains'
+  | 'both';
+
+
 type PersonalBook = {
   id: string;
   title: string;
   author: string | null;
   subject: string | null;
-  exam_stage: 'prelims' | 'mains' | 'both';
+  exam_stage: ExamStage;
   notes: string | null;
   sort_order: number;
 };
@@ -43,7 +49,10 @@ type ParsedLine = {
 };
 
 
-const LEVEL_ORDER: Record<NodeLevel, number> = {
+const LEVEL_ORDER: Record<
+  NodeLevel,
+  number
+> = {
   part: 0,
   chapter: 1,
   topic: 2,
@@ -51,28 +60,58 @@ const LEVEL_ORDER: Record<NodeLevel, number> = {
 };
 
 
+const LEVEL_LABEL: Record<
+  NodeLevel,
+  string
+> = {
+  part: 'Part',
+  chapter: 'Chapter',
+  topic: 'Topic',
+  subtopic: 'Subtopic'
+};
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function percentage(
+  complete: number,
+  total: number
+) {
+
+  if (total <= 0) {
+    return 0;
+  }
+
+  return Math.round(
+    complete * 100 / total
+  );
+}
+
+
 function normaliseLevel(
   value: string
 ): NodeLevel | null {
 
-  const label =
+  const text =
     value
       .trim()
       .toLowerCase();
 
-  if (label === 'part') {
+  if (text === 'part') {
     return 'part';
   }
 
-  if (label === 'chapter') {
+  if (text === 'chapter') {
     return 'chapter';
   }
 
-  if (label === 'topic') {
+  if (text === 'topic') {
     return 'topic';
   }
 
-  if (label === 'subtopic') {
+  if (text === 'subtopic') {
     return 'subtopic';
   }
 
@@ -97,7 +136,7 @@ function parseOutline(
       );
 
 
-  const parsed: ParsedLine[] = [];
+  const output: ParsedLine[] = [];
 
 
   for (
@@ -106,9 +145,9 @@ function parseOutline(
   ) {
 
     /*
-      Method 1
+      Recommended format:
 
-      Part: Constitution
+      Part: Constitutional Framework
       Chapter: Fundamental Rights
       Topic: Article 14
       Subtopic: Equality
@@ -130,40 +169,30 @@ function parseOutline(
 
       if (level) {
 
-        parsed.push({
-
+        output.push({
           level,
-
           title:
-            explicit[2]
-              .trim()
-
+            explicit[2].trim()
         });
 
       }
 
       continue;
-
     }
 
 
     /*
-      Method 2
+      Alternative indented format:
 
-      Part 1
-        Chapter 1
-          Topic
-            Subtopic
-
-      Every 2 spaces =
-      one hierarchy level.
+      Part Name
+        Chapter Name
+          Topic Name
+            Subtopic Name
     */
 
-    const leading =
+    const spaces =
       rawLine
-        .match(
-          /^\s*/
-        )?.[0]
+        .match(/^\s*/)?.[0]
         .replace(
           /\t/g,
           '    '
@@ -175,97 +204,62 @@ function parseOutline(
       Math.min(
         3,
         Math.floor(
-          leading / 2
+          spaces / 2
         )
       );
 
 
-    const title =
-      rawLine.trim();
-
-
     const level: NodeLevel =
-
       depth === 0
         ? 'part'
-
         : depth === 1
           ? 'chapter'
-
           : depth === 2
             ? 'topic'
-
             : 'subtopic';
 
 
-    parsed.push({
-
+    output.push({
       level,
-
-      title
-
+      title:
+        rawLine.trim()
     });
 
   }
 
 
-  return parsed;
-
+  return output;
 }
 
 
-function percentage(
-  completed: number,
-  total: number
-) {
-
-  if (
-    total <= 0
-  ) {
-
-    return 0;
-
-  }
-
-
-  return Math.round(
-    completed *
-    100 /
-    total
-  );
-
-}
-
+/* =========================================================
+   COMPONENT
+========================================================= */
 
 export function MyReading() {
 
-  /* =====================================================
-     AUTH
-  ===================================================== */
+  /* =======================================================
+     USER
+  ======================================================= */
 
   const [
     userId,
     setUserId
   ] =
-    useState<
-      string |
-      null
-    >(
+    useState<string | null>(
       null
     );
 
 
-  /* =====================================================
-     BOOK DATA
-  ===================================================== */
+  /* =======================================================
+     DATABASE DATA
+  ======================================================= */
 
   const [
     books,
     setBooks
   ] =
-    useState<
-      PersonalBook[]
-    >(
+    useState<PersonalBook[]>(
       []
     );
 
@@ -274,9 +268,7 @@ export function MyReading() {
     nodes,
     setNodes
   ] =
-    useState<
-      PersonalNode[]
-    >(
+    useState<PersonalNode[]>(
       []
     );
 
@@ -285,9 +277,7 @@ export function MyReading() {
     completedIds,
     setCompletedIds
   ] =
-    useState<
-      Set<string>
-    >(
+    useState<Set<string>>(
       new Set()
     );
 
@@ -296,17 +286,14 @@ export function MyReading() {
     activeBookId,
     setActiveBookId
   ] =
-    useState<
-      string |
-      null
-    >(
+    useState<string | null>(
       null
     );
 
 
-  /* =====================================================
+  /* =======================================================
      GENERAL UI
-  ===================================================== */
+  ======================================================= */
 
   const [
     loading,
@@ -327,13 +314,151 @@ export function MyReading() {
 
 
   const [
-    addOpen,
-    setAddOpen
+    bookSearch,
+    setBookSearch
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    contentSearch,
+    setContentSearch
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    highlightedNodeId,
+    setHighlightedNodeId
+  ] =
+    useState<string | null>(
+      null
+    );
+
+
+  /* =======================================================
+     ADD BOOK
+  ======================================================= */
+
+  const [
+    addBookOpen,
+    setAddBookOpen
   ] =
     useState(
       false
     );
 
+
+  const [
+    newBookTitle,
+    setNewBookTitle
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    newBookAuthor,
+    setNewBookAuthor
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    newBookSubject,
+    setNewBookSubject
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    newBookStage,
+    setNewBookStage
+  ] =
+    useState<ExamStage>(
+      'both'
+    );
+
+
+  const [
+    newBookNotes,
+    setNewBookNotes
+  ] =
+    useState(
+      ''
+    );
+
+
+  /* =======================================================
+     EDIT BOOK
+  ======================================================= */
+
+  const [
+    editBookOpen,
+    setEditBookOpen
+  ] =
+    useState(
+      false
+    );
+
+
+  const [
+    editTitle,
+    setEditTitle
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    editAuthor,
+    setEditAuthor
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    editSubject,
+    setEditSubject
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    editStage,
+    setEditStage
+  ] =
+    useState<ExamStage>(
+      'both'
+    );
+
+
+  const [
+    editNotes,
+    setEditNotes
+  ] =
+    useState(
+      ''
+    );
+
+
+  /* =======================================================
+     INDEX IMPORT
+  ======================================================= */
 
   const [
     importOpen,
@@ -344,54 +469,6 @@ export function MyReading() {
     );
 
 
-  /* =====================================================
-     ADD BOOK FORM
-  ===================================================== */
-
-  const [
-    title,
-    setTitle
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    author,
-    setAuthor
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    subject,
-    setSubject
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    examStage,
-    setExamStage
-  ] =
-    useState<
-      'prelims' |
-      'mains' |
-      'both'
-    >(
-      'both'
-    );
-
-
-  /* =====================================================
-     BOOK INDEX IMPORT
-  ===================================================== */
-
   const [
     outline,
     setOutline
@@ -401,15 +478,55 @@ export function MyReading() {
     );
 
 
-  /* =====================================================
-     LOAD WORKSPACE
-  ===================================================== */
+  /* =======================================================
+     MANUAL STRUCTURE
+  ======================================================= */
 
-  async function loadWorkspace() {
+  const [
+    structureOpen,
+    setStructureOpen
+  ] =
+    useState(
+      false
+    );
 
-    if (
-      !supabase
-    ) {
+
+  const [
+    nodeLevel,
+    setNodeLevel
+  ] =
+    useState<NodeLevel>(
+      'chapter'
+    );
+
+
+  const [
+    nodeParentId,
+    setNodeParentId
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    nodeTitle,
+    setNodeTitle
+  ] =
+    useState(
+      ''
+    );
+
+
+  /* =======================================================
+     LOAD EVERYTHING
+  ======================================================= */
+
+  async function loadWorkspace(
+    preferredBookId?: string | null
+  ) {
+
+    if (!supabase) {
 
       setMessage(
         'Supabase is not configured.'
@@ -420,7 +537,6 @@ export function MyReading() {
       );
 
       return;
-
     }
 
 
@@ -428,17 +544,9 @@ export function MyReading() {
       true
     );
 
-    setMessage(
-      ''
-    );
-
-
-    /*
-      Get current signed-in user
-    */
 
     const {
-      data: userData
+      data: authData
     } =
       await supabase
         .auth
@@ -446,16 +554,10 @@ export function MyReading() {
 
 
     const user =
-      userData.user;
+      authData.user;
 
 
-    /*
-      Not logged in
-    */
-
-    if (
-      !user
-    ) {
+    if (!user) {
 
       setUserId(
         null
@@ -473,6 +575,10 @@ export function MyReading() {
         new Set()
       );
 
+      setActiveBookId(
+        null
+      );
+
       setMessage(
         'Sign in to use My Reading.'
       );
@@ -482,7 +588,6 @@ export function MyReading() {
       );
 
       return;
-
     }
 
 
@@ -491,9 +596,9 @@ export function MyReading() {
     );
 
 
-    /* ===================================================
-       LOAD PERSONAL BOOKS
-    =================================================== */
+    /* -------------------------------------------------------
+       BOOKS
+    ------------------------------------------------------- */
 
     const {
       data: bookRows,
@@ -521,25 +626,20 @@ export function MyReading() {
         .order(
           'sort_order',
           {
-            ascending:
-              true
+            ascending: true
           }
         )
         .order(
           'created_at',
           {
-            ascending:
-              true
+            ascending: true
           }
         );
 
 
-    if (
-      bookError
-    ) {
+    if (bookError) {
 
       console.error(
-        'Personal books load error:',
         bookError
       );
 
@@ -552,11 +652,10 @@ export function MyReading() {
       );
 
       return;
-
     }
 
 
-    const nextBooks =
+    const loadedBooks =
       (
         bookRows ||
         []
@@ -564,16 +663,12 @@ export function MyReading() {
 
 
     setBooks(
-      nextBooks
+      loadedBooks
     );
 
 
-    /*
-      No books
-    */
-
     if (
-      nextBooks.length ===
+      loadedBooks.length ===
       0
     ) {
 
@@ -594,20 +689,19 @@ export function MyReading() {
       );
 
       return;
-
     }
 
 
-    const ids =
-      nextBooks.map(
+    const bookIds =
+      loadedBooks.map(
         book =>
           book.id
       );
 
 
-    /* ===================================================
-       LOAD BOOK STRUCTURE
-    =================================================== */
+    /* -------------------------------------------------------
+       BOOK STRUCTURE
+    ------------------------------------------------------- */
 
     const {
       data: nodeRows,
@@ -629,23 +723,25 @@ export function MyReading() {
         )
         .in(
           'book_id',
-          ids
+          bookIds
         )
         .order(
           'sort_order',
           {
-            ascending:
-              true
+            ascending: true
+          }
+        )
+        .order(
+          'created_at',
+          {
+            ascending: true
           }
         );
 
 
-    if (
-      nodeError
-    ) {
+    if (nodeError) {
 
       console.error(
-        'Book node load error:',
         nodeError
       );
 
@@ -658,11 +754,10 @@ export function MyReading() {
       );
 
       return;
-
     }
 
 
-    const nextNodes =
+    const loadedNodes =
       (
         nodeRows ||
         []
@@ -670,16 +765,16 @@ export function MyReading() {
 
 
     setNodes(
-      nextNodes
+      loadedNodes
     );
 
 
-    /* ===================================================
-       LOAD READING PROGRESS
-    =================================================== */
+    /* -------------------------------------------------------
+       PROGRESS
+    ------------------------------------------------------- */
 
     const nodeIds =
-      nextNodes.map(
+      loadedNodes.map(
         node =>
           node.id
       );
@@ -714,12 +809,9 @@ export function MyReading() {
           );
 
 
-      if (
-        progressError
-      ) {
+      if (progressError) {
 
         console.error(
-          'Personal reading progress load error:',
           progressError
         );
 
@@ -732,36 +824,31 @@ export function MyReading() {
         );
 
         return;
-
       }
 
 
-      const nextCompletedIds =
+      const completed =
         new Set(
-
           (
             progressRows ||
             []
           )
-
             .filter(
               row =>
                 row.completed ===
                 true
             )
-
             .map(
               row =>
                 String(
                   row.node_id
                 )
             )
-
         );
 
 
       setCompletedIds(
-        nextCompletedIds
+        completed
       );
 
     } else {
@@ -773,23 +860,34 @@ export function MyReading() {
     }
 
 
-    /*
-      Preserve selected book.
+    const requested =
+      preferredBookId &&
+      bookIds.includes(
+        preferredBookId
+      )
+        ? preferredBookId
+        : null;
 
-      Otherwise open first book.
-    */
 
     setActiveBookId(
-      current =>
+      current => {
 
-        current &&
-        ids.includes(
-          current
-        )
+        if (requested) {
+          return requested;
+        }
 
-          ? current
+        if (
+          current &&
+          bookIds.includes(
+            current
+          )
+        ) {
+          return current;
+        }
 
-          : ids[0]
+        return bookIds[0];
+
+      }
     );
 
 
@@ -800,9 +898,9 @@ export function MyReading() {
   }
 
 
-  /* =====================================================
-     INITIAL LOAD
-  ===================================================== */
+  /* =======================================================
+     FIRST LOAD
+  ======================================================= */
 
   useEffect(
     () => {
@@ -814,26 +912,30 @@ export function MyReading() {
   );
 
 
-  /* =====================================================
+  /* =======================================================
      ACTIVE BOOK
-  ===================================================== */
+  ======================================================= */
 
   const activeBook =
-    books.find(
-      book =>
-        book.id ===
+    useMemo(
+      () =>
+
+        books.find(
+          book =>
+            book.id ===
+            activeBookId
+        ) ||
+        null,
+
+      [
+        books,
         activeBookId
-    ) ||
-    null;
+      ]
+    );
 
-
-  /* =====================================================
-     ACTIVE BOOK NODES
-  ===================================================== */
 
   const activeNodes =
     useMemo(
-
       () =>
 
         nodes.filter(
@@ -846,17 +948,15 @@ export function MyReading() {
         nodes,
         activeBookId
       ]
-
     );
 
 
-  /* =====================================================
-     CREATE PARENT → CHILD MAP
-  ===================================================== */
+  /* =======================================================
+     CHILD MAP
+  ======================================================= */
 
   const childrenByParent =
     useMemo(
-
       () => {
 
         const map =
@@ -869,13 +969,9 @@ export function MyReading() {
         activeNodes.forEach(
           node => {
 
-            const key =
-              node.parent_id;
-
-
             const current =
               map.get(
-                key
+                node.parent_id
               ) ||
               [];
 
@@ -886,7 +982,7 @@ export function MyReading() {
 
 
             map.set(
-              key,
+              node.parent_id,
               current
             );
 
@@ -894,55 +990,46 @@ export function MyReading() {
         );
 
 
-        /*
-          Sort each level
-        */
-
         map.forEach(
-          list =>
+          list => {
 
             list.sort(
               (
                 first,
                 second
               ) =>
-
                 first.sort_order -
                 second.sort_order
-            )
+            );
+
+          }
         );
 
 
         return map;
 
       },
-
       [
         activeNodes
       ]
-
     );
 
 
-  /* =====================================================
-     FIND LEAF ITEMS
-  ===================================================== */
+  /* =======================================================
+     LEAF IDS
+  ======================================================= */
 
   const leafIds =
     useMemo(
-
       () =>
 
         activeNodes
-
           .filter(
             node =>
-
               !childrenByParent.has(
                 node.id
               )
           )
-
           .map(
             node =>
               node.id
@@ -952,15 +1039,10 @@ export function MyReading() {
         activeNodes,
         childrenByParent
       ]
-
     );
 
 
-  /* =====================================================
-     OVERALL PROGRESS
-  ===================================================== */
-
-  const completeLeafCount =
+  const completedLeafCount =
     leafIds.filter(
       id =>
         completedIds.has(
@@ -969,27 +1051,205 @@ export function MyReading() {
     ).length;
 
 
-  const overallPercent =
+  const overallProgress =
     percentage(
-      completeLeafCount,
+      completedLeafCount,
       leafIds.length
     );
 
 
-  /* =====================================================
-     ADD NEW PERSONAL BOOK
-  ===================================================== */
+  /* =======================================================
+     BOOK STATUS
+  ======================================================= */
+
+  function getBookStats(
+    bookId: string
+  ) {
+
+    const bookNodes =
+      nodes.filter(
+        node =>
+          node.book_id ===
+          bookId
+      );
+
+
+    const parentIds =
+      new Set(
+        bookNodes
+          .map(
+            node =>
+              node.parent_id
+          )
+          .filter(
+            (
+              id
+            ): id is string =>
+              Boolean(id)
+          )
+      );
+
+
+    const leaves =
+      bookNodes.filter(
+        node =>
+          !parentIds.has(
+            node.id
+          )
+      );
+
+
+    const done =
+      leaves.filter(
+        node =>
+          completedIds.has(
+            node.id
+          )
+      ).length;
+
+
+    const percent =
+      percentage(
+        done,
+        leaves.length
+      );
+
+
+    let status =
+      'Not Started';
+
+
+    if (
+      percent > 0 &&
+      percent < 100
+    ) {
+
+      status =
+        'In Progress';
+
+    }
+
+
+    if (
+      percent === 100 &&
+      leaves.length > 0
+    ) {
+
+      status =
+        'Completed';
+
+    }
+
+
+    return {
+      total:
+        leaves.length,
+
+      done,
+
+      percent,
+
+      status
+    };
+
+  }
+
+
+  /* =======================================================
+     FILTER BOOKS
+  ======================================================= */
+
+  const visibleBooks =
+    useMemo(
+      () => {
+
+        const query =
+          bookSearch
+            .trim()
+            .toLowerCase();
+
+
+        if (!query) {
+          return books;
+        }
+
+
+        return books.filter(
+          book => {
+
+            const text =
+              [
+                book.title,
+                book.author || '',
+                book.subject || ''
+              ]
+                .join(' ')
+                .toLowerCase();
+
+
+            return text.includes(
+              query
+            );
+
+          }
+        );
+
+      },
+      [
+        books,
+        bookSearch
+      ]
+    );
+
+
+  /* =======================================================
+     CONTENT SEARCH
+  ======================================================= */
+
+  const contentMatches =
+    useMemo(
+      () => {
+
+        const query =
+          contentSearch
+            .trim()
+            .toLowerCase();
+
+
+        if (!query) {
+          return [];
+        }
+
+
+        return activeNodes.filter(
+          node =>
+            node.title
+              .toLowerCase()
+              .includes(
+                query
+              )
+        );
+
+      },
+      [
+        activeNodes,
+        contentSearch
+      ]
+    );
+
+
+  /* =======================================================
+     ADD BOOK
+  ======================================================= */
 
   async function addBook() {
 
     if (
       !supabase ||
       !userId ||
-      !title.trim()
+      !newBookTitle.trim()
     ) {
-
       return;
-
     }
 
 
@@ -999,6 +1259,7 @@ export function MyReading() {
 
 
     const {
+      data,
       error
     } =
       await supabase
@@ -1011,28 +1272,33 @@ export function MyReading() {
             userId,
 
           title:
-            title.trim(),
+            newBookTitle.trim(),
 
           author:
-            author.trim() ||
+            newBookAuthor.trim() ||
             null,
 
           subject:
-            subject.trim() ||
+            newBookSubject.trim() ||
             null,
 
           exam_stage:
-            examStage
+            newBookStage,
 
-        });
+          notes:
+            newBookNotes.trim() ||
+            null
+
+        })
+        .select(
+          'id'
+        )
+        .single();
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       console.error(
-        'Add personal book error:',
         error
       );
 
@@ -1041,31 +1307,22 @@ export function MyReading() {
       );
 
       return;
-
     }
 
 
-    /*
-      Clear form
-    */
+    const newId =
+      String(
+        data.id
+      );
 
-    setTitle(
-      ''
-    );
 
-    setAuthor(
-      ''
-    );
+    setNewBookTitle('');
+    setNewBookAuthor('');
+    setNewBookSubject('');
+    setNewBookStage('both');
+    setNewBookNotes('');
 
-    setSubject(
-      ''
-    );
-
-    setExamStage(
-      'both'
-    );
-
-    setAddOpen(
+    setAddBookOpen(
       false
     );
 
@@ -1075,68 +1332,247 @@ export function MyReading() {
     );
 
 
-    await loadWorkspace();
+    await loadWorkspace(
+      newId
+    );
 
   }
 
 
-  /* =====================================================
-     IMPORT BOOK INDEX
-  ===================================================== */
+  /* =======================================================
+     OPEN EDIT FORM
+  ======================================================= */
+
+  function openEditBook() {
+
+    if (!activeBook) {
+      return;
+    }
+
+
+    setEditTitle(
+      activeBook.title
+    );
+
+    setEditAuthor(
+      activeBook.author ||
+      ''
+    );
+
+    setEditSubject(
+      activeBook.subject ||
+      ''
+    );
+
+    setEditStage(
+      activeBook.exam_stage
+    );
+
+    setEditNotes(
+      activeBook.notes ||
+      ''
+    );
+
+    setEditBookOpen(
+      true
+    );
+
+  }
+
+
+  /* =======================================================
+     SAVE BOOK CHANGES
+  ======================================================= */
+
+  async function updateBook() {
+
+    if (
+      !supabase ||
+      !activeBook ||
+      !editTitle.trim()
+    ) {
+      return;
+    }
+
+
+    const {
+      error
+    } =
+      await supabase
+        .from(
+          'personal_books'
+        )
+        .update({
+
+          title:
+            editTitle.trim(),
+
+          author:
+            editAuthor.trim() ||
+            null,
+
+          subject:
+            editSubject.trim() ||
+            null,
+
+          exam_stage:
+            editStage,
+
+          notes:
+            editNotes.trim() ||
+            null
+
+        })
+        .eq(
+          'id',
+          activeBook.id
+        );
+
+
+    if (error) {
+
+      console.error(
+        error
+      );
+
+      setMessage(
+        error.message
+      );
+
+      return;
+    }
+
+
+    setEditBookOpen(
+      false
+    );
+
+
+    setMessage(
+      'Book updated successfully.'
+    );
+
+
+    await loadWorkspace(
+      activeBook.id
+    );
+
+  }
+
+
+  /* =======================================================
+     DELETE BOOK
+  ======================================================= */
+
+  async function deleteBook() {
+
+    if (
+      !supabase ||
+      !activeBook
+    ) {
+      return;
+    }
+
+
+    const confirmed =
+      window.confirm(
+        `Delete "${activeBook.title}" and all its reading progress?`
+      );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+
+    const {
+      error
+    } =
+      await supabase
+        .from(
+          'personal_books'
+        )
+        .delete()
+        .eq(
+          'id',
+          activeBook.id
+        );
+
+
+    if (error) {
+
+      console.error(
+        error
+      );
+
+      setMessage(
+        error.message
+      );
+
+      return;
+    }
+
+
+    setMessage(
+      'Book deleted.'
+    );
+
+
+    setEditBookOpen(
+      false
+    );
+
+    setImportOpen(
+      false
+    );
+
+    setStructureOpen(
+      false
+    );
+
+
+    await loadWorkspace(
+      null
+    );
+
+  }
+
+
+  /* =======================================================
+     IMPORT INDEX
+  ======================================================= */
 
   async function importIndex() {
 
     if (
       !supabase ||
-      !userId ||
       !activeBookId
     ) {
-
       return;
-
     }
 
 
-    const items =
+    const parsed =
       parseOutline(
         outline
       );
 
 
     if (
-      items.length ===
+      parsed.length ===
       0
     ) {
 
       setMessage(
-        'Add at least one outline line before importing.'
+        'Enter the book outline first.'
       );
 
       return;
-
     }
 
 
-    setMessage(
-      'Importing outline...'
-    );
-
-
-    /*
-      Stores last parent ID
-      for every hierarchy depth.
-
-      0 = Part
-      1 = Chapter
-      2 = Topic
-      3 = Subtopic
-    */
-
     const parentByDepth:
-      Array<
-        string |
-        null
-      > =
+      Array<string | null> =
       [
         null,
         null,
@@ -1146,12 +1582,19 @@ export function MyReading() {
 
 
     let sortOrder =
+      Math.max(
+        0,
+        ...activeNodes.map(
+          node =>
+            node.sort_order
+        )
+      ) +
       10;
 
 
     for (
       const item
-      of items
+      of parsed
     ) {
 
       const depth =
@@ -1161,11 +1604,8 @@ export function MyReading() {
 
 
       const parentId =
-
         depth === 0
-
           ? null
-
           : parentByDepth[
               depth - 1
             ];
@@ -1176,11 +1616,9 @@ export function MyReading() {
         error
       } =
         await supabase
-
           .from(
             'personal_book_nodes'
           )
-
           .insert({
 
             book_id:
@@ -1199,20 +1637,15 @@ export function MyReading() {
               sortOrder
 
           })
-
           .select(
             'id'
           )
-
           .single();
 
 
-      if (
-        error
-      ) {
+      if (error) {
 
         console.error(
-          'Book index import error:',
           error
         );
 
@@ -1221,15 +1654,8 @@ export function MyReading() {
         );
 
         return;
-
       }
 
-
-      /*
-        This newly created node
-        becomes parent for
-        the next deeper level.
-      */
 
       parentByDepth[
         depth
@@ -1239,21 +1665,12 @@ export function MyReading() {
         );
 
 
-      /*
-        Clear any deeper parent IDs
-        because hierarchy changed.
-      */
-
       for (
-
         let index =
           depth + 1;
-
         index <
           parentByDepth.length;
-
         index += 1
-
       ) {
 
         parentByDepth[
@@ -1280,18 +1697,193 @@ export function MyReading() {
 
 
     setMessage(
-      'Index imported successfully.'
+      'Book index imported successfully.'
     );
 
 
-    await loadWorkspace();
+    await loadWorkspace(
+      activeBookId
+    );
 
   }
 
 
-  /* =====================================================
-     MARK LEAF ITEM DONE / UNDONE
-  ===================================================== */
+  /* =======================================================
+     MANUAL PARENT OPTIONS
+  ======================================================= */
+
+  const parentOptions =
+    useMemo(
+      () => {
+
+        if (
+          nodeLevel ===
+          'part'
+        ) {
+          return [];
+        }
+
+
+        let expectedLevel:
+          NodeLevel;
+
+
+        if (
+          nodeLevel ===
+          'chapter'
+        ) {
+
+          expectedLevel =
+            'part';
+
+        } else if (
+          nodeLevel ===
+          'topic'
+        ) {
+
+          expectedLevel =
+            'chapter';
+
+        } else {
+
+          expectedLevel =
+            'topic';
+
+        }
+
+
+        return activeNodes.filter(
+          node =>
+            node.level ===
+            expectedLevel
+        );
+
+      },
+      [
+        nodeLevel,
+        activeNodes
+      ]
+    );
+
+
+  /* =======================================================
+     ADD MANUAL STRUCTURE NODE
+  ======================================================= */
+
+  async function addStructureNode() {
+
+    if (
+      !supabase ||
+      !activeBookId ||
+      !nodeTitle.trim()
+    ) {
+      return;
+    }
+
+
+    const selectedParent =
+      nodeParentId ||
+      null;
+
+
+    const siblingNodes =
+      activeNodes.filter(
+        node =>
+          node.parent_id ===
+          selectedParent
+      );
+
+
+    const sortOrder =
+      Math.max(
+        0,
+        ...siblingNodes.map(
+          node =>
+            node.sort_order
+        )
+      ) +
+      10;
+
+
+    const {
+      error
+    } =
+      await supabase
+        .from(
+          'personal_book_nodes'
+        )
+        .insert({
+
+          book_id:
+            activeBookId,
+
+          parent_id:
+            selectedParent,
+
+          level:
+            nodeLevel,
+
+          title:
+            nodeTitle.trim(),
+
+          sort_order:
+            sortOrder
+
+        });
+
+
+    if (error) {
+
+      console.error(
+        error
+      );
+
+      setMessage(
+        error.message
+      );
+
+      return;
+    }
+
+
+    setNodeTitle(
+      ''
+    );
+
+
+    setMessage(
+      `${LEVEL_LABEL[nodeLevel]} added.`
+    );
+
+
+    await loadWorkspace(
+      activeBookId
+    );
+
+  }
+
+
+  /* =======================================================
+     WHEN LEVEL CHANGES
+  ======================================================= */
+
+  useEffect(
+    () => {
+
+      setNodeParentId(
+        ''
+      );
+
+    },
+    [
+      nodeLevel
+    ]
+  );
+
+
+  /* =======================================================
+     MARK LEAF COMPLETE
+  ======================================================= */
 
   async function toggleLeaf(
     nodeId: string
@@ -1301,13 +1893,11 @@ export function MyReading() {
       !supabase ||
       !userId
     ) {
-
       return;
-
     }
 
 
-    const nextCompleted =
+    const completed =
       !completedIds.has(
         nodeId
       );
@@ -1317,13 +1907,10 @@ export function MyReading() {
       error
     } =
       await supabase
-
         .from(
           'personal_book_progress'
         )
-
         .upsert(
-
           {
 
             user_id:
@@ -1332,36 +1919,25 @@ export function MyReading() {
             node_id:
               nodeId,
 
-            completed:
-              nextCompleted,
+            completed,
 
             completed_at:
-
-              nextCompleted
-
+              completed
                 ? new Date()
                     .toISOString()
-
                 : null
 
           },
-
           {
-
             onConflict:
               'user_id,node_id'
-
           }
-
         );
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       console.error(
-        'Personal reading progress error:',
         error
       );
 
@@ -1370,14 +1946,8 @@ export function MyReading() {
       );
 
       return;
-
     }
 
-
-    /*
-      Update locally
-      without reloading page
-    */
 
     setCompletedIds(
       current => {
@@ -1388,9 +1958,7 @@ export function MyReading() {
           );
 
 
-        if (
-          nextCompleted
-        ) {
+        if (completed) {
 
           next.add(
             nodeId
@@ -1413,9 +1981,9 @@ export function MyReading() {
   }
 
 
-  /* =====================================================
-     GET ALL LEAF ITEMS UNDER A NODE
-  ===================================================== */
+  /* =======================================================
+     DESCENDANT LEAVES
+  ======================================================= */
 
   function descendantLeafIds(
     nodeId: string
@@ -1427,11 +1995,6 @@ export function MyReading() {
       ) ||
       [];
 
-
-    /*
-      No children means:
-      this itself is a trackable leaf.
-    */
 
     if (
       children.length ===
@@ -1455,9 +2018,95 @@ export function MyReading() {
   }
 
 
-  /* =====================================================
-     RECURSIVE NODE RENDERER
-  ===================================================== */
+  /* =======================================================
+     SCROLL TO NODE
+  ======================================================= */
+
+  function scrollToNode(
+    nodeId: string
+  ) {
+
+    setHighlightedNodeId(
+      nodeId
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        const element =
+          document.getElementById(
+            `reading-node-${nodeId}`
+          );
+
+
+        element?.scrollIntoView({
+          behavior:
+            'smooth',
+
+          block:
+            'center'
+        });
+
+      },
+      50
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        setHighlightedNodeId(
+          current =>
+            current === nodeId
+              ? null
+              : current
+        );
+
+      },
+      2200
+    );
+
+  }
+
+
+  /* =======================================================
+     CONTINUE READING
+  ======================================================= */
+
+  function continueReading() {
+
+    const nextId =
+      leafIds.find(
+        id =>
+          !completedIds.has(
+            id
+          )
+      );
+
+
+    if (!nextId) {
+
+      setMessage(
+        leafIds.length > 0
+          ? 'This book is fully completed.'
+          : 'Add the book structure first.'
+      );
+
+      return;
+    }
+
+
+    scrollToNode(
+      nextId
+    );
+
+  }
+
+
+  /* =======================================================
+     RENDER NODE
+  ======================================================= */
 
   function renderNode(
     node: PersonalNode,
@@ -1493,9 +2142,14 @@ export function MyReading() {
       );
 
 
-    /* ===================================================
-       LEAF ITEM
-    =================================================== */
+    const highlighted =
+      highlightedNodeId ===
+      node.id;
+
+
+    /* -----------------------------------------------------
+       LEAF
+    ----------------------------------------------------- */
 
     if (
       children.length ===
@@ -1512,6 +2166,10 @@ export function MyReading() {
 
         <div
 
+          id={
+            `reading-node-${node.id}`
+          }
+
           key={
             node.id
           }
@@ -1519,7 +2177,7 @@ export function MyReading() {
           style={{
 
             marginLeft:
-              `${depth * 12}px`,
+              `${depth * 10}px`,
 
             marginTop:
               '8px',
@@ -1528,7 +2186,9 @@ export function MyReading() {
               '10px 12px',
 
             border:
-              '1px solid rgba(255,255,255,.08)',
+              highlighted
+                ? '1px solid currentColor'
+                : '1px solid rgba(255,255,255,.08)',
 
             borderRadius:
               '12px',
@@ -1543,10 +2203,13 @@ export function MyReading() {
               'space-between',
 
             gap:
-              '12px',
+              '10px',
 
             flexWrap:
-              'wrap'
+              'wrap',
+
+            transition:
+              'border .2s ease'
 
           }}
 
@@ -1556,18 +2219,18 @@ export function MyReading() {
 
             <small
               style={{
-
                 color:
                   '#94a3b8',
 
                 textTransform:
                   'uppercase'
-
               }}
             >
 
               {
-                node.level
+                LEVEL_LABEL[
+                  node.level
+                ]
               }
 
             </small>
@@ -1591,30 +2254,22 @@ export function MyReading() {
             type="button"
 
             className={
-
               completed
-
                 ? 'filter active'
-
                 : 'filter'
-
             }
 
             onClick={() =>
-
               void toggleLeaf(
                 node.id
               )
-
             }
 
           >
 
             {
               completed
-
-                ? 'Done'
-
+                ? 'Completed ✓'
                 : 'Mark Done'
             }
 
@@ -1627,27 +2282,31 @@ export function MyReading() {
     }
 
 
-    /* ===================================================
-       PARENT ITEM
-    =================================================== */
+    /* -----------------------------------------------------
+       PARENT
+    ----------------------------------------------------- */
 
     return (
 
       <details
+
+        id={
+          `reading-node-${node.id}`
+        }
 
         key={
           node.id
         }
 
         open={
-          depth ===
-          0
+          depth === 0 ||
+          highlighted
         }
 
         style={{
 
           marginLeft:
-            `${depth * 10}px`,
+            `${depth * 8}px`,
 
           marginTop:
             '8px',
@@ -1656,7 +2315,9 @@ export function MyReading() {
             '10px 12px',
 
           border:
-            '1px solid rgba(255,255,255,.08)',
+            highlighted
+              ? '1px solid currentColor'
+              : '1px solid rgba(255,255,255,.08)',
 
           borderRadius:
             '12px'
@@ -1679,28 +2340,57 @@ export function MyReading() {
                 'inline-flex',
 
               width:
-                'calc(100% - 20px)',
+                'calc(100% - 18px)',
 
               justifyContent:
                 'space-between',
 
               gap:
-                '12px'
+                '10px',
+
+              verticalAlign:
+                'middle'
 
             }}
           >
 
-            <strong>
-              {
-                node.title
-              }
-            </strong>
+            <span>
+
+              <small
+                style={{
+                  color:
+                    '#94a3b8'
+                }}
+              >
+
+                {
+                  LEVEL_LABEL[
+                    node.level
+                  ]
+                }
+
+              </small>
+
+
+              <br />
+
+
+              <strong>
+                {
+                  node.title
+                }
+              </strong>
+
+            </span>
 
 
             <small
               style={{
                 color:
-                  '#94a3b8'
+                  '#94a3b8',
+
+                flex:
+                  '0 0 auto'
               }}
             >
 
@@ -1732,14 +2422,13 @@ export function MyReading() {
         <div
           style={{
             marginTop:
-              '8px'
+              '10px'
           }}
         >
 
           {
             children.map(
               child =>
-
                 renderNode(
                   child,
                   depth + 1
@@ -1756,17 +2445,17 @@ export function MyReading() {
   }
 
 
-  /* =====================================================
-     COMPONENT UI
-  ===================================================== */
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
 
     <div>
 
-      {/* =================================================
+      {/* ===================================================
           HEADER
-      ================================================= */}
+      =================================================== */}
 
       <section
         className="panel"
@@ -1786,14 +2475,14 @@ export function MyReading() {
 
 
             <h2>
-              Personal Book Tracker
+              Personal Reading Workspace
             </h2>
 
 
             <p>
-              Track any book as Part → Chapter →
-              Topic → Subtopic and keep exact
-              reading progress.
+              Add your books, organise chapters and
+              topics, track completion and continue
+              exactly where you stopped.
             </p>
 
           </div>
@@ -1803,15 +2492,13 @@ export function MyReading() {
 
             type="button"
 
-            className="secondary-btn"
+            className="primary-btn"
 
             onClick={() =>
-
-              setAddOpen(
+              setAddBookOpen(
                 current =>
                   !current
               )
-
             }
 
           >
@@ -1822,8 +2509,6 @@ export function MyReading() {
 
         </div>
 
-
-        {/* MESSAGE */}
 
         {
           message && (
@@ -1847,12 +2532,12 @@ export function MyReading() {
         }
 
 
-        {/* ===============================================
+        {/* =================================================
             ADD BOOK FORM
-        =============================================== */}
+        ================================================= */}
 
         {
-          addOpen && (
+          addBookOpen && (
 
             <div
               style={{
@@ -1861,7 +2546,7 @@ export function MyReading() {
                   'grid',
 
                 gridTemplateColumns:
-                  'repeat(auto-fit, minmax(170px, 1fr))',
+                  'repeat(auto-fit, minmax(180px, 1fr))',
 
                 gap:
                   '10px',
@@ -1872,8 +2557,6 @@ export function MyReading() {
               }}
             >
 
-              {/* BOOK TITLE */}
-
               <label>
 
                 Book Title
@@ -1881,25 +2564,22 @@ export function MyReading() {
                 <input
 
                   value={
-                    title
+                    newBookTitle
                   }
 
                   onChange={
                     event =>
-
-                      setTitle(
+                      setNewBookTitle(
                         event.target.value
                       )
                   }
 
-                  placeholder="e.g. Indian Polity"
+                  placeholder="Indian Polity"
 
                 />
 
               </label>
 
-
-              {/* AUTHOR */}
 
               <label>
 
@@ -1908,25 +2588,22 @@ export function MyReading() {
                 <input
 
                   value={
-                    author
+                    newBookAuthor
                   }
 
                   onChange={
                     event =>
-
-                      setAuthor(
+                      setNewBookAuthor(
                         event.target.value
                       )
                   }
 
-                  placeholder="Optional"
+                  placeholder="M. Laxmikanth"
 
                 />
 
               </label>
 
-
-              {/* SUBJECT */}
 
               <label>
 
@@ -1935,25 +2612,22 @@ export function MyReading() {
                 <input
 
                   value={
-                    subject
+                    newBookSubject
                   }
 
                   onChange={
                     event =>
-
-                      setSubject(
+                      setNewBookSubject(
                         event.target.value
                       )
                   }
 
-                  placeholder="e.g. Polity"
+                  placeholder="Polity"
 
                 />
 
               </label>
 
-
-              {/* EXAM STAGE */}
 
               <label>
 
@@ -1962,44 +2636,29 @@ export function MyReading() {
                 <select
 
                   value={
-                    examStage
+                    newBookStage
                   }
 
                   onChange={
                     event =>
-
-                      setExamStage(
-
-                        event
-                          .target
+                      setNewBookStage(
+                        event.target
                           .value as
-
-                          | 'prelims'
-                          | 'mains'
-                          | 'both'
-
+                          ExamStage
                       )
                   }
 
                 >
 
-                  <option
-                    value="both"
-                  >
+                  <option value="both">
                     Prelims + Mains
                   </option>
 
-
-                  <option
-                    value="prelims"
-                  >
+                  <option value="prelims">
                     Prelims
                   </option>
 
-
-                  <option
-                    value="mains"
-                  >
+                  <option value="mains">
                     Mains
                   </option>
 
@@ -2008,7 +2667,38 @@ export function MyReading() {
               </label>
 
 
-              {/* SAVE */}
+              <label
+                style={{
+                  gridColumn:
+                    '1 / -1'
+                }}
+              >
+
+                Notes
+
+                <textarea
+
+                  rows={
+                    3
+                  }
+
+                  value={
+                    newBookNotes
+                  }
+
+                  onChange={
+                    event =>
+                      setNewBookNotes(
+                        event.target.value
+                      )
+                  }
+
+                  placeholder="Optional notes about this book..."
+
+                />
+
+              </label>
+
 
               <button
 
@@ -2034,29 +2724,25 @@ export function MyReading() {
       </section>
 
 
-      {/* =================================================
-          READING WORKSPACE
-      ================================================= */}
+      {/* ===================================================
+          MAIN WORKSPACE
+      =================================================== */}
 
       <section
-
         className="panel"
 
         style={{
           marginTop:
             '12px'
         }}
-
       >
-
-        {/* LOADING */}
 
         {
           loading
             ? (
 
               <p>
-                Loading your reading workspace...
+                Loading reading workspace...
               </p>
 
             )
@@ -2065,21 +2751,16 @@ export function MyReading() {
               0
               ? (
 
-                /* =========================================
-                   EMPTY STATE
-                ========================================= */
-
                 <div>
 
                   <h3>
-                    No personal books yet
+                    Start your reading library
                   </h3>
 
-
                   <p>
-                    Add your first book,
-                    then import its index
-                    in seconds.
+                    Add your first UPSC or personal
+                    study book using the Add Book
+                    button above.
                   </p>
 
                 </div>
@@ -2090,9 +2771,39 @@ export function MyReading() {
 
                 <>
 
-                  {/* =======================================
-                      BOOK SELECTOR
-                  ======================================= */}
+                  {/* =========================================
+                      BOOK SEARCH
+                  ========================================= */}
+
+                  <label>
+
+                    Search My Books
+
+                    <input
+
+                      type="search"
+
+                      value={
+                        bookSearch
+                      }
+
+                      onChange={
+                        event =>
+                          setBookSearch(
+                            event.target.value
+                          )
+                      }
+
+                      placeholder="Book, author or subject..."
+
+                    />
+
+                  </label>
+
+
+                  {/* =========================================
+                      BOOK CARDS
+                  ========================================= */}
 
                   <div
                     style={{
@@ -2101,91 +2812,131 @@ export function MyReading() {
                         'grid',
 
                       gridTemplateColumns:
-                        'repeat(auto-fit, minmax(190px, 1fr))',
+                        'repeat(auto-fit, minmax(200px, 1fr))',
 
                       gap:
-                        '10px'
+                        '10px',
+
+                      marginTop:
+                        '12px'
 
                     }}
                   >
 
                     {
-                      books.map(
-                        book => (
+                      visibleBooks.map(
+                        book => {
 
-                          <button
-
-                            type="button"
-
-                            key={
+                          const stats =
+                            getBookStats(
                               book.id
-                            }
+                            );
 
-                            className={
 
-                              activeBookId ===
-                              book.id
+                          return (
 
-                                ? 'filter active'
+                            <button
 
-                                : 'filter'
-
-                            }
-
-                            onClick={() =>
-
-                              setActiveBookId(
+                              key={
                                 book.id
-                              )
-
-                            }
-
-                            style={{
-
-                              textAlign:
-                                'left',
-
-                              minHeight:
-                                '62px'
-
-                            }}
-
-                          >
-
-                            <strong>
-                              {
-                                book.title
-                              }
-                            </strong>
-
-
-                            <br />
-
-
-                            <small>
-
-                              {
-                                book.subject ||
-
-                                book.author ||
-
-                                'Personal reading'
                               }
 
-                            </small>
+                              type="button"
 
-                          </button>
+                              className={
+                                activeBookId ===
+                                book.id
+                                  ? 'filter active'
+                                  : 'filter'
+                              }
 
-                        )
+                              onClick={() =>
+                                setActiveBookId(
+                                  book.id
+                                )
+                              }
+
+                              style={{
+
+                                textAlign:
+                                  'left',
+
+                                minHeight:
+                                  '92px',
+
+                                padding:
+                                  '12px'
+
+                              }}
+
+                            >
+
+                              <strong>
+                                {
+                                  book.title
+                                }
+                              </strong>
+
+
+                              <div
+                                style={{
+                                  marginTop:
+                                    '5px'
+                                }}
+                              >
+
+                                <small>
+
+                                  {
+                                    book.subject ||
+                                    book.author ||
+                                    'Personal Reading'
+                                  }
+
+                                </small>
+
+                              </div>
+
+
+                              <div
+                                style={{
+                                  marginTop:
+                                    '7px'
+                                }}
+                              >
+
+                                <small>
+
+                                  {
+                                    stats.status
+                                  }
+
+                                  {' • '}
+
+                                  {
+                                    stats.percent
+                                  }
+
+                                  %
+
+                                </small>
+
+                              </div>
+
+                            </button>
+
+                          );
+
+                        }
                       )
                     }
 
                   </div>
 
 
-                  {/* =======================================
+                  {/* =========================================
                       ACTIVE BOOK
-                  ======================================= */}
+                  ========================================= */}
 
                   {
                     activeBook && (
@@ -2193,11 +2944,13 @@ export function MyReading() {
                       <div
                         style={{
                           marginTop:
-                            '16px'
+                            '18px'
                         }}
                       >
 
-                        {/* BOOK HEADER */}
+                        {/* ===================================
+                            BOOK HEADER
+                        =================================== */}
 
                         <div
                           style={{
@@ -2208,14 +2961,14 @@ export function MyReading() {
                             justifyContent:
                               'space-between',
 
+                            alignItems:
+                              'flex-start',
+
                             gap:
                               '12px',
 
                             flexWrap:
-                              'wrap',
-
-                            alignItems:
-                              'center'
+                              'wrap'
 
                           }}
                         >
@@ -2243,6 +2996,19 @@ export function MyReading() {
                             </h3>
 
 
+                            {
+                              activeBook.author && (
+
+                                <div>
+                                  {
+                                    activeBook.author
+                                  }
+                                </div>
+
+                              )
+                            }
+
+
                             <small
                               style={{
                                 color:
@@ -2251,7 +3017,7 @@ export function MyReading() {
                             >
 
                               {
-                                completeLeafCount
+                                completedLeafCount
                               }
 
                               /
@@ -2263,7 +3029,7 @@ export function MyReading() {
                               {' items complete • '}
 
                               {
-                                overallPercent
+                                overallProgress
                               }
 
                               %
@@ -2273,51 +3039,80 @@ export function MyReading() {
                           </div>
 
 
-                          <button
+                          <div
+                            style={{
 
-                            type="button"
+                              display:
+                                'flex',
 
-                            className="secondary-btn"
+                              gap:
+                                '8px',
 
-                            onClick={() =>
+                              flexWrap:
+                                'wrap'
 
-                              setImportOpen(
-                                current =>
-                                  !current
-                              )
-
-                            }
-
+                            }}
                           >
 
-                            Import Index
+                            <button
 
-                          </button>
+                              type="button"
+
+                              className="primary-btn"
+
+                              onClick={
+                                continueReading
+                              }
+
+                            >
+
+                              Continue Reading
+
+                            </button>
+
+
+                            <button
+
+                              type="button"
+
+                              className="secondary-btn"
+
+                              onClick={
+                                openEditBook
+                              }
+
+                            >
+
+                              Edit Book
+
+                            </button>
+
+                          </div>
 
                         </div>
 
 
-                        {/* =================================
+                        {/* ===================================
                             PROGRESS BAR
-                        ================================= */}
+                        =================================== */}
 
                         <div
                           style={{
 
                             height:
-                              '8px',
+                              '9px',
 
-                            borderRadius:
-                              '999px',
+                            marginTop:
+                              '12px',
 
                             background:
                               'rgba(255,255,255,.08)',
 
-                            overflow:
-                              'hidden',
+                            borderRadius:
+                              '999px',
 
-                            marginTop:
-                              '12px'
+                            overflow:
+                              'hidden'
 
                           }}
                         >
@@ -2326,13 +3121,16 @@ export function MyReading() {
                             style={{
 
                               width:
-                                `${overallPercent}%`,
+                                `${overallProgress}%`,
 
                               height:
                                 '100%',
 
                               background:
-                                'currentColor'
+                                'currentColor',
+
+                              transition:
+                                'width .25s ease'
 
                             }}
                           />
@@ -2340,89 +3138,636 @@ export function MyReading() {
                         </div>
 
 
-                        {/* =================================
-                            INDEX IMPORT
-                        ================================= */}
+                        {/* ===================================
+                            BOOK NOTES
+                        =================================== */}
 
                         {
-                          importOpen && (
+                          activeBook.notes && (
 
                             <div
+                              className="callout"
+
+                              style={{
+                                marginTop:
+                                  '12px'
+                              }}
+                            >
+
+                              {
+                                activeBook.notes
+                              }
+
+                            </div>
+
+                          )
+                        }
+
+
+                        {/* ===================================
+                            EDIT BOOK
+                        =================================== */}
+
+                        {
+                          editBookOpen && (
+
+                            <div
+                              className="callout"
+
                               style={{
                                 marginTop:
                                   '14px'
                               }}
                             >
 
-                              <label>
-
-                                Fast Index Import
-
-                                <textarea
-
-                                  rows={
-                                    10
-                                  }
-
-                                  value={
-                                    outline
-                                  }
-
-                                  onChange={
-                                    event =>
-
-                                      setOutline(
-                                        event
-                                          .target
-                                          .value
-                                      )
-                                  }
-
-                                  placeholder={
-                                    `Part: Constitution
-Chapter: Fundamental Rights
-Topic: Article 14
-Subtopic: Equality before law
-
-Part: Parliament
-Chapter: Lok Sabha
-Topic: Speaker
-Subtopic: Powers of Speaker`
-                                  }
-
-                                />
-
-                              </label>
+                              <h3>
+                                Edit Book
+                              </h3>
 
 
                               <div
-                                className="callout"
-
                                 style={{
-                                  marginTop:
+
+                                  display:
+                                    'grid',
+
+                                  gridTemplateColumns:
+                                    'repeat(auto-fit, minmax(170px, 1fr))',
+
+                                  gap:
                                     '10px'
+
                                 }}
                               >
 
-                                Recommended format:
+                                <label>
 
-                                <br />
+                                  Title
 
-                                Part: Name
+                                  <input
 
-                                <br />
+                                    value={
+                                      editTitle
+                                    }
 
-                                Chapter: Name
+                                    onChange={
+                                      event =>
+                                        setEditTitle(
+                                          event.target.value
+                                        )
+                                    }
 
-                                <br />
+                                  />
 
-                                Topic: Name
+                                </label>
 
-                                <br />
 
-                                Subtopic: Name
+                                <label>
+
+                                  Author
+
+                                  <input
+
+                                    value={
+                                      editAuthor
+                                    }
+
+                                    onChange={
+                                      event =>
+                                        setEditAuthor(
+                                          event.target.value
+                                        )
+                                    }
+
+                                  />
+
+                                </label>
+
+
+                                <label>
+
+                                  Subject
+
+                                  <input
+
+                                    value={
+                                      editSubject
+                                    }
+
+                                    onChange={
+                                      event =>
+                                        setEditSubject(
+                                          event.target.value
+                                        )
+                                    }
+
+                                  />
+
+                                </label>
+
+
+                                <label>
+
+                                  Exam Stage
+
+                                  <select
+
+                                    value={
+                                      editStage
+                                    }
+
+                                    onChange={
+                                      event =>
+                                        setEditStage(
+                                          event.target
+                                            .value as
+                                            ExamStage
+                                        )
+                                    }
+
+                                  >
+
+                                    <option value="both">
+                                      Prelims + Mains
+                                    </option>
+
+                                    <option value="prelims">
+                                      Prelims
+                                    </option>
+
+                                    <option value="mains">
+                                      Mains
+                                    </option>
+
+                                  </select>
+
+                                </label>
+
+
+                                <label
+                                  style={{
+                                    gridColumn:
+                                      '1 / -1'
+                                  }}
+                                >
+
+                                  Notes
+
+                                  <textarea
+
+                                    rows={
+                                      3
+                                    }
+
+                                    value={
+                                      editNotes
+                                    }
+
+                                    onChange={
+                                      event =>
+                                        setEditNotes(
+                                          event.target.value
+                                        )
+                                    }
+
+                                  />
+
+                                </label>
 
                               </div>
+
+
+                              <div
+                                style={{
+
+                                  display:
+                                    'flex',
+
+                                  gap:
+                                    '8px',
+
+                                  flexWrap:
+                                    'wrap',
+
+                                  marginTop:
+                                    '12px'
+
+                                }}
+                              >
+
+                                <button
+
+                                  type="button"
+
+                                  className="primary-btn"
+
+                                  onClick={() =>
+                                    void updateBook()
+                                  }
+
+                                >
+
+                                  Save Changes
+
+                                </button>
+
+
+                                <button
+
+                                  type="button"
+
+                                  className="secondary-btn"
+
+                                  onClick={() =>
+                                    setEditBookOpen(
+                                      false
+                                    )
+                                  }
+
+                                >
+
+                                  Cancel
+
+                                </button>
+
+
+                                <button
+
+                                  type="button"
+
+                                  className="text-btn"
+
+                                  onClick={() =>
+                                    void deleteBook()
+                                  }
+
+                                >
+
+                                  Delete Book
+
+                                </button>
+
+                              </div>
+
+                            </div>
+
+                          )
+                        }
+
+
+                        {/* ===================================
+                            BOOK MANAGEMENT BUTTONS
+                        =================================== */}
+
+                        <div
+                          style={{
+
+                            display:
+                              'grid',
+
+                            gridTemplateColumns:
+                              'repeat(2, minmax(0, 1fr))',
+
+                            gap:
+                              '8px',
+
+                            marginTop:
+                              '14px'
+
+                          }}
+                        >
+
+                          <button
+
+                            type="button"
+
+                            className="secondary-btn"
+
+                            onClick={() =>
+                              setStructureOpen(
+                                current =>
+                                  !current
+                              )
+                            }
+
+                          >
+
+                            + Add Topic Manually
+
+                          </button>
+
+
+                          <button
+
+                            type="button"
+
+                            className="secondary-btn"
+
+                            onClick={() =>
+                              setImportOpen(
+                                current =>
+                                  !current
+                              )
+                            }
+
+                          >
+
+                            Import Book Index
+
+                          </button>
+
+                        </div>
+
+
+                        {/* ===================================
+                            MANUAL NODE CREATOR
+                        =================================== */}
+
+                        {
+                          structureOpen && (
+
+                            <div
+                              className="callout"
+
+                              style={{
+                                marginTop:
+                                  '12px'
+                              }}
+                            >
+
+                              <h3>
+                                Add Book Structure
+                              </h3>
+
+
+                              <div
+                                style={{
+
+                                  display:
+                                    'grid',
+
+                                  gridTemplateColumns:
+                                    'repeat(auto-fit, minmax(170px, 1fr))',
+
+                                  gap:
+                                    '10px'
+
+                                }}
+                              >
+
+                                <label>
+
+                                  Type
+
+                                  <select
+
+                                    value={
+                                      nodeLevel
+                                    }
+
+                                    onChange={
+                                      event =>
+                                        setNodeLevel(
+                                          event.target
+                                            .value as
+                                            NodeLevel
+                                        )
+                                    }
+
+                                  >
+
+                                    <option value="part">
+                                      Part
+                                    </option>
+
+                                    <option value="chapter">
+                                      Chapter
+                                    </option>
+
+                                    <option value="topic">
+                                      Topic
+                                    </option>
+
+                                    <option value="subtopic">
+                                      Subtopic
+                                    </option>
+
+                                  </select>
+
+                                </label>
+
+
+                                {
+                                  nodeLevel !==
+                                  'part' && (
+
+                                    <label>
+
+                                      Parent
+
+                                      <select
+
+                                        value={
+                                          nodeParentId
+                                        }
+
+                                        onChange={
+                                          event =>
+                                            setNodeParentId(
+                                              event.target.value
+                                            )
+                                        }
+
+                                      >
+
+                                        <option value="">
+                                          No Parent / Top Level
+                                        </option>
+
+
+                                        {
+                                          parentOptions.map(
+                                            parent => (
+
+                                              <option
+
+                                                key={
+                                                  parent.id
+                                                }
+
+                                                value={
+                                                  parent.id
+                                                }
+
+                                              >
+
+                                                {
+                                                  parent.title
+                                                }
+
+                                              </option>
+
+                                            )
+                                          )
+                                        }
+
+                                      </select>
+
+                                    </label>
+
+                                  )
+                                }
+
+
+                                <label>
+
+                                  {
+                                    LEVEL_LABEL[
+                                      nodeLevel
+                                    ]
+                                  } Name
+
+                                  <input
+
+                                    value={
+                                      nodeTitle
+                                    }
+
+                                    onChange={
+                                      event =>
+                                        setNodeTitle(
+                                          event.target.value
+                                        )
+                                    }
+
+                                    placeholder={
+                                      `Enter ${LEVEL_LABEL[nodeLevel]} name`
+                                    }
+
+                                  />
+
+                                </label>
+
+
+                                <button
+
+                                  type="button"
+
+                                  className="primary-btn"
+
+                                  onClick={() =>
+                                    void addStructureNode()
+                                  }
+
+                                >
+
+                                  Add {
+                                    LEVEL_LABEL[
+                                      nodeLevel
+                                    ]
+                                  }
+
+                                </button>
+
+                              </div>
+
+                            </div>
+
+                          )
+                        }
+
+
+                        {/* ===================================
+                            BULK INDEX IMPORT
+                        =================================== */}
+
+                        {
+                          importOpen && (
+
+                            <div
+                              className="callout"
+
+                              style={{
+                                marginTop:
+                                  '12px'
+                              }}
+                            >
+
+                              <h3>
+                                Fast Index Import
+                              </h3>
+
+
+                              <textarea
+
+                                rows={
+                                  12
+                                }
+
+                                value={
+                                  outline
+                                }
+
+                                onChange={
+                                  event =>
+                                    setOutline(
+                                      event.target.value
+                                    )
+                                }
+
+                                placeholder={
+`Part: Constitutional Framework
+Chapter: Historical Background
+Topic: Company Rule
+Subtopic: Regulating Act 1773
+Subtopic: Pitt's India Act 1784
+
+Chapter: Fundamental Rights
+Topic: Right to Equality
+Subtopic: Article 14
+Subtopic: Article 15`
+                                }
+
+                              />
+
+
+                              <p>
+
+                                Use:
+
+                                <br />
+
+                                <strong>
+                                  Part:
+                                </strong>
+
+                                {' Name'}
+
+                                <br />
+
+                                <strong>
+                                  Chapter:
+                                </strong>
+
+                                {' Name'}
+
+                                <br />
+
+                                <strong>
+                                  Topic:
+                                </strong>
+
+                                {' Name'}
+
+                                <br />
+
+                                <strong>
+                                  Subtopic:
+                                </strong>
+
+                                {' Name'}
+
+                              </p>
 
 
                               <button
@@ -2435,14 +3780,9 @@ Subtopic: Powers of Speaker`
                                   void importIndex()
                                 }
 
-                                style={{
-                                  marginTop:
-                                    '10px'
-                                }}
-
                               >
 
-                                Import Outline
+                                Import Index
 
                               </button>
 
@@ -2452,14 +3792,138 @@ Subtopic: Powers of Speaker`
                         }
 
 
-                        {/* =================================
-                            BOOK CONTENT
-                        ================================= */}
+                        {/* ===================================
+                            SEARCH CONTENT
+                        =================================== */}
+
+                        {
+                          activeNodes.length >
+                          0 && (
+
+                            <div
+                              style={{
+                                marginTop:
+                                  '14px'
+                              }}
+                            >
+
+                              <label>
+
+                                Search Inside Book
+
+                                <input
+
+                                  type="search"
+
+                                  value={
+                                    contentSearch
+                                  }
+
+                                  onChange={
+                                    event =>
+                                      setContentSearch(
+                                        event.target.value
+                                      )
+                                  }
+
+                                  placeholder="Search chapter, topic or subtopic..."
+
+                                />
+
+                              </label>
+
+
+                              {
+                                contentSearch.trim() &&
+                                (
+
+                                  <div
+                                    style={{
+
+                                      display:
+                                        'flex',
+
+                                      flexWrap:
+                                        'wrap',
+
+                                      gap:
+                                        '7px',
+
+                                      marginTop:
+                                        '8px'
+
+                                    }}
+                                  >
+
+                                    {
+                                      contentMatches.length ===
+                                      0
+                                        ? (
+
+                                          <small>
+                                            No matching topics found.
+                                          </small>
+
+                                        )
+
+                                        : contentMatches.map(
+                                            node => (
+
+                                              <button
+
+                                                key={
+                                                  node.id
+                                                }
+
+                                                type="button"
+
+                                                className="filter"
+
+                                                onClick={() =>
+                                                  scrollToNode(
+                                                    node.id
+                                                  )
+                                                }
+
+                                              >
+
+                                                {
+                                                  LEVEL_LABEL[
+                                                    node.level
+                                                  ]
+                                                }
+
+                                                {' • '}
+
+                                                {
+                                                  node.title
+                                                }
+
+                                              </button>
+
+                                            )
+                                          )
+                                    }
+
+                                  </div>
+
+                                )
+                              }
+
+                            </div>
+
+                          )
+                        }
+
+
+                        {/* ===================================
+                            CONTENT TREE
+                        =================================== */}
 
                         <div
                           style={{
                             marginTop:
-                              '14px'
+                              '16px'
                           }}
                         >
 
@@ -2472,9 +3936,16 @@ Subtopic: Powers of Speaker`
                                   className="callout"
                                 >
 
-                                  Import the book index
-                                  to start topic-level
-                                  tracking.
+                                  This book does not have
+                                  chapters yet.
+
+                                  <br />
+
+                                  Use <strong>
+                                    Add Topic Manually
+                                  </strong> or <strong>
+                                    Import Book Index
+                                  </strong>.
 
                                 </div>
 
@@ -2483,16 +3954,13 @@ Subtopic: Powers of Speaker`
                               : (
 
                                 (
-                                  childrenByParent
-                                    .get(
-                                      null
-                                    ) ||
+                                  childrenByParent.get(
+                                    null
+                                  ) ||
                                   []
                                 )
-
                                   .map(
                                     node =>
-
                                       renderNode(
                                         node
                                       )
