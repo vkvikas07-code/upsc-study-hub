@@ -1,9 +1,9 @@
 import {
   useEffect,
   useMemo,
-  useState
+  useState,
+  type ReactNode
 } from 'react';
-
 import {
   supabase
 } from '../lib/supabase';
@@ -1174,10 +1174,10 @@ export function LearnPage({
      SEARCH MATCH
   ======================================================= */
 
-  function topicMatchesSearch(
-    topic: SyllabusTopic
-  ) {
-
+ function topicMatchesSearch(
+  topic: SyllabusTopic
+): boolean {
+   
     const query =
       searchText
         .trim()
@@ -1523,9 +1523,9 @@ export function LearnPage({
   ======================================================= */
 
   function renderTopic(
-    topic: SyllabusTopic,
-    depth = 0
-  ) {
+  topic: SyllabusTopic,
+  depth = 0
+): ReactNode {
 
     const children =
       childrenMap.get(
