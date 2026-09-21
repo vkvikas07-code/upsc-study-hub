@@ -1068,36 +1068,6 @@ export default function App() {
   );
 }
 
-
-
-/* =========================================================
-   MODERN BROWSERS
-========================================================= */
-
-.pdf-file-input::file-selector-button {
-  margin-right: 12px;
-
-  padding: 10px 16px;
-
-  border: 1px solid #14b8a6;
-  border-radius: 9px;
-
-  background: #14b8a6;
-  color: #04111f;
-
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.15s ease;
-}
-
-
 .pdf-file-input::file-selector-button:hover {
   background: #2dd4bf;
   border-color: #2dd4bf;
