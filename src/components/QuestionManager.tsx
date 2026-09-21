@@ -296,8 +296,21 @@ const STATE_PSCS = [
 const OTHER_STATE =
   'Other State / Union Territory';
 
+export type QuestionManagerView =
+  | 'all'
+  | 'editor'
+  | 'bank';
 
-export function QuestionManager() {
+
+type QuestionManagerProps = {
+  view?: QuestionManagerView;
+};
+
+export function QuestionManager({
+
+  view = 'all'
+
+}: QuestionManagerProps) {
 
   const [
     questions,
