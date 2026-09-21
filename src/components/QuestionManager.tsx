@@ -3029,11 +3029,14 @@ export function QuestionManager({
       }}
     >
 
-      {/* CREATE / EDIT */}
+     {/* CREATE / EDIT MCQ */}
 
-      <div
-        className="panel admin-form"
-      >
+{
+  view !== 'bank' && (
+
+    <div
+      className="panel admin-form"
+    >
 
         <span
           className="eyebrow"
@@ -4444,18 +4447,25 @@ export function QuestionManager({
 
         </form>
 
-      </div>
+        </div>
 
+  )
+}
 
-      {/* QUESTION BANK */}
+{/* QUESTION BANK */}
 
-      <div
-        className="panel admin-form"
-        style={{
-          marginTop:
-            '22px'
-        }}
-      >
+{
+  view !== 'editor' && (
+
+    <div
+      className="panel admin-form"
+      style={{
+        marginTop:
+          view === 'bank'
+            ? '0'
+            : '22px'
+      }}
+    >
 
         <div
           style={{
@@ -4476,7 +4486,10 @@ export function QuestionManager({
           }}
         >
 
-          <div>
+          </div>
+
+  )
+}
 
             <span
               className="eyebrow"
