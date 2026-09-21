@@ -18,69 +18,23 @@ type QuestionStatus =
   | 'published'
   | 'archived';
 
+
 type Difficulty =
   | 'easy'
   | 'medium'
   | 'hard';
 
+
 type ExamStage =
   | 'prelims'
   | 'mains';
 
+
 type QuestionOrigin =
-  | 'cse'
+  | 'general'
   | 'upsc'
-  | 'state';
+  | 'state_psc';
 
-type DuplicateAppearance = {
-  appearance_id?: string | null;
-  appearance_type?: string | null;
-  question_number?: string | null;
-  exam_paper_id?: string | null;
-  exam_family?: string | null;
-  commission?: string | null;
-  state?: string | null;
-  exam_name?: string | null;
-  exam_cycle?: string | null;
-  year?: number | null;
-  stage?: string | null;
-  paper?: string | null;
-};
-
-
-type DuplicateMatch = {
-  question_id: string;
-
-  match_type:
-    | 'exact'
-    | 'same_stem'
-    | 'possible';
-
-  question: string;
-
-  options: string[];
-
-  correct_index: number;
-
-  explanation: string;
-
-  subject: string;
-
-  topic: string | null;
-
-  difficulty: string;
-
-  status: string;
-
-  duplicate_group_id:
-    string | null;
-
-  appearance_count:
-    number | string | null;
-
-  appearances:
-    DuplicateAppearance[];
-};
 
 type QuestionRow = {
   id: string;
@@ -94,7 +48,6 @@ type QuestionRow = {
   paper: string | null;
   topic: string | null;
   tags: string[];
-
   is_pyq: boolean;
   pyq_year: number | null;
 
@@ -113,7 +66,6 @@ type QuestionRow = {
 
   source: string | null;
   source_url: string | null;
-
   status: QuestionStatus;
   created_at: string;
   updated_at: string;
@@ -153,10 +105,6 @@ const QUESTION_SELECT = `
 `;
 
 
-/*
- * OTHER UPSC EXAMINATIONS
- */
-
 const UPSC_EXAMS = [
   'Civil Services Examination',
   'Indian Forest Service Examination',
@@ -173,11 +121,7 @@ const UPSC_EXAMS = [
 ];
 
 
-/*
- * ALL 28 STATES + THEIR PSC
- */
-
-const STATE_PSCS = [
+const STATE_PSC_OPTIONS = [
   {
     state: 'Andhra Pradesh',
     psc: 'Andhra Pradesh Public Service Commission'
@@ -289,12 +233,32 @@ const STATE_PSCS = [
   {
     state: 'West Bengal',
     psc: 'West Bengal Public Service Commission'
+  },
+  {
+    state: 'Other / Union Territory',
+    psc: ''
   }
-] as const;
+];
 
 
-const OTHER_STATE =
-  'Other State / Union Territory';
+function getQuestionOrigin(
+  item: QuestionRow
+): QuestionOrigin {
+  if (
+    item.state_psc_state ||
+    item.state_psc_name ||
+    item.state_psc_exam_name
+  ) {
+    return 'state_psc';
+  }
+
+  if (item.upsc_exam_name) {
+    return 'upsc';
+  }
+
+  return 'general';
+}
+
 
 export type QuestionManagerView =
   | 'all'
@@ -306,442 +270,189 @@ type QuestionManagerProps = {
   view?: QuestionManagerView;
 };
 
+
 export function QuestionManager({
-
   view = 'all'
-
 }: QuestionManagerProps) {
-
-  const [
-    questions,
-    setQuestions
-  ] =
+  const [questions, setQuestions] =
     useState<QuestionRow[]>([]);
 
-  const [
-    loading,
-    setLoading
-  ] =
+  const [loading, setLoading] =
     useState(false);
 
-  const [
-    saving,
-    setSaving
-  ] =
+  const [saving, setSaving] =
     useState(false);
 
-  const [
-    editingId,
-    setEditingId
-  ] =
-    useState<string | null>(
-      null
-    );
+  const [editingId, setEditingId] =
+    useState<string | null>(null);
 
-  const [
-    message,
-    setMessage
-  ] =
+  const [message, setMessage] =
     useState('');
 
-    /*
-   * DUPLICATE QUESTION WORKFLOW
-   */
-
-  const [
-    duplicateMatch,
-    setDuplicateMatch
-  ] =
-    useState<DuplicateMatch | null>(
-      null
-    );
-
-
-  const [
-    linkingDuplicate,
-    setLinkingDuplicate
-  ] =
-    useState(false);
-
-
-  const [
-    allowVariantCreate,
-    setAllowVariantCreate
-  ] =
-    useState(false);
-
-  /*
-   * MAIN MCQ FORM
-   */
-
-  const [
-    question,
-    setQuestion
-  ] =
+  const [question, setQuestion] =
     useState('');
 
-  const [
-    optionA,
-    setOptionA
-  ] =
+  const [optionA, setOptionA] =
     useState('');
 
-  const [
-    optionB,
-    setOptionB
-  ] =
+  const [optionB, setOptionB] =
     useState('');
 
-  const [
-    optionC,
-    setOptionC
-  ] =
+  const [optionC, setOptionC] =
     useState('');
 
-  const [
-    optionD,
-    setOptionD
-  ] =
+  const [optionD, setOptionD] =
     useState('');
 
-  const [
-    correctIndex,
-    setCorrectIndex
-  ] =
+  const [correctIndex, setCorrectIndex] =
     useState(0);
 
-  const [
-    explanation,
-    setExplanation
-  ] =
+  const [explanation, setExplanation] =
     useState('');
 
-  const [
-    subject,
-    setSubject
-  ] =
-    useState(
-      'Polity'
-    );
+  const [subject, setSubject] =
+    useState('Polity');
 
-  const [
-    topic,
-    setTopic
-  ] =
+  const [topic, setTopic] =
     useState('');
 
-  const [
-  paper,
-  setPaper
-] =
-  useState(
-    'GS Paper I'
-  );
+  const [paper, setPaper] =
+    useState('GS-I');
 
-  const [
-    difficulty,
-    setDifficulty
-  ] =
-    useState<Difficulty>(
-      'medium'
-    );
+  const [difficulty, setDifficulty] =
+    useState<Difficulty>('medium');
 
-  const [
-    examStage,
-    setExamStage
-  ] =
-    useState<ExamStage>(
-      'prelims'
-    );
+  const [examStage, setExamStage] =
+    useState<ExamStage>('prelims');
 
-  const [
-    tagsText,
-    setTagsText
-  ] =
+  const [tagsText, setTagsText] =
     useState('');
 
-  const [
-    isPyq,
-    setIsPyq
-  ] =
+  const [isPyq, setIsPyq] =
     useState(false);
 
-  const [
-    pyqYear,
-    setPyqYear
-  ] =
+  const [pyqYear, setPyqYear] =
     useState('');
 
+  const [questionOrigin, setQuestionOrigin] =
+    useState<QuestionOrigin>('general');
 
-  /*
-   * QUESTION ORIGIN
-   */
+  /* Other UPSC exam */
 
-  const [
-    questionOrigin,
-    setQuestionOrigin
-  ] =
-    useState<QuestionOrigin>(
-      'cse'
-    );
-
-
-  /*
-   * OTHER UPSC EXAM
-   */
-
-  const [
-    upscExamName,
-    setUpscExamName
-  ] =
+  const [upscExamName, setUpscExamName] =
     useState('');
 
-  const [
-    customUpscExamName,
-    setCustomUpscExamName
-  ] =
+  const [customUpscExamName, setCustomUpscExamName] =
     useState('');
 
-  const [
-    upscExamCycle,
-    setUpscExamCycle
-  ] =
+  const [upscExamCycle, setUpscExamCycle] =
     useState('');
 
-  const [
-    upscExamStage,
-    setUpscExamStage
-  ] =
+  const [upscExamStage, setUpscExamStage] =
     useState('');
 
-  const [
-    upscExamPaper,
-    setUpscExamPaper
-  ] =
+  const [upscExamPaper, setUpscExamPaper] =
     useState('');
 
-  const [
-    upscExamYear,
-    setUpscExamYear
-  ] =
+  const [upscExamYear, setUpscExamYear] =
     useState('');
 
+  /* State PSC */
 
-  /*
-   * STATE PSC FORM
-   */
-
-  const [
-    statePscState,
-    setStatePscState
-  ] =
+  const [statePscState, setStatePscState] =
     useState('');
 
-  const [
-    customStateName,
-    setCustomStateName
-  ] =
+  const [statePscName, setStatePscName] =
     useState('');
 
-  const [
-    statePscName,
-    setStatePscName
-  ] =
+  const [statePscExamName, setStatePscExamName] =
     useState('');
 
-  const [
-    statePscExamName,
-    setStatePscExamName
-  ] =
+  const [statePscYear, setStatePscYear] =
     useState('');
 
-  const [
-    statePscYear,
-    setStatePscYear
-  ] =
+  const [statePscStage, setStatePscStage] =
     useState('');
 
-  const [
-    statePscStage,
-    setStatePscStage
-  ] =
-    useState('Preliminary');
-
-  const [
-    statePscPaper,
-    setStatePscPaper
-  ] =
+  const [statePscPaper, setStatePscPaper] =
     useState('');
 
-
-  /*
-   * SOURCE / STATUS
-   */
-
-  const [
-    source,
-    setSource
-  ] =
+  const [source, setSource] =
     useState('');
 
-  const [
-    sourceUrl,
-    setSourceUrl
-  ] =
+  const [sourceUrl, setSourceUrl] =
     useState('');
 
-  const [
-    status,
-    setStatus
-  ] =
-    useState<QuestionStatus>(
-      'draft'
-    );
+  const [status, setStatus] =
+    useState<QuestionStatus>('draft');
 
+  /* Question bank filters */
 
-  /*
-   * QUESTION BANK FILTERS
-   */
-
-  const [
-    searchText,
-    setSearchText
-  ] =
+  const [searchText, setSearchText] =
     useState('');
 
-  const [
-    bankSubject,
-    setBankSubject
-  ] =
+  const [bankSubject, setBankSubject] =
     useState('all');
 
-  const [
-    bankStatus,
-    setBankStatus
-  ] =
-    useState<
-      'all' |
-      QuestionStatus
-    >('all');
+  const [bankStatus, setBankStatus] =
+    useState<'all' | QuestionStatus>('all');
 
-  const [
-    bankDifficulty,
-    setBankDifficulty
-  ] =
-    useState<
-      'all' |
-      Difficulty
-    >('all');
+  const [bankDifficulty, setBankDifficulty] =
+    useState<'all' | Difficulty>('all');
 
-  const [
-    bankType,
-    setBankType
-  ] =
-    useState<
-      'all' |
-      'practice' |
-      'pyq'
-    >('all');
+  const [bankType, setBankType] =
+    useState<'all' | 'practice' | 'pyq'>('all');
 
-  const [
-    bankOrigin,
-    setBankOrigin
-  ] =
-    useState<
-      'all' |
-      QuestionOrigin
-    >('all');
+  const [bankOrigin, setBankOrigin] =
+    useState<'all' | QuestionOrigin>('all');
 
+  /* UPSC filters */
 
-  /*
-   * UPSC FILTERS
-   */
-
-  const [
-    bankUpscExam,
-    setBankUpscExam
-  ] =
+  const [bankUpscExam, setBankUpscExam] =
     useState('all');
 
-  const [
-    bankUpscCycle,
-    setBankUpscCycle
-  ] =
+  const [bankUpscCycle, setBankUpscCycle] =
     useState('all');
 
-  const [
-    bankUpscYear,
-    setBankUpscYear
-  ] =
+  const [bankUpscYear, setBankUpscYear] =
     useState('all');
 
+  /* State PSC filters */
 
-  /*
-   * STATE PSC FILTERS
-   */
-
-  const [
-    bankState,
-    setBankState
-  ] =
+  const [bankState, setBankState] =
     useState('all');
 
-  const [
-    bankStateExam,
-    setBankStateExam
-  ] =
+  const [bankStatePsc, setBankStatePsc] =
     useState('all');
 
-  const [
-    bankStateYear,
-    setBankStateYear
-  ] =
+  const [bankStateExam, setBankStateExam] =
     useState('all');
 
+  const [bankStateYear, setBankStateYear] =
+    useState('all');
 
-  /*
-   * LOAD
-   */
 
   async function loadQuestions() {
-
     if (!supabase) {
-
       setMessage(
         'Supabase is not configured.'
       );
-
       return;
     }
 
-
     setLoading(true);
-
     setMessage('');
 
-
-    const {
-      data,
-      error
-    } =
+    const { data, error } =
       await supabase
-        .from(
-          'questions'
-        )
-        .select(
-          QUESTION_SELECT
-        )
+        .from('questions')
+        .select(QUESTION_SELECT)
         .order(
           'created_at',
-          {
-            ascending:
-              false
-          }
+          { ascending: false }
         );
 
-
     if (error) {
-
       console.error(
         'Unable to load questions:',
         error
@@ -752,825 +463,255 @@ export function QuestionManager({
       );
 
       setLoading(false);
-
       return;
     }
 
-
     const rows =
-      (
-        data || []
-      ) as unknown as
-        QuestionRow[];
-
+      (data || []) as unknown as QuestionRow[];
 
     const formatted =
       rows.map(
-        (
-          item:
-            QuestionRow
-        ) => ({
+        item => ({
           ...item,
-
           options:
-            Array.isArray(
-              item.options
-            )
+            Array.isArray(item.options)
               ? item.options
               : [],
-
           tags:
-            Array.isArray(
-              item.tags
-            )
+            Array.isArray(item.tags)
               ? item.tags
               : []
         })
       );
 
-
-    setQuestions(
-      formatted
-    );
-
+    setQuestions(formatted);
     setLoading(false);
   }
 
 
   useEffect(
     () => {
-
       loadQuestions();
-
     },
     []
   );
 
 
-  /*
-   * CLEAR UPSC FORM
-   */
-
-  function clearUpscFields() {
-
+  function clearUpscForm() {
     setUpscExamName('');
-
     setCustomUpscExamName('');
-
     setUpscExamCycle('');
-
     setUpscExamStage('');
-
     setUpscExamPaper('');
-
     setUpscExamYear('');
   }
 
 
-  /*
-   * CLEAR STATE PSC FORM
-   */
-
-  function clearStateFields() {
-
+  function clearStatePscForm() {
     setStatePscState('');
-
-    setCustomStateName('');
-
     setStatePscName('');
-
     setStatePscExamName('');
-
     setStatePscYear('');
-
-    setStatePscStage(
-      'Preliminary'
-    );
-
+    setStatePscStage('');
     setStatePscPaper('');
   }
 
 
-  /*
-   * CHANGE ORIGIN
-   */
-
   function changeQuestionOrigin(
-    next:
-      QuestionOrigin
+    next: QuestionOrigin
   ) {
+    setQuestionOrigin(next);
 
-    setQuestionOrigin(
-      next
-    );
-
-
-    if (
-      next ===
-      'cse'
-    ) {
-
-      clearUpscFields();
-
-      clearStateFields();
+    if (next === 'general') {
+      clearUpscForm();
+      clearStatePscForm();
     }
 
-
-    if (
-      next ===
-      'upsc'
-    ) {
-
-      clearStateFields();
+    if (next === 'upsc') {
+      clearStatePscForm();
     }
 
-
-    if (
-      next ===
-      'state'
-    ) {
-
-      clearUpscFields();
+    if (next === 'state_psc') {
+      clearUpscForm();
     }
   }
 
 
-  /*
-   * RESET
-   */
-
   function resetForm() {
-
-    setEditingId(
-      null
-    );
-
-        setDuplicateMatch(
-      null
-    );
-
-    setLinkingDuplicate(
-      false
-    );
-
-    setAllowVariantCreate(
-      false
-    );
+    setEditingId(null);
     setQuestion('');
-
     setOptionA('');
     setOptionB('');
     setOptionC('');
     setOptionD('');
-
-    setCorrectIndex(
-      0
-    );
-
+    setCorrectIndex(0);
     setExplanation('');
-
-    setSubject(
-      'Polity'
-    );
-
+    setSubject('Polity');
     setTopic('');
-
-    setPaper(
-  'GS Paper I'
-);
-
-    setDifficulty(
-      'medium'
-    );
-
-    setExamStage(
-      'prelims'
-    );
-
+    setPaper('GS-I');
+    setDifficulty('medium');
+    setExamStage('prelims');
     setTagsText('');
-
-    setIsPyq(
-      false
-    );
-
+    setIsPyq(false);
     setPyqYear('');
+    setQuestionOrigin('general');
 
-    setQuestionOrigin(
-      'cse'
-    );
-
-    clearUpscFields();
-
-    clearStateFields();
+    clearUpscForm();
+    clearStatePscForm();
 
     setSource('');
-
     setSourceUrl('');
-
-    setStatus(
-      'draft'
-    );
+    setStatus('draft');
   }
 
 
-  /*
-   * EDIT
-   */
-
   function startEdit(
-    item:
-      QuestionRow
+    item: QuestionRow
   ) {
-
-    setEditingId(
-      item.id
-    );
-
-    setQuestion(
-      item.question
-    );
-
-    setOptionA(
-      item.options[0] ||
-      ''
-    );
-
-    setOptionB(
-      item.options[1] ||
-      ''
-    );
-
-    setOptionC(
-      item.options[2] ||
-      ''
-    );
-
-    setOptionD(
-      item.options[3] ||
-      ''
-    );
-
-    setCorrectIndex(
-      item.correct_index
-    );
-
-    setExplanation(
-      item.explanation
-    );
-
-    setSubject(
-      item.subject
-    );
-
-    setTopic(
-      item.topic ||
-      ''
-    );
-
-    setPaper(
-      item.paper ||
-      ''
-    );
-
-    setDifficulty(
-      item.difficulty
-    );
-
-    setExamStage(
-      item.exam_stage
-    );
-
+    setEditingId(item.id);
+    setQuestion(item.question);
+    setOptionA(item.options[0] || '');
+    setOptionB(item.options[1] || '');
+    setOptionC(item.options[2] || '');
+    setOptionD(item.options[3] || '');
+    setCorrectIndex(item.correct_index);
+    setExplanation(item.explanation);
+    setSubject(item.subject);
+    setTopic(item.topic || '');
+    setPaper(item.paper || '');
+    setDifficulty(item.difficulty);
+    setExamStage(item.exam_stage);
     setTagsText(
-      (
-        item.tags ||
-        []
-      ).join(', ')
+      (item.tags || []).join(', ')
     );
-
-    setIsPyq(
-      item.is_pyq
-    );
-
+    setIsPyq(item.is_pyq);
     setPyqYear(
       item.pyq_year
-        ? String(
-            item.pyq_year
-          )
+        ? String(item.pyq_year)
         : ''
     );
 
+    const origin =
+      getQuestionOrigin(item);
 
-    /*
-     * DETERMINE ORIGIN
-     */
+    setQuestionOrigin(origin);
 
-    if (
-      item.state_psc_state
-    ) {
-
-      setQuestionOrigin(
-        'state'
-      );
-
-    } else if (
-      item.upsc_exam_name
-    ) {
-
-      setQuestionOrigin(
-        'upsc'
-      );
-
-    } else {
-
-      setQuestionOrigin(
-        'cse'
-      );
-    }
-
-
-    /*
-     * LOAD UPSC DATA
-     */
-
-    if (
-      item.upsc_exam_name &&
-      UPSC_EXAMS.includes(
-        item.upsc_exam_name
-      )
-    ) {
-
-      setUpscExamName(
-        item.upsc_exam_name
-      );
-
-      setCustomUpscExamName('');
-
-    } else if (
-      item.upsc_exam_name
-    ) {
-
-      setUpscExamName(
-        'Other UPSC Examination'
-      );
-
-      setCustomUpscExamName(
-        item.upsc_exam_name
-      );
-
-    } else {
-
-      clearUpscFields();
-    }
-
-
-    setUpscExamCycle(
-      item.upsc_exam_cycle ||
-      ''
-    );
-
-    setUpscExamStage(
-      item.upsc_exam_stage ||
-      ''
-    );
-
-    setUpscExamPaper(
-      item.upsc_exam_paper ||
-      ''
-    );
-
-    setUpscExamYear(
-      item.upsc_exam_year
-        ? String(
-            item.upsc_exam_year
-          )
-        : ''
-    );
-
-
-    /*
-     * LOAD STATE PSC DATA
-     */
-
-    if (
-      item.state_psc_state
-    ) {
-
-      const knownState =
-        STATE_PSCS.find(
-          stateItem =>
-            stateItem.state ===
-            item.state_psc_state
+    if (origin === 'upsc') {
+      if (
+        item.upsc_exam_name &&
+        UPSC_EXAMS.includes(
+          item.upsc_exam_name
+        )
+      ) {
+        setUpscExamName(
+          item.upsc_exam_name
         );
-
-
-      if (knownState) {
-
-        setStatePscState(
-          item.state_psc_state
+        setCustomUpscExamName('');
+      } else if (
+        item.upsc_exam_name
+      ) {
+        setUpscExamName(
+          'Other UPSC Examination'
         );
-
-        setCustomStateName('');
-
+        setCustomUpscExamName(
+          item.upsc_exam_name
+        );
       } else {
-
-        setStatePscState(
-          OTHER_STATE
-        );
-
-        setCustomStateName(
-          item.state_psc_state
-        );
+        setUpscExamName('');
+        setCustomUpscExamName('');
       }
 
-
-      setStatePscName(
-        item.state_psc_name ||
-        ''
+      setUpscExamCycle(
+        item.upsc_exam_cycle || ''
       );
-
-      setStatePscExamName(
-        item.state_psc_exam_name ||
-        ''
+      setUpscExamStage(
+        item.upsc_exam_stage || ''
       );
-
-      setStatePscYear(
-        item.state_psc_year
-          ? String(
-              item.state_psc_year
-            )
+      setUpscExamPaper(
+        item.upsc_exam_paper || ''
+      );
+      setUpscExamYear(
+        item.upsc_exam_year
+          ? String(item.upsc_exam_year)
           : ''
       );
-
-      setStatePscStage(
-        item.state_psc_stage ||
-        'Preliminary'
-      );
-
-      setStatePscPaper(
-        item.state_psc_paper ||
-        ''
-      );
-
     } else {
-
-      clearStateFields();
+      clearUpscForm();
     }
 
+    if (origin === 'state_psc') {
+      setStatePscState(
+        item.state_psc_state || ''
+      );
+      setStatePscName(
+        item.state_psc_name || ''
+      );
+      setStatePscExamName(
+        item.state_psc_exam_name || ''
+      );
+      setStatePscYear(
+        item.state_psc_year
+          ? String(item.state_psc_year)
+          : ''
+      );
+      setStatePscStage(
+        item.state_psc_stage || ''
+      );
+      setStatePscPaper(
+        item.state_psc_paper || ''
+      );
+    } else {
+      clearStatePscForm();
+    }
 
-    setSource(
-      item.source ||
-      ''
-    );
-
-    setSourceUrl(
-      item.source_url ||
-      ''
-    );
-
-    setStatus(
-      item.status
-    );
-
+    setSource(item.source || '');
+    setSourceUrl(item.source_url || '');
+    setStatus(item.status);
 
     setMessage(
       'Editing selected question.'
     );
-
 
     const mainArea =
       document.querySelector(
         '.main-area'
       );
 
-
     mainArea?.scrollTo({
       top: 0,
-      behavior:
-        'smooth'
+      behavior: 'smooth'
     });
   }
 
 
-    /*
-   * =========================================
-   * LINK EXISTING MASTER QUESTION
-   * =========================================
-   */
+  function handleStateSelection(
+    nextState: string
+  ) {
+    setStatePscState(nextState);
 
-  async function linkExistingQuestion() {
-
-    if (
-      !supabase ||
-      !duplicateMatch
-    ) {
-
-      return;
-    }
-
-
-    if (
-      duplicateMatch.match_type !==
-      'exact'
-    ) {
-
-      setMessage(
-        'Only an exact or reordered match can be linked directly.'
+    const match =
+      STATE_PSC_OPTIONS.find(
+        item =>
+          item.state === nextState
       );
 
-      return;
-    }
-
-
-    if (!isPyq) {
-
-      setMessage(
-        'Mark this question as a Previous Year Question before linking an exam appearance.'
-      );
-
-      return;
-    }
-
-
-    const options = [
-      optionA.trim(),
-      optionB.trim(),
-      optionC.trim(),
-      optionD.trim()
-    ];
-
-
-    const savedStateName =
-      statePscState ===
-        OTHER_STATE
-        ? customStateName
-            .trim()
-        : statePscState;
-
-
-    const savedUpscExam =
-      upscExamName ===
-        'Other UPSC Examination'
-        ? customUpscExamName
-            .trim()
-        : upscExamName;
-
-
-    const metadata = {
-
-      source:
-        source.trim() ||
-        null,
-
-      source_url:
-        sourceUrl.trim() ||
-        null,
-
-      pyq_year:
-        pyqYear.trim() ||
-        null,
-
-      exam_stage:
-        examStage,
-
-      paper:
-        paper.trim() ||
-        null,
-
-
-      /*
-       * OTHER UPSC
-       */
-
-      upsc_exam_name:
-        savedUpscExam ||
-        null,
-
-      upsc_exam_cycle:
-        upscExamCycle.trim() ||
-        null,
-
-      upsc_exam_year:
-        upscExamYear.trim() ||
-        null,
-
-      upsc_exam_stage:
-        upscExamStage.trim() ||
-        null,
-
-      upsc_exam_paper:
-        upscExamPaper.trim() ||
-        null,
-
-
-      /*
-       * STATE PSC
-       */
-
-      state_psc_state:
-        savedStateName ||
-        null,
-
-      state_psc_name:
-        statePscName.trim() ||
-        null,
-
-      state_psc_exam_name:
-        statePscExamName.trim() ||
-        null,
-
-      state_psc_year:
-        statePscYear.trim() ||
-        null,
-
-      state_psc_stage:
-        statePscStage.trim() ||
-        null,
-
-      state_psc_paper:
-        statePscPaper.trim() ||
-        null
-    };
-
-
-    setLinkingDuplicate(
-      true
-    );
-
-
-    setMessage(
-      'Linking existing question to this exam paper...'
-    );
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase.rpc(
-        'link_existing_prelims_question',
-        {
-
-          p_question_id:
-            duplicateMatch
-              .question_id,
-
-          p_origin:
-            questionOrigin,
-
-          p_metadata:
-            metadata,
-
-          p_original_question:
-            question.trim(),
-
-          p_original_options:
-            options,
-
-          p_original_correct_index:
-            correctIndex
-
-        }
-      );
-
-
-    if (error) {
-
-      console.error(
-        'Unable to link existing question:',
-        error
-      );
-
-
-      setLinkingDuplicate(
-        false
-      );
-
-
-      setMessage(
-        error.message ||
-        'Unable to link this exam appearance.'
-      );
-
-      return;
-    }
-
-
-    const result =
-      Array.isArray(
-        data
-      )
-        ? data[0]
-        : null;
-
-
-    const resultStatus =
-      result?.link_status;
-
-
-    setLinkingDuplicate(
-      false
-    );
-
-
-    resetForm();
-
-
-    if (
-      resultStatus ===
-      'already_linked'
-    ) {
-
-      setMessage(
-        'This question is already linked to that examination paper.'
-      );
-
-      return;
-    }
-
-
-    setMessage(
-      'Existing master question linked successfully. No duplicate question was created.'
+    setStatePscName(
+      match?.psc || ''
     );
   }
 
-
-  /*
-   * =========================================
-   * APPROVE A SAME-STEM VARIANT
-   * =========================================
-   */
-
-  function createAsVariant() {
-
-    if (
-      !duplicateMatch ||
-      duplicateMatch.match_type !==
-        'same_stem'
-    ) {
-
-      return;
-    }
-
-
-    setAllowVariantCreate(
-      true
-    );
-
-
-    setDuplicateMatch(
-      null
-    );
-
-
-    setMessage(
-      'Variant approved. Click Save draft or Publish question again to create it as a separate variant.'
-    );
-  }
-
-
-  /*
-   * =========================================
-   * CANCEL DUPLICATE DECISION
-   * =========================================
-   */
-
-  function cancelDuplicateDecision() {
-
-    setDuplicateMatch(
-      null
-    );
-
-
-    setAllowVariantCreate(
-      false
-    );
-
-
-    setMessage(
-      'Duplicate action cancelled. You can edit the question or examination details.'
-    );
-  }
-  /*
-   * SAVE
-   */
 
   async function saveQuestion(
-    event:
-      FormEvent
+    event: FormEvent
   ) {
-
     event.preventDefault();
 
-
     if (!supabase) {
-
       setMessage(
         'Supabase is not configured.'
       );
-
       return;
     }
-
 
     const options = [
       optionA.trim(),
@@ -1579,348 +720,110 @@ export function QuestionManager({
       optionD.trim()
     ];
 
-
-    if (
-      !question.trim()
-    ) {
-
+    if (!question.trim()) {
       setMessage(
         'Enter the question.'
       );
-
       return;
     }
-
 
     if (
       options.some(
-        option =>
-          !option
+        option => !option
       )
     ) {
-
       setMessage(
         'All four options are required.'
       );
-
       return;
     }
 
-
-    if (
-      !explanation.trim()
-    ) {
-
+    if (!explanation.trim()) {
       setMessage(
         'Add an explanation.'
       );
-
       return;
     }
 
-
-    if (
-      !subject.trim()
-    ) {
-
+    if (!subject.trim()) {
       setMessage(
         'Subject is required.'
       );
-
       return;
     }
-
 
     if (
       isPyq &&
       !pyqYear.trim()
     ) {
-
       setMessage(
         'Enter the PYQ year.'
       );
-
       return;
     }
 
-
-    /*
-     * UPSC VALIDATION
-     */
-
     if (
-      questionOrigin ===
-        'upsc' &&
-      !upscExamName
+      questionOrigin === 'upsc'
     ) {
-
-      setMessage(
-        'Select the UPSC examination.'
-      );
-
-      return;
-    }
-
-
-    if (
-      questionOrigin ===
-        'upsc' &&
-      upscExamName ===
-        'Other UPSC Examination' &&
-      !customUpscExamName
-        .trim()
-    ) {
-
-      setMessage(
-        'Enter the UPSC examination name.'
-      );
-
-      return;
-    }
-
-
-    if (
-      questionOrigin ===
-        'upsc' &&
-      !upscExamYear.trim()
-    ) {
-
-      setMessage(
-        'Enter the UPSC examination year.'
-      );
-
-      return;
-    }
-
-
-    /*
-     * STATE PSC VALIDATION
-     */
-
-    if (
-      questionOrigin ===
-        'state' &&
-      !statePscState
-    ) {
-
-      setMessage(
-        'Select the State.'
-      );
-
-      return;
-    }
-
-
-    if (
-      questionOrigin ===
-        'state' &&
-      statePscState ===
-        OTHER_STATE &&
-      !customStateName.trim()
-    ) {
-
-      setMessage(
-        'Enter the State or Union Territory name.'
-      );
-
-      return;
-    }
-
-
-    if (
-      questionOrigin ===
-        'state' &&
-      !statePscName.trim()
-    ) {
-
-      setMessage(
-        'Enter the State PSC name.'
-      );
-
-      return;
-    }
-
-
-    if (
-      questionOrigin ===
-        'state' &&
-      !statePscExamName
-        .trim()
-    ) {
-
-      setMessage(
-        'Enter the examination name.'
-      );
-
-      return;
-    }
-
-
-    if (
-      questionOrigin ===
-        'state' &&
-      !statePscYear.trim()
-    ) {
-
-      setMessage(
-        'Enter the State PSC examination year.'
-      );
-
-      return;
-    }
-
-
-        /*
-     * =========================================
-     * DUPLICATE QUESTION CHECK
-     * =========================================
-     *
-     * Skip only when:
-     *
-     * 1. Editing an existing question, or
-     * 2. Admin explicitly approved creation
-     *    of a same-stem variant.
-     */
-
-    if (
-      !editingId &&
-      !allowVariantCreate
-    ) {
-
-      setMessage(
-        'Checking whether this question already exists...'
-      );
-
-
-      const {
-        data: duplicateData,
-        error: duplicateError
-      } =
-        await supabase.rpc(
-          'find_prelims_question_matches',
-          {
-
-            p_question:
-              question.trim(),
-
-            p_options:
-              options,
-
-            p_correct_index:
-              correctIndex
-
-          }
-        );
-
-
-      if (duplicateError) {
-
-        console.error(
-          'Duplicate question check failed:',
-          duplicateError
-        );
-
-
+      if (!upscExamName) {
         setMessage(
-          duplicateError.message ||
-          'Unable to check for duplicate questions.'
+          'Select the UPSC examination.'
         );
-
-
         return;
       }
 
-
-      const duplicateMatches =
-        (
-          Array.isArray(
-            duplicateData
-          )
-            ? duplicateData
-            : []
-        ) as
-          DuplicateMatch[];
-
-
-      /*
-       * =====================================
-       * EXACT / REORDERED
-       * =====================================
-       */
-
-      const exactMatch =
-        duplicateMatches.find(
-          item =>
-            item.match_type ===
-            'exact'
-        );
-
-
-      if (exactMatch) {
-
-        setDuplicateMatch(
-          exactMatch
-        );
-
-
-        const appearances =
-          Number(
-            exactMatch
-              .appearance_count ||
-            0
-          );
-
-
+      if (
+        upscExamName ===
+          'Other UPSC Examination' &&
+        !customUpscExamName.trim()
+      ) {
         setMessage(
-          appearances > 0
-            ? `Existing master question found with ${appearances} exam appearance${appearances === 1 ? '' : 's'}. Link this examination instead of creating another copy.`
-            : 'Existing master question found. Link this examination instead of creating another copy.'
+          'Enter the UPSC examination name.'
         );
-
-
         return;
       }
 
-
-      /*
-       * =====================================
-       * SAME STEM / POSSIBLE VARIANT
-       * =====================================
-       */
-
-      const sameStemMatch =
-        duplicateMatches.find(
-          item =>
-            item.match_type ===
-            'same_stem'
-        );
-
-
-      if (sameStemMatch) {
-
-        setDuplicateMatch(
-          sameStemMatch
-        );
-
-
+      if (!upscExamYear.trim()) {
         setMessage(
-          'A question with the same stem already exists, but its options or correct answer differ. Review it before creating a separate variant.'
+          'Enter the UPSC examination year.'
         );
-
-
         return;
       }
-
-
-      setDuplicateMatch(
-        null
-      );
     }
 
+    if (
+      questionOrigin === 'state_psc'
+    ) {
+      if (!statePscState.trim()) {
+        setMessage(
+          'Select the State.'
+        );
+        return;
+      }
 
-    setSaving(
-      true
-    );
+      if (!statePscName.trim()) {
+        setMessage(
+          'Enter the State PSC name.'
+        );
+        return;
+      }
+
+      if (!statePscExamName.trim()) {
+        setMessage(
+          'Enter the State PSC examination name.'
+        );
+        return;
+      }
+
+      if (!statePscYear.trim()) {
+        setMessage(
+          'Enter the State PSC examination year.'
+        );
+        return;
+      }
+    }
+
+    setSaving(true);
 
     setMessage(
       editingId
@@ -1928,403 +831,216 @@ export function QuestionManager({
         : 'Saving question...'
     );
 
-
     const {
-      data: {
-        user
-      }
+      data: { user }
     } =
       await supabase
         .auth
         .getUser();
 
-
     if (!user) {
-
-      setSaving(
-        false
-      );
-
+      setSaving(false);
       setMessage(
         'Admin session expired. Sign in again.'
       );
-
       return;
     }
-
 
     const tags =
       tagsText
         .split(',')
         .map(
-          tag =>
-            tag.trim()
+          tag => tag.trim()
         )
-        .filter(
-          Boolean
-        );
+        .filter(Boolean);
 
-
-    const savedStateName =
-      statePscState ===
-        OTHER_STATE
-        ? customStateName
-            .trim()
-        : statePscState;
-
-
-    const savedUpscExam =
+    const resolvedUpscExamName =
       upscExamName ===
         'Other UPSC Examination'
-        ? customUpscExamName
-            .trim()
-        : upscExamName;
-
+        ? customUpscExamName.trim()
+        : upscExamName.trim();
 
     const payload = {
-
       question:
         question.trim(),
-
       options,
-
       correct_index:
         correctIndex,
-
       explanation:
         explanation.trim(),
-
       subject:
         subject.trim(),
-
       difficulty,
-
       exam_stage:
         examStage,
-
       paper:
-        paper.trim() ||
-        null,
-
+        paper.trim() || null,
       topic:
-        topic.trim() ||
-        null,
-
+        topic.trim() || null,
       tags,
-
       is_pyq:
         isPyq,
-
       pyq_year:
-        isPyq &&
-        pyqYear.trim()
-          ? Number(
-              pyqYear
-            )
+        isPyq && pyqYear.trim()
+          ? Number(pyqYear)
           : null,
-
-
-      /*
-       * UPSC DATA
-       */
 
       upsc_exam_name:
-        questionOrigin ===
-          'upsc'
-          ? savedUpscExam ||
-            null
+        questionOrigin === 'upsc'
+          ? resolvedUpscExamName || null
           : null,
-
       upsc_exam_cycle:
-        questionOrigin ===
-          'upsc'
-          ? upscExamCycle
-              .trim() ||
-            null
+        questionOrigin === 'upsc'
+          ? upscExamCycle.trim() || null
           : null,
-
       upsc_exam_stage:
-        questionOrigin ===
-          'upsc'
-          ? upscExamStage
-              .trim() ||
-            null
+        questionOrigin === 'upsc'
+          ? upscExamStage.trim() || null
           : null,
-
       upsc_exam_paper:
-        questionOrigin ===
-          'upsc'
-          ? upscExamPaper
-              .trim() ||
-            null
+        questionOrigin === 'upsc'
+          ? upscExamPaper.trim() || null
           : null,
-
       upsc_exam_year:
-        questionOrigin ===
-          'upsc' &&
+        questionOrigin === 'upsc' &&
         upscExamYear.trim()
-          ? Number(
-              upscExamYear
-            )
+          ? Number(upscExamYear)
           : null,
-
-
-      /*
-       * STATE PSC DATA
-       */
 
       state_psc_state:
-        questionOrigin ===
-          'state'
-          ? savedStateName ||
-            null
+        questionOrigin === 'state_psc'
+          ? statePscState.trim() || null
           : null,
-
       state_psc_name:
-        questionOrigin ===
-          'state'
-          ? statePscName
-              .trim() ||
-            null
+        questionOrigin === 'state_psc'
+          ? statePscName.trim() || null
           : null,
-
       state_psc_exam_name:
-        questionOrigin ===
-          'state'
-          ? statePscExamName
-              .trim() ||
-            null
+        questionOrigin === 'state_psc'
+          ? statePscExamName.trim() || null
           : null,
-
       state_psc_year:
-        questionOrigin ===
-          'state' &&
+        questionOrigin === 'state_psc' &&
         statePscYear.trim()
-          ? Number(
-              statePscYear
-            )
+          ? Number(statePscYear)
           : null,
-
       state_psc_stage:
-        questionOrigin ===
-          'state'
-          ? statePscStage
-              .trim() ||
-            null
+        questionOrigin === 'state_psc'
+          ? statePscStage.trim() || null
           : null,
-
       state_psc_paper:
-        questionOrigin ===
-          'state'
-          ? statePscPaper
-              .trim() ||
-            null
+        questionOrigin === 'state_psc'
+          ? statePscPaper.trim() || null
           : null,
-
 
       source:
-        source.trim() ||
-        null,
-
+        source.trim() || null,
       source_url:
-        sourceUrl.trim() ||
-        null,
-
+        sourceUrl.trim() || null,
       status,
-
-            ...(
-        !editingId &&
-        allowVariantCreate
-
-          ? {
-              duplicate_review_status:
-                'variant'
-            }
-
-          : {}
-      ),
       updated_at:
-        new Date()
-          .toISOString()
+        new Date().toISOString()
     };
 
-
-    /*
-     * UPDATE
-     */
-
     if (editingId) {
-
-      const {
-        data,
-        error
-      } =
+      const { data, error } =
         await supabase
-          .from(
-            'questions'
-          )
-          .update(
-            payload
-          )
-          .eq(
-            'id',
-            editingId
-          )
-          .select(
-            QUESTION_SELECT
-          )
+          .from('questions')
+          .update(payload)
+          .eq('id', editingId)
+          .select(QUESTION_SELECT)
           .single();
-
 
       if (
         error ||
         !data
       ) {
-
         console.error(
           'Question update failed:',
           error
         );
-
-        setSaving(
-          false
-        );
-
+        setSaving(false);
         setMessage(
           error?.message ||
           'Question update failed.'
         );
-
         return;
       }
 
-
       const rawUpdated =
-        data as unknown as
-          QuestionRow;
+        data as unknown as QuestionRow;
 
-
-      const updated:
-        QuestionRow = {
-
+      const updated: QuestionRow = {
         ...rawUpdated,
-
         options:
-          Array.isArray(
-            rawUpdated.options
-          )
+          Array.isArray(rawUpdated.options)
             ? rawUpdated.options
             : [],
-
         tags:
-          Array.isArray(
-            rawUpdated.tags
-          )
+          Array.isArray(rawUpdated.tags)
             ? rawUpdated.tags
             : []
       };
-
 
       setQuestions(
         current =>
           current.map(
             item =>
-              item.id ===
-              updated.id
+              item.id === updated.id
                 ? updated
                 : item
           )
       );
 
-
-      setSaving(
-        false
-      );
-
+      setSaving(false);
       resetForm();
-
-
       setMessage(
         'Question updated successfully.'
       );
-
       return;
     }
 
-
-    /*
-     * CREATE
-     */
-
-    const {
-      data,
-      error
-    } =
+    const { data, error } =
       await supabase
-        .from(
-          'questions'
-        )
+        .from('questions')
         .insert({
-
           ...payload,
-
           created_by:
             user.id
         })
-        .select(
-          QUESTION_SELECT
-        )
+        .select(QUESTION_SELECT)
         .single();
-
 
     if (
       error ||
       !data
     ) {
-
       console.error(
         'Question creation failed:',
         error
       );
-
-      setSaving(
-        false
-      );
-
+      setSaving(false);
       setMessage(
         error?.message ||
         'Unable to save question.'
       );
-
       return;
     }
 
-
     const rawCreated =
-      data as unknown as
-        QuestionRow;
+      data as unknown as QuestionRow;
 
-
-    const created:
-      QuestionRow = {
-
+    const created: QuestionRow = {
       ...rawCreated,
-
       options:
-        Array.isArray(
-          rawCreated.options
-        )
+        Array.isArray(rawCreated.options)
           ? rawCreated.options
           : [],
-
       tags:
-        Array.isArray(
-          rawCreated.tags
-        )
+        Array.isArray(rawCreated.tags)
           ? rawCreated.tags
           : []
     };
-
 
     setQuestions(
       current => [
@@ -2333,118 +1049,72 @@ export function QuestionManager({
       ]
     );
 
-
-    setSaving(
-      false
-    );
-
+    setSaving(false);
     resetForm();
 
-
     setMessage(
-      created.status ===
-        'published'
+      created.status === 'published'
         ? 'Question published successfully.'
         : 'Question saved as draft.'
     );
   }
 
 
-  /*
-   * STATUS
-   */
-
   async function changeStatus(
-    item:
-      QuestionRow,
-
-    nextStatus:
-      QuestionStatus
+    item: QuestionRow,
+    nextStatus: QuestionStatus
   ) {
-
     if (!supabase) {
       return;
     }
 
-
-    const {
-      data,
-      error
-    } =
+    const { data, error } =
       await supabase
-        .from(
-          'questions'
-        )
+        .from('questions')
         .update({
-
-          status:
-            nextStatus,
-
+          status: nextStatus,
           updated_at:
-            new Date()
-              .toISOString()
+            new Date().toISOString()
         })
-        .eq(
-          'id',
-          item.id
-        )
-        .select(
-          QUESTION_SELECT
-        )
+        .eq('id', item.id)
+        .select(QUESTION_SELECT)
         .single();
-
 
     if (
       error ||
       !data
     ) {
-
       setMessage(
         error?.message ||
         'Unable to change question status.'
       );
-
       return;
     }
 
-
     const rawUpdated =
-      data as unknown as
-        QuestionRow;
+      data as unknown as QuestionRow;
 
-
-    const updated:
-      QuestionRow = {
-
+    const updated: QuestionRow = {
       ...rawUpdated,
-
       options:
-        Array.isArray(
-          rawUpdated.options
-        )
+        Array.isArray(rawUpdated.options)
           ? rawUpdated.options
           : [],
-
       tags:
-        Array.isArray(
-          rawUpdated.tags
-        )
+        Array.isArray(rawUpdated.tags)
           ? rawUpdated.tags
           : []
     };
-
 
     setQuestions(
       current =>
         current.map(
           questionItem =>
-            questionItem.id ===
-            updated.id
+            questionItem.id === updated.id
               ? updated
               : questionItem
         )
     );
-
 
     setMessage(
       `Question changed to ${nextStatus}.`
@@ -2452,73 +1122,46 @@ export function QuestionManager({
   }
 
 
-  /*
-   * DELETE
-   */
-
   async function deleteQuestion(
-    item:
-      QuestionRow
+    item: QuestionRow
   ) {
-
     if (!supabase) {
       return;
     }
-
 
     const confirmed =
       window.confirm(
         'Delete this question permanently?'
       );
 
-
     if (!confirmed) {
       return;
     }
 
-
-    const {
-      error
-    } =
+    const { error } =
       await supabase
-        .from(
-          'questions'
-        )
+        .from('questions')
         .delete()
-        .eq(
-          'id',
-          item.id
-        );
-
+        .eq('id', item.id);
 
     if (error) {
-
-      setMessage(
-        error.message
-      );
-
+      setMessage(error.message);
       return;
     }
-
 
     setQuestions(
       current =>
         current.filter(
           questionItem =>
-            questionItem.id !==
-            item.id
+            questionItem.id !== item.id
         )
     );
 
-
     if (
-      editingId ===
-      item.id
+      editingId === item.id
     ) {
-
       resetForm();
     }
-
 
     setMessage(
       'Question deleted.'
@@ -2526,28 +1169,17 @@ export function QuestionManager({
   }
 
 
-  /*
-   * DYNAMIC FILTER LISTS
-   */
-
   const subjects =
     useMemo(
       () =>
         Array.from(
           new Set(
             questions
-              .map(
-                item =>
-                  item.subject
-              )
-              .filter(
-                Boolean
-              )
+              .map(item => item.subject)
+              .filter(Boolean)
           )
         ).sort(),
-      [
-        questions
-      ]
+      [questions]
     );
 
 
@@ -2558,23 +1190,15 @@ export function QuestionManager({
           new Set(
             questions
               .map(
-                item =>
-                  item.upsc_exam_name
+                item => item.upsc_exam_name
               )
               .filter(
-                (
-                  value
-                ):
-                  value is string =>
-                    Boolean(
-                      value
-                    )
+                (value): value is string =>
+                  Boolean(value)
               )
           )
         ).sort(),
-      [
-        questions
-      ]
+      [questions]
     );
 
 
@@ -2584,28 +1208,26 @@ export function QuestionManager({
         Array.from(
           new Set(
             questions
-              .map(
+              .filter(
                 item =>
-                  item.upsc_exam_year
+                  bankUpscExam === 'all' ||
+                  item.upsc_exam_name ===
+                    bankUpscExam
+              )
+              .map(
+                item => item.upsc_exam_year
               )
               .filter(
-                (
-                  value
-                ):
-                  value is number =>
-                    value !==
-                    null
+                (value): value is number =>
+                  value !== null
               )
           )
         ).sort(
-          (
-            a,
-            b
-          ) =>
-            b - a
+          (a, b) => b - a
         ),
       [
-        questions
+        questions,
+        bankUpscExam
       ]
     );
 
@@ -2617,22 +1239,42 @@ export function QuestionManager({
           new Set(
             questions
               .map(
-                item =>
-                  item.state_psc_state
+                item => item.state_psc_state
               )
               .filter(
-                (
-                  value
-                ):
-                  value is string =>
-                    Boolean(
-                      value
-                    )
+                (value): value is string =>
+                  Boolean(value)
+              )
+          )
+        ).sort(),
+      [questions]
+    );
+
+
+  const statePscNameOptions =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            questions
+              .filter(
+                item =>
+                  bankState === 'all' ||
+                  item.state_psc_state ===
+                    bankState
+              )
+              .map(
+                item => item.state_psc_name
+              )
+              .filter(
+                (value): value is string =>
+                  Boolean(value)
               )
           )
         ).sort(),
       [
-        questions
+        questions,
+        bankState
       ]
     );
 
@@ -2645,29 +1287,31 @@ export function QuestionManager({
             questions
               .filter(
                 item =>
-                  bankState ===
-                    'all' ||
-                  item.state_psc_state ===
-                    bankState
+                  (
+                    bankState === 'all' ||
+                    item.state_psc_state ===
+                      bankState
+                  ) &&
+                  (
+                    bankStatePsc === 'all' ||
+                    item.state_psc_name ===
+                      bankStatePsc
+                  )
               )
               .map(
                 item =>
                   item.state_psc_exam_name
               )
               .filter(
-                (
-                  value
-                ):
-                  value is string =>
-                    Boolean(
-                      value
-                    )
+                (value): value is string =>
+                  Boolean(value)
               )
           )
         ).sort(),
       [
         questions,
-        bankState
+        bankState,
+        bankStatePsc
       ]
     );
 
@@ -2680,253 +1324,184 @@ export function QuestionManager({
             questions
               .filter(
                 item =>
-                  bankState ===
-                    'all' ||
-                  item.state_psc_state ===
-                    bankState
+                  (
+                    bankState === 'all' ||
+                    item.state_psc_state ===
+                      bankState
+                  ) &&
+                  (
+                    bankStatePsc === 'all' ||
+                    item.state_psc_name ===
+                      bankStatePsc
+                  ) &&
+                  (
+                    bankStateExam === 'all' ||
+                    item.state_psc_exam_name ===
+                      bankStateExam
+                  )
               )
               .map(
-                item =>
-                  item.state_psc_year
+                item => item.state_psc_year
               )
               .filter(
-                (
-                  value
-                ):
-                  value is number =>
-                    value !==
-                    null
+                (value): value is number =>
+                  value !== null
               )
           )
         ).sort(
-          (
-            a,
-            b
-          ) =>
-            b - a
+          (a, b) => b - a
         ),
       [
         questions,
-        bankState
+        bankState,
+        bankStatePsc,
+        bankStateExam
       ]
     );
 
-
-  /*
-   * FILTER QUESTIONS
-   */
 
   const filteredQuestions =
     useMemo(
       () =>
         questions.filter(
-          (
-            item:
-              QuestionRow
-          ) => {
-
+          item => {
             const search =
               searchText
                 .trim()
                 .toLowerCase();
 
-
-            const itemOrigin:
-              QuestionOrigin =
-                item.state_psc_state
-                  ? 'state'
-                  : item.upsc_exam_name
-                  ? 'upsc'
-                  : 'cse';
-
+            const origin =
+              getQuestionOrigin(item);
 
             const matchesSearch =
               !search ||
-
               item.question
                 .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
+                .includes(search) ||
               item.subject
                 .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
-              (
-                item.topic ||
-                ''
-              )
+                .includes(search) ||
+              (item.topic || '')
                 .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
-              (
-                item.source ||
-                ''
-              )
+                .includes(search) ||
+              (item.source || '')
                 .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
-              (
-                item.upsc_exam_name ||
-                ''
-              )
+                .includes(search) ||
+              (item.upsc_exam_name || '')
                 .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
-              (
-                item.upsc_exam_paper ||
-                ''
-              )
+                .includes(search) ||
+              (item.upsc_exam_cycle || '')
                 .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
-              (
-                item.state_psc_state ||
-                ''
-              )
+                .includes(search) ||
+              (item.upsc_exam_stage || '')
                 .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
-              (
-                item.state_psc_name ||
-                ''
-              )
+                .includes(search) ||
+              (item.upsc_exam_paper || '')
                 .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
-              (
-                item.state_psc_exam_name ||
-                ''
-              )
-                .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
-              (
-                item.state_psc_paper ||
-                ''
-              )
-                .toLowerCase()
-                .includes(
-                  search
-                ) ||
-
+                .includes(search) ||
               String(
-                item.state_psc_year ||
-                ''
-              ).includes(
-                search
-              );
-
+                item.upsc_exam_year || ''
+              ).includes(search) ||
+              (item.state_psc_state || '')
+                .toLowerCase()
+                .includes(search) ||
+              (item.state_psc_name || '')
+                .toLowerCase()
+                .includes(search) ||
+              (item.state_psc_exam_name || '')
+                .toLowerCase()
+                .includes(search) ||
+              (item.state_psc_stage || '')
+                .toLowerCase()
+                .includes(search) ||
+              (item.state_psc_paper || '')
+                .toLowerCase()
+                .includes(search) ||
+              String(
+                item.state_psc_year || ''
+              ).includes(search);
 
             const matchesSubject =
-              bankSubject ===
-                'all' ||
-              item.subject ===
-                bankSubject;
-
+              bankSubject === 'all' ||
+              item.subject === bankSubject;
 
             const matchesStatus =
-              bankStatus ===
-                'all' ||
-              item.status ===
-                bankStatus;
-
+              bankStatus === 'all' ||
+              item.status === bankStatus;
 
             const matchesDifficulty =
-              bankDifficulty ===
-                'all' ||
+              bankDifficulty === 'all' ||
               item.difficulty ===
                 bankDifficulty;
 
-
             const matchesType =
-              bankType ===
-                'all' ||
-
+              bankType === 'all' ||
               (
-                bankType ===
-                  'pyq' &&
+                bankType === 'pyq' &&
                 item.is_pyq
               ) ||
-
               (
-                bankType ===
-                  'practice' &&
+                bankType === 'practice' &&
                 !item.is_pyq
               );
 
-
             const matchesOrigin =
-              bankOrigin ===
-                'all' ||
-              itemOrigin ===
-                bankOrigin;
-
+              bankOrigin === 'all' ||
+              origin === bankOrigin;
 
             const matchesUpscExam =
-              bankUpscExam ===
-                'all' ||
+              bankUpscExam === 'all' ||
               item.upsc_exam_name ===
                 bankUpscExam;
 
-
             const matchesUpscCycle =
-              bankUpscCycle ===
-                'all' ||
+              bankUpscCycle === 'all' ||
               item.upsc_exam_cycle ===
                 bankUpscCycle;
 
-
             const matchesUpscYear =
-              bankUpscYear ===
-                'all' ||
+              bankUpscYear === 'all' ||
               String(
-                item.upsc_exam_year ||
-                ''
-              ) ===
-                bankUpscYear;
-
+                item.upsc_exam_year || ''
+              ) === bankUpscYear;
 
             const matchesState =
-              bankState ===
-                'all' ||
+              bankState === 'all' ||
               item.state_psc_state ===
                 bankState;
 
+            const matchesStatePsc =
+              bankStatePsc === 'all' ||
+              item.state_psc_name ===
+                bankStatePsc;
 
             const matchesStateExam =
-              bankStateExam ===
-                'all' ||
+              bankStateExam === 'all' ||
               item.state_psc_exam_name ===
                 bankStateExam;
 
-
             const matchesStateYear =
-              bankStateYear ===
-                'all' ||
+              bankStateYear === 'all' ||
               String(
-                item.state_psc_year ||
-                ''
-              ) ===
-                bankStateYear;
+                item.state_psc_year || ''
+              ) === bankStateYear;
 
+            const upscFiltersPass =
+              bankOrigin !== 'upsc' ||
+              (
+                matchesUpscExam &&
+                matchesUpscCycle &&
+                matchesUpscYear
+              );
+
+            const stateFiltersPass =
+              bankOrigin !== 'state_psc' ||
+              (
+                matchesState &&
+                matchesStatePsc &&
+                matchesStateExam &&
+                matchesStateYear
+              );
 
             return (
               matchesSearch &&
@@ -2935,12 +1510,8 @@ export function QuestionManager({
               matchesDifficulty &&
               matchesType &&
               matchesOrigin &&
-              matchesUpscExam &&
-              matchesUpscCycle &&
-              matchesUpscYear &&
-              matchesState &&
-              matchesStateExam &&
-              matchesStateYear
+              upscFiltersPass &&
+              stateFiltersPass
             );
           }
         ),
@@ -2956,117 +1527,67 @@ export function QuestionManager({
         bankUpscCycle,
         bankUpscYear,
         bankState,
+        bankStatePsc,
         bankStateExam,
         bankStateYear
       ]
     );
 
 
-  /*
-   * CLEAR FILTERS
-   */
-
   function clearFilters() {
-
     setSearchText('');
+    setBankSubject('all');
+    setBankStatus('all');
+    setBankDifficulty('all');
+    setBankType('all');
+    setBankOrigin('all');
 
-    setBankSubject(
-      'all'
-    );
+    setBankUpscExam('all');
+    setBankUpscCycle('all');
+    setBankUpscYear('all');
 
-    setBankStatus(
-      'all'
-    );
-
-    setBankDifficulty(
-      'all'
-    );
-
-    setBankType(
-      'all'
-    );
-
-    setBankOrigin(
-      'all'
-    );
-
-    setBankUpscExam(
-      'all'
-    );
-
-    setBankUpscCycle(
-      'all'
-    );
-
-    setBankUpscYear(
-      'all'
-    );
-
-    setBankState(
-      'all'
-    );
-
-    setBankStateExam(
-      'all'
-    );
-
-    setBankStateYear(
-      'all'
-    );
+    setBankState('all');
+    setBankStatePsc('all');
+    setBankStateExam('all');
+    setBankStateYear('all');
   }
 
 
-  /*
-   * UI
-   */
-
   return (
-
     <section
       style={{
-        marginTop:
-          '30px'
+        marginTop: '30px'
       }}
     >
+      {/* CREATE / EDIT MCQ */}
 
-     {/* CREATE / EDIT MCQ */}
-
-{
-  view !== 'bank' && (
-
-    <div
-      className="panel admin-form"
-    >
-
-        <span
-          className="eyebrow"
-        >
+      <div
+        className="panel admin-form"
+        style={{
+          display:
+            view === 'bank'
+              ? 'none'
+              : 'block'
+        }}
+      >
+        <span className="eyebrow">
           MCQ QUESTION MANAGER
         </span>
 
-
         <h2>
-          {
-            editingId
-              ? 'Edit MCQ'
-              : 'Create MCQ'
-          }
+          {editingId
+            ? 'Edit MCQ'
+            : 'Create MCQ'}
         </h2>
 
-
         <form
-          onSubmit={
-            saveQuestion
-          }
+          onSubmit={saveQuestion}
         >
-
           <label>
             Question
 
             <textarea
-              value={
-                question
-              }
+              value={question}
               onChange={
                 event =>
                   setQuestion(
@@ -3074,19 +1595,14 @@ export function QuestionManager({
                   )
               }
               rows={4}
-              placeholder="Enter UPSC / State PSC style MCQ question"
+              placeholder="Enter UPSC-style or State PSC-style MCQ question"
             />
-
           </label>
-
 
           <label>
             Option A
-
             <input
-              value={
-                optionA
-              }
+              value={optionA}
               onChange={
                 event =>
                   setOptionA(
@@ -3094,17 +1610,12 @@ export function QuestionManager({
                   )
               }
             />
-
           </label>
-
 
           <label>
             Option B
-
             <input
-              value={
-                optionB
-              }
+              value={optionB}
               onChange={
                 event =>
                   setOptionB(
@@ -3112,17 +1623,12 @@ export function QuestionManager({
                   )
               }
             />
-
           </label>
-
 
           <label>
             Option C
-
             <input
-              value={
-                optionC
-              }
+              value={optionC}
               onChange={
                 event =>
                   setOptionC(
@@ -3130,17 +1636,12 @@ export function QuestionManager({
                   )
               }
             />
-
           </label>
-
 
           <label>
             Option D
-
             <input
-              value={
-                optionD
-              }
+              value={optionD}
               onChange={
                 event =>
                   setOptionD(
@@ -3148,17 +1649,13 @@ export function QuestionManager({
                   )
               }
             />
-
           </label>
-
 
           <label>
             Correct Answer
 
             <select
-              value={
-                correctIndex
-              }
+              value={correctIndex}
               onChange={
                 event =>
                   setCorrectIndex(
@@ -3168,35 +1665,18 @@ export function QuestionManager({
                   )
               }
             >
-
-              <option value={0}>
-                A
-              </option>
-
-              <option value={1}>
-                B
-              </option>
-
-              <option value={2}>
-                C
-              </option>
-
-              <option value={3}>
-                D
-              </option>
-
+              <option value={0}>A</option>
+              <option value={1}>B</option>
+              <option value={2}>C</option>
+              <option value={3}>D</option>
             </select>
-
           </label>
-
 
           <label>
             Explanation
 
             <textarea
-              value={
-                explanation
-              }
+              value={explanation}
               onChange={
                 event =>
                   setExplanation(
@@ -3204,23 +1684,16 @@ export function QuestionManager({
                   )
               }
               rows={5}
-              placeholder="Explain the correct answer."
+              placeholder="Explain why the correct answer is correct."
             />
-
           </label>
 
-
-          <div
-            className="form-two"
-          >
-
+          <div className="form-two">
             <label>
               Subject
 
               <select
-                value={
-                  subject
-                }
+                value={subject}
                 onChange={
                   event =>
                     setSubject(
@@ -3228,192 +1701,74 @@ export function QuestionManager({
                     )
                 }
               >
-
-                <option>
-                  Polity
-                </option>
-
-                <option>
-                  History
-                </option>
-
-                <option>
-                  Geography
-                </option>
-
-                <option>
-                  Economy
-                </option>
-
-                <option>
-                  Environment
-                </option>
-
-                <option>
-                  Science & Tech
-                </option>
-
-                <option>
-                  Current Affairs
-                </option>
-
-                <option>
-                  Art & Culture
-                </option>
-
-                <option>
-                  Agriculture
-                </option>
-
-                <option>
-                  Miscellaneous
-                </option>
-
+                <option>Polity</option>
+                <option>History</option>
+                <option>Geography</option>
+                <option>Economy</option>
+                <option>Environment</option>
+                <option>Science & Tech</option>
+                <option>Current Affairs</option>
               </select>
-
             </label>
-
 
             <label>
               Difficulty
 
               <select
-                value={
-                  difficulty
-                }
+                value={difficulty}
                 onChange={
                   event =>
                     setDifficulty(
-                      event.target
-                        .value as
-                        Difficulty
+                      event.target.value as Difficulty
                     )
                 }
               >
-
-                <option value="easy">
-                  Easy
-                </option>
-
-                <option value="medium">
-                  Medium
-                </option>
-
-                <option value="hard">
-                  Hard
-                </option>
-
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
               </select>
-
             </label>
-
           </div>
 
-
-          <div
-            className="form-two"
-          >
-
+          <div className="form-two">
             <label>
               Exam Stage
 
               <select
-                value={
-                  examStage
-                }
+                value={examStage}
                 onChange={
                   event =>
                     setExamStage(
-                      event.target
-                        .value as
-                        ExamStage
+                      event.target.value as ExamStage
                     )
                 }
               >
-
-                <option value="prelims">
-                  Prelims
-                </option>
-
-                <option value="mains">
-                  Mains
-                </option>
-
+                <option value="prelims">Prelims</option>
+                <option value="mains">Mains</option>
               </select>
-
             </label>
 
-
             <label>
-  Prelims Paper
+              Paper
 
-  {
-    examStage ===
-      'prelims' &&
-    questionOrigin ===
-      'cse'
-      ? (
-
-        <select
-
-          value={
-            paper
-          }
-
-          onChange={
-            event =>
-              setPaper(
-                event.target.value
-              )
-          }
-
-        >
-
-          <option value="GS Paper I">
-            GS Paper I
-          </option>
-
-          <option value="CSAT Paper II">
-            CSAT Paper II
-          </option>
-
-        </select>
-
-      )
-      : (
-
-        <input
-
-          value={
-            paper
-          }
-
-          onChange={
-            event =>
-              setPaper(
-                event.target.value
-              )
-          }
-
-          placeholder="Paper name"
-
-        />
-
-      )
-  }
-
-</label>
-
+              <input
+                value={paper}
+                onChange={
+                  event =>
+                    setPaper(
+                      event.target.value
+                    )
+                }
+                placeholder="GS-I / GS-II / General Studies..."
+              />
+            </label>
           </div>
-
 
           <label>
             Topic
 
             <input
-              value={
-                topic
-              }
+              value={topic}
               onChange={
                 event =>
                   setTopic(
@@ -3422,17 +1777,13 @@ export function QuestionManager({
               }
               placeholder="Fundamental Rights / Monsoon / Inflation..."
             />
-
           </label>
-
 
           <label>
             Tags
 
             <input
-              value={
-                tagsText
-              }
+              value={tagsText}
               onChange={
                 event =>
                   setTagsText(
@@ -3443,25 +1794,46 @@ export function QuestionManager({
             />
 
             <small>
-              Separate tags with commas.
+              Separate tags using commas.
             </small>
-
           </label>
 
+          <label>
+            Source
 
-          {/* PYQ */}
+            <input
+              value={source}
+              onChange={
+                event =>
+                  setSource(
+                    event.target.value
+                  )
+              }
+              placeholder="NCERT / Laxmikanth / UPSC / State PSC..."
+            />
+          </label>
 
-          <div
-            className="checkbox-row"
-          >
+          <label>
+            Source URL
 
+            <input
+              type="url"
+              value={sourceUrl}
+              onChange={
+                event =>
+                  setSourceUrl(
+                    event.target.value
+                  )
+              }
+              placeholder="https://..."
+            />
+          </label>
+
+          <div className="checkbox-row">
             <label>
-
               <input
                 type="checkbox"
-                checked={
-                  isPyq
-                }
+                checked={isPyq}
                 onChange={
                   event =>
                     setIsPyq(
@@ -3471,24 +1843,18 @@ export function QuestionManager({
               />
 
               Previous Year Question
-
             </label>
-
           </div>
 
-
           {isPyq && (
-
             <label>
               PYQ Year
 
               <input
                 type="number"
-                min="1900"
+                min="1950"
                 max="2100"
-                value={
-                  pyqYear
-                }
+                value={pyqYear}
                 onChange={
                   event =>
                     setPyqYear(
@@ -3497,60 +1863,45 @@ export function QuestionManager({
                 }
                 placeholder="2025"
               />
-
             </label>
-
           )}
-
 
           {/* QUESTION ORIGIN */}
 
           <div
             style={{
-              marginTop:
-                '22px',
-
-              padding:
-                '18px',
-
+              marginTop: '20px',
+              padding: '18px',
               border:
-                '1px solid rgba(255,255,255,.12)',
-
-              borderRadius:
-                '14px'
+                '1px solid rgba(255,255,255,.10)',
+              borderRadius: '14px'
             }}
           >
-
-            <span
-              className="eyebrow"
-            >
+            <span className="eyebrow">
               QUESTION ORIGIN
             </span>
 
-
-            <h3>
+            <h3
+              style={{
+                marginTop: '6px'
+              }}
+            >
               Examination Source
             </h3>
-
 
             <label>
               Question Origin
 
               <select
-                value={
-                  questionOrigin
-                }
+                value={questionOrigin}
                 onChange={
                   event =>
                     changeQuestionOrigin(
-                      event.target
-                        .value as
-                        QuestionOrigin
+                      event.target.value as QuestionOrigin
                     )
                 }
               >
-
-                <option value="cse">
+                <option value="general">
                   CSE / General Practice
                 </option>
 
@@ -3558,355 +1909,232 @@ export function QuestionManager({
                   Other UPSC Examination
                 </option>
 
-                <option value="state">
+                <option value="state_psc">
                   State PSC Examination
                 </option>
-
               </select>
-
             </label>
+          </div>
 
+          {/* OTHER UPSC EXAM */}
 
-            {/* OTHER UPSC */}
+          {questionOrigin === 'upsc' && (
+            <div
+              style={{
+                marginTop: '16px',
+                padding: '18px',
+                border:
+                  '1px solid rgba(255,255,255,.10)',
+                borderRadius: '14px'
+              }}
+            >
+              <span className="eyebrow">
+                UPSC VALUE ADDITION
+              </span>
 
-            {questionOrigin ===
-              'upsc' && (
-
-              <div
+              <h3
                 style={{
-                  marginTop:
-                    '18px'
+                  marginTop: '6px'
                 }}
               >
+                Other UPSC Examination Reference
+              </h3>
 
-                <span
-                  className="eyebrow"
+              <label>
+                UPSC Examination
+
+                <select
+                  value={upscExamName}
+                  onChange={
+                    event => {
+                      const next =
+                        event.target.value;
+
+                      setUpscExamName(next);
+
+                      if (
+                        next !==
+                        'Other UPSC Examination'
+                      ) {
+                        setCustomUpscExamName('');
+                      }
+                    }
+                  }
                 >
-                  UPSC VALUE ADDITION
-                </span>
+                  <option value="">
+                    Select UPSC exam
+                  </option>
 
+                  {UPSC_EXAMS.map(
+                    exam => (
+                      <option
+                        key={exam}
+                        value={exam}
+                      >
+                        {exam}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
 
+              {upscExamName ===
+                'Other UPSC Examination' && (
                 <label>
-                  UPSC Examination
+                  Examination Name
+
+                  <input
+                    value={customUpscExamName}
+                    onChange={
+                      event =>
+                        setCustomUpscExamName(
+                          event.target.value
+                        )
+                    }
+                    placeholder="Write UPSC examination name"
+                  />
+                </label>
+              )}
+
+              <div className="form-two">
+                <label>
+                  Exam Cycle
 
                   <select
-                    value={
-                      upscExamName
-                    }
+                    value={upscExamCycle}
                     onChange={
-                      event => {
-
-                        const next =
-                          event.target.value;
-
-                        setUpscExamName(
-                          next
-                        );
-
-                        if (
-                          next !==
-                          'Other UPSC Examination'
-                        ) {
-
-                          setCustomUpscExamName(
-                            ''
-                          );
-                        }
-                      }
+                      event =>
+                        setUpscExamCycle(
+                          event.target.value
+                        )
                     }
                   >
-
                     <option value="">
-                      Select examination
+                      Not applicable
                     </option>
-
-
-                    {UPSC_EXAMS.map(
-                      exam => (
-
-                        <option
-                          key={
-                            exam
-                          }
-                          value={
-                            exam
-                          }
-                        >
-                          {exam}
-                        </option>
-
-                      )
-                    )}
-
+                    <option value="I">I</option>
+                    <option value="II">II</option>
                   </select>
-
                 </label>
 
+                <label>
+                  Examination Year
 
-                {upscExamName ===
-                  'Other UPSC Examination' && (
-
-                  <label>
-                    Examination Name
-
-                    <input
-                      value={
-                        customUpscExamName
-                      }
-                      onChange={
-                        event =>
-                          setCustomUpscExamName(
-                            event.target.value
-                          )
-                      }
-                      placeholder="Write UPSC examination name"
-                    />
-
-                  </label>
-
-                )}
-
-
-                <div
-                  className="form-two"
-                >
-
-                  <label>
-                    Exam Cycle
-
-                    <select
-                      value={
-                        upscExamCycle
-                      }
-                      onChange={
-                        event =>
-                          setUpscExamCycle(
-                            event.target.value
-                          )
-                      }
-                    >
-
-                      <option value="">
-                        Not applicable
-                      </option>
-
-                      <option value="I">
-                        I
-                      </option>
-
-                      <option value="II">
-                        II
-                      </option>
-
-                    </select>
-
-                  </label>
-
-
-                  <label>
-                    Year
-
-                    <input
-                      type="number"
-                      min="1900"
-                      max="2100"
-                      value={
-                        upscExamYear
-                      }
-                      onChange={
-                        event =>
-                          setUpscExamYear(
-                            event.target.value
-                          )
-                      }
-                      placeholder="2025"
-                    />
-
-                  </label>
-
-                </div>
-
-
-                <div
-                  className="form-two"
-                >
-
-                  <label>
-                    Stage
-
-                    <input
-                      value={
-                        upscExamStage
-                      }
-                      onChange={
-                        event =>
-                          setUpscExamStage(
-                            event.target.value
-                          )
-                      }
-                      placeholder="Preliminary / Written"
-                    />
-
-                  </label>
-
-
-                  <label>
-                    Paper / Subject
-
-                    <input
-                      value={
-                        upscExamPaper
-                      }
-                      onChange={
-                        event =>
-                          setUpscExamPaper(
-                            event.target.value
-                          )
-                      }
-                      placeholder="GAT / GK / Paper-I"
-                    />
-
-                  </label>
-
-                </div>
-
+                  <input
+                    type="number"
+                    min="1950"
+                    max="2100"
+                    value={upscExamYear}
+                    onChange={
+                      event =>
+                        setUpscExamYear(
+                          event.target.value
+                        )
+                    }
+                    placeholder="2025"
+                  />
+                </label>
               </div>
 
-            )}
+              <div className="form-two">
+                <label>
+                  Exam Stage
 
+                  <input
+                    value={upscExamStage}
+                    onChange={
+                      event =>
+                        setUpscExamStage(
+                          event.target.value
+                        )
+                    }
+                    placeholder="Preliminary / Written / Main..."
+                  />
+                </label>
 
-            {/* STATE PSC */}
+                <label>
+                  Paper / Subject
 
-            {questionOrigin ===
-              'state' && (
+                  <input
+                    value={upscExamPaper}
+                    onChange={
+                      event =>
+                        setUpscExamPaper(
+                          event.target.value
+                        )
+                    }
+                    placeholder="GAT / General Knowledge / Paper-I..."
+                  />
+                </label>
+              </div>
+            </div>
+          )}
 
-              <div
+          {/* STATE PSC */}
+
+          {questionOrigin === 'state_psc' && (
+            <div
+              style={{
+                marginTop: '16px',
+                padding: '18px',
+                border:
+                  '1px solid rgba(255,255,255,.10)',
+                borderRadius: '14px'
+              }}
+            >
+              <span className="eyebrow">
+                STATE PSC VALUE ADDITION
+              </span>
+
+              <h3
                 style={{
-                  marginTop:
-                    '18px'
+                  marginTop: '6px'
                 }}
               >
+                State Public Service Commission Question
+              </h3>
 
-                <span
-                  className="eyebrow"
-                >
-                  ALL INDIA STATE PSC
-                </span>
+              <p>
+                All 28 States are included. Select the State,
+                confirm or edit the PSC name, and write the exact
+                examination name.
+              </p>
 
-
-                <h3>
-                  State PSC Examination
-                </h3>
-
-
+              <div className="form-two">
                 <label>
                   State
 
                   <select
-                    value={
-                      statePscState
-                    }
+                    value={statePscState}
                     onChange={
-                      event => {
-
-                        const next =
-                          event.target.value;
-
-                        setStatePscState(
-                          next
-                        );
-
-                        setCustomStateName('');
-
-                        const found =
-                          STATE_PSCS.find(
-                            item =>
-                              item.state ===
-                              next
-                          );
-
-
-                        if (found) {
-
-                          setStatePscName(
-                            found.psc
-                          );
-
-                        } else {
-
-                          setStatePscName('');
-                        }
-                      }
+                      event =>
+                        handleStateSelection(
+                          event.target.value
+                        )
                     }
                   >
-
                     <option value="">
                       Select State
                     </option>
 
-
-                    {STATE_PSCS.map(
+                    {STATE_PSC_OPTIONS.map(
                       item => (
-
                         <option
-                          key={
-                            item.state
-                          }
-                          value={
-                            item.state
-                          }
+                          key={item.state}
+                          value={item.state}
                         >
                           {item.state}
                         </option>
-
                       )
                     )}
-
-
-                    <option
-                      value={
-                        OTHER_STATE
-                      }
-                    >
-                      Other State / Union Territory
-                    </option>
-
                   </select>
-
                 </label>
-
-
-                {statePscState ===
-                  OTHER_STATE && (
-
-                  <label>
-                    State / Union Territory Name
-
-                    <input
-                      value={
-                        customStateName
-                      }
-                      onChange={
-                        event =>
-                          setCustomStateName(
-                            event.target.value
-                          )
-                      }
-                      placeholder="Write State / UT name"
-                    />
-
-                  </label>
-
-                )}
-
 
                 <label>
                   State PSC Name
 
                   <input
-                    value={
-                      statePscName
-                    }
+                    value={statePscName}
                     onChange={
                       event =>
                         setStatePscName(
@@ -3917,722 +2145,252 @@ export function QuestionManager({
                   />
 
                   <small>
-                    Automatically filled for the 28 States. You can edit it.
+                    Auto-filled from State selection, but editable.
                   </small>
-
                 </label>
-
-
-                <label>
-                  Examination Name
-
-                  <input
-                    value={
-                      statePscExamName
-                    }
-                    onChange={
-                      event =>
-                        setStatePscExamName(
-                          event.target.value
-                        )
-                    }
-                    placeholder="State Service / Group B / Combined Competitive / other exam..."
-                  />
-
-                  <small>
-                    Fully editable. Enter any examination conducted by that State PSC.
-                  </small>
-
-                </label>
-
-
-                <div
-                  className="form-two"
-                >
-
-                  <label>
-                    Examination Year
-
-                    <input
-                      type="number"
-                      min="1900"
-                      max="2100"
-                      value={
-                        statePscYear
-                      }
-                      onChange={
-                        event =>
-                          setStatePscYear(
-                            event.target.value
-                          )
-                      }
-                      placeholder="2025"
-                    />
-
-                  </label>
-
-
-                  <label>
-                    Examination Stage
-
-                    <input
-                      value={
-                        statePscStage
-                      }
-                      onChange={
-                        event =>
-                          setStatePscStage(
-                            event.target.value
-                          )
-                      }
-                      placeholder="Preliminary / Screening"
-                    />
-
-                  </label>
-
-                </div>
-
-
-                <label>
-                  Paper / Subject
-
-                  <input
-                    value={
-                      statePscPaper
-                    }
-                    onChange={
-                      event =>
-                        setStatePscPaper(
-                          event.target.value
-                        )
-                    }
-                    placeholder="General Studies-I / GS / Paper-I..."
-                  />
-
-                </label>
-
               </div>
 
-            )}
+              <label>
+                Examination Name
 
-          </div>
+                <input
+                  value={statePscExamName}
+                  onChange={
+                    event =>
+                      setStatePscExamName(
+                        event.target.value
+                      )
+                  }
+                  placeholder="State Services / Group B / Combined Competitive / other exam..."
+                />
 
+                <small>
+                  Fully editable so any examination conducted by that State PSC can be entered.
+                </small>
+              </label>
 
-          {/* SOURCE */}
+              <div className="form-two">
+                <label>
+                  Examination Year
 
-          <label>
-            Source
+                  <input
+                    type="number"
+                    min="1950"
+                    max="2100"
+                    value={statePscYear}
+                    onChange={
+                      event =>
+                        setStatePscYear(
+                          event.target.value
+                        )
+                    }
+                    placeholder="2025"
+                  />
+                </label>
 
-            <input
-              value={
-                source
-              }
-              onChange={
-                event =>
-                  setSource(
-                    event.target.value
-                  )
-              }
-              placeholder="UPSC / MPSC / BPSC / Book / Website..."
-            />
+                <label>
+                  Stage
 
-          </label>
+                  <input
+                    value={statePscStage}
+                    onChange={
+                      event =>
+                        setStatePscStage(
+                          event.target.value
+                        )
+                    }
+                    placeholder="Preliminary / Screening Test..."
+                  />
+                </label>
+              </div>
 
+              <label>
+                Paper / Subject
 
-          <label>
-            Source URL
-
-            <input
-              type="url"
-              value={
-                sourceUrl
-              }
-              onChange={
-                event =>
-                  setSourceUrl(
-                    event.target.value
-                  )
-              }
-              placeholder="https://..."
-            />
-
-          </label>
-
+                <input
+                  value={statePscPaper}
+                  onChange={
+                    event =>
+                      setStatePscPaper(
+                        event.target.value
+                      )
+                  }
+                  placeholder="General Studies-I / Paper-I / General Knowledge..."
+                />
+              </label>
+            </div>
+          )}
 
           <label>
             Status
 
             <select
-              value={
-                status
-              }
+              value={status}
               onChange={
                 event =>
                   setStatus(
-                    event.target
-                      .value as
-                      QuestionStatus
+                    event.target.value as QuestionStatus
                   )
               }
             >
-
-              <option value="draft">
-                Draft
-              </option>
-
-              <option value="published">
-                Published
-              </option>
-
-              <option value="archived">
-                Archived
-              </option>
-
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
             </select>
-
           </label>
-
 
           <div
             style={{
-              display:
-                'flex',
-
-              gap:
-                '10px',
-
-              flexWrap:
-                'wrap',
-
-              marginTop:
-                '16px'
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap',
+              marginTop: '16px'
             }}
           >
-
             <button
               className="primary-btn"
               type="submit"
-              disabled={
-                saving
-              }
+              disabled={saving}
             >
-              {
-                saving
-                  ? 'Saving...'
-                  : editingId
-                  ? 'Save changes'
-                  : status ===
-                    'published'
-                  ? 'Publish question'
-                  : 'Save draft'
-              }
+              {saving
+                ? 'Saving...'
+                : editingId
+                ? 'Save changes'
+                : status === 'published'
+                ? 'Publish question'
+                : 'Save draft'}
             </button>
 
-
             {editingId && (
-
               <button
                 type="button"
                 className="secondary-btn"
-                onClick={
-                  resetForm
-                }
+                onClick={resetForm}
               >
                 Cancel edit
               </button>
-
             )}
-
           </div>
 
-
-                    {/* DUPLICATE QUESTION ACTIONS */}
-
-          {duplicateMatch && (
-
-            <div
-              style={{
-                marginTop:
-                  '18px',
-
-                padding:
-                  '18px',
-
-                border:
-                  duplicateMatch
-                    .match_type ===
-                    'exact'
-                    ? '1px solid rgba(20,184,166,.45)'
-                    : '1px solid rgba(251,191,36,.45)',
-
-                borderRadius:
-                  '14px',
-
-                background:
-                  duplicateMatch
-                    .match_type ===
-                    'exact'
-                    ? 'rgba(20,184,166,.08)'
-                    : 'rgba(251,191,36,.08)'
-              }}
-            >
-
-              <span
-                className="eyebrow"
-              >
-                {
-                  duplicateMatch
-                    .match_type ===
-                    'exact'
-                    ? 'EXISTING QUESTION FOUND'
-                    : 'POSSIBLE QUESTION VARIANT'
-                }
-              </span>
-
-
-              <h3
-                style={{
-                  marginBottom:
-                    '8px'
-                }}
-              >
-                {
-                  duplicateMatch.question
-                }
-              </h3>
-
-
-              <p>
-                Subject:{' '}
-                <strong>
-                  {
-                    duplicateMatch.subject
-                  }
-                </strong>
-
-                {
-                  duplicateMatch.topic
-                    ? ` · ${duplicateMatch.topic}`
-                    : ''
-                }
-              </p>
-
-
-              <p>
-                Previous exam appearances:{' '}
-
-                <strong>
-                  {
-                    Number(
-                      duplicateMatch
-                        .appearance_count ||
-                      0
-                    )
-                  }
-                </strong>
-              </p>
-
-
-              {
-                Array.isArray(
-                  duplicateMatch
-                    .appearances
-                ) &&
-
-                duplicateMatch
-                  .appearances
-                  .length > 0 && (
-
-                  <div
-                    style={{
-                      display:
-                        'grid',
-
-                      gap:
-                        '6px',
-
-                      marginTop:
-                        '10px'
-                    }}
-                  >
-
-                    {
-                      duplicateMatch
-                        .appearances
-                        .slice(
-                          0,
-                          6
-                        )
-                        .map(
-                          (
-                            appearance,
-                            index
-                          ) => (
-
-                            <div
-                              key={
-                                appearance
-                                  .appearance_id ||
-                                `${appearance.exam_paper_id || 'paper'}-${index}`
-                              }
-
-                              style={{
-                                padding:
-                                  '8px 10px',
-
-                                borderRadius:
-                                  '10px',
-
-                                background:
-                                  'rgba(255,255,255,.04)'
-                              }}
-                            >
-
-                              {
-                                [
-                                  appearance
-                                    .commission,
-
-                                  appearance
-                                    .exam_name,
-
-                                  appearance
-                                    .year,
-
-                                  appearance
-                                    .stage,
-
-                                  appearance
-                                    .paper
-                                ]
-                                  .filter(
-                                    value =>
-                                      value !==
-                                        null &&
-                                      value !==
-                                        undefined &&
-                                      value !==
-                                        ''
-                                  )
-                                  .join(
-                                    ' · '
-                                  )
-                              }
-
-                            </div>
-
-                          )
-                        )
-                    }
-
-                  </div>
-
-                )
-              }
-
-
-              <div
-                style={{
-                  display:
-                    'flex',
-
-                  flexWrap:
-                    'wrap',
-
-                  gap:
-                    '10px',
-
-                  marginTop:
-                    '16px'
-                }}
-              >
-
-                {
-                  duplicateMatch
-                    .match_type ===
-                    'exact' &&
-                  isPyq && (
-
-                    <button
-                      type="button"
-                      className="primary-btn"
-                      disabled={
-                        linkingDuplicate
-                      }
-                      onClick={
-                        linkExistingQuestion
-                      }
-                    >
-
-                      {
-                        linkingDuplicate
-                          ? 'Linking...'
-                          : 'Link This Exam Appearance'
-                      }
-
-                    </button>
-
-                  )
-                }
-
-
-                {
-                  duplicateMatch
-                    .match_type ===
-                    'same_stem' && (
-
-                    <button
-                      type="button"
-                      className="primary-btn"
-                      onClick={
-                        createAsVariant
-                      }
-                    >
-                      Create as Variant
-                    </button>
-
-                  )
-                }
-
-
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  disabled={
-                    linkingDuplicate
-                  }
-                  onClick={
-                    cancelDuplicateDecision
-                  }
-                >
-                  Cancel
-                </button>
-
-              </div>
-
-
-              {
-                duplicateMatch
-                  .match_type ===
-                  'exact' &&
-                !isPyq && (
-
-                  <p
-                    style={{
-                      marginTop:
-                        '12px'
-                    }}
-                  >
-                    This master question already exists.
-                    Mark it as a Previous Year Question only if
-                    you want to connect a real examination
-                    appearance.
-                  </p>
-
-                )
-              }
-
-            </div>
-
-          )}
           {message && (
-
-            <p
-              className="form-message"
-            >
+            <p className="form-message">
               {message}
             </p>
-
           )}
-
         </form>
+      </div>
 
-        </div>
+      {/* QUESTION BANK */}
 
-  )
-}
-
-{/* QUESTION BANK */}
-
-{
-  view !== 'editor' && (
-
-    <div
-      className="panel admin-form"
-      style={{
-        marginTop:
-          view === 'bank'
-            ? '0'
-            : '22px'
-      }}
-    >
-
+      <div
+        className="panel admin-form"
+        style={{
+          display:
+            view === 'editor'
+              ? 'none'
+              : 'block',
+          marginTop:
+            view === 'bank'
+              ? '0'
+              : '22px'
+        }}
+      >
         <div
           style={{
-            display:
-              'flex',
-
-            justifyContent:
-              'space-between',
-
-            alignItems:
-              'center',
-
-            gap:
-              '12px',
-
-            flexWrap:
-              'wrap'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap'
           }}
         >
-
-          </div>
-
-  )
-}
-
-            <span
-              className="eyebrow"
-            >
+          <div>
+            <span className="eyebrow">
               QUESTION BANK
             </span>
 
             <h2>
               Existing MCQs
             </h2>
-
           </div>
-
 
           <button
             type="button"
             className="secondary-btn"
-            onClick={
-              loadQuestions
-            }
+            onClick={loadQuestions}
           >
             Refresh questions
           </button>
-
         </div>
 
-
-        {/* SEARCH */}
-
-        <label>
-          Search Question Bank
-
-          <input
-            type="search"
-            value={
-              searchText
-            }
-            onChange={
-              event =>
-                setSearchText(
-                  event.target.value
-                )
-            }
-            placeholder="Search question, State, PSC, exam, year, subject..."
-          />
-
-        </label>
-
-
-        {/* GENERAL FILTERS */}
-
         <div
-          className="form-two"
+          style={{
+            marginTop: '18px'
+          }}
         >
+          <label>
+            Search Question Bank
 
+            <input
+              type="search"
+              value={searchText}
+              onChange={
+                event =>
+                  setSearchText(
+                    event.target.value
+                  )
+              }
+              placeholder="Search question, subject, UPSC exam, State, PSC, exam name, year or source..."
+            />
+          </label>
+        </div>
+
+        <div className="form-two">
           <label>
             Question Origin
 
             <select
-              value={
-                bankOrigin
-              }
+              value={bankOrigin}
               onChange={
                 event => {
-
                   const next =
-                    event.target
-                      .value as
+                    event.target.value as
                       | 'all'
                       | QuestionOrigin;
 
-                  setBankOrigin(
-                    next
-                  );
+                  setBankOrigin(next);
 
-                  if (
-                    next !==
-                    'upsc'
-                  ) {
+                  setBankUpscExam('all');
+                  setBankUpscCycle('all');
+                  setBankUpscYear('all');
 
-                    setBankUpscExam(
-                      'all'
-                    );
-
-                    setBankUpscCycle(
-                      'all'
-                    );
-
-                    setBankUpscYear(
-                      'all'
-                    );
-                  }
-
-
-                  if (
-                    next !==
-                    'state'
-                  ) {
-
-                    setBankState(
-                      'all'
-                    );
-
-                    setBankStateExam(
-                      'all'
-                    );
-
-                    setBankStateYear(
-                      'all'
-                    );
-                  }
+                  setBankState('all');
+                  setBankStatePsc('all');
+                  setBankStateExam('all');
+                  setBankStateYear('all');
                 }
               }
             >
-
               <option value="all">
                 All Origins
               </option>
-
-              <option value="cse">
-                CSE / General
+              <option value="general">
+                CSE / General Practice
               </option>
-
               <option value="upsc">
                 Other UPSC Exams
               </option>
-
-              <option value="state">
+              <option value="state_psc">
                 State PSC Exams
               </option>
-
             </select>
-
           </label>
-
 
           <label>
             Subject
 
             <select
-              value={
-                bankSubject
-              }
+              value={bankSubject}
               onChange={
                 event =>
                   setBankSubject(
@@ -4640,239 +2398,153 @@ export function QuestionManager({
                   )
               }
             >
-
               <option value="all">
                 All Subjects
               </option>
 
-
               {subjects.map(
                 item => (
-
                   <option
-                    key={
-                      item
-                    }
-                    value={
-                      item
-                    }
+                    key={item}
+                    value={item}
                   >
                     {item}
                   </option>
-
                 )
               )}
-
             </select>
-
           </label>
-
         </div>
 
-
-        <div
-          className="form-two"
-        >
-
+        <div className="form-two">
           <label>
             Status
 
             <select
-              value={
-                bankStatus
-              }
+              value={bankStatus}
               onChange={
                 event =>
                   setBankStatus(
-                    event.target
-                      .value as
+                    event.target.value as
                       | 'all'
                       | QuestionStatus
                   )
               }
             >
-
-              <option value="all">
-                All Status
-              </option>
-
-              <option value="draft">
-                Draft
-              </option>
-
-              <option value="published">
-                Published
-              </option>
-
-              <option value="archived">
-                Archived
-              </option>
-
+              <option value="all">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
             </select>
-
           </label>
-
 
           <label>
             Difficulty
 
             <select
-              value={
-                bankDifficulty
-              }
+              value={bankDifficulty}
               onChange={
                 event =>
                   setBankDifficulty(
-                    event.target
-                      .value as
+                    event.target.value as
                       | 'all'
                       | Difficulty
                   )
               }
             >
-
-              <option value="all">
-                All Difficulty
-              </option>
-
-              <option value="easy">
-                Easy
-              </option>
-
-              <option value="medium">
-                Medium
-              </option>
-
-              <option value="hard">
-                Hard
-              </option>
-
+              <option value="all">All Difficulty</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
             </select>
-
           </label>
-
         </div>
-
 
         <label>
           Question Type
 
           <select
-            value={
-              bankType
-            }
+            value={bankType}
             onChange={
               event =>
                 setBankType(
-                  event.target
-                    .value as
+                  event.target.value as
                     | 'all'
                     | 'practice'
                     | 'pyq'
                 )
             }
           >
-
             <option value="all">
               All Questions
             </option>
-
             <option value="practice">
               Practice
             </option>
-
             <option value="pyq">
               Previous Year Questions
             </option>
-
           </select>
-
         </label>
 
+        {/* UPSC FILTERS */}
 
-        {/* UPSC FILTER */}
-
-        {(bankOrigin ===
-          'all' ||
-          bankOrigin ===
-            'upsc') && (
-
+        {bankOrigin === 'upsc' && (
           <div
             style={{
-              marginTop:
-                '16px',
-
-              padding:
-                '16px',
-
+              marginTop: '18px',
+              padding: '16px',
               border:
                 '1px solid rgba(255,255,255,.10)',
-
-              borderRadius:
-                '14px'
+              borderRadius: '14px'
             }}
           >
-
-            <span
-              className="eyebrow"
-            >
+            <span className="eyebrow">
               UPSC EXAM FILTER
             </span>
 
-
             <div
               className="form-two"
+              style={{
+                marginTop: '10px'
+              }}
             >
-
               <label>
-                UPSC Examination
+                Examination
 
                 <select
-                  value={
-                    bankUpscExam
-                  }
+                  value={bankUpscExam}
                   onChange={
-                    event =>
+                    event => {
                       setBankUpscExam(
                         event.target.value
-                      )
+                      );
+                      setBankUpscYear('all');
+                    }
                   }
                 >
-
                   <option value="all">
                     All UPSC Exams
                   </option>
 
-
                   {upscExamOptions.map(
                     exam => (
-
                       <option
-                        key={
-                          exam
-                        }
-                        value={
-                          exam
-                        }
+                        key={exam}
+                        value={exam}
                       >
                         {exam}
                       </option>
-
                     )
                   )}
-
                 </select>
-
               </label>
 
-
               <label>
-                Cycle
+                Exam Cycle
 
                 <select
-                  value={
-                    bankUpscCycle
-                  }
+                  value={bankUpscCycle}
                   onChange={
                     event =>
                       setBankUpscCycle(
@@ -4880,33 +2552,20 @@ export function QuestionManager({
                       )
                   }
                 >
-
                   <option value="all">
                     All Cycles
                   </option>
-
-                  <option value="I">
-                    I
-                  </option>
-
-                  <option value="II">
-                    II
-                  </option>
-
+                  <option value="I">I</option>
+                  <option value="II">II</option>
                 </select>
-
               </label>
-
             </div>
 
-
             <label>
-              UPSC Exam Year
+              Examination Year
 
               <select
-                value={
-                  bankUpscYear
-                }
+                value={bankUpscYear}
                 onChange={
                   event =>
                     setBankUpscYear(
@@ -4914,275 +2573,207 @@ export function QuestionManager({
                     )
                 }
               >
-
                 <option value="all">
                   All Years
                 </option>
 
-
                 {upscYearOptions.map(
                   year => (
-
                     <option
-                      key={
-                        year
-                      }
-                      value={
-                        String(
-                          year
-                        )
-                      }
+                      key={year}
+                      value={String(year)}
                     >
                       {year}
                     </option>
-
                   )
                 )}
-
               </select>
-
             </label>
-
           </div>
-
         )}
 
+        {/* STATE PSC FILTERS */}
 
-        {/* STATE PSC FILTER */}
-
-        {(bankOrigin ===
-          'all' ||
-          bankOrigin ===
-            'state') && (
-
+        {bankOrigin === 'state_psc' && (
           <div
             style={{
-              marginTop:
-                '16px',
-
-              padding:
-                '16px',
-
+              marginTop: '18px',
+              padding: '16px',
               border:
                 '1px solid rgba(255,255,255,.10)',
-
-              borderRadius:
-                '14px'
+              borderRadius: '14px'
             }}
           >
-
-            <span
-              className="eyebrow"
-            >
+            <span className="eyebrow">
               STATE PSC FILTER
             </span>
 
-
             <div
               className="form-two"
+              style={{
+                marginTop: '10px'
+              }}
             >
-
               <label>
                 State
 
                 <select
-                  value={
-                    bankState
-                  }
+                  value={bankState}
                   onChange={
                     event => {
-
                       setBankState(
                         event.target.value
                       );
-
-                      setBankStateExam(
-                        'all'
-                      );
-
-                      setBankStateYear(
-                        'all'
-                      );
+                      setBankStatePsc('all');
+                      setBankStateExam('all');
+                      setBankStateYear('all');
                     }
                   }
                 >
-
                   <option value="all">
                     All States
                   </option>
 
-
                   {stateOptions.map(
                     state => (
-
                       <option
-                        key={
-                          state
-                        }
-                        value={
-                          state
-                        }
+                        key={state}
+                        value={state}
                       >
                         {state}
                       </option>
-
                     )
                   )}
-
                 </select>
-
               </label>
 
-
               <label>
-                Examination
+                State PSC
 
                 <select
-                  value={
-                    bankStateExam
+                  value={bankStatePsc}
+                  onChange={
+                    event => {
+                      setBankStatePsc(
+                        event.target.value
+                      );
+                      setBankStateExam('all');
+                      setBankStateYear('all');
+                    }
                   }
+                >
+                  <option value="all">
+                    All State PSCs
+                  </option>
+
+                  {statePscNameOptions.map(
+                    psc => (
+                      <option
+                        key={psc}
+                        value={psc}
+                      >
+                        {psc}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+            </div>
+
+            <div className="form-two">
+              <label>
+                Examination Name
+
+                <select
+                  value={bankStateExam}
+                  onChange={
+                    event => {
+                      setBankStateExam(
+                        event.target.value
+                      );
+                      setBankStateYear('all');
+                    }
+                  }
+                >
+                  <option value="all">
+                    All Examinations
+                  </option>
+
+                  {stateExamOptions.map(
+                    exam => (
+                      <option
+                        key={exam}
+                        value={exam}
+                      >
+                        {exam}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+              <label>
+                Examination Year
+
+                <select
+                  value={bankStateYear}
                   onChange={
                     event =>
-                      setBankStateExam(
+                      setBankStateYear(
                         event.target.value
                       )
                   }
                 >
-
                   <option value="all">
-                    All State PSC Exams
+                    All Years
                   </option>
 
-
-                  {stateExamOptions.map(
-                    exam => (
-
+                  {stateYearOptions.map(
+                    year => (
                       <option
-                        key={
-                          exam
-                        }
-                        value={
-                          exam
-                        }
+                        key={year}
+                        value={String(year)}
                       >
-                        {exam}
+                        {year}
                       </option>
-
                     )
                   )}
-
                 </select>
-
               </label>
-
             </div>
-
-
-            <label>
-              Examination Year
-
-              <select
-                value={
-                  bankStateYear
-                }
-                onChange={
-                  event =>
-                    setBankStateYear(
-                      event.target.value
-                    )
-                }
-              >
-
-                <option value="all">
-                  All Years
-                </option>
-
-
-                {stateYearOptions.map(
-                  year => (
-
-                    <option
-                      key={
-                        year
-                      }
-                      value={
-                        String(
-                          year
-                        )
-                      }
-                    >
-                      {year}
-                    </option>
-
-                  )
-                )}
-
-              </select>
-
-            </label>
-
           </div>
-
         )}
-
-
-        {/* COUNT */}
 
         <div
           style={{
-            display:
-              'flex',
-
-            justifyContent:
-              'space-between',
-
-            alignItems:
-              'center',
-
-            gap:
-              '12px',
-
-            flexWrap:
-              'wrap',
-
-            marginTop:
-              '14px'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+            marginTop: '14px'
           }}
         >
-
           <p>
             Showing{' '}
-
             <strong>
-              {
-                filteredQuestions.length
-              }
-            </strong>
-
-            {' '}of{' '}
-
+              {filteredQuestions.length}
+            </strong>{' '}
+            of{' '}
             <strong>
-              {
-                questions.length
-              }
-            </strong>
-
-            {' '}questions
+              {questions.length}
+            </strong>{' '}
+            questions
           </p>
-
 
           <button
             type="button"
             className="secondary-btn"
-            onClick={
-              clearFilters
-            }
+            onClick={clearFilters}
           >
             Clear Filters
           </button>
-
         </div>
-
 
         {loading && (
           <p>
@@ -5190,378 +2781,215 @@ export function QuestionManager({
           </p>
         )}
 
-
         {!loading &&
-          questions.length ===
-            0 && (
-
+          questions.length === 0 && (
           <p>
             No MCQs created yet.
           </p>
-
         )}
 
-
         {!loading &&
-          questions.length >
-            0 &&
-          filteredQuestions.length ===
-            0 && (
-
-          <div
-            className="callout"
-          >
-
+          questions.length > 0 &&
+          filteredQuestions.length === 0 && (
+          <div className="callout">
             <strong>
               No questions match these filters.
             </strong>
 
             <p>
-              Clear filters or change your search.
+              Clear the filters or try another search.
             </p>
-
           </div>
-
         )}
-
-
-        {/* QUESTION CARDS */}
 
         <div
           style={{
-            display:
-              'grid',
-
-            gap:
-              '14px',
-
-            marginTop:
-              '18px'
+            display: 'grid',
+            gap: '14px',
+            marginTop: '18px'
           }}
         >
-
           {filteredQuestions.map(
-            (
-              item:
-                QuestionRow
-            ) => {
-
-              const itemOrigin =
-                item.state_psc_state
-                  ? 'State PSC'
-                  : item.upsc_exam_name
-                  ? 'UPSC Value Add'
-                  : 'CSE / General';
-
+            item => {
+              const origin =
+                getQuestionOrigin(item);
 
               return (
-
                 <article
-                  key={
-                    item.id
-                  }
+                  key={item.id}
                   style={{
                     border:
                       '1px solid rgba(255,255,255,.10)',
-
-                    borderRadius:
-                      '14px',
-
-                    padding:
-                      '18px'
+                    borderRadius: '14px',
+                    padding: '18px'
                   }}
                 >
-
                   <div
                     style={{
-                      display:
-                        'flex',
-
-                      justifyContent:
-                        'space-between',
-
-                      gap:
-                        '18px',
-
-                      flexWrap:
-                        'wrap'
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: '18px',
+                      flexWrap: 'wrap'
                     }}
                   >
-
                     <div
                       style={{
-                        flex:
-                          '1 1 500px'
+                        flex: '1 1 500px'
                       }}
                     >
-
-                      <span
-                        className="eyebrow"
-                      >
-                        {
-                          item.subject
-                        }
-
+                      <span className="eyebrow">
+                        {item.subject}
                         {' • '}
-
-                        {
-                          item.difficulty
-                        }
+                        {item.difficulty}
                       </span>
 
-
                       <h3>
-                        {
-                          item.question
-                        }
+                        {item.question}
                       </h3>
 
-
-                      <div
-                        className="tag-row"
-                      >
-
-                        <span
-                          className="tag"
-                        >
-                          {itemOrigin}
+                      <div className="tag-row">
+                        <span className="tag">
+                          {item.status}
                         </span>
 
-
-                        <span
-                          className="tag"
-                        >
-                          {
-                            item.status
-                          }
+                        <span className="tag">
+                          {item.exam_stage}
                         </span>
 
+                        <span className="tag">
+                          {origin === 'general'
+                            ? 'CSE / General'
+                            : origin === 'upsc'
+                            ? 'UPSC Value Add'
+                            : 'State PSC'}
+                        </span>
 
                         {item.topic && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.topic
-                            }
+                          <span className="tag">
+                            {item.topic}
                           </span>
-
                         )}
-
 
                         {item.is_pyq && (
-
-                          <span
-                            className="tag"
-                          >
+                          <span className="tag">
                             PYQ{' '}
-                            {
-                              item.pyq_year ||
-                              ''
-                            }
+                            {item.pyq_year || ''}
                           </span>
-
                         )}
 
-
-                        {/* UPSC BADGES */}
-
-                        {item.upsc_exam_name && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.upsc_exam_name
-                            }
+                        {origin === 'upsc' &&
+                          item.upsc_exam_name && (
+                          <span className="tag">
+                            {item.upsc_exam_name}
                           </span>
-
                         )}
 
-
-                        {item.upsc_exam_cycle && (
-
-                          <span
-                            className="tag"
-                          >
-                            Cycle{' '}
-                            {
-                              item.upsc_exam_cycle
-                            }
+                        {origin === 'upsc' &&
+                          item.upsc_exam_cycle && (
+                          <span className="tag">
+                            Cycle {item.upsc_exam_cycle}
                           </span>
-
                         )}
 
-
-                        {item.upsc_exam_year && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.upsc_exam_year
-                            }
+                        {origin === 'upsc' &&
+                          item.upsc_exam_year && (
+                          <span className="tag">
+                            {item.upsc_exam_year}
                           </span>
-
                         )}
 
-
-                        {item.upsc_exam_paper && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.upsc_exam_paper
-                            }
+                        {origin === 'upsc' &&
+                          item.upsc_exam_stage && (
+                          <span className="tag">
+                            {item.upsc_exam_stage}
                           </span>
-
                         )}
 
-
-                        {/* STATE PSC BADGES */}
-
-                        {item.state_psc_state && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.state_psc_state
-                            }
+                        {origin === 'upsc' &&
+                          item.upsc_exam_paper && (
+                          <span className="tag">
+                            {item.upsc_exam_paper}
                           </span>
-
                         )}
 
-
-                        {item.state_psc_name && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.state_psc_name
-                            }
+                        {origin === 'state_psc' &&
+                          item.state_psc_state && (
+                          <span className="tag">
+                            {item.state_psc_state}
                           </span>
-
                         )}
 
-
-                        {item.state_psc_exam_name && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.state_psc_exam_name
-                            }
+                        {origin === 'state_psc' &&
+                          item.state_psc_name && (
+                          <span className="tag">
+                            {item.state_psc_name}
                           </span>
-
                         )}
 
-
-                        {item.state_psc_year && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.state_psc_year
-                            }
+                        {origin === 'state_psc' &&
+                          item.state_psc_exam_name && (
+                          <span className="tag">
+                            {item.state_psc_exam_name}
                           </span>
-
                         )}
 
-
-                        {item.state_psc_stage && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.state_psc_stage
-                            }
+                        {origin === 'state_psc' &&
+                          item.state_psc_year && (
+                          <span className="tag">
+                            {item.state_psc_year}
                           </span>
-
                         )}
 
-
-                        {item.state_psc_paper && (
-
-                          <span
-                            className="tag"
-                          >
-                            {
-                              item.state_psc_paper
-                            }
+                        {origin === 'state_psc' &&
+                          item.state_psc_stage && (
+                          <span className="tag">
+                            {item.state_psc_stage}
                           </span>
-
                         )}
 
+                        {origin === 'state_psc' &&
+                          item.state_psc_paper && (
+                          <span className="tag">
+                            {item.state_psc_paper}
+                          </span>
+                        )}
                       </div>
-
 
                       <p>
                         Correct answer:{' '}
-
                         <strong>
-                          {
-                            String.fromCharCode(
-                              65 +
-                              item.correct_index
-                            )
-                          }
+                          {String.fromCharCode(
+                            65 + item.correct_index
+                          )}
                         </strong>
                       </p>
 
-
                       {item.source && (
-
                         <p>
-                          Source:{' '}
-                          {
-                            item.source
-                          }
+                          Source: {item.source}
                         </p>
-
                       )}
-
                     </div>
-
 
                     <div
                       style={{
-                        display:
-                          'flex',
-
-                        gap:
-                          '8px',
-
-                        flexWrap:
-                          'wrap',
-
-                        alignItems:
-                          'flex-start'
+                        display: 'flex',
+                        gap: '8px',
+                        flexWrap: 'wrap',
+                        alignItems: 'flex-start'
                       }}
                     >
-
                       <button
                         type="button"
                         className="secondary-btn"
                         onClick={() =>
-                          startEdit(
-                            item
-                          )
+                          startEdit(item)
                         }
                       >
                         Edit
                       </button>
 
-
-                      {item.status !==
-                        'published' && (
-
+                      {item.status !== 'published' && (
                         <button
                           type="button"
                           className="secondary-btn"
@@ -5574,13 +3002,9 @@ export function QuestionManager({
                         >
                           Publish
                         </button>
-
                       )}
 
-
-                      {item.status !==
-                        'draft' && (
-
+                      {item.status !== 'draft' && (
                         <button
                           type="button"
                           className="secondary-btn"
@@ -5593,13 +3017,9 @@ export function QuestionManager({
                         >
                           Draft
                         </button>
-
                       )}
 
-
-                      {item.status !==
-                        'archived' && (
-
+                      {item.status !== 'archived' && (
                         <button
                           type="button"
                           className="secondary-btn"
@@ -5612,36 +3032,25 @@ export function QuestionManager({
                         >
                           Archive
                         </button>
-
                       )}
-
 
                       <button
                         type="button"
                         className="secondary-btn"
                         onClick={() =>
-                          deleteQuestion(
-                            item
-                          )
+                          deleteQuestion(item)
                         }
                       >
                         Delete
                       </button>
-
                     </div>
-
                   </div>
-
                 </article>
-
               );
             }
           )}
-
         </div>
-
       </div>
-
     </section>
   );
 }
