@@ -1067,3 +1067,118 @@ export default function App() {
 
   );
 }
+
+/* =========================================================
+   PDF / FILE UPLOAD
+========================================================= */
+
+.pdf-file-input {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 8px;
+
+  color: #cbd5e1;
+  background: #0e1525;
+
+  border: 1px solid #2a3447;
+  border-radius: 12px;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  cursor: pointer;
+
+  color-scheme: dark;
+}
+
+
+/* =========================================================
+   MODERN BROWSERS
+========================================================= */
+
+.pdf-file-input::file-selector-button {
+  margin-right: 12px;
+
+  padding: 10px 16px;
+
+  border: 1px solid #14b8a6;
+  border-radius: 9px;
+
+  background: #14b8a6;
+  color: #04111f;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+
+.pdf-file-input::file-selector-button:hover {
+  background: #2dd4bf;
+  border-color: #2dd4bf;
+}
+
+
+.pdf-file-input::file-selector-button:active {
+  transform: translateY(1px);
+}
+
+
+/* =========================================================
+   CHROME / WEBKIT FALLBACK
+========================================================= */
+
+.pdf-file-input::-webkit-file-upload-button {
+  margin-right: 12px;
+
+  padding: 10px 16px;
+
+  border: 1px solid #14b8a6;
+  border-radius: 9px;
+
+  background: #14b8a6;
+  color: #04111f;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   FOCUS
+========================================================= */
+
+.pdf-file-input:focus {
+  outline: none;
+
+  border-color: #14b8a6;
+
+  box-shadow:
+    0 0 0 3px rgba(20, 184, 166, 0.12);
+}
+
+
+/* =========================================================
+   DISABLED
+========================================================= */
+
+.pdf-file-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+
+.pdf-file-input:disabled::file-selector-button {
+  cursor: not-allowed;
+}
