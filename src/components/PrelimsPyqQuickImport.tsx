@@ -14,24 +14,32 @@ type ImportOrigin =
   | 'state';
 
 
+type InputMode =
+  | 'easy'
+  | 'json';
+
+
 type PublishStatus =
   | 'draft'
   | 'published';
 
 
+type Difficulty =
+  | 'easy'
+  | 'medium'
+  | 'hard';
+
+
 type QuestionPayload = {
+  question_number: string;
   question: string;
   options: string[];
   correct_index: number;
   explanation: string;
   subject: string;
   topic: string;
-  difficulty:
-    | 'easy'
-    | 'medium'
-    | 'hard';
+  difficulty: Difficulty;
   tags: string[];
-  question_number: string;
 };
 
 
@@ -41,7 +49,18 @@ type ImportResult = {
   linked_existing?: number;
   already_linked?: number;
   needs_review?: number;
-  exam_paper_id?: string;
+};
+
+
+type DraftQuestion = {
+  questionNumber: string;
+  questionLines: string[];
+  options: string[];
+  correctLetter: string;
+  explanationLines: string[];
+  subject: string;
+  topic: string;
+  difficulty: Difficulty;
 };
 
 
@@ -82,18 +101,566 @@ function currentYear():
 }
 
 
-function parseQuestionData(
+function newDraft(
+  questionNumber:
+    string
+): DraftQuestion {
+
+  return {
+    questionNumber,
+    questionLines: [],
+    options: [],
+    correctLetter: '',
+    explanationLines: [],
+    subject: 'General Studies',
+    topic: '',
+    difficulty: 'medium'
+  };
+}
+
+
+/* =========================================================
+   VALIDATE FINAL QUESTION
+========================================================= */
+
+function finaliseDraft(
+  draft: DraftQuestion,
+  fallbackNumber: number
+): QuestionPayload {
+
+  const question =
+    draft.questionLines
+      .join(' ')
+      .trim();
+
+
+  if (!question) {
+
+    throw new Error(
+      `Question ${draft.questionNumber || fallbackNumber} has no question text.`
+    );
+  }
+
+
+  if (
+    draft.options.length <
+    2
+  ) {
+
+    throw new Error(
+      `Question ${draft.questionNumber || fallbackNumber} needs options.`
+    );
+  }
+
+
+  if (
+    !draft.correctLetter
+  ) {
+
+    throw new Error(
+      `Question ${draft.questionNumber || fallbackNumber} has no Answer field.`
+    );
+  }
+
+
+  const correctIndex =
+    draft.correctLetter
+      .toUpperCase()
+      .charCodeAt(0) -
+    65;
+
+
+  if (
+    correctIndex <
+      0 ||
+    correctIndex >=
+      draft.options.length
+  ) {
+
+    throw new Error(
+      `Question ${draft.questionNumber || fallbackNumber} has an invalid answer.`
+    );
+  }
+
+
+  return {
+
+    question_number:
+      draft.questionNumber ||
+      String(fallbackNumber),
+
+    question,
+
+    options:
+      draft.options,
+
+    correct_index:
+      correctIndex,
+
+    explanation:
+      draft.explanationLines
+        .join(' ')
+        .trim(),
+
+    subject:
+      draft.subject.trim() ||
+      'General Studies',
+
+    topic:
+      draft.topic.trim(),
+
+    difficulty:
+      draft.difficulty,
+
+    tags: [
+      'PYQ',
+      'Prelims'
+    ]
+
+  };
+}
+
+
+/* =========================================================
+   EASY TEXT PARSER
+========================================================= */
+
+function parseEasyText(
   rawText: string
 ): QuestionPayload[] {
 
-  const clean =
-    rawText.trim();
+  const text =
+    rawText
+      .replace(
+        /\r/g,
+        ''
+      )
+      .trim();
 
 
-  if (!clean) {
+  if (!text) {
 
     throw new Error(
-      'Paste the question paper JSON first.'
+      'Paste the question paper first.'
+    );
+  }
+
+
+  const lines =
+    text.split('\n');
+
+
+  const questions:
+    QuestionPayload[] =
+    [];
+
+
+  let current:
+    DraftQuestion |
+    null =
+    null;
+
+
+  let section:
+    'question' |
+    'options' |
+    'explanation' =
+    'question';
+
+
+  function flush():
+    void {
+
+    if (!current) {
+      return;
+    }
+
+
+    questions.push(
+      finaliseDraft(
+        current,
+        questions.length + 1
+      )
+    );
+
+
+    current =
+      null;
+
+
+    section =
+      'question';
+  }
+
+
+  for (
+    const originalLine
+    of lines
+  ) {
+
+    const line =
+      originalLine.trim();
+
+
+    if (!line) {
+      continue;
+    }
+
+
+    /* -----------------------------------------------
+       EXPLICIT BLOCK SEPARATOR
+    ----------------------------------------------- */
+
+    if (
+      line === '---' ||
+      line === '==='
+    ) {
+
+      flush();
+
+      continue;
+    }
+
+
+    /* -----------------------------------------------
+       QUESTION START
+
+       Supports:
+       1. Question...
+       1) Question...
+       Q1. Question...
+       Question 1: Question...
+    ----------------------------------------------- */
+
+    const questionMatch =
+      line.match(
+        /^(?:q(?:uestion)?\s*)?(\d+)\s*[\.\)\:\-]\s*(.+)$/i
+      );
+
+
+    if (
+      questionMatch
+    ) {
+
+      if (current) {
+        flush();
+      }
+
+
+      current =
+        newDraft(
+          questionMatch[1]
+        );
+
+
+      current.questionLines.push(
+        questionMatch[2]
+      );
+
+
+      section =
+        'question';
+
+
+      continue;
+    }
+
+
+    /*
+     * Allow "Question 12: ..."
+     */
+
+    const longQuestionMatch =
+      line.match(
+        /^question\s+(\d+)\s*[\.\)\:\-]\s*(.+)$/i
+      );
+
+
+    if (
+      longQuestionMatch
+    ) {
+
+      if (current) {
+        flush();
+      }
+
+
+      current =
+        newDraft(
+          longQuestionMatch[1]
+        );
+
+
+      current.questionLines.push(
+        longQuestionMatch[2]
+      );
+
+
+      section =
+        'question';
+
+
+      continue;
+    }
+
+
+    /*
+     * If first question has no number.
+     */
+
+    if (!current) {
+
+      current =
+        newDraft(
+          String(
+            questions.length + 1
+          )
+        );
+    }
+
+
+    /* -----------------------------------------------
+       OPTIONS
+
+       A. option
+       A) option
+       (A) option
+       A: option
+    ----------------------------------------------- */
+
+    const optionMatch =
+      line.match(
+        /^\(?([A-D])\)?\s*[\.\)\:\-]\s*(.+)$/i
+      );
+
+
+    if (
+      optionMatch
+    ) {
+
+      current.options.push(
+        optionMatch[2].trim()
+      );
+
+
+      section =
+        'options';
+
+
+      continue;
+    }
+
+
+    /* -----------------------------------------------
+       CORRECT ANSWER
+    ----------------------------------------------- */
+
+    const answerMatch =
+      line.match(
+        /^(?:answer|ans|correct(?:\s+answer)?)\s*[\:\-]\s*\(?([A-D])\)?/i
+      );
+
+
+    if (
+      answerMatch
+    ) {
+
+      current.correctLetter =
+        answerMatch[1]
+          .toUpperCase();
+
+
+      continue;
+    }
+
+
+    /* -----------------------------------------------
+       EXPLANATION
+    ----------------------------------------------- */
+
+    const explanationMatch =
+      line.match(
+        /^(?:explanation|explain|solution)\s*[\:\-]\s*(.*)$/i
+      );
+
+
+    if (
+      explanationMatch
+    ) {
+
+      section =
+        'explanation';
+
+
+      if (
+        explanationMatch[1]
+      ) {
+
+        current.explanationLines.push(
+          explanationMatch[1]
+        );
+      }
+
+
+      continue;
+    }
+
+
+    /* -----------------------------------------------
+       SUBJECT
+    ----------------------------------------------- */
+
+    const subjectMatch =
+      line.match(
+        /^subject\s*[\:\-]\s*(.+)$/i
+      );
+
+
+    if (
+      subjectMatch
+    ) {
+
+      current.subject =
+        subjectMatch[1].trim();
+
+
+      continue;
+    }
+
+
+    /* -----------------------------------------------
+       TOPIC
+    ----------------------------------------------- */
+
+    const topicMatch =
+      line.match(
+        /^topic\s*[\:\-]\s*(.+)$/i
+      );
+
+
+    if (
+      topicMatch
+    ) {
+
+      current.topic =
+        topicMatch[1].trim();
+
+
+      continue;
+    }
+
+
+    /* -----------------------------------------------
+       DIFFICULTY
+    ----------------------------------------------- */
+
+    const difficultyMatch =
+      line.match(
+        /^difficulty\s*[\:\-]\s*(easy|medium|hard)$/i
+      );
+
+
+    if (
+      difficultyMatch
+    ) {
+
+      current.difficulty =
+        difficultyMatch[1]
+          .toLowerCase() as
+          Difficulty;
+
+
+      continue;
+    }
+
+
+    /* -----------------------------------------------
+       MULTILINE TEXT
+    ----------------------------------------------- */
+
+    if (
+      section ===
+      'explanation'
+    ) {
+
+      current.explanationLines.push(
+        line
+      );
+
+
+      continue;
+    }
+
+
+    if (
+      section ===
+        'options' &&
+      current.options.length >
+        0
+    ) {
+
+      const lastIndex =
+        current.options.length -
+        1;
+
+
+      current.options[lastIndex] =
+        `${current.options[lastIndex]} ${line}`;
+
+
+      continue;
+    }
+
+
+    current.questionLines.push(
+      line
+    );
+  }
+
+
+  flush();
+
+
+  if (
+    questions.length ===
+    0
+  ) {
+
+    throw new Error(
+      'No questions could be detected.'
+    );
+  }
+
+
+  if (
+    questions.length >
+    250
+  ) {
+
+    throw new Error(
+      'Maximum 250 questions can be imported at one time.'
+    );
+  }
+
+
+  return questions;
+}
+
+
+/* =========================================================
+   JSON PARSER
+========================================================= */
+
+function parseJsonText(
+  rawText: string
+): QuestionPayload[] {
+
+  if (
+    !rawText.trim()
+  ) {
+
+    throw new Error(
+      'Paste JSON first.'
     );
   }
 
@@ -106,13 +673,13 @@ function parseQuestionData(
 
     parsed =
       JSON.parse(
-        clean
+        rawText
       );
 
   } catch {
 
     throw new Error(
-      'Invalid JSON. Check commas, brackets and quotation marks.'
+      'Invalid JSON format.'
     );
   }
 
@@ -122,18 +689,14 @@ function parseQuestionData(
 
 
   if (
-    Array.isArray(
-      parsed
-    )
+    Array.isArray(parsed)
   ) {
 
     items =
       parsed;
 
   } else if (
-    isRecord(
-      parsed
-    ) &&
+    isRecord(parsed) &&
     Array.isArray(
       parsed.questions
     )
@@ -145,7 +708,7 @@ function parseQuestionData(
   } else {
 
     throw new Error(
-      'Use a JSON array or an object containing a questions array.'
+      'JSON must be an array or contain a questions array.'
     );
   }
 
@@ -167,7 +730,7 @@ function parseQuestionData(
   ) {
 
     throw new Error(
-      'Maximum 250 questions can be imported at one time.'
+      'Maximum 250 questions can be imported.'
     );
   }
 
@@ -179,13 +742,11 @@ function parseQuestionData(
     ) => {
 
       if (
-        !isRecord(
-          item
-        )
+        !isRecord(item)
       ) {
 
         throw new Error(
-          `Question ${index + 1} is not a valid object.`
+          `Question ${index + 1} is invalid.`
         );
       }
 
@@ -196,12 +757,10 @@ function parseQuestionData(
         ).trim();
 
 
-      if (
-        !question
-      ) {
+      if (!question) {
 
         throw new Error(
-          `Question ${index + 1} has no question text.`
+          `Question ${index + 1} has no text.`
         );
       }
 
@@ -213,7 +772,7 @@ function parseQuestionData(
       ) {
 
         throw new Error(
-          `Question ${index + 1} must contain an options array.`
+          `Question ${index + 1} has no options array.`
         );
       }
 
@@ -237,7 +796,7 @@ function parseQuestionData(
       ) {
 
         throw new Error(
-          `Question ${index + 1} must contain at least two options.`
+          `Question ${index + 1} needs options.`
         );
       }
 
@@ -268,14 +827,11 @@ function parseQuestionData(
         safeString(
           item.difficulty
         )
-          .trim()
           .toLowerCase();
 
 
       const difficulty:
-        'easy' |
-        'medium' |
-        'hard' =
+        Difficulty =
         rawDifficulty ===
           'easy' ||
         rawDifficulty ===
@@ -284,24 +840,15 @@ function parseQuestionData(
           : 'medium';
 
 
-      const tags =
-        Array.isArray(
-          item.tags
-        )
-          ? item.tags
-              .map(
-                tag =>
-                  safeString(
-                    tag
-                  ).trim()
-              )
-              .filter(
-                Boolean
-              )
-          : [];
-
-
       return {
+
+        question_number:
+          safeString(
+            item.question_number
+          ) ||
+          String(
+            index + 1
+          ),
 
         question,
 
@@ -318,25 +865,30 @@ function parseQuestionData(
         subject:
           safeString(
             item.subject
-          ).trim() ||
+          ) ||
           'General Studies',
 
         topic:
           safeString(
             item.topic
-          ).trim(),
+          ),
 
         difficulty,
 
-        tags,
-
-        question_number:
-          safeString(
-            item.question_number
-          ).trim() ||
-          String(
-            index + 1
+        tags:
+          Array.isArray(
+            item.tags
           )
+            ? item.tags.map(
+                tag =>
+                  safeString(
+                    tag
+                  )
+              )
+            : [
+                'PYQ',
+                'Prelims'
+              ]
 
       };
 
@@ -345,11 +897,20 @@ function parseQuestionData(
 }
 
 
+/* =========================================================
+   MAIN COMPONENT
+========================================================= */
+
 export function PrelimsPyqQuickImport() {
 
-  /* =======================================================
-     BASIC PAPER DATA
-  ======================================================= */
+  const [
+    mode,
+    setMode
+  ] =
+    useState<InputMode>(
+      'easy'
+    );
+
 
   const [
     origin,
@@ -396,9 +957,14 @@ export function PrelimsPyqQuickImport() {
     );
 
 
-  /* =======================================================
-     ADVANCED DATA
-  ======================================================= */
+  const [
+    sourceUrl,
+    setSourceUrl
+  ] =
+    useState(
+      ''
+    );
+
 
   const [
     advancedOpen,
@@ -410,53 +976,13 @@ export function PrelimsPyqQuickImport() {
 
 
   const [
-    sourceUrl,
-    setSourceUrl
+    examName,
+    setExamName
   ] =
     useState(
       ''
     );
 
-
-  const [
-    paperCode,
-    setPaperCode
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    examCycle,
-    setExamCycle
-  ] =
-    useState(
-      ''
-    );
-
-
-  /* OTHER UPSC */
-
-  const [
-    upscExamName,
-    setUpscExamName
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    upscExamStage,
-    setUpscExamStage
-  ] =
-    useState(
-      'Preliminary'
-    );
-
-
-  /* STATE PSC */
 
   const [
     stateName,
@@ -468,35 +994,13 @@ export function PrelimsPyqQuickImport() {
 
 
   const [
-    statePscName,
-    setStatePscName
+    pscName,
+    setPscName
   ] =
     useState(
       ''
     );
 
-
-  const [
-    stateExamName,
-    setStateExamName
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    stateExamStage,
-    setStateExamStage
-  ] =
-    useState(
-      'Preliminary'
-    );
-
-
-  /* =======================================================
-     QUESTION DATA
-  ======================================================= */
 
   const [
     rawText,
@@ -517,8 +1021,8 @@ export function PrelimsPyqQuickImport() {
 
 
   const [
-    validationMessage,
-    setValidationMessage
+    message,
+    setMessage
   ] =
     useState(
       ''
@@ -544,25 +1048,37 @@ export function PrelimsPyqQuickImport() {
 
 
   /* =======================================================
-     DETECT QUESTION COUNT
+     PARSER
   ======================================================= */
+
+  function parseInput():
+    QuestionPayload[] {
+
+    return mode ===
+      'easy'
+      ? parseEasyText(
+          rawText
+        )
+      : parseJsonText(
+          rawText
+        );
+  }
+
 
   const detectedCount =
     useMemo(
       () => {
 
-        if (
-          !rawText.trim()
-        ) {
-          return 0;
-        }
-
-
         try {
 
-          return parseQuestionData(
-            rawText
-          ).length;
+          return mode ===
+            'easy'
+            ? parseEasyText(
+                rawText
+              ).length
+            : parseJsonText(
+                rawText
+              ).length;
 
         } catch {
 
@@ -571,23 +1087,10 @@ export function PrelimsPyqQuickImport() {
 
       },
       [
-        rawText
+        rawText,
+        mode
       ]
     );
-
-
-  /* =======================================================
-     ORIGIN LABEL
-  ======================================================= */
-
-  const originLabel =
-    origin ===
-      'cse'
-      ? 'UPSC Civil Services'
-      : origin ===
-          'upsc'
-        ? 'Other UPSC Exam'
-        : 'State PSC';
 
 
   /* =======================================================
@@ -606,9 +1109,7 @@ export function PrelimsPyqQuickImport() {
     try {
 
       const questions =
-        parseQuestionData(
-          rawText
-        );
+        parseInput();
 
 
       setValidatedQuestions(
@@ -616,8 +1117,8 @@ export function PrelimsPyqQuickImport() {
       );
 
 
-      setValidationMessage(
-        `✓ ${questions.length} questions validated and ready to import.`
+      setMessage(
+        `✓ ${questions.length} questions validated successfully.`
       );
 
 
@@ -632,10 +1133,10 @@ export function PrelimsPyqQuickImport() {
       );
 
 
-      setValidationMessage(
+      setMessage(
         error instanceof Error
           ? error.message
-          : 'Unable to validate question data.'
+          : 'Validation failed.'
       );
 
 
@@ -649,11 +1150,12 @@ export function PrelimsPyqQuickImport() {
   ======================================================= */
 
   function buildMetadata(
-    questionCount: number
+    total:
+      number
   ):
     Record<string, unknown> {
 
-    const base = {
+    const common = {
 
       source:
         source.trim(),
@@ -663,11 +1165,8 @@ export function PrelimsPyqQuickImport() {
 
       status,
 
-      paper_code:
-        paperCode.trim(),
-
       declared_total_questions:
-        questionCount
+        total
 
     };
 
@@ -679,20 +1178,15 @@ export function PrelimsPyqQuickImport() {
 
       return {
 
-        ...base,
+        ...common,
 
         pyq_year:
-          year.trim(),
+          year,
+
+        paper,
 
         exam_stage:
-          'prelims',
-
-        paper:
-          paper.trim() ||
-          'GS Paper I',
-
-        exam_cycle:
-          examCycle.trim()
+          'prelims'
 
       };
     }
@@ -705,23 +1199,19 @@ export function PrelimsPyqQuickImport() {
 
       return {
 
-        ...base,
+        ...common,
 
         upsc_exam_name:
-          upscExamName.trim(),
-
-        upsc_exam_cycle:
-          examCycle.trim(),
+          examName.trim(),
 
         upsc_exam_year:
-          year.trim(),
+          year,
 
         upsc_exam_stage:
-          upscExamStage.trim() ||
           'Preliminary',
 
         upsc_exam_paper:
-          paper.trim()
+          paper
 
       };
     }
@@ -729,95 +1219,27 @@ export function PrelimsPyqQuickImport() {
 
     return {
 
-      ...base,
+      ...common,
 
       state_psc_state:
         stateName.trim(),
 
       state_psc_name:
-        statePscName.trim(),
+        pscName.trim(),
 
       state_psc_exam_name:
-        stateExamName.trim(),
-
-      state_psc_cycle:
-        examCycle.trim(),
+        examName.trim(),
 
       state_psc_year:
-        year.trim(),
+        year,
 
       state_psc_stage:
-        stateExamStage.trim() ||
         'Preliminary',
 
       state_psc_paper:
-        paper.trim()
+        paper
 
     };
-  }
-
-
-  /* =======================================================
-     PAPER VALIDATION
-  ======================================================= */
-
-  function validatePaper():
-    string |
-    null {
-
-    const numericYear =
-      Number(
-        year
-      );
-
-
-    if (
-      !Number.isInteger(
-        numericYear
-      ) ||
-      numericYear <
-        1950 ||
-      numericYear >
-        2100
-    ) {
-
-      return 'Enter a valid examination year.';
-    }
-
-
-    if (
-      !paper.trim()
-    ) {
-
-      return 'Enter the paper name.';
-    }
-
-
-    if (
-      origin ===
-        'upsc' &&
-      !upscExamName.trim()
-    ) {
-
-      return 'Enter the UPSC examination name.';
-    }
-
-
-    if (
-      origin ===
-        'state' &&
-      (
-        !stateName.trim() ||
-        !statePscName.trim() ||
-        !stateExamName.trim()
-      )
-    ) {
-
-      return 'Enter State, PSC name and examination name.';
-    }
-
-
-    return null;
   }
 
 
@@ -832,7 +1254,7 @@ export function PrelimsPyqQuickImport() {
       !supabase
     ) {
 
-      setValidationMessage(
+      setMessage(
         'Supabase is not configured.'
       );
 
@@ -840,16 +1262,55 @@ export function PrelimsPyqQuickImport() {
     }
 
 
-    const paperError =
-      validatePaper();
+    if (
+      !year.trim()
+    ) {
+
+      setMessage(
+        'Enter examination year.'
+      );
+
+      return;
+    }
 
 
     if (
-      paperError
+      !paper.trim()
     ) {
 
-      setValidationMessage(
-        paperError
+      setMessage(
+        'Enter paper name.'
+      );
+
+      return;
+    }
+
+
+    if (
+      origin !==
+        'cse' &&
+      !examName.trim()
+    ) {
+
+      setMessage(
+        'Enter examination name.'
+      );
+
+      return;
+    }
+
+
+    if (
+      origin ===
+        'state' &&
+      (
+        !stateName.trim() ||
+        !pscName.trim()
+      )
+    ) {
+
+      setMessage(
+        'Enter State and PSC name.'
       );
 
       return;
@@ -864,25 +1325,21 @@ export function PrelimsPyqQuickImport() {
 
 
     if (
-      !questions ||
-      questions.length ===
-        0
+      !questions
     ) {
-
       return;
     }
 
 
     const confirmed =
       window.confirm(
-        `Import ${questions.length} questions for ${originLabel} ${year} - ${paper}?`
+        `Import ${questions.length} questions for ${year} ${paper}?`
       );
 
 
     if (
       !confirmed
     ) {
-
       return;
     }
 
@@ -892,20 +1349,9 @@ export function PrelimsPyqQuickImport() {
     );
 
 
-    setResult(
-      null
-    );
-
-
-    setValidationMessage(
+    setMessage(
       'Importing paper...'
     );
-
-
-    const metadata =
-      buildMetadata(
-        questions.length
-      );
 
 
     const {
@@ -921,7 +1367,9 @@ export function PrelimsPyqQuickImport() {
               origin,
 
             p_metadata:
-              metadata,
+              buildMetadata(
+                questions.length
+              ),
 
             p_questions:
               questions
@@ -934,13 +1382,7 @@ export function PrelimsPyqQuickImport() {
       error
     ) {
 
-      console.error(
-        'PYQ import failed:',
-        error
-      );
-
-
-      setValidationMessage(
+      setMessage(
         error.message
       );
 
@@ -954,11 +1396,47 @@ export function PrelimsPyqQuickImport() {
     }
 
 
-    const importResult =
-      (
-        data ||
-        {}
-      ) as ImportResult;
+    const response =
+      isRecord(data)
+        ? data
+        : {};
+
+
+    const importResult:
+      ImportResult =
+      {
+
+        total_questions:
+          Number(
+            response.total_questions ||
+            questions.length
+          ),
+
+        created_new:
+          Number(
+            response.created_new ||
+            0
+          ),
+
+        linked_existing:
+          Number(
+            response.linked_existing ||
+            0
+          ),
+
+        already_linked:
+          Number(
+            response.already_linked ||
+            0
+          ),
+
+        needs_review:
+          Number(
+            response.needs_review ||
+            0
+          )
+
+      };
 
 
     setResult(
@@ -966,56 +1444,13 @@ export function PrelimsPyqQuickImport() {
     );
 
 
-    setValidationMessage(
-      `✓ Import finished. ${importResult.total_questions ?? questions.length} questions processed.`
+    setMessage(
+      `✓ Import completed. ${importResult.total_questions} questions processed.`
     );
 
 
     setImporting(
       false
-    );
-  }
-
-
-  /* =======================================================
-     CLEAR
-  ======================================================= */
-
-  function clearPaper():
-    void {
-
-    const confirmed =
-      rawText.trim()
-        ? window.confirm(
-            'Clear the pasted question paper?'
-          )
-        : true;
-
-
-    if (
-      !confirmed
-    ) {
-      return;
-    }
-
-
-    setRawText(
-      ''
-    );
-
-
-    setValidatedQuestions(
-      []
-    );
-
-
-    setValidationMessage(
-      ''
-    );
-
-
-    setResult(
-      null
     );
   }
 
@@ -1027,50 +1462,102 @@ export function PrelimsPyqQuickImport() {
   function insertSample():
     void {
 
-    const sample = [
-      {
-        question_number:
-          '1',
+    if (
+      mode ===
+      'easy'
+    ) {
 
-        question:
-          'Sample question text',
+      setRawText(
+`1. Which Article of the Constitution guarantees equality before law?
+A. Article 12
+B. Article 14
+C. Article 19
+D. Article 21
+Answer: B
+Explanation: Article 14 guarantees equality before law and equal protection of laws.
+Subject: Polity
+Topic: Fundamental Rights
+Difficulty: Medium
 
-        options: [
-          'Option A',
-          'Option B',
-          'Option C',
-          'Option D'
-        ],
+2. Which institution publishes the Economic Survey of India?
+A. Reserve Bank of India
+B. NITI Aayog
+C. Ministry of Finance
+D. Finance Commission
+Answer: C
+Explanation: The Economic Survey is prepared under the Ministry of Finance.
+Subject: Economy
+Topic: Economic Survey
+Difficulty: Easy`
+      );
 
-        correct_index:
-          0,
+    } else {
 
-        explanation:
-          'Brief explanation',
+      setRawText(
+        JSON.stringify(
+          [
+            {
+              question_number:
+                '1',
 
-        subject:
-          'Polity',
+              question:
+                'Sample question',
 
-        topic:
-          'Constitution',
+              options: [
+                'Option A',
+                'Option B',
+                'Option C',
+                'Option D'
+              ],
 
-        difficulty:
-          'medium',
+              correct_index:
+                1,
 
-        tags: [
-          'PYQ',
-          'Prelims'
-        ]
-      }
-    ];
+              explanation:
+                'Explanation',
 
+              subject:
+                'Polity',
+
+              topic:
+                'Constitution',
+
+              difficulty:
+                'medium'
+            }
+          ],
+          null,
+          2
+        )
+      );
+    }
+
+
+    setValidatedQuestions(
+      []
+    );
+
+
+    setResult(
+      null
+    );
+
+
+    setMessage(
+      'Sample inserted.'
+    );
+  }
+
+
+  /* =======================================================
+     CLEAR
+  ======================================================= */
+
+  function clearInput():
+    void {
 
     setRawText(
-      JSON.stringify(
-        sample,
-        null,
-        2
-      )
+      ''
     );
 
 
@@ -1079,15 +1566,16 @@ export function PrelimsPyqQuickImport() {
     );
 
 
-    setValidationMessage(
-      'Sample inserted. Replace it with the real question paper.'
+    setResult(
+      null
+    );
+
+
+    setMessage(
+      ''
     );
   }
 
-
-  /* =======================================================
-     COMMON COMPACT STYLE
-  ======================================================= */
 
   const compactGrid = {
 
@@ -1098,7 +1586,7 @@ export function PrelimsPyqQuickImport() {
       'repeat(auto-fit, minmax(150px, 1fr))',
 
     gap:
-      '10px'
+      '8px'
 
   };
 
@@ -1113,9 +1601,7 @@ export function PrelimsPyqQuickImport() {
       }}
     >
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
+      {/* HEADER */}
 
       <div
         style={{
@@ -1124,9 +1610,6 @@ export function PrelimsPyqQuickImport() {
 
           justifyContent:
             'space-between',
-
-          alignItems:
-            'flex-start',
 
           gap:
             '12px',
@@ -1161,8 +1644,8 @@ export function PrelimsPyqQuickImport() {
                 '#94a3b8'
             }}
           >
-            Enter paper details once,
-            paste all questions and import.
+            Paste normal question text.
+            JSON knowledge is not required.
           </small>
 
         </div>
@@ -1188,15 +1671,14 @@ export function PrelimsPyqQuickImport() {
       </div>
 
 
-      {/* =================================================
-          ESSENTIAL PAPER DATA
-      ================================================= */}
+      {/* PAPER DETAILS */}
 
       <div
         style={{
           ...compactGrid,
+
           marginTop:
-            '14px'
+            '12px'
         }}
       >
 
@@ -1205,11 +1687,9 @@ export function PrelimsPyqQuickImport() {
           Origin
 
           <select
-
             value={
               origin
             }
-
             onChange={
               event => {
 
@@ -1229,21 +1709,19 @@ export function PrelimsPyqQuickImport() {
                   'cse'
                 ) {
 
-                  setSource(
-                    'UPSC Official Paper'
+                  setPaper(
+                    'GS Paper I'
                   );
 
 
-                  setPaper(
-                    'GS Paper I'
+                  setSource(
+                    'UPSC Official Paper'
                   );
                 }
 
               }
             }
-
           >
-
             <option value="cse">
               UPSC CSE
             </option>
@@ -1255,7 +1733,6 @@ export function PrelimsPyqQuickImport() {
             <option value="state">
               State PSC
             </option>
-
           </select>
 
         </label>
@@ -1266,24 +1743,18 @@ export function PrelimsPyqQuickImport() {
           Year
 
           <input
-
             type="number"
-
             min="1950"
-
             max="2100"
-
             value={
               year
             }
-
             onChange={
               event =>
                 setYear(
                   event.target.value
                 )
             }
-
           />
 
         </label>
@@ -1299,20 +1770,16 @@ export function PrelimsPyqQuickImport() {
               ? (
 
                 <select
-
                   value={
                     paper
                   }
-
                   onChange={
                     event =>
                       setPaper(
                         event.target.value
                       )
                   }
-
                 >
-
                   <option value="GS Paper I">
                     GS Paper I
                   </option>
@@ -1320,27 +1787,22 @@ export function PrelimsPyqQuickImport() {
                   <option value="CSAT Paper II">
                     CSAT Paper II
                   </option>
-
                 </select>
 
               )
               : (
 
                 <input
-
                   value={
                     paper
                   }
-
                   onChange={
                     event =>
                       setPaper(
                         event.target.value
                       )
                   }
-
-                  placeholder="Paper / Subject"
-
+                  placeholder="Paper name"
                 />
 
               )
@@ -1354,11 +1816,9 @@ export function PrelimsPyqQuickImport() {
           Status
 
           <select
-
             value={
               status
             }
-
             onChange={
               event =>
                 setStatus(
@@ -1367,9 +1827,7 @@ export function PrelimsPyqQuickImport() {
                     PublishStatus
                 )
             }
-
           >
-
             <option value="published">
               Published
             </option>
@@ -1377,7 +1835,6 @@ export function PrelimsPyqQuickImport() {
             <option value="draft">
               Draft
             </option>
-
           </select>
 
         </label>
@@ -1385,133 +1842,70 @@ export function PrelimsPyqQuickImport() {
       </div>
 
 
-      {/* =================================================
-          ORIGIN-SPECIFIC ESSENTIAL DATA
-      ================================================= */}
+      {/* NON-CSE */}
 
       {
-        origin ===
-          'upsc' && (
+        origin !==
+          'cse' && (
 
           <div
             style={{
               ...compactGrid,
+
               marginTop:
-                '10px'
+                '8px'
             }}
           >
 
-            <label>
+            {
+              origin ===
+                'state' && (
 
-              UPSC Exam
+                <>
 
-              <input
+                  <label>
 
-                value={
-                  upscExamName
-                }
+                    State
 
-                onChange={
-                  event =>
-                    setUpscExamName(
-                      event.target.value
-                    )
-                }
+                    <input
+                      value={
+                        stateName
+                      }
+                      onChange={
+                        event =>
+                          setStateName(
+                            event.target.value
+                          )
+                      }
+                      placeholder="Maharashtra"
+                    />
 
-                placeholder="CAPF / CDS / NDA..."
-
-              />
-
-            </label>
-
-
-            <label>
-
-              Stage
-
-              <input
-
-                value={
-                  upscExamStage
-                }
-
-                onChange={
-                  event =>
-                    setUpscExamStage(
-                      event.target.value
-                    )
-                }
-
-                placeholder="Preliminary"
-
-              />
-
-            </label>
-
-          </div>
-
-        )
-      }
+                  </label>
 
 
-      {
-        origin ===
-          'state' && (
+                  <label>
 
-          <div
-            style={{
-              ...compactGrid,
-              marginTop:
-                '10px'
-            }}
-          >
+                    PSC
 
-            <label>
+                    <input
+                      value={
+                        pscName
+                      }
+                      onChange={
+                        event =>
+                          setPscName(
+                            event.target.value
+                          )
+                      }
+                      placeholder="MPSC"
+                    />
 
-              State
+                  </label>
 
-              <input
+                </>
 
-                value={
-                  stateName
-                }
-
-                onChange={
-                  event =>
-                    setStateName(
-                      event.target.value
-                    )
-                }
-
-                placeholder="Maharashtra"
-
-              />
-
-            </label>
-
-
-            <label>
-
-              PSC
-
-              <input
-
-                value={
-                  statePscName
-                }
-
-                onChange={
-                  event =>
-                    setStatePscName(
-                      event.target.value
-                    )
-                }
-
-                placeholder="MPSC"
-
-              />
-
-            </label>
+              )
+            }
 
 
             <label>
@@ -1519,44 +1913,21 @@ export function PrelimsPyqQuickImport() {
               Examination
 
               <input
-
                 value={
-                  stateExamName
+                  examName
                 }
-
                 onChange={
                   event =>
-                    setStateExamName(
+                    setExamName(
                       event.target.value
                     )
                 }
-
-                placeholder="State Services"
-
-              />
-
-            </label>
-
-
-            <label>
-
-              Stage
-
-              <input
-
-                value={
-                  stateExamStage
+                placeholder={
+                  origin ===
+                    'state'
+                    ? 'State Services'
+                    : 'CAPF / CDS / NDA'
                 }
-
-                onChange={
-                  event =>
-                    setStateExamStage(
-                      event.target.value
-                    )
-                }
-
-                placeholder="Preliminary"
-
               />
 
             </label>
@@ -1567,83 +1938,7 @@ export function PrelimsPyqQuickImport() {
       }
 
 
-      {/* =================================================
-          SOURCE + ADVANCED TOGGLE ROW
-      ================================================= */}
-
-      <div
-        style={{
-          ...compactGrid,
-          marginTop:
-            '10px'
-        }}
-      >
-
-        <label>
-
-          Source
-
-          <input
-
-            value={
-              source
-            }
-
-            onChange={
-              event =>
-                setSource(
-                  event.target.value
-                )
-            }
-
-            placeholder="Official paper"
-
-          />
-
-        </label>
-
-
-        <div
-          style={{
-            display:
-              'flex',
-
-            alignItems:
-              'flex-end'
-          }}
-        >
-
-          <div
-            className="callout"
-            style={{
-              width:
-                '100%',
-
-              padding:
-                '9px 12px',
-
-              margin:
-                0
-            }}
-          >
-
-            {
-              detectedCount >
-              0
-                ? `✓ ${detectedCount} questions detected`
-                : 'Paste the complete question JSON below'
-            }
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      {/* =================================================
-          ADVANCED DETAILS
-      ================================================= */}
+      {/* ADVANCED */}
 
       {
         advancedOpen && (
@@ -1651,89 +1946,47 @@ export function PrelimsPyqQuickImport() {
           <div
             style={{
               ...compactGrid,
+
               marginTop:
-                '10px',
-
-              padding:
-                '12px',
-
-              border:
-                '1px solid rgba(255,255,255,.08)',
-
-              borderRadius:
-                '12px'
+                '8px'
             }}
           >
+
+            <label>
+
+              Source
+
+              <input
+                value={
+                  source
+                }
+                onChange={
+                  event =>
+                    setSource(
+                      event.target.value
+                    )
+                }
+              />
+
+            </label>
+
 
             <label>
 
               Source URL
 
               <input
-
                 type="url"
-
                 value={
                   sourceUrl
                 }
-
                 onChange={
                   event =>
                     setSourceUrl(
                       event.target.value
                     )
                 }
-
                 placeholder="https://..."
-
-              />
-
-            </label>
-
-
-            <label>
-
-              Paper Code
-
-              <input
-
-                value={
-                  paperCode
-                }
-
-                onChange={
-                  event =>
-                    setPaperCode(
-                      event.target.value
-                    )
-                }
-
-                placeholder="Optional"
-
-              />
-
-            </label>
-
-
-            <label>
-
-              Exam Cycle
-
-              <input
-
-                value={
-                  examCycle
-                }
-
-                onChange={
-                  event =>
-                    setExamCycle(
-                      event.target.value
-                    )
-                }
-
-                placeholder="Optional"
-
               />
 
             </label>
@@ -1744,275 +1997,83 @@ export function PrelimsPyqQuickImport() {
       }
 
 
-      {/* =================================================
-          QUESTION PAPER
-      ================================================= */}
+      {/* INPUT MODE */}
 
       <div
         style={{
+          display:
+            'grid',
+
+          gridTemplateColumns:
+            'repeat(2, minmax(0, 1fr))',
+
+          gap:
+            '8px',
+
           marginTop:
             '12px'
         }}
       >
 
-        <div
-          style={{
-            display:
-              'flex',
+        <button
+          type="button"
+          className={
+            mode ===
+              'easy'
+              ? 'filter active'
+              : 'filter'
+          }
+          onClick={() => {
 
-            justifyContent:
-              'space-between',
+            setMode(
+              'easy'
+            );
 
-            alignItems:
-              'center',
+            setValidatedQuestions(
+              []
+            );
 
-            gap:
-              '10px',
+            setMessage(
+              ''
+            );
 
-            flexWrap:
-              'wrap',
-
-            marginBottom:
-              '6px'
           }}
         >
-
-          <strong>
-            Complete Question Paper
-          </strong>
+          Easy Paste
+        </button>
 
 
-          <button
-
-            type="button"
-
-            className="text-btn"
-
-            onClick={
-              insertSample
-            }
-
-          >
-            Insert Sample Format
-          </button>
-
-        </div>
-
-
-        <textarea
-
-          value={
-            rawText
+        <button
+          type="button"
+          className={
+            mode ===
+              'json'
+              ? 'filter active'
+              : 'filter'
           }
+          onClick={() => {
 
-          onChange={
-            event => {
+            setMode(
+              'json'
+            );
 
-              setRawText(
-                event.target.value
-              );
+            setValidatedQuestions(
+              []
+            );
 
+            setMessage(
+              ''
+            );
 
-              setValidatedQuestions(
-                []
-              );
-
-
-              setValidationMessage(
-                ''
-              );
-
-
-              setResult(
-                null
-              );
-
-            }
-          }
-
-          rows={
-            9
-          }
-
-          spellCheck={
-            false
-          }
-
-          placeholder={`Paste JSON here.
-
-Example:
-[
-  {
-    "question_number": "1",
-    "question": "...",
-    "options": ["A", "B", "C", "D"],
-    "correct_index": 0,
-    "subject": "Polity",
-    "topic": "Constitution",
-    "difficulty": "medium"
-  }
-]`}
-
-          style={{
-            width:
-              '100%',
-
-            boxSizing:
-              'border-box',
-
-            resize:
-              'vertical',
-
-            fontFamily:
-              'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-
-            fontSize:
-              '13px',
-
-            lineHeight:
-              1.45
           }}
-
-        />
+        >
+          JSON
+        </button>
 
       </div>
 
 
-      {/* =================================================
-          STATUS
-      ================================================= */}
-
-      {
-        validationMessage && (
-
-          <div
-            className="callout"
-            style={{
-              marginTop:
-                '10px',
-
-              padding:
-                '9px 12px'
-            }}
-          >
-
-            {
-              validationMessage
-            }
-
-          </div>
-
-        )
-      }
-
-
-      {/* =================================================
-          IMPORT RESULT
-      ================================================= */}
-
-      {
-        result && (
-
-          <div
-            style={{
-              display:
-                'grid',
-
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(120px, 1fr))',
-
-              gap:
-                '8px',
-
-              marginTop:
-                '10px'
-            }}
-          >
-
-            <div className="callout">
-              <small>
-                New
-              </small>
-
-              <strong
-                style={{
-                  display:
-                    'block'
-                }}
-              >
-                {
-                  result.created_new ??
-                  0
-                }
-              </strong>
-            </div>
-
-
-            <div className="callout">
-              <small>
-                Linked
-              </small>
-
-              <strong
-                style={{
-                  display:
-                    'block'
-                }}
-              >
-                {
-                  result.linked_existing ??
-                  0
-                }
-              </strong>
-            </div>
-
-
-            <div className="callout">
-              <small>
-                Already Linked
-              </small>
-
-              <strong
-                style={{
-                  display:
-                    'block'
-                }}
-              >
-                {
-                  result.already_linked ??
-                  0
-                }
-              </strong>
-            </div>
-
-
-            <div className="callout">
-              <small>
-                Review
-              </small>
-
-              <strong
-                style={{
-                  display:
-                    'block'
-                }}
-              >
-                {
-                  result.needs_review ??
-                  0
-                }
-              </strong>
-            </div>
-
-          </div>
-
-        )
-      }
-
-
-      {/* =================================================
-          ACTION BAR
-      ================================================= */}
+      {/* TEXTAREA HEADER */}
 
       <div
         style={{
@@ -2026,7 +2087,271 @@ Example:
             'center',
 
           gap:
-            '10px',
+            '8px',
+
+          flexWrap:
+            'wrap',
+
+          marginTop:
+            '12px',
+
+          marginBottom:
+            '6px'
+        }}
+      >
+
+        <strong>
+          {
+            mode ===
+              'easy'
+              ? 'Paste Complete Question Paper'
+              : 'Paste Question JSON'
+          }
+        </strong>
+
+
+        <div
+          style={{
+            display:
+              'flex',
+
+            gap:
+              '8px',
+
+            alignItems:
+              'center'
+          }}
+        >
+
+          {
+            detectedCount >
+              0 && (
+
+              <span className="tag">
+                {
+                  detectedCount
+                } detected
+              </span>
+
+            )
+          }
+
+
+          <button
+            type="button"
+            className="text-btn"
+            onClick={
+              insertSample
+            }
+          >
+            Sample
+          </button>
+
+        </div>
+
+      </div>
+
+
+      {/* TEXTAREA */}
+
+      <textarea
+        rows={12}
+        spellCheck={false}
+        value={
+          rawText
+        }
+        onChange={
+          event => {
+
+            setRawText(
+              event.target.value
+            );
+
+            setValidatedQuestions(
+              []
+            );
+
+            setResult(
+              null
+            );
+
+            setMessage(
+              ''
+            );
+
+          }
+        }
+        placeholder={
+          mode ===
+            'easy'
+            ? `1. Question text...
+A. Option A
+B. Option B
+C. Option C
+D. Option D
+Answer: B
+Explanation: ...
+Subject: Polity
+Topic: Constitution`
+            : `[
+  {
+    "question_number": "1",
+    "question": "...",
+    "options": ["A", "B", "C", "D"],
+    "correct_index": 0
+  }
+]`
+        }
+        style={{
+          width:
+            '100%',
+
+          boxSizing:
+            'border-box',
+
+          resize:
+            'vertical',
+
+          fontFamily:
+            'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+
+          fontSize:
+            '13px',
+
+          lineHeight:
+            1.45
+        }}
+      />
+
+
+      {/* MESSAGE */}
+
+      {
+        message && (
+
+          <div
+            className="callout"
+            style={{
+              marginTop:
+                '10px'
+            }}
+          >
+            {message}
+          </div>
+
+        )
+      }
+
+
+      {/* RESULT */}
+
+      {
+        result && (
+
+          <div
+            style={{
+              display:
+                'grid',
+
+              gridTemplateColumns:
+                'repeat(4, minmax(0, 1fr))',
+
+              gap:
+                '8px',
+
+              marginTop:
+                '10px'
+            }}
+          >
+
+            <div className="callout">
+              <small>New</small>
+
+              <strong
+                style={{
+                  display:
+                    'block'
+                }}
+              >
+                {
+                  result.created_new ||
+                  0
+                }
+              </strong>
+            </div>
+
+
+            <div className="callout">
+              <small>Linked</small>
+
+              <strong
+                style={{
+                  display:
+                    'block'
+                }}
+              >
+                {
+                  result.linked_existing ||
+                  0
+                }
+              </strong>
+            </div>
+
+
+            <div className="callout">
+              <small>Existing</small>
+
+              <strong
+                style={{
+                  display:
+                    'block'
+                }}
+              >
+                {
+                  result.already_linked ||
+                  0
+                }
+              </strong>
+            </div>
+
+
+            <div className="callout">
+              <small>Review</small>
+
+              <strong
+                style={{
+                  display:
+                    'block'
+                }}
+              >
+                {
+                  result.needs_review ||
+                  0
+                }
+              </strong>
+            </div>
+
+          </div>
+
+        )
+      }
+
+
+      {/* ACTION BAR */}
+
+      <div
+        style={{
+          display:
+            'flex',
+
+          justifyContent:
+            'space-between',
+
+          alignItems:
+            'center',
+
+          gap:
+            '8px',
 
           flexWrap:
             'wrap',
@@ -2037,19 +2362,14 @@ Example:
       >
 
         <button
-
           type="button"
-
           className="secondary-btn"
-
           onClick={
-            clearPaper
+            clearInput
           }
-
           disabled={
             importing
           }
-
         >
           Clear
         </button>
@@ -2069,42 +2389,31 @@ Example:
         >
 
           <button
-
             type="button"
-
             className="secondary-btn"
-
-            onClick={
-              validate
-            }
-
             disabled={
               importing ||
               !rawText.trim()
             }
-
+            onClick={
+              validate
+            }
           >
             Validate
           </button>
 
 
           <button
-
             type="button"
-
             className="primary-btn"
-
-            onClick={() =>
-              void importPaper()
-            }
-
             disabled={
               importing ||
               !rawText.trim()
             }
-
+            onClick={() =>
+              void importPaper()
+            }
           >
-
             {
               importing
                 ? 'Importing...'
@@ -2113,7 +2422,6 @@ Example:
                   ? `Import ${detectedCount} Questions`
                   : 'Import Paper'
             }
-
           </button>
 
         </div>
