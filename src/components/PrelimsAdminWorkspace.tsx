@@ -22,279 +22,118 @@ type PrelimsWorkspace =
   | 'review';
 
 
+type TabItem = {
+  id: PrelimsWorkspace;
+  label: string;
+  helper: string;
+};
+
+
+const TABS: TabItem[] = [
+  {
+    id: 'quick-import',
+    label: 'Quick PYQ Import',
+    helper: 'Import one complete previous-year paper quickly.'
+  },
+  {
+    id: 'editor',
+    label: 'Add / Edit MCQ',
+    helper: 'Create a new MCQ or edit an existing question.'
+  },
+  {
+    id: 'bank',
+    label: 'Question Bank',
+    helper: 'Search, filter, publish, archive and manage stored questions.'
+  },
+  {
+    id: 'review',
+    label: 'Import Review',
+    helper: 'Check duplicate or conflicting questions found during PYQ import.'
+  }
+];
+
+
 export function PrelimsAdminWorkspace() {
-
-  const [
-    workspace,
-    setWorkspace
-  ] =
-    useState<PrelimsWorkspace>(
-      'quick-import'
-    );
-
-
-  const tabs:
-    Array<{
-      id: PrelimsWorkspace;
-      label: string;
-      description: string;
-    }> =
-    [
-
-      {
-        id:
-          'quick-import',
-
-        label:
-          'Quick PYQ Import',
-
-        description:
-          'Import a complete previous-year paper'
-      },
-
-      {
-        id:
-          'editor',
-
-        label:
-          'Add / Edit MCQ',
-
-        description:
-          'Create or edit one question'
-      },
-
-      {
-        id:
-          'bank',
-
-        label:
-          'Question Bank',
-
-        description:
-          'Search and manage stored MCQs'
-      },
-
-      {
-        id:
-          'review',
-
-        label:
-          'Import Review',
-
-        description:
-          'Check duplicate or conflicting PYQs'
-      }
-
-    ];
-
+  const [workspace, setWorkspace] =
+    useState<PrelimsWorkspace>('quick-import');
 
   const activeTab =
-    tabs.find(
-      tab =>
-        tab.id ===
-        workspace
+    TABS.find(
+      item =>
+        item.id === workspace
     );
 
-
   return (
-
     <div>
-
-      {/* =================================================
-          PRELIMS WORKSPACE NAVIGATION
-      ================================================= */}
-
       <section
         className="panel"
         style={{
-          padding:
-            '12px 14px',
-
-          marginBottom:
-            '12px'
+          padding: '12px 14px',
+          marginBottom: '12px'
         }}
       >
-
         <div
           style={{
-
-            display:
-              'grid',
-
+            display: 'grid',
             gridTemplateColumns:
-              'repeat(4, minmax(0, 1fr))',
-
-            gap:
-              '8px'
-
+              'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '8px'
           }}
         >
-
-          {
-            tabs.map(
-              tab => (
-
-                <button
-
-                  key={
-                    tab.id
-                  }
-
-                  type="button"
-
-                  className={
-                    workspace ===
-                      tab.id
-                      ? 'filter active'
-                      : 'filter'
-                  }
-
-                  onClick={() => {
-
-                    setWorkspace(
-                      tab.id
-                    );
-
-
-                    window
-                      .requestAnimationFrame(
-                        () => {
-
-                          const mainArea =
-                            document
-                              .querySelector(
-                                '.main-area'
-                              );
-
-
-                          mainArea?.scrollTo({
-                            top: 0,
-                            behavior:
-                              'smooth'
-                          });
-
-                        }
-                      );
-
-                  }}
-
-                  style={{
-                    minHeight:
-                      '42px',
-
-                    whiteSpace:
-                      'normal',
-
-                    lineHeight:
-                      1.2
-                  }}
-
-                >
-
-                  {
-                    tab.label
-                  }
-
-                </button>
-
-              )
+          {TABS.map(
+            tab => (
+              <button
+                key={tab.id}
+                type="button"
+                className={
+                  workspace === tab.id
+                    ? 'filter active'
+                    : 'filter'
+                }
+                onClick={() =>
+                  setWorkspace(tab.id)
+                }
+                style={{
+                  minHeight: '42px',
+                  whiteSpace: 'normal',
+                  lineHeight: 1.2
+                }}
+              >
+                {tab.label}
+              </button>
             )
-          }
-
+          )}
         </div>
 
-
-        {
-          activeTab && (
-
-            <small
-              style={{
-
-                display:
-                  'block',
-
-                marginTop:
-                  '8px',
-
-                color:
-                  '#94a3b8'
-
-              }}
-            >
-
-              {
-                activeTab.description
-              }
-
-            </small>
-
-          )
-        }
-
+        {activeTab && (
+          <small
+            style={{
+              display: 'block',
+              marginTop: '8px',
+              color: '#94a3b8'
+            }}
+          >
+            {activeTab.helper}
+          </small>
+        )}
       </section>
 
+      {workspace === 'quick-import' && (
+        <PrelimsPyqQuickImport />
+      )}
 
-      {/* =================================================
-          QUICK PYQ IMPORT
-      ================================================= */}
+      {workspace === 'editor' && (
+        <QuestionManager view="editor" />
+      )}
 
-      {
-        workspace ===
-          'quick-import' && (
+      {workspace === 'bank' && (
+        <QuestionManager view="bank" />
+      )}
 
-          <PrelimsPyqQuickImport />
-
-        )
-      }
-
-
-      {/* =================================================
-          ADD / EDIT MCQ
-      ================================================= */}
-
-      {
-        workspace ===
-          'editor' && (
-
-         <QuestionManager
-  view="editor"
-/>
-
-        )
-      }
-
-
-      {/* =================================================
-          QUESTION BANK
-      ================================================= */}
-
-      {
-        workspace ===
-          'bank' && (
-
-         <QuestionManager
-  view="bank"
-/>
-
-        )
-      }
-
-
-      {/* =================================================
-          IMPORT REVIEW
-      ================================================= */}
-
-      {
-        workspace ===
-          'review' && (
-
-          <PrelimsImportReview />
-
-        )
-      }
-
+      {workspace === 'review' && (
+        <PrelimsImportReview />
+      )}
     </div>
-
   );
 }
 
