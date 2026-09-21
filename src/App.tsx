@@ -1068,29 +1068,6 @@ export default function App() {
   );
 }
 
-/* =========================================================
-   PDF / FILE UPLOAD
-========================================================= */
-
-.pdf-file-input {
-  width: 100%;
-  box-sizing: border-box;
-
-  padding: 8px;
-
-  color: #cbd5e1;
-  background: #0e1525;
-
-  border: 1px solid #2a3447;
-  border-radius: 12px;
-
-  font-family: inherit;
-  font-size: 14px;
-
-  cursor: pointer;
-
-  color-scheme: dark;
-}
 
 
 /* =========================================================
