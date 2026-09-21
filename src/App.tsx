@@ -1053,32 +1053,6 @@ export default function App() {
           active
         }
 
-        onNavigate={
-          navigateMain
-        }
-
-      >
-
-        {content}
-
-      </Shell>
-
-    </IonApp>
-
-  );
-}
-
-.pdf-file-input::file-selector-button:hover {
-  background: #2dd4bf;
-  border-color: #2dd4bf;
-}
-
-
-.pdf-file-input::file-selector-button:active {
-  transform: translateY(1px);
-}
-
-
 /* =========================================================
    CHROME / WEBKIT FALLBACK
 ========================================================= */
