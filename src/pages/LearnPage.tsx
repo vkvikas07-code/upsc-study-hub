@@ -1081,26 +1081,33 @@ export function LearnPage({
             matchedTopic;
 
 
-          while (
-            currentTopic?.parent_id
-          ) {
+        while (
+  currentTopic &&
+  currentTopic.parent_id
+) {
 
-            const parentId =
-              currentTopic.parent_id;
-
-
-            ancestorIds.add(
-              parentId
-            );
+  const parentId: string =
+    currentTopic.parent_id;
 
 
-            currentTopic =
-              topics.find(
-                item =>
-                  item.id ===
-                  parentId
-              );
-          }
+  ancestorIds.add(
+    parentId
+  );
+
+
+  const parentTopic:
+    SyllabusTopic |
+    undefined =
+    topics.find(
+      item =>
+        item.id ===
+        parentId
+    );
+
+
+  currentTopic =
+    parentTopic;
+}
 
 
           setExpandedTopics(
