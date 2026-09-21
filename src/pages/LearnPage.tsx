@@ -15,6 +15,10 @@ import {
 } from '../components/SyllabusLinkedContent';
 
 
+/* =========================================================
+   TYPES
+========================================================= */
+
 type ExamStage =
   | 'prelims'
   | 'mains';
@@ -49,6 +53,10 @@ type LearnPageProps = {
 };
 
 
+/* =========================================================
+   CONSTANTS
+========================================================= */
+
 const PROGRESS_OPTIONS = [
   0,
   25,
@@ -57,6 +65,10 @@ const PROGRESS_OPTIONS = [
   100
 ];
 
+
+/* =========================================================
+   HELPERS
+========================================================= */
 
 function clampProgress(
   value: number
@@ -195,7 +207,7 @@ export function LearnPage({
 }: LearnPageProps) {
 
   /* =======================================================
-     DATA
+     DATABASE DATA
   ======================================================= */
 
   const [
@@ -253,7 +265,7 @@ export function LearnPage({
 
 
   /* =======================================================
-     UI
+     GENERAL UI
   ======================================================= */
 
   const [
@@ -291,6 +303,10 @@ export function LearnPage({
       null
     );
 
+
+  /* =======================================================
+     FILTER STATE
+  ======================================================= */
 
   const [
     stage,
@@ -338,6 +354,10 @@ export function LearnPage({
     );
 
 
+  /* =======================================================
+     EXPANSION STATE
+  ======================================================= */
+
   const [
     expandedSubject,
     setExpandedSubject
@@ -367,14 +387,19 @@ export function LearnPage({
     );
 
 
-  const targetAppliedRef =
+  /*
+   * Prevent initial saved-topic target
+   * from being repeatedly applied.
+   */
+
+  const initialTargetApplied =
     useRef(
       false
     );
 
 
   /* =======================================================
-     LOAD DATABASE
+     LOAD SYLLABUS
   ======================================================= */
 
   async function loadSyllabus():
@@ -473,7 +498,7 @@ export function LearnPage({
 
 
     /* ===================================================
-       TOPICS
+       SYLLABUS RESULT
     =================================================== */
 
     if (
@@ -564,7 +589,7 @@ export function LearnPage({
 
 
     /* ===================================================
-       STANDARD BOOKS
+       STANDARD BOOKS RESULT
     =================================================== */
 
     if (
@@ -689,7 +714,7 @@ export function LearnPage({
 
 
     /* ===================================================
-       PROGRESS
+       USER PROGRESS
     =================================================== */
 
     const {
@@ -749,16 +774,16 @@ export function LearnPage({
       []
     )
       .forEach(
-        row => {
+        item => {
 
           nextProgress[
             String(
-              row.topic_id
+              item.topic_id
             )
           ] =
             clampProgress(
               Number(
-                row.completion ||
+                item.completion ||
                 0
               )
             );
@@ -779,7 +804,7 @@ export function LearnPage({
 
 
   /* =======================================================
-     FIRST LOAD
+     INITIAL LOAD
   ======================================================= */
 
   useEffect(
@@ -814,7 +839,7 @@ export function LearnPage({
 
 
   /* =======================================================
-     CHILD MAP
+     CHILDREN MAP
   ======================================================= */
 
   const childrenMap =
@@ -838,21 +863,21 @@ export function LearnPage({
             }
 
 
-            const children =
+            const current =
               map.get(
                 topic.parent_id
               ) ||
               [];
 
 
-            children.push(
+            current.push(
               topic
             );
 
 
             map.set(
               topic.parent_id,
-              children
+              current
             );
 
           }
@@ -876,6 +901,7 @@ export function LearnPage({
 
 
         return map;
+
       },
       [
         stageTopics
@@ -884,14 +910,14 @@ export function LearnPage({
 
 
   /* =======================================================
-     APPLY SAVED TOPIC TARGET
+     SAVED TOPIC / INITIAL SUBJECT NAVIGATION
   ======================================================= */
 
   useEffect(
     () => {
 
       if (
-        targetAppliedRef.current
+        initialTargetApplied.current
       ) {
         return;
       }
@@ -905,45 +931,43 @@ export function LearnPage({
       }
 
 
-      const targetStage =
+      const desiredStage =
         initialStage ||
         'prelims';
 
 
+      /*
+       * If target is Mains but page started
+       * on Prelims, change stage first.
+       */
+
       if (
         stage !==
-        targetStage
+        desiredStage
       ) {
 
         setStage(
-          targetStage
+          desiredStage
         );
 
         return;
       }
 
 
+      /* =================================================
+         EXACT TOPIC TARGET
+      ================================================= */
+
       if (
         initialTopic
       ) {
 
-        const matched =
+        let matchedTopic =
           topics.find(
             item =>
 
               item.exam_stage ===
-                targetStage &&
-
-              (
-                !initialSubject ||
-
-                normalise(
-                  item.subject
-                ) ===
-                normalise(
-                  initialSubject
-                )
-              ) &&
+                desiredStage &&
 
               normalise(
                 item.topic
@@ -953,68 +977,124 @@ export function LearnPage({
                 ) &&
 
               (
+                !initialSubject ||
+
+                normalise(
+                  item.subject
+                ) ===
+                  normalise(
+                    initialSubject
+                  )
+              ) &&
+
+              (
                 !initialPaper ||
 
                 normalise(
                   item.paper
                 ) ===
-                normalise(
-                  initialPaper
-                )
+                  normalise(
+                    initialPaper
+                  )
               )
           );
 
 
+        /*
+         * Fallback:
+         * If paper value differs slightly,
+         * match by stage + subject + topic.
+         */
+
         if (
-          matched
+          !matchedTopic
+        ) {
+
+          matchedTopic =
+            topics.find(
+              item =>
+
+                item.exam_stage ===
+                  desiredStage &&
+
+                normalise(
+                  item.topic
+                ) ===
+                  normalise(
+                    initialTopic
+                  ) &&
+
+                (
+                  !initialSubject ||
+
+                  normalise(
+                    item.subject
+                  ) ===
+                    normalise(
+                      initialSubject
+                    )
+                )
+            );
+        }
+
+
+        if (
+          matchedTopic
         ) {
 
           setExpandedSubject(
-            matched.subject
+            matchedTopic.subject
           );
 
 
-          if (
-            matched.paper
-          ) {
-
-            setPaperFilter(
-              matched.paper
-            );
-
-          } else {
-
-            setPaperFilter(
-              'all'
-            );
-
-          }
+          setLinkedTopicId(
+            matchedTopic.id
+          );
 
 
-          const ancestors =
+          setPaperFilter(
+            'all'
+          );
+
+
+          setSearchText(
+            ''
+          );
+
+
+          setFiltersOpen(
+            true
+          );
+
+
+          /*
+           * Expand every parent in the hierarchy.
+           */
+
+          const ancestorIds =
             new Set<string>();
 
 
-          let current:
+          let currentTopic:
             SyllabusTopic |
             undefined =
-            matched;
+            matchedTopic;
 
 
           while (
-            current?.parent_id
+            currentTopic?.parent_id
           ) {
 
-            ancestors.add(
-              current.parent_id
+            const parentId =
+              currentTopic.parent_id;
+
+
+            ancestorIds.add(
+              parentId
             );
 
 
-            const parentId =
-              current.parent_id;
-
-
-            current =
+            currentTopic =
               topics.find(
                 item =>
                   item.id ===
@@ -1024,31 +1104,20 @@ export function LearnPage({
 
 
           setExpandedTopics(
-            ancestors
+            ancestorIds
           );
 
 
-          setLinkedTopicId(
-            matched.id
-          );
-
-
-          setSearchText(
-            matched.topic
-          );
-
-
-          setFiltersOpen(
-            true
-          );
-
+          /*
+           * Scroll to exact topic after UI renders.
+           */
 
           window.setTimeout(
             () => {
 
               const element =
                 document.getElementById(
-                  `syllabus-topic-${matched.id}`
+                  `syllabus-topic-${matchedTopic?.id}`
                 );
 
 
@@ -1063,12 +1132,29 @@ export function LearnPage({
               );
 
             },
-            300
+            350
           );
 
+        } else {
+
+          setMessage(
+            `Saved topic "${initialTopic}" was not found in the current syllabus.`
+          );
         }
 
-      } else if (
+
+        initialTargetApplied.current =
+          true;
+
+        return;
+      }
+
+
+      /* =================================================
+         SUBJECT-ONLY TARGET
+      ================================================= */
+
+      if (
         initialSubject
       ) {
 
@@ -1077,7 +1163,7 @@ export function LearnPage({
             item =>
 
               item.exam_stage ===
-                targetStage &&
+                desiredStage &&
 
               normalise(
                 item.subject
@@ -1105,12 +1191,11 @@ export function LearnPage({
           setFiltersOpen(
             true
           );
-
         }
       }
 
 
-      targetAppliedRef.current =
+      initialTargetApplied.current =
         true;
 
     },
@@ -1126,7 +1211,7 @@ export function LearnPage({
 
 
   /* =======================================================
-     LEAF IDS
+     GET ALL LEAF IDS
   ======================================================= */
 
   function getLeafIds(
@@ -1174,14 +1259,18 @@ export function LearnPage({
       );
 
 
-    return average(
+    const values =
       leafIds.map(
         id =>
           progressMap[
             id
           ] ||
           0
-      )
+      );
+
+
+    return average(
+      values
     );
   }
 
@@ -1192,7 +1281,7 @@ export function LearnPage({
 
   async function saveProgress(
     topicId: string,
-    newValue: number
+    nextValue: number
   ): Promise<void> {
 
     if (
@@ -1201,7 +1290,7 @@ export function LearnPage({
     ) {
 
       setMessage(
-        'Sign in to save progress.'
+        'Sign in to save syllabus progress.'
       );
 
       return;
@@ -1210,7 +1299,7 @@ export function LearnPage({
 
     const value =
       clampProgress(
-        newValue
+        nextValue
       );
 
 
@@ -1221,18 +1310,29 @@ export function LearnPage({
       0;
 
 
+    /*
+     * Optimistic update.
+     */
+
     setProgressMap(
       current => ({
+
         ...current,
 
         [topicId]:
           value
+
       })
     );
 
 
     setSavingTopicId(
       topicId
+    );
+
+
+    setMessage(
+      ''
     );
 
 
@@ -1273,22 +1373,25 @@ export function LearnPage({
     ) {
 
       console.error(
+        'Unable to save syllabus progress:',
         saveError
       );
 
 
       setProgressMap(
         current => ({
+
           ...current,
 
           [topicId]:
             previous
+
         })
       );
 
 
       setMessage(
-        saveError.message
+        `Unable to save progress: ${saveError.message}`
       );
 
     } else {
@@ -1306,7 +1409,7 @@ export function LearnPage({
 
 
   /* =======================================================
-     SEARCH
+     SEARCH MATCH
   ======================================================= */
 
   function topicMatchesSearch(
@@ -1326,7 +1429,7 @@ export function LearnPage({
     }
 
 
-    const text =
+    const searchable =
       [
         topic.subject,
         topic.paper ||
@@ -1340,7 +1443,7 @@ export function LearnPage({
 
 
     if (
-      text.includes(
+      searchable.includes(
         query
       )
     ) {
@@ -1358,6 +1461,46 @@ export function LearnPage({
     return children.some(
       child =>
         topicMatchesSearch(
+          child
+        )
+    );
+  }
+
+
+  /* =======================================================
+     PAPER MATCH
+  ======================================================= */
+
+  function topicMatchesPaper(
+    topic: SyllabusTopic
+  ): boolean {
+
+    if (
+      paperFilter ===
+      'all'
+    ) {
+      return true;
+    }
+
+
+    if (
+      topic.paper ===
+      paperFilter
+    ) {
+      return true;
+    }
+
+
+    const children =
+      childrenMap.get(
+        topic.id
+      ) ||
+      [];
+
+
+    return children.some(
+      child =>
+        topicMatchesPaper(
           child
         )
     );
@@ -1389,28 +1532,43 @@ export function LearnPage({
 
   const paperOptions =
     useMemo(
-      () =>
+      () => {
 
-        Array
+        const values =
+          new Set<string>();
+
+
+        stageTopics.forEach(
+          topic => {
+
+            if (
+              topic.paper
+            ) {
+
+              values.add(
+                topic.paper
+              );
+            }
+
+          }
+        );
+
+
+        return Array
           .from(
-            new Set(
-              stageTopics
-                .map(
-                  topic =>
-                    topic.paper
-                )
-                .filter(
-                  (
-                    value
-                  ): value is string =>
-                    Boolean(
-                      value
-                    )
-                )
-            )
+            values
           )
-          .sort(),
+          .sort(
+            (
+              first,
+              second
+            ) =>
+              first.localeCompare(
+                second
+              )
+          );
 
+      },
       [
         stageTopics
       ]
@@ -1418,20 +1576,18 @@ export function LearnPage({
 
 
   /* =======================================================
-     VISIBLE ROOTS
+     VISIBLE ROOT TOPICS
   ======================================================= */
 
-  const visibleRoots =
+  const visibleRootTopics =
     rootTopics.filter(
       topic => {
 
         if (
-          paperFilter !==
-            'all' &&
-          topic.paper !==
-            paperFilter
+          !topicMatchesPaper(
+            topic
+          )
         ) {
-
           return false;
         }
 
@@ -1441,7 +1597,6 @@ export function LearnPage({
             topic
           )
         ) {
-
           return false;
         }
 
@@ -1453,7 +1608,6 @@ export function LearnPage({
           ) >=
             100
         ) {
-
           return false;
         }
 
@@ -1464,14 +1618,14 @@ export function LearnPage({
 
 
   /* =======================================================
-     SUBJECTS
+     SUBJECT NAMES
   ======================================================= */
 
   const subjectNames =
     Array
       .from(
         new Set(
-          visibleRoots.map(
+          visibleRootTopics.map(
             topic =>
               topic.subject
           )
@@ -1489,7 +1643,7 @@ export function LearnPage({
 
 
   /* =======================================================
-     OVERALL PROGRESS
+     STAGE LEAF TOPICS
   ======================================================= */
 
   const stageLeafIds =
@@ -1510,6 +1664,10 @@ export function LearnPage({
       );
 
 
+  /* =======================================================
+     OVERALL PROGRESS
+  ======================================================= */
+
   const overallProgress =
     average(
       stageLeafIds.map(
@@ -1522,7 +1680,7 @@ export function LearnPage({
     );
 
 
-  const completedCount =
+  const completedTopics =
     stageLeafIds.filter(
       id =>
         (
@@ -1535,8 +1693,21 @@ export function LearnPage({
     ).length;
 
 
+  const startedTopics =
+    stageLeafIds.filter(
+      id =>
+        (
+          progressMap[
+            id
+          ] ||
+          0
+        ) >
+        0
+    ).length;
+
+
   /* =======================================================
-     BOOKS
+     BOOKS FOR SUBJECT
   ======================================================= */
 
   function booksForSubject(
@@ -1556,19 +1727,76 @@ export function LearnPage({
 
 
   /* =======================================================
-     CHANGE STAGE MANUALLY
+     SUBJECT PROGRESS
+  ======================================================= */
+
+  function getSubjectProgress(
+    subject: string
+  ): number {
+
+    const leafIds =
+      stageTopics
+        .filter(
+          topic =>
+
+            topic.subject ===
+              subject &&
+
+            (
+              childrenMap.get(
+                topic.id
+              ) ||
+              []
+            ).length ===
+              0
+        )
+        .map(
+          topic =>
+            topic.id
+        );
+
+
+    return average(
+      leafIds.map(
+        id =>
+          progressMap[
+            id
+          ] ||
+          0
+      )
+    );
+  }
+
+
+  /* =======================================================
+     MANUAL STAGE CHANGE
   ======================================================= */
 
   function changeStage(
     nextStage: ExamStage
   ): void {
 
-    targetAppliedRef.current =
+    /*
+     * User has manually changed the stage,
+     * so do not re-apply initial navigation.
+     */
+
+    initialTargetApplied.current =
       true;
 
 
     setStage(
       nextStage
+    );
+
+
+    setPaperFilter(
+      'all'
+    );
+
+
+    setSearchText(
+      ''
     );
 
 
@@ -1587,12 +1815,12 @@ export function LearnPage({
     );
 
 
-    setPaperFilter(
-      'all'
+    setHideCompleted(
+      false
     );
 
 
-    setSearchText(
+    setMessage(
       ''
     );
   }
@@ -1603,7 +1831,7 @@ export function LearnPage({
   ======================================================= */
 
   function toggleTopic(
-    id: string
+    topicId: string
   ): void {
 
     setExpandedTopics(
@@ -1617,18 +1845,18 @@ export function LearnPage({
 
         if (
           next.has(
-            id
+            topicId
           )
         ) {
 
           next.delete(
-            id
+            topicId
           );
 
         } else {
 
           next.add(
-            id
+            topicId
           );
         }
 
@@ -1640,7 +1868,7 @@ export function LearnPage({
 
 
   /* =======================================================
-     RENDER TOPIC
+     RECURSIVE TOPIC RENDERER
   ======================================================= */
 
   function renderTopic(
@@ -1692,6 +1920,20 @@ export function LearnPage({
     }
 
 
+    const visibleChildren =
+      children.filter(
+        child =>
+
+          topicMatchesSearch(
+            child
+          ) &&
+
+          topicMatchesPaper(
+            child
+          )
+      );
+
+
     return (
 
       <div
@@ -1719,11 +1961,21 @@ export function LearnPage({
             '1px solid rgba(255,255,255,.08)',
 
           borderRadius:
-            '12px'
+            '12px',
+
+          background:
+            depth >
+            0
+              ? 'rgba(255,255,255,.015)'
+              : 'rgba(255,255,255,.025)'
 
         }}
 
       >
+
+        {/* =============================================
+            TOPIC HEADER
+        ============================================= */}
 
         <div
           style={{
@@ -1745,6 +1997,10 @@ export function LearnPage({
 
           }}
         >
+
+          {/* ===========================================
+              TOPIC NAME
+          =========================================== */}
 
           <button
 
@@ -1768,9 +2024,6 @@ export function LearnPage({
               flex:
                 '1 1 220px',
 
-              textAlign:
-                'left',
-
               border:
                 0,
 
@@ -1782,6 +2035,9 @@ export function LearnPage({
 
               color:
                 'inherit',
+
+              textAlign:
+                'left',
 
               whiteSpace:
                 'normal',
@@ -1839,105 +2095,130 @@ export function LearnPage({
 
               {
                 progress
-              }
-
-              %
+              }%
 
             </small>
 
           </button>
 
 
-          <button
+          {/* ===========================================
+              ACTIONS
+          =========================================== */}
 
-            type="button"
+          <div
+            style={{
 
-            className={
-              linkedOpen
-                ? 'filter active'
-                : 'filter'
-            }
+              display:
+                'flex',
 
-            onClick={() =>
+              gap:
+                '7px',
 
-              setLinkedTopicId(
-                current =>
-                  current ===
-                    topic.id
-                    ? null
-                    : topic.id
-              )
+              alignItems:
+                'center',
 
-            }
+              flexWrap:
+                'wrap'
 
+            }}
           >
 
+            <button
+
+              type="button"
+
+              className={
+                linkedOpen
+                  ? 'filter active'
+                  : 'filter'
+              }
+
+              onClick={() =>
+                setLinkedTopicId(
+                  current =>
+                    current ===
+                      topic.id
+                      ? null
+                      : topic.id
+                )
+              }
+
+            >
+
+              {
+                linkedOpen
+                  ? 'Hide Study'
+                  : 'Study Links'
+              }
+
+            </button>
+
+
             {
-              linkedOpen
-                ? 'Hide Study'
-                : 'Study Links'
-            }
+              !hasChildren &&
+              signedIn && (
 
-          </button>
+                <select
 
+                  value={
+                    progress
+                  }
 
-          {
-            !hasChildren &&
-            signedIn && (
+                  disabled={
+                    savingTopicId ===
+                    topic.id
+                  }
 
-              <select
+                  onChange={
+                    event =>
+                      void saveProgress(
+                        topic.id,
+                        Number(
+                          event.target.value
+                        )
+                      )
+                  }
 
-                value={
-                  progress
-                }
+                >
 
-                disabled={
-                  savingTopicId ===
-                  topic.id
-                }
+                  {
+                    PROGRESS_OPTIONS.map(
+                      option => (
 
-                onChange={
-                  event =>
-                    void saveProgress(
-                      topic.id,
-                      Number(
-                        event.target.value
+                        <option
+
+                          key={
+                            option
+                          }
+
+                          value={
+                            option
+                          }
+
+                        >
+                          {
+                            option
+                          }%
+                        </option>
+
                       )
                     )
-                }
+                  }
 
-              >
+                </select>
 
-                {
-                  PROGRESS_OPTIONS.map(
-                    option => (
+              )
+            }
 
-                      <option
-                        key={
-                          option
-                        }
-                        value={
-                          option
-                        }
-                      >
-
-                        {
-                          option
-                        }%
-
-                      </option>
-
-                    )
-                  )
-                }
-
-              </select>
-
-            )
-          }
+          </div>
 
         </div>
 
+
+        {/* =============================================
+            PROGRESS BAR
+        ============================================= */}
 
         <div
           style={{
@@ -1951,11 +2232,11 @@ export function LearnPage({
             borderRadius:
               '999px',
 
-            background:
-              'rgba(255,255,255,.08)',
-
             overflow:
-              'hidden'
+              'hidden',
+
+            background:
+              'rgba(255,255,255,.08)'
 
           }}
         >
@@ -1970,13 +2251,20 @@ export function LearnPage({
                 `${progress}%`,
 
               background:
-                'currentColor'
+                'currentColor',
+
+              transition:
+                'width .2s ease'
 
             }}
           />
 
         </div>
 
+
+        {/* =============================================
+            LINKED STUDY WORKSPACE
+        ============================================= */}
 
         {
           linkedOpen && (
@@ -2005,6 +2293,10 @@ export function LearnPage({
         }
 
 
+        {/* =============================================
+            CHILD TOPICS
+        ============================================= */}
+
         {
           hasChildren &&
           expanded && (
@@ -2012,25 +2304,18 @@ export function LearnPage({
             <div
               style={{
                 marginTop:
-                  '7px'
+                  '8px'
               }}
             >
 
               {
-                children
-                  .filter(
-                    child =>
-                      topicMatchesSearch(
-                        child
-                      )
-                  )
-                  .map(
-                    child =>
-                      renderTopic(
-                        child,
-                        depth + 1
-                      )
-                  )
+                visibleChildren.map(
+                  child =>
+                    renderTopic(
+                      child,
+                      depth + 1
+                    )
+                )
               }
 
             </div>
@@ -2044,7 +2329,7 @@ export function LearnPage({
 
 
   /* =======================================================
-     PAGE
+     PAGE UI
   ======================================================= */
 
   return (
@@ -2052,11 +2337,18 @@ export function LearnPage({
     <>
 
       {/* =================================================
-          HEADER
+          PAGE HEADER
       ================================================= */}
 
       <section
+
         className="panel"
+
+        style={{
+          padding:
+            '16px'
+        }}
+
       >
 
         <span
@@ -2066,16 +2358,26 @@ export function LearnPage({
         </span>
 
 
-        <h2>
+        <h2
+          style={{
+            margin:
+              '6px 0 4px'
+          }}
+        >
           Syllabus Tracker
         </h2>
 
 
         <p>
-          Track preparation, open study
-          resources and practice each topic.
+          Track syllabus progress and open
+          linked resources, PYQs, practice
+          questions, bookmarks and notes.
         </p>
 
+
+        {/* ===============================================
+            PRELIMS / MAINS
+        =============================================== */}
 
         <div
           style={{
@@ -2090,7 +2392,7 @@ export function LearnPage({
               '8px',
 
             marginTop:
-              '12px'
+              '14px'
 
           }}
         >
@@ -2165,7 +2467,9 @@ export function LearnPage({
           <article
             className="metric-card"
           >
+
             <div>
+
               <span>
                 Overall
               </span>
@@ -2175,31 +2479,60 @@ export function LearnPage({
                   overallProgress
                 }%
               </strong>
+
             </div>
+
           </article>
 
 
           <article
             className="metric-card"
           >
+
             <div>
+
+              <span>
+                Started
+              </span>
+
+              <strong>
+                {
+                  startedTopics
+                }
+              </strong>
+
+            </div>
+
+          </article>
+
+
+          <article
+            className="metric-card"
+          >
+
+            <div>
+
               <span>
                 Completed
               </span>
 
               <strong>
                 {
-                  completedCount
+                  completedTopics
                 }
               </strong>
+
             </div>
+
           </article>
 
 
           <article
             className="metric-card"
           >
+
             <div>
+
               <span>
                 Total Topics
               </span>
@@ -2209,8 +2542,56 @@ export function LearnPage({
                   stageLeafIds.length
                 }
               </strong>
+
             </div>
+
           </article>
+
+        </div>
+
+
+        {/* ===============================================
+            OVERALL PROGRESS BAR
+        =============================================== */}
+
+        <div
+          style={{
+
+            height:
+              '8px',
+
+            marginTop:
+              '12px',
+
+            borderRadius:
+              '999px',
+
+            background:
+              'rgba(255,255,255,.08)',
+
+            overflow:
+              'hidden'
+
+          }}
+        >
+
+          <div
+            style={{
+
+              width:
+                `${overallProgress}%`,
+
+              height:
+                '100%',
+
+              background:
+                'currentColor',
+
+              transition:
+                'width .25s ease'
+
+            }}
+          />
 
         </div>
 
@@ -2229,7 +2610,10 @@ export function LearnPage({
               }}
 
             >
-              Sign in to save progress.
+
+              Sign in to save your personal
+              syllabus progress.
+
             </div>
 
           )
@@ -2239,7 +2623,7 @@ export function LearnPage({
 
 
       {/* =================================================
-          SEARCH AND FILTERS
+          SEARCH & FILTERS
       ================================================= */}
 
       <section
@@ -2259,6 +2643,11 @@ export function LearnPage({
 
           className="secondary-btn"
 
+          style={{
+            width:
+              '100%'
+          }}
+
           onClick={() =>
             setFiltersOpen(
               current =>
@@ -2267,11 +2656,13 @@ export function LearnPage({
           }
 
         >
+
           {
             filtersOpen
-              ? 'Hide Filters'
+              ? 'Hide Search & Filters'
               : 'Search & Filters'
           }
+
         </button>
 
 
@@ -2288,13 +2679,15 @@ export function LearnPage({
                   'repeat(auto-fit, minmax(170px, 1fr))',
 
                 gap:
-                  '8px',
+                  '10px',
 
                 marginTop:
                   '10px'
 
               }}
             >
+
+              {/* SEARCH */}
 
               <label>
 
@@ -2321,6 +2714,8 @@ export function LearnPage({
 
               </label>
 
+
+              {/* PAPER */}
 
               <label>
 
@@ -2353,12 +2748,15 @@ export function LearnPage({
                       paper => (
 
                         <option
+
                           key={
                             paper
                           }
+
                           value={
                             paper
                           }
+
                         >
                           {
                             paper
@@ -2373,6 +2771,8 @@ export function LearnPage({
 
               </label>
 
+
+              {/* DISPLAY */}
 
               <label>
 
@@ -2402,6 +2802,7 @@ export function LearnPage({
                     All Topics
                   </option>
 
+
                   <option
                     value="pending"
                   >
@@ -2412,6 +2813,8 @@ export function LearnPage({
 
               </label>
 
+
+              {/* CLEAR */}
 
               <button
 
@@ -2438,10 +2841,14 @@ export function LearnPage({
                     false
                   );
 
+                  setMessage(
+                    ''
+                  );
+
                 }}
 
               >
-                Clear
+                Clear Filters
               </button>
 
             </div>
@@ -2453,48 +2860,64 @@ export function LearnPage({
 
 
       {/* =================================================
-          STATUS
+          STATUS MESSAGE
       ================================================= */}
 
       {
         message && (
 
           <div
+
             className="callout"
 
             style={{
               marginTop:
                 '10px'
             }}
+
           >
+
             {
               message
             }
+
           </div>
 
         )
       }
 
+
+      {/* =================================================
+          ERROR
+      ================================================= */}
 
       {
         error && (
 
           <div
+
             className="callout"
 
             style={{
               marginTop:
                 '10px'
             }}
+
           >
+
             {
               error
             }
+
           </div>
 
         )
       }
 
+
+      {/* =================================================
+          LOADING
+      ================================================= */}
 
       {
         loading && (
@@ -2509,7 +2932,9 @@ export function LearnPage({
             }}
 
           >
-            Loading syllabus...
+
+            Loading UPSC syllabus...
+
           </section>
 
         )
@@ -2517,7 +2942,7 @@ export function LearnPage({
 
 
       {/* =================================================
-          EMPTY
+          EMPTY RESULT
       ================================================= */}
 
       {
@@ -2540,8 +2965,10 @@ export function LearnPage({
               No syllabus topics found
             </h3>
 
+
             <p>
-              Change your search or filters.
+              Change your search,
+              exam stage or filters.
             </p>
 
           </section>
@@ -2551,12 +2978,11 @@ export function LearnPage({
 
 
       {/* =================================================
-          SUBJECTS
+          SUBJECT LIST
       ================================================= */}
 
       {
         !loading &&
-
         subjectNames.map(
           subject => {
 
@@ -2566,7 +2992,7 @@ export function LearnPage({
 
 
             const subjectRoots =
-              visibleRoots.filter(
+              visibleRootTopics.filter(
                 topic =>
                   topic.subject ===
                   subject
@@ -2580,27 +3006,8 @@ export function LearnPage({
 
 
             const subjectProgress =
-              average(
-                stageTopics
-                  .filter(
-                    topic =>
-                      topic.subject ===
-                        subject &&
-                      (
-                        childrenMap.get(
-                          topic.id
-                        ) ||
-                        []
-                      ).length ===
-                        0
-                  )
-                  .map(
-                    topic =>
-                      progressMap[
-                        topic.id
-                      ] ||
-                      0
-                  )
+              getSubjectProgress(
+                subject
               );
 
 
@@ -2615,11 +3022,20 @@ export function LearnPage({
                 }
 
                 style={{
+
                   marginTop:
-                    '10px'
+                    '10px',
+
+                  padding:
+                    '14px'
+
                 }}
 
               >
+
+                {/* =======================================
+                    SUBJECT HEADER
+                ======================================= */}
 
                 <button
 
@@ -2643,6 +3059,9 @@ export function LearnPage({
                     border:
                       0,
 
+                    padding:
+                      0,
+
                     background:
                       'transparent',
 
@@ -2650,22 +3069,25 @@ export function LearnPage({
                       'inherit',
 
                     display:
-                      'flex',
+                      'grid',
 
-                    justifyContent:
-                      'space-between',
+                    gridTemplateColumns:
+                      '1fr auto',
 
                     alignItems:
                       'center',
 
                     gap:
-                      '10px',
+                      '12px',
 
                     textAlign:
                       'left',
 
                     cursor:
-                      'pointer'
+                      'pointer',
+
+                    whiteSpace:
+                      'normal'
 
                   }}
 
@@ -2687,6 +3109,36 @@ export function LearnPage({
 
                     </strong>
 
+
+                    <small
+                      style={{
+
+                        display:
+                          'block',
+
+                        marginTop:
+                          '4px',
+
+                        color:
+                          '#94a3b8'
+
+                      }}
+                    >
+
+                      {
+                        subjectRoots.length
+                      }
+
+                      {' major topics • '}
+
+                      {
+                        progressLabel(
+                          subjectProgress
+                        )
+                      }
+
+                    </small>
+
                   </div>
 
 
@@ -2699,69 +3151,199 @@ export function LearnPage({
                 </button>
 
 
+                {/* =======================================
+                    SUBJECT PROGRESS BAR
+                ======================================= */}
+
+                <div
+                  style={{
+
+                    height:
+                      '6px',
+
+                    marginTop:
+                      '10px',
+
+                    borderRadius:
+                      '999px',
+
+                    background:
+                      'rgba(255,255,255,.08)',
+
+                    overflow:
+                      'hidden'
+
+                  }}
+                >
+
+                  <div
+                    style={{
+
+                      width:
+                        `${subjectProgress}%`,
+
+                      height:
+                        '100%',
+
+                      background:
+                        'currentColor',
+
+                      transition:
+                        'width .2s ease'
+
+                    }}
+                  />
+
+                </div>
+
+
+                {/* =======================================
+                    EXPANDED SUBJECT
+                ======================================= */}
+
                 {
                   expanded && (
 
                     <div
                       style={{
                         marginTop:
-                          '12px'
+                          '14px'
                       }}
                     >
 
-                      {
-                        subjectBooks.length >
-                          0 && (
+                      {/* =================================
+                          STANDARD BOOKS
+                      ================================= */}
 
-                          <div
-                            className="callout"
-                          >
+                      <div
+                        className="callout"
+                      >
 
-                            <strong>
-                              Standard Books
-                            </strong>
+                        <small
+                          style={{
+
+                            fontWeight:
+                              800,
+
+                            letterSpacing:
+                              '.04em'
+
+                          }}
+                        >
+                          STANDARD BOOKS
+                        </small>
 
 
-                            <div
-                              style={{
-                                marginTop:
-                                  '6px'
-                              }}
-                            >
+                        {
+                          subjectBooks.length ===
+                          0
+                            ? (
 
-                              {
-                                subjectBooks.map(
-                                  book => (
+                              <small
+                                style={{
 
-                                    <div
-                                      key={
-                                        book.id
-                                      }
-                                    >
+                                  display:
+                                    'block',
 
-                                      {
-                                        book.title
-                                      }
+                                  marginTop:
+                                    '6px',
 
-                                      {
-                                        book.author
-                                          ? ` — ${book.author}`
-                                          : ''
-                                      }
+                                  color:
+                                    '#94a3b8'
 
-                                    </div>
+                                }}
+                              >
 
+                                No standard book
+                                linked to this
+                                subject yet.
+
+                              </small>
+
+                            )
+
+                            : (
+
+                              <div
+                                style={{
+
+                                  display:
+                                    'grid',
+
+                                  gap:
+                                    '7px',
+
+                                  marginTop:
+                                    '8px'
+
+                                }}
+                              >
+
+                                {
+                                  subjectBooks.map(
+                                    book => (
+
+                                      <div
+                                        key={
+                                          book.id
+                                        }
+                                      >
+
+                                        <strong>
+                                          {
+                                            book.title
+                                          }
+                                        </strong>
+
+
+                                        {
+                                          (
+                                            book.author ||
+                                            book.publisher
+                                          ) && (
+
+                                            <small
+                                              style={{
+
+                                                display:
+                                                  'block',
+
+                                                marginTop:
+                                                  '2px',
+
+                                                color:
+                                                  '#94a3b8'
+
+                                              }}
+                                            >
+
+                                              {
+                                                book.author ||
+                                                book.publisher
+                                              }
+
+                                            </small>
+
+                                          )
+                                        }
+
+                                      </div>
+
+                                    )
                                   )
-                                )
-                              }
+                                }
 
-                            </div>
+                              </div>
 
-                          </div>
+                            )
+                        }
 
-                        )
-                      }
+                      </div>
 
+
+                      {/* =================================
+                          TOPICS
+                      ================================= */}
 
                       <div
                         style={{
@@ -2794,5 +3376,13 @@ export function LearnPage({
       }
 
     </>
+
   );
 }
+
+
+/* =========================================================
+   DEFAULT EXPORT
+========================================================= */
+
+export default LearnPage;
