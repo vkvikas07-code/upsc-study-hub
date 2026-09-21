@@ -1159,3 +1159,55 @@ export default function App() {
 .pdf-file-input:disabled::file-selector-button {
   cursor: not-allowed;
 }
+
+/* =========================================================
+   PDF FILE INPUT - DARK THEME
+========================================================= */
+
+.pdf-file-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  color: #cbd5e1;
+  background: #0e1525;
+  border: 1px solid #2a3447;
+  border-radius: 12px;
+  font: inherit;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.pdf-file-input::file-selector-button {
+  margin-right: 12px;
+  padding: 10px 16px;
+  border: 1px solid #14b8a6;
+  border-radius: 9px;
+  background: #14b8a6;
+  color: #04111f;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pdf-file-input::file-selector-button:hover {
+  background: #2dd4bf;
+  border-color: #2dd4bf;
+}
+
+.pdf-file-input::-webkit-file-upload-button {
+  margin-right: 12px;
+  padding: 10px 16px;
+  border: 1px solid #14b8a6;
+  border-radius: 9px;
+  background: #14b8a6;
+  color: #04111f;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pdf-file-input:focus {
+  outline: none;
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+}
