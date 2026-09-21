@@ -11,8 +11,8 @@ import {
 } from './CompactMcqEditor';
 
 import {
-  QuestionManager
-} from './QuestionManager';
+  CompactQuestionBank
+} from './CompactQuestionBank';
 
 import {
   PrelimsImportReview
@@ -26,6 +26,69 @@ type PrelimsWorkspace =
   | 'review';
 
 
+type TabItem = {
+  id:
+    PrelimsWorkspace;
+
+  label:
+    string;
+
+  helper:
+    string;
+};
+
+
+const TABS:
+  TabItem[] =
+  [
+
+    {
+      id:
+        'quick-import',
+
+      label:
+        'Quick PYQ Import',
+
+      helper:
+        'Import a complete previous-year paper quickly.'
+    },
+
+    {
+      id:
+        'editor',
+
+      label:
+        'Add / Edit MCQ',
+
+      helper:
+        'Create or edit one Prelims question.'
+    },
+
+    {
+      id:
+        'bank',
+
+      label:
+        'Question Bank',
+
+      helper:
+        'Search, filter and manage stored questions.'
+    },
+
+    {
+      id:
+        'review',
+
+      label:
+        'Import Review',
+
+      helper:
+        'Check duplicate or conflicting PYQs.'
+    }
+
+  ];
+
+
 export function PrelimsAdminWorkspace() {
 
   const [
@@ -37,70 +100,10 @@ export function PrelimsAdminWorkspace() {
     );
 
 
-  const tabs:
-    Array<{
-      id:
-        PrelimsWorkspace;
-
-      label:
-        string;
-
-      description:
-        string;
-    }> =
-    [
-
-      {
-        id:
-          'quick-import',
-
-        label:
-          'Quick PYQ Import',
-
-        description:
-          'Import a complete previous-year paper'
-      },
-
-      {
-        id:
-          'editor',
-
-        label:
-          'Add / Edit MCQ',
-
-        description:
-          'Create or edit one question quickly'
-      },
-
-      {
-        id:
-          'bank',
-
-        label:
-          'Question Bank',
-
-        description:
-          'Search, publish and manage stored questions'
-      },
-
-      {
-        id:
-          'review',
-
-        label:
-          'Import Review',
-
-        description:
-          'Review possible duplicate or conflicting PYQs'
-      }
-
-    ];
-
-
   const activeTab =
-    tabs.find(
-      tab =>
-        tab.id ===
+    TABS.find(
+      item =>
+        item.id ===
         workspace
     );
 
@@ -108,6 +111,10 @@ export function PrelimsAdminWorkspace() {
   return (
 
     <div>
+
+      {/* =================================================
+          PRELIMS MCQ SUB-TABS
+      ================================================= */}
 
       <section
         className="panel"
@@ -126,7 +133,7 @@ export function PrelimsAdminWorkspace() {
               'grid',
 
             gridTemplateColumns:
-              'repeat(4, minmax(0, 1fr))',
+              'repeat(auto-fit, minmax(150px, 1fr))',
 
             gap:
               '8px'
@@ -134,25 +141,46 @@ export function PrelimsAdminWorkspace() {
         >
 
           {
-            tabs.map(
+            TABS.map(
               tab => (
 
                 <button
+
                   key={
                     tab.id
                   }
+
                   type="button"
+
                   className={
                     workspace ===
                       tab.id
                       ? 'filter active'
                       : 'filter'
                   }
-                  onClick={() =>
+
+                  onClick={() => {
+
                     setWorkspace(
                       tab.id
-                    )
-                  }
+                    );
+
+
+                    const mainArea =
+                      document
+                        .querySelector(
+                          '.main-area'
+                        );
+
+
+                    mainArea?.scrollTo({
+                      top: 0,
+                      behavior:
+                        'smooth'
+                    });
+
+                  }}
+
                   style={{
                     minHeight:
                       '42px',
@@ -163,8 +191,11 @@ export function PrelimsAdminWorkspace() {
                     lineHeight:
                       1.2
                   }}
+
                 >
+
                   {tab.label}
+
                 </button>
 
               )
@@ -190,7 +221,7 @@ export function PrelimsAdminWorkspace() {
               }}
             >
               {
-                activeTab.description
+                activeTab.helper
               }
             </small>
 
@@ -199,6 +230,10 @@ export function PrelimsAdminWorkspace() {
 
       </section>
 
+
+      {/* =================================================
+          QUICK PYQ IMPORT
+      ================================================= */}
 
       {
         workspace ===
@@ -210,6 +245,10 @@ export function PrelimsAdminWorkspace() {
       }
 
 
+      {/* =================================================
+          COMPACT ADD / EDIT
+      ================================================= */}
+
       {
         workspace ===
           'editor' && (
@@ -220,17 +259,23 @@ export function PrelimsAdminWorkspace() {
       }
 
 
+      {/* =================================================
+          COMPACT QUESTION BANK
+      ================================================= */}
+
       {
         workspace ===
           'bank' && (
 
-          <QuestionManager
-            view="bank"
-          />
+          <CompactQuestionBank />
 
         )
       }
 
+
+      {/* =================================================
+          IMPORT REVIEW
+      ================================================= */}
 
       {
         workspace ===
