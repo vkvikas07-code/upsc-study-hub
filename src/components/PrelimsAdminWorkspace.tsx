@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useState
 } from 'react';
 
@@ -27,15 +28,14 @@ type PrelimsWorkspace =
 
 
 type TabItem = {
-  id:
-    PrelimsWorkspace;
-
-  label:
-    string;
-
-  helper:
-    string;
+  id: PrelimsWorkspace;
+  label: string;
+  helper: string;
 };
+
+
+const STORAGE_KEY =
+  'upsc-prelims-admin-workspace';
 
 
 const TABS:
@@ -83,10 +83,57 @@ const TABS:
         'Import Review',
 
       helper:
-        'Check duplicate or conflicting PYQs.'
+        'Resolve duplicate or conflicting imported PYQs.'
     }
 
   ];
+
+
+function isWorkspace(
+  value: string | null
+): value is PrelimsWorkspace {
+
+  return (
+    value ===
+      'quick-import' ||
+
+    value ===
+      'editor' ||
+
+    value ===
+      'bank' ||
+
+    value ===
+      'review'
+  );
+}
+
+
+function getInitialWorkspace():
+  PrelimsWorkspace {
+
+  if (
+    typeof window ===
+    'undefined'
+  ) {
+
+    return 'quick-import';
+  }
+
+
+  const saved =
+    window.localStorage
+      .getItem(
+        STORAGE_KEY
+      );
+
+
+  return isWorkspace(
+    saved
+  )
+    ? saved
+    : 'quick-import';
+}
 
 
 export function PrelimsAdminWorkspace() {
@@ -96,7 +143,30 @@ export function PrelimsAdminWorkspace() {
     setWorkspace
   ] =
     useState<PrelimsWorkspace>(
-      'quick-import'
+      getInitialWorkspace
+    );
+
+
+  /*
+   * A workspace is mounted only after it
+   * has been opened once.
+   *
+   * After that it remains mounted while
+   * hidden, so partially entered data is
+   * not lost when switching tabs.
+   */
+
+  const [
+    visited,
+    setVisited
+  ] =
+    useState<
+      Set<PrelimsWorkspace>
+    >(
+      () =>
+        new Set([
+          getInitialWorkspace()
+        ])
     );
 
 
@@ -108,24 +178,134 @@ export function PrelimsAdminWorkspace() {
     );
 
 
+  /* =======================================================
+     REMEMBER LAST OPEN TAB
+  ======================================================= */
+
+  useEffect(
+    () => {
+
+      if (
+        typeof window ===
+        'undefined'
+      ) {
+        return;
+      }
+
+
+      window.localStorage
+        .setItem(
+          STORAGE_KEY,
+          workspace
+        );
+
+    },
+    [
+      workspace
+    ]
+  );
+
+
+  /* =======================================================
+     SWITCH WORKSPACE
+  ======================================================= */
+
+  function openWorkspace(
+    next:
+      PrelimsWorkspace
+  ):
+    void {
+
+    setVisited(
+      current => {
+
+        const updated =
+          new Set(
+            current
+          );
+
+
+        updated.add(
+          next
+        );
+
+
+        return updated;
+      }
+    );
+
+
+    setWorkspace(
+      next
+    );
+
+
+    window
+      .requestAnimationFrame(
+        () => {
+
+          const workspaceTop =
+            document
+              .getElementById(
+                'prelims-workspace-content'
+              );
+
+
+          workspaceTop
+            ?.scrollIntoView({
+              behavior:
+                'smooth',
+
+              block:
+                'start'
+            });
+
+        }
+      );
+  }
+
+
   return (
 
     <div>
 
       {/* =================================================
-          PRELIMS MCQ SUB-TABS
+          STICKY PRELIMS WORKSPACE NAVIGATION
       ================================================= */}
 
       <section
         className="panel"
         style={{
+          position:
+            'sticky',
+
+          top:
+            '8px',
+
+          zIndex:
+            30,
+
           padding:
-            '12px 14px',
+            '10px 12px',
 
           marginBottom:
-            '12px'
+            '12px',
+
+          background:
+            'rgba(15, 23, 42, 0.96)',
+
+          backdropFilter:
+            'blur(12px)',
+
+          WebkitBackdropFilter:
+            'blur(12px)',
+
+          boxShadow:
+            '0 8px 30px rgba(0,0,0,.18)'
         }}
       >
+
+        {/* SUB-TABS */}
 
         <div
           style={{
@@ -133,7 +313,7 @@ export function PrelimsAdminWorkspace() {
               'grid',
 
             gridTemplateColumns:
-              'repeat(auto-fit, minmax(150px, 1fr))',
+              'repeat(4, minmax(0, 1fr))',
 
             gap:
               '8px'
@@ -142,88 +322,121 @@ export function PrelimsAdminWorkspace() {
 
           {
             TABS.map(
-              tab => (
+              tab => {
 
-                <button
+                const active =
+                  workspace ===
+                  tab.id;
 
-                  key={
-                    tab.id
-                  }
 
-                  type="button"
+                return (
 
-                  className={
-                    workspace ===
+                  <button
+
+                    key={
                       tab.id
-                      ? 'filter active'
-                      : 'filter'
-                  }
+                    }
 
-                  onClick={() => {
+                    type="button"
 
-                    setWorkspace(
-                      tab.id
-                    );
+                    className={
+                      active
+                        ? 'filter active'
+                        : 'filter'
+                    }
 
+                    aria-pressed={
+                      active
+                    }
 
-                    const mainArea =
-                      document
-                        .querySelector(
-                          '.main-area'
-                        );
+                    onClick={() =>
+                      openWorkspace(
+                        tab.id
+                      )
+                    }
 
+                    style={{
+                      minHeight:
+                        '42px',
 
-                    mainArea?.scrollTo({
-                      top: 0,
-                      behavior:
-                        'smooth'
-                    });
+                      whiteSpace:
+                        'normal',
 
-                  }}
+                      lineHeight:
+                        1.2,
 
-                  style={{
-                    minHeight:
-                      '42px',
+                      fontWeight:
+                        active
+                          ? 800
+                          : 600
+                    }}
 
-                    whiteSpace:
-                      'normal',
+                  >
 
-                    lineHeight:
-                      1.2
-                  }}
+                    {
+                      tab.label
+                    }
 
-                >
+                  </button>
 
-                  {tab.label}
-
-                </button>
-
-              )
+                );
+              }
             )
           }
 
         </div>
 
 
+        {/* ACTIVE TAB DESCRIPTION */}
+
         {
           activeTab && (
 
-            <small
+            <div
               style={{
                 display:
-                  'block',
+                  'flex',
+
+                justifyContent:
+                  'space-between',
+
+                alignItems:
+                  'center',
+
+                gap:
+                  '10px',
 
                 marginTop:
-                  '8px',
+                  '7px',
 
-                color:
-                  '#94a3b8'
+                flexWrap:
+                  'wrap'
               }}
             >
-              {
-                activeTab.helper
-              }
-            </small>
+
+              <small
+                style={{
+                  color:
+                    '#94a3b8'
+                }}
+              >
+                {
+                  activeTab.helper
+                }
+              </small>
+
+
+              <small
+                style={{
+                  color:
+                    '#64748b'
+                }}
+              >
+                Workspace data remains
+                available while switching tabs.
+              </small>
+
+            </div>
 
           )
         }
@@ -232,59 +445,125 @@ export function PrelimsAdminWorkspace() {
 
 
       {/* =================================================
-          QUICK PYQ IMPORT
+          WORKSPACE CONTENT
       ================================================= */}
 
-      {
-        workspace ===
-          'quick-import' && (
+      <div
+        id="prelims-workspace-content"
+        style={{
+          scrollMarginTop:
+            '92px'
+        }}
+      >
 
-          <PrelimsPyqQuickImport />
+        {/* ===============================================
+            QUICK PYQ IMPORT
+        =============================================== */}
 
-        )
-      }
+        {
+          visited.has(
+            'quick-import'
+          ) && (
 
+            <div
+              style={{
+                display:
+                  workspace ===
+                    'quick-import'
+                    ? 'block'
+                    : 'none'
+              }}
+            >
 
-      {/* =================================================
-          COMPACT ADD / EDIT
-      ================================================= */}
+              <PrelimsPyqQuickImport />
 
-      {
-        workspace ===
-          'editor' && (
+            </div>
 
-          <CompactMcqEditor />
-
-        )
-      }
-
-
-      {/* =================================================
-          COMPACT QUESTION BANK
-      ================================================= */}
-
-      {
-        workspace ===
-          'bank' && (
-
-          <CompactQuestionBank />
-
-        )
-      }
+          )
+        }
 
 
-      {/* =================================================
-          IMPORT REVIEW
-      ================================================= */}
+        {/* ===============================================
+            ADD / EDIT MCQ
+        =============================================== */}
 
-      {
-        workspace ===
-          'review' && (
+        {
+          visited.has(
+            'editor'
+          ) && (
 
-          <PrelimsImportReview />
+            <div
+              style={{
+                display:
+                  workspace ===
+                    'editor'
+                    ? 'block'
+                    : 'none'
+              }}
+            >
 
-        )
-      }
+              <CompactMcqEditor />
+
+            </div>
+
+          )
+        }
+
+
+        {/* ===============================================
+            QUESTION BANK
+        =============================================== */}
+
+        {
+          visited.has(
+            'bank'
+          ) && (
+
+            <div
+              style={{
+                display:
+                  workspace ===
+                    'bank'
+                    ? 'block'
+                    : 'none'
+              }}
+            >
+
+              <CompactQuestionBank />
+
+            </div>
+
+          )
+        }
+
+
+        {/* ===============================================
+            IMPORT REVIEW
+        =============================================== */}
+
+        {
+          visited.has(
+            'review'
+          ) && (
+
+            <div
+              style={{
+                display:
+                  workspace ===
+                    'review'
+                    ? 'block'
+                    : 'none'
+              }}
+            >
+
+              <PrelimsImportReview />
+
+            </div>
+
+          )
+        }
+
+      </div>
 
     </div>
 
