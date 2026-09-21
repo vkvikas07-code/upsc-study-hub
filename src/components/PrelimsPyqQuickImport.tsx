@@ -7,6 +7,22 @@ import {
   supabase
 } from '../lib/supabase';
 
+{/* ================================================
+    VALIDATED QUESTION PREVIEW
+================================================ */}
+
+{
+  validatedQuestions.length >
+    0 && (
+
+    <PyqImportPreview
+      questions={
+        validatedQuestions
+      }
+    />
+
+  )
+}
 
 type ImportOrigin =
   | 'cse'
