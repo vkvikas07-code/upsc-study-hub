@@ -256,9 +256,9 @@ export function PrelimsAdminWorkspace() {
         workspace ===
           'editor' && (
 
-          <QuestionManager
-            view="editor"
-          />
+         <QuestionManager
+  view="editor"
+/>
 
         )
       }
@@ -272,9 +272,9 @@ export function PrelimsAdminWorkspace() {
         workspace ===
           'bank' && (
 
-          <QuestionManager
-            view="bank"
-          />
+         <QuestionManager
+  view="bank"
+/>
 
         )
       }
