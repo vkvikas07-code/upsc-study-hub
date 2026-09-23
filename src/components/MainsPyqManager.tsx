@@ -1041,6 +1041,15 @@ export function MainsPyqManager() {
 
 
   const [
+    archiveSort,
+    setArchiveSort
+  ] =
+    useState(
+      'latest'
+    );
+
+
+  const [
     filterSubject,
     setFilterSubject
   ] =
@@ -3465,125 +3474,239 @@ export function MainsPyqManager() {
             .toLowerCase();
 
 
-        return questions.filter(
-          item => {
+        const filtered =
+          questions.filter(
+            item => {
 
-            const appearances =
-              archiveAppearances[
-                item.id
-              ] || [];
-
-
-            const hasCanonicalFilter =
-              filterYear !==
-                'all' ||
-              filterCommission !==
-                'all' ||
-              filterPaper !==
-                'all';
+              const appearances =
+                archiveAppearances[
+                  item.id
+                ] || [];
 
 
-            if (
-              hasCanonicalFilter
-            ) {
-
-              const matchesAppearance =
-                appearances.some(
-                  appearance => {
-
-                    const appearanceCommission =
-                      appearance.commission ||
-                      appearance.exam_family ||
-                      '';
-
-
-                    return (
-                      (
-                        filterYear ===
-                          'all' ||
-                        String(
-                          appearance.year
-                        ) ===
-                          filterYear
-                      ) &&
-                      (
-                        filterCommission ===
-                          'all' ||
-                        appearanceCommission ===
-                          filterCommission
-                      ) &&
-                      (
-                        filterPaper ===
-                          'all' ||
-                        appearance.paper ===
-                          filterPaper
-                      )
-                    );
-                  }
-                );
-
-
-              /*
-               * Legacy fallback:
-               * if a master has no canonical appearance yet,
-               * the old pyq_year can still satisfy a year-only
-               * filter. Commission / paper filters require the
-               * canonical appearance records.
-               */
-
-              const legacyYearOnlyMatch =
-                appearances.length ===
-                  0 &&
-                filterCommission ===
-                  'all' &&
-                filterPaper ===
-                  'all' &&
+              const hasCanonicalFilter =
                 filterYear !==
-                  'all' &&
-                String(
-                  item.pyq_year
-                ) ===
-                  filterYear;
+                  'all' ||
+                filterCommission !==
+                  'all' ||
+                filterPaper !==
+                  'all';
 
 
               if (
-                !matchesAppearance &&
-                !legacyYearOnlyMatch
+                hasCanonicalFilter
               ) {
 
-                return false;
+                const matchesAppearance =
+                  appearances.some(
+                    appearance => {
+
+                      const appearanceCommission =
+                        appearance.commission ||
+                        appearance.exam_family ||
+                        '';
+
+
+                      return (
+                        (
+                          filterYear ===
+                            'all' ||
+                          String(
+                            appearance.year
+                          ) ===
+                            filterYear
+                        ) &&
+                        (
+                          filterCommission ===
+                            'all' ||
+                          appearanceCommission ===
+                            filterCommission
+                        ) &&
+                        (
+                          filterPaper ===
+                            'all' ||
+                          appearance.paper ===
+                            filterPaper
+                        )
+                      );
+                    }
+                  );
+
+
+                /*
+                 * Legacy fallback:
+                 * if a master has no canonical appearance yet,
+                 * the old pyq_year can still satisfy a year-only
+                 * filter. Commission / paper filters require the
+                 * canonical appearance records.
+                 */
+
+                const legacyYearOnlyMatch =
+                  appearances.length ===
+                    0 &&
+                  filterCommission ===
+                    'all' &&
+                  filterPaper ===
+                    'all' &&
+                  filterYear !==
+                    'all' &&
+                  String(
+                    item.pyq_year
+                  ) ===
+                    filterYear;
+
+
+                if (
+                  !matchesAppearance &&
+                  !legacyYearOnlyMatch
+                ) {
+
+                  return false;
+                }
+              }
+
+
+              if (
+                !subjectQuery
+              ) {
+
+                return true;
+              }
+
+
+              return [
+
+                item.subject,
+
+                item.topic ||
+                  '',
+
+                item.subtopic ||
+                  '',
+
+                item.question
+
+              ]
+                .join(
+                  ' '
+                )
+                .toLowerCase()
+                .includes(
+                  subjectQuery
+                );
+
+            }
+          );
+
+
+        const latestYear = (
+          item:
+            PyqRow
+        ) => {
+
+          const appearances =
+            archiveAppearances[
+              item.id
+            ] || [];
+
+
+          const canonicalYears =
+            appearances
+              .map(
+                appearance =>
+                  appearance.year
+              )
+              .filter(
+                (
+                  year
+                ):
+                  year is number =>
+                    typeof year ===
+                      'number'
+              );
+
+
+          if (
+            canonicalYears.length >
+            0
+          ) {
+
+            return Math.max(
+              ...canonicalYears
+            );
+          }
+
+
+          return item.pyq_year ||
+            0;
+        };
+
+
+        const appearanceCount = (
+          item:
+            PyqRow
+        ) =>
+          (
+            archiveAppearances[
+              item.id
+            ] || []
+          ).length;
+
+
+        return filtered.sort(
+          (
+            first,
+            second
+          ) => {
+
+            if (
+              archiveSort ===
+              'oldest'
+            ) {
+
+              return (
+                latestYear(
+                  first
+                ) -
+                latestYear(
+                  second
+                )
+              );
+            }
+
+
+            if (
+              archiveSort ===
+              'most_appearances'
+            ) {
+
+              const countDifference =
+                appearanceCount(
+                  second
+                ) -
+                appearanceCount(
+                  first
+                );
+
+
+              if (
+                countDifference !==
+                0
+              ) {
+
+                return countDifference;
               }
             }
 
 
-            if (
-              !subjectQuery
-            ) {
-
-              return true;
-            }
-
-
-            return [
-
-              item.subject,
-
-              item.topic ||
-                '',
-
-              item.subtopic ||
-                '',
-
-              item.question
-
-            ]
-              .join(
-                ' '
+            return (
+              latestYear(
+                second
+              ) -
+              latestYear(
+                first
               )
-              .toLowerCase()
-              .includes(
-                subjectQuery
-              );
+            );
 
           }
         );
@@ -3595,7 +3718,8 @@ export function MainsPyqManager() {
         filterYear,
         filterCommission,
         filterPaper,
-        filterSubject
+        filterSubject,
+        archiveSort
       ]
     );
 
@@ -4916,6 +5040,33 @@ export function MainsPyqManager() {
             />
 
 
+            <select
+              value={
+                archiveSort
+              }
+              onChange={
+                event =>
+                  setArchiveSort(
+                    event
+                      .target
+                      .value
+                  )
+              }
+            >
+              <option value="latest">
+                Sort: Latest appearance
+              </option>
+
+              <option value="oldest">
+                Sort: Oldest appearance
+              </option>
+
+              <option value="most_appearances">
+                Sort: Most appearances
+              </option>
+            </select>
+
+
             <button
               type="button"
               className="secondary-btn"
@@ -4931,6 +5082,10 @@ export function MainsPyqManager() {
 
                 setFilterPaper(
                   'all'
+                );
+
+                setArchiveSort(
+                  'latest'
                 );
 
                 setFilterSubject('');
@@ -5014,38 +5169,116 @@ export function MainsPyqManager() {
                     }}
                   >
 
-                    <div
-                      style={{
-                        display:
-                          'flex',
-                        justifyContent:
-                          'space-between',
-                        gap:
-                          '12px',
-                        flexWrap:
-                          'wrap'
-                      }}
-                    >
+                    {(() => {
 
-                      <strong>
-                        {item.pyq_year}
-                        {' • '}
-
-                        {item.section_type ===
-                          'essay'
-                          ? 'Essay'
-                          : item.section_type ===
-                              'optional'
-                            ? `${item.optional_subject || 'Optional'} ${item.optional_paper || ''}`
-                            : item.gs_paper || 'GS'}
-                      </strong>
+                      const appearances =
+                        archiveAppearances[
+                          item.id
+                        ] || [];
 
 
-                      <span>
-                        {item.status}
-                      </span>
+                      const latestAppearance =
+                        appearances[0] ||
+                        null;
 
-                    </div>
+
+                      return (
+
+                        <>
+
+                          <div
+                            style={{
+                              display:
+                                'flex',
+                              justifyContent:
+                                'space-between',
+                              gap:
+                                '12px',
+                              flexWrap:
+                                'wrap',
+                              alignItems:
+                                'center'
+                            }}
+                          >
+
+                            <strong>
+                              {item.pyq_year}
+                              {' • '}
+
+                              {item.section_type ===
+                                'essay'
+                                ? 'Essay'
+                                : item.section_type ===
+                                    'optional'
+                                  ? `${item.optional_subject || 'Optional'} ${item.optional_paper || ''}`
+                                  : item.gs_paper || 'GS'}
+                            </strong>
+
+
+                            <div
+                              style={{
+                                display:
+                                  'flex',
+                                gap:
+                                  '8px',
+                                flexWrap:
+                                  'wrap',
+                                alignItems:
+                                  'center'
+                              }}
+                            >
+
+                              <span
+                                style={{
+                                  padding:
+                                    '3px 8px',
+                                  borderRadius:
+                                    '999px',
+                                  border:
+                                    '1px solid rgba(255,255,255,.10)',
+                                  fontSize:
+                                    '12px'
+                                }}
+                              >
+                                {appearances.length}
+                                {' '}
+                                appearance
+                                {appearances.length ===
+                                  1
+                                  ? ''
+                                  : 's'}
+                              </span>
+
+
+                              <span>
+                                {item.status}
+                              </span>
+
+                            </div>
+
+                          </div>
+
+
+                          <small
+                            style={{
+                              display:
+                                'block',
+                              marginTop:
+                                '6px',
+                              color:
+                                '#94a3b8'
+                            }}
+                          >
+                            {latestAppearance
+                              ? `Latest: ${appearanceLabel(latestAppearance)}`
+                              : 'No canonical appearance linked yet'}
+                          </small>
+
+                        </>
+
+                      );
+
+                    })()}
 
 
                     <p
