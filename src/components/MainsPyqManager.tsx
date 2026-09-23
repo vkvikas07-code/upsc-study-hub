@@ -428,6 +428,277 @@ function parseMainsMatches(
 }
 
 
+function parseArchiveAppearanceRows(
+  data:
+    unknown
+):
+  Record<
+    string,
+    MainsAppearance[]
+  > {
+
+  const grouped:
+    Record<
+      string,
+      MainsAppearance[]
+    > = {};
+
+
+  if (
+    !Array.isArray(
+      data
+    )
+  ) {
+
+    return grouped;
+  }
+
+
+  for (
+    const rawRow of
+      data as Array<
+        Record<
+          string,
+          unknown
+        >
+      >
+  ) {
+
+    const questionId =
+      rawRow.question_id
+        ? String(
+            rawRow.question_id
+          )
+        : '';
+
+
+    if (!questionId) {
+
+      continue;
+    }
+
+
+    const rawExamPaper =
+      Array.isArray(
+        rawRow.exam_papers
+      )
+        ? rawRow.exam_papers[0]
+        : rawRow.exam_papers;
+
+
+    const examPaper =
+      rawExamPaper &&
+      typeof rawExamPaper ===
+        'object'
+        ? rawExamPaper as
+            Record<
+              string,
+              unknown
+            >
+        : {};
+
+
+    const rawYear =
+      examPaper.exam_year;
+
+
+    const parsedYear =
+      rawYear !==
+        null &&
+      rawYear !==
+        undefined &&
+      Number.isFinite(
+        Number(
+          rawYear
+        )
+      )
+        ? Number(
+            rawYear
+          )
+        : null;
+
+
+    const rawMarks =
+      rawRow.marks;
+
+
+    const parsedMarks =
+      rawMarks !==
+        null &&
+      rawMarks !==
+        undefined &&
+      Number.isFinite(
+        Number(
+          rawMarks
+        )
+      )
+        ? Number(
+            rawMarks
+          )
+        : null;
+
+
+    const rawWordLimit =
+      rawRow.word_limit;
+
+
+    const parsedWordLimit =
+      rawWordLimit !==
+        null &&
+      rawWordLimit !==
+        undefined &&
+      Number.isFinite(
+        Number(
+          rawWordLimit
+        )
+      )
+        ? Number(
+            rawWordLimit
+          )
+        : null;
+
+
+    const appearance:
+      MainsAppearance = {
+
+        appearance_id:
+          rawRow.id
+            ? String(
+                rawRow.id
+              )
+            : null,
+
+        appearance_type:
+          rawRow.appearance_type
+            ? String(
+                rawRow.appearance_type
+              )
+            : null,
+
+        question_number:
+          rawRow.question_number
+            ? String(
+                rawRow.question_number
+              )
+            : null,
+
+        marks:
+          parsedMarks,
+
+        word_limit:
+          parsedWordLimit,
+
+        exam_paper_id:
+          examPaper.id
+            ? String(
+                examPaper.id
+              )
+            : null,
+
+        exam_family:
+          examPaper.exam_family
+            ? String(
+                examPaper.exam_family
+              )
+            : null,
+
+        commission:
+          examPaper.commission
+            ? String(
+                examPaper.commission
+              )
+            : null,
+
+        state:
+          examPaper.state
+            ? String(
+                examPaper.state
+              )
+            : null,
+
+        exam_name:
+          examPaper.exam_name
+            ? String(
+                examPaper.exam_name
+              )
+            : null,
+
+        exam_cycle:
+          examPaper.exam_cycle
+            ? String(
+                examPaper.exam_cycle
+              )
+            : null,
+
+        year:
+          parsedYear,
+
+        stage:
+          examPaper.exam_stage
+            ? String(
+                examPaper.exam_stage
+              )
+            : null,
+
+        paper:
+          examPaper.paper
+            ? String(
+                examPaper.paper
+              )
+            : null
+
+      };
+
+
+    if (
+      !grouped[
+        questionId
+      ]
+    ) {
+
+      grouped[
+        questionId
+      ] = [];
+    }
+
+
+    grouped[
+      questionId
+    ].push(
+      appearance
+    );
+  }
+
+
+  for (
+    const appearances of
+      Object.values(
+        grouped
+      )
+  ) {
+
+    appearances.sort(
+      (
+        first,
+        second
+      ) =>
+
+        (
+          second.year ||
+          0
+        ) -
+        (
+          first.year ||
+          0
+        )
+    );
+  }
+
+
+  return grouped;
+}
+
+
 export function MainsPyqManager() {
 
   /*
@@ -752,6 +1023,24 @@ export function MainsPyqManager() {
 
 
   const [
+    filterCommission,
+    setFilterCommission
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
+    filterPaper,
+    setFilterPaper
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
     filterSubject,
     setFilterSubject
   ] =
@@ -987,21 +1276,108 @@ export function MainsPyqManager() {
     }
 
 
-    setQuestions(
+    const loadedQuestions =
       (
-        data ||
-        []
-      ).map(
-        item => ({
-          ...item,
+        (
+          data ||
+          []
+        ).map(
+          item => ({
+            ...item,
 
-          relevant_gs_papers:
-            item.relevant_gs_papers ||
-            []
-        })
+            relevant_gs_papers:
+              item.relevant_gs_papers ||
+              []
+          })
+        )
       ) as
-        PyqRow[]
+        PyqRow[];
+
+
+    setQuestions(
+      loadedQuestions
     );
+
+
+    const questionIds =
+      loadedQuestions.map(
+        item =>
+          item.id
+      );
+
+
+    if (
+      questionIds.length >
+      0
+    ) {
+
+      const {
+        data:
+          appearanceData,
+        error:
+          appearanceError
+      } =
+        await supabase
+          .from(
+            'mains_question_appearances'
+          )
+          .select(
+            `
+              id,
+              question_id,
+              appearance_type,
+              question_number,
+              marks,
+              word_limit,
+              exam_papers (
+                id,
+                exam_family,
+                commission,
+                state,
+                exam_name,
+                exam_cycle,
+                exam_year,
+                exam_stage,
+                paper
+              )
+            `
+          )
+          .in(
+            'question_id',
+            questionIds
+          )
+          .order(
+            'created_at',
+            {
+              ascending:
+                false
+            }
+          );
+
+
+      if (
+        appearanceError
+      ) {
+
+        setMessage(
+          `Master questions loaded, but canonical appearance filters could not be prepared: ${appearanceError.message}`
+        );
+
+      } else {
+
+        setArchiveAppearances(
+          parseArchiveAppearanceRows(
+            appearanceData
+          )
+        );
+      }
+
+    } else {
+
+      setArchiveAppearances(
+        {}
+      );
+    }
 
 
     setLoading(
@@ -2937,34 +3313,144 @@ export function MainsPyqManager() {
 
   const years =
     useMemo(
+      () => {
+
+        const values =
+          new Set<
+            number
+          >();
+
+
+        for (
+          const appearances of
+            Object.values(
+              archiveAppearances
+            )
+        ) {
+
+          for (
+            const appearance of
+              appearances
+          ) {
+
+            if (
+              typeof appearance.year ===
+                'number'
+            ) {
+
+              values.add(
+                appearance.year
+              );
+            }
+          }
+        }
+
+
+        for (
+          const item of
+            questions
+        ) {
+
+          if (
+            typeof item.pyq_year ===
+              'number'
+          ) {
+
+            values.add(
+              item.pyq_year
+            );
+          }
+        }
+
+
+        return Array.from(
+          values
+        ).sort(
+          (
+            first,
+            second
+          ) =>
+            second -
+            first
+        );
+
+      },
+      [
+        archiveAppearances,
+        questions
+      ]
+    );
+
+
+  const commissions =
+    useMemo(
       () =>
+
         Array.from(
           new Set(
-            questions
+            Object
+              .values(
+                archiveAppearances
+              )
+              .flat()
               .map(
-                item =>
-                  item.pyq_year
+                appearance =>
+                  appearance.commission ||
+                  appearance.exam_family ||
+                  ''
               )
               .filter(
-                (
-                  item
-                ):
-                  item is
-                    number =>
-                  typeof item ===
-                    'number'
+                Boolean
               )
           )
         ).sort(
           (
-            first: number,
-            second: number
+            first,
+            second
           ) =>
-            second -
-            first
+            first.localeCompare(
+              second
+            )
         ),
+
       [
-        questions
+        archiveAppearances
+      ]
+    );
+
+
+  const archivePapers =
+    useMemo(
+      () =>
+
+        Array.from(
+          new Set(
+            Object
+              .values(
+                archiveAppearances
+              )
+              .flat()
+              .map(
+                appearance =>
+                  appearance.paper ||
+                  ''
+              )
+              .filter(
+                Boolean
+              )
+          )
+        ).sort(
+          (
+            first,
+            second
+          ) =>
+            first.localeCompare(
+              second
+            )
+        ),
+
+      [
+        archiveAppearances
       ]
     );
 
@@ -2982,16 +3468,91 @@ export function MainsPyqManager() {
         return questions.filter(
           item => {
 
-            if (
+            const appearances =
+              archiveAppearances[
+                item.id
+              ] || [];
+
+
+            const hasCanonicalFilter =
               filterYear !==
-                'all' &&
-              String(
-                item.pyq_year
-              ) !==
-                filterYear
+                'all' ||
+              filterCommission !==
+                'all' ||
+              filterPaper !==
+                'all';
+
+
+            if (
+              hasCanonicalFilter
             ) {
 
-              return false;
+              const matchesAppearance =
+                appearances.some(
+                  appearance => {
+
+                    const appearanceCommission =
+                      appearance.commission ||
+                      appearance.exam_family ||
+                      '';
+
+
+                    return (
+                      (
+                        filterYear ===
+                          'all' ||
+                        String(
+                          appearance.year
+                        ) ===
+                          filterYear
+                      ) &&
+                      (
+                        filterCommission ===
+                          'all' ||
+                        appearanceCommission ===
+                          filterCommission
+                      ) &&
+                      (
+                        filterPaper ===
+                          'all' ||
+                        appearance.paper ===
+                          filterPaper
+                      )
+                    );
+                  }
+                );
+
+
+              /*
+               * Legacy fallback:
+               * if a master has no canonical appearance yet,
+               * the old pyq_year can still satisfy a year-only
+               * filter. Commission / paper filters require the
+               * canonical appearance records.
+               */
+
+              const legacyYearOnlyMatch =
+                appearances.length ===
+                  0 &&
+                filterCommission ===
+                  'all' &&
+                filterPaper ===
+                  'all' &&
+                filterYear !==
+                  'all' &&
+                String(
+                  item.pyq_year
+                ) ===
+                  filterYear;
+
+
+              if (
+                !matchesAppearance &&
+                !legacyYearOnlyMatch
+              ) {
+
+                return false;
+              }
             }
 
 
@@ -3030,7 +3591,10 @@ export function MainsPyqManager() {
       },
       [
         questions,
+        archiveAppearances,
         filterYear,
+        filterCommission,
+        filterPaper,
         filterSubject
       ]
     );
@@ -4207,7 +4771,7 @@ export function MainsPyqManager() {
                   '#94a3b8'
               }}
             >
-              This is the master-question archive. Repeated years and papers are stored as appearances.
+              Filter the master archive by any linked appearance year, commission or paper. Repeated years and papers remain attached to one master question.
             </small>
 
           </div>
@@ -4216,11 +4780,13 @@ export function MainsPyqManager() {
           <div
             style={{
               display:
-                'flex',
+                'grid',
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(150px, 1fr))',
               gap:
                 '8px',
-              flexWrap:
-                'wrap'
+              width:
+                'min(100%, 780px)'
             }}
           >
 
@@ -4238,7 +4804,7 @@ export function MainsPyqManager() {
               }
             >
               <option value="all">
-                All master years
+                All appearance years
               </option>
 
               {years.map(
@@ -4262,6 +4828,78 @@ export function MainsPyqManager() {
             </select>
 
 
+            <select
+              value={
+                filterCommission
+              }
+              onChange={
+                event =>
+                  setFilterCommission(
+                    event
+                      .target
+                      .value
+                  )
+              }
+            >
+              <option value="all">
+                All commissions
+              </option>
+
+              {commissions.map(
+                item => (
+
+                  <option
+                    key={
+                      item
+                    }
+                    value={
+                      item
+                    }
+                  >
+                    {item}
+                  </option>
+
+                )
+              )}
+            </select>
+
+
+            <select
+              value={
+                filterPaper
+              }
+              onChange={
+                event =>
+                  setFilterPaper(
+                    event
+                      .target
+                      .value
+                  )
+              }
+            >
+              <option value="all">
+                All papers
+              </option>
+
+              {archivePapers.map(
+                item => (
+
+                  <option
+                    key={
+                      item
+                    }
+                    value={
+                      item
+                    }
+                  >
+                    {item}
+                  </option>
+
+                )
+              )}
+            </select>
+
+
             <input
               value={
                 filterSubject
@@ -4274,12 +4912,63 @@ export function MainsPyqManager() {
                       .value
                   )
               }
-              placeholder="Subject / topic / subtopic"
+              placeholder="Subject / topic / question"
             />
+
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => {
+
+                setFilterYear(
+                  'all'
+                );
+
+                setFilterCommission(
+                  'all'
+                );
+
+                setFilterPaper(
+                  'all'
+                );
+
+                setFilterSubject('');
+
+              }}
+            >
+              Clear Filters
+            </button>
 
           </div>
 
         </div>
+
+
+        {!loading && (
+
+          <small
+            style={{
+              display:
+                'block',
+              marginTop:
+                '12px',
+              color:
+                '#94a3b8'
+            }}
+          >
+            Showing
+            {' '}
+            {visibleQuestions.length}
+            {' '}
+            of
+            {' '}
+            {questions.length}
+            {' '}
+            master questions
+          </small>
+
+        )}
 
 
         {loading ? (
