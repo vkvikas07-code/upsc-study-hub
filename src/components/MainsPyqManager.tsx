@@ -288,6 +288,45 @@ function safeIntegerOrNull(
 }
 
 
+function legacyPaperName(
+  item:
+    PyqRow
+) {
+
+  if (
+    item.section_type ===
+    'essay'
+  ) {
+
+    return 'Essay';
+  }
+
+
+  if (
+    item.section_type ===
+    'optional'
+  ) {
+
+    return [
+      item.optional_subject,
+      item.optional_paper
+    ]
+      .filter(
+        Boolean
+      )
+      .join(
+        ' '
+      )
+      .trim() ||
+      'Optional';
+  }
+
+
+  return item.gs_paper ||
+    'GS';
+}
+
+
 function appearanceLabel(
   appearance:
     MainsAppearance
@@ -1116,6 +1155,18 @@ export function MainsPyqManager() {
   const [
     appearanceActionId,
     setAppearanceActionId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
+
+
+  const [
+    repairingQuestionId,
+    setRepairingQuestionId
   ] =
     useState<
       string |
@@ -2548,6 +2599,169 @@ export function MainsPyqManager() {
         null
         ? 'Appearance removed. The master question was kept.'
         : `Appearance removed. ${remaining} appearance${remaining === 1 ? '' : 's'} remain for this master question.`
+    );
+  }
+
+
+  async function repairMissingCanonicalLink(
+    item:
+      PyqRow
+  ) {
+
+    if (!supabase) {
+
+      setMessage(
+        'Supabase is not configured.'
+      );
+
+      return;
+    }
+
+
+    if (
+      item.pyq_year ===
+        null ||
+      item.pyq_year ===
+        undefined
+    ) {
+
+      setMessage(
+        'This legacy question has no PYQ year, so its canonical paper cannot be repaired automatically.'
+      );
+
+      return;
+    }
+
+
+    const existingAppearances =
+      archiveAppearances[
+        item.id
+      ] || [];
+
+
+    if (
+      existingAppearances.length >
+      0
+    ) {
+
+      setMessage(
+        'This master question already has a canonical appearance.'
+      );
+
+      return;
+    }
+
+
+    setRepairingQuestionId(
+      item.id
+    );
+
+
+    setMessage(
+      'Repairing the canonical appearance from the legacy UPSC CSE fields...'
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .rpc(
+          'link_existing_mains_question',
+          {
+
+            p_question_id:
+              item.id,
+
+            p_origin:
+              'cse',
+
+            p_metadata:
+              {
+
+                pyq_year:
+                  String(
+                    item.pyq_year
+                  ),
+
+                exam_stage:
+                  'mains',
+
+                paper:
+                  legacyPaperName(
+                    item
+                  ),
+
+                source:
+                  'UPSC',
+
+                status:
+                  item.status
+
+              },
+
+            p_original_question:
+              item.question,
+
+            p_question_number:
+              item.question_number,
+
+            p_marks:
+              item.marks,
+
+            p_word_limit:
+              item.word_limit,
+
+            p_appearance_type:
+              'original',
+
+            p_notes:
+              'Repaired from legacy Mains master-question fields'
+
+          }
+        );
+
+
+    setRepairingQuestionId(
+      null
+    );
+
+
+    if (error) {
+
+      setMessage(
+        error.message
+      );
+
+      return;
+    }
+
+
+    const result =
+      Array.isArray(
+        data
+      )
+        ? data[0]
+        : data;
+
+
+    const linkStatus =
+      result?.link_status
+        ? String(
+            result.link_status
+          )
+        : 'linked';
+
+
+    await loadQuestions();
+
+
+    setMessage(
+      linkStatus ===
+        'already_linked'
+        ? 'The canonical appearance already existed. Archive data has been refreshed.'
+        : `Canonical appearance repaired successfully for ${item.pyq_year} ${legacyPaperName(item)}.`
     );
   }
 
@@ -5563,7 +5777,9 @@ export function MainsPyqManager() {
                           >
                             {latestAppearance
                               ? `Latest: ${appearanceLabel(latestAppearance)}`
-                              : 'No canonical appearance linked yet'}
+                              : item.pyq_year
+                                ? `No canonical appearance linked yet. Legacy source: UPSC CSE ${item.pyq_year} ${legacyPaperName(item)}.`
+                                : 'No canonical appearance linked yet. This legacy question is also missing its PYQ year.'}
                           </small>
 
                         </>
@@ -5659,6 +5875,33 @@ export function MainsPyqManager() {
                       >
                         + Add Another Appearance
                       </button>
+
+
+                      {(archiveAppearances[
+                        item.id
+                      ] || []).length ===
+                        0 && (
+
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          disabled={
+                            repairingQuestionId ===
+                            item.id
+                          }
+                          onClick={() =>
+                            void repairMissingCanonicalLink(
+                              item
+                            )
+                          }
+                        >
+                          {repairingQuestionId ===
+                            item.id
+                            ? 'Repairing...'
+                            : 'Repair Missing Link'}
+                        </button>
+
+                      )}
 
                     </div>
 
