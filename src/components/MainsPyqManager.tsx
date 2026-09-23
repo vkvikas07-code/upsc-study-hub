@@ -1050,6 +1050,15 @@ export function MainsPyqManager() {
 
 
   const [
+    filterLinkStatus,
+    setFilterLinkStatus
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
     filterSubject,
     setFilterSubject
   ] =
@@ -3464,6 +3473,79 @@ export function MainsPyqManager() {
     );
 
 
+  const archiveStats =
+    useMemo(
+      () => {
+
+        let totalAppearances =
+          0;
+
+        let repeatedMasters =
+          0;
+
+        let missingLinks =
+          0;
+
+
+        for (
+          const item of
+            questions
+        ) {
+
+          const count =
+            (
+              archiveAppearances[
+                item.id
+              ] || []
+            ).length;
+
+
+          totalAppearances +=
+            count;
+
+
+          if (
+            count >=
+            2
+          ) {
+
+            repeatedMasters +=
+              1;
+          }
+
+
+          if (
+            count ===
+            0
+          ) {
+
+            missingLinks +=
+              1;
+          }
+        }
+
+
+        return {
+
+          masters:
+            questions.length,
+
+          totalAppearances,
+
+          repeatedMasters,
+
+          missingLinks
+
+        };
+
+      },
+      [
+        questions,
+        archiveAppearances
+      ]
+    );
+
+
   const visibleQuestions =
     useMemo(
       () => {
@@ -3482,6 +3564,39 @@ export function MainsPyqManager() {
                 archiveAppearances[
                   item.id
                 ] || [];
+
+
+              if (
+                filterLinkStatus ===
+                  'missing' &&
+                appearances.length !==
+                  0
+              ) {
+
+                return false;
+              }
+
+
+              if (
+                filterLinkStatus ===
+                  'single' &&
+                appearances.length !==
+                  1
+              ) {
+
+                return false;
+              }
+
+
+              if (
+                filterLinkStatus ===
+                  'repeated' &&
+                appearances.length <
+                  2
+              ) {
+
+                return false;
+              }
 
 
               const hasCanonicalFilter =
@@ -3719,6 +3834,7 @@ export function MainsPyqManager() {
         filterCommission,
         filterPaper,
         filterSubject,
+        filterLinkStatus,
         archiveSort
       ]
     );
@@ -4895,7 +5011,7 @@ export function MainsPyqManager() {
                   '#94a3b8'
               }}
             >
-              Filter the master archive by any linked appearance year, commission or paper. Repeated years and papers remain attached to one master question.
+              Filter by linked year, commission, paper or link health. The health summary also shows repeated masters and any legacy master questions still missing a canonical appearance.
             </small>
 
           </div>
@@ -5042,6 +5158,37 @@ export function MainsPyqManager() {
 
             <select
               value={
+                filterLinkStatus
+              }
+              onChange={
+                event =>
+                  setFilterLinkStatus(
+                    event
+                      .target
+                      .value
+                  )
+              }
+            >
+              <option value="all">
+                All link states
+              </option>
+
+              <option value="repeated">
+                Repeated: 2+ appearances
+              </option>
+
+              <option value="single">
+                Single appearance
+              </option>
+
+              <option value="missing">
+                Missing canonical link
+              </option>
+            </select>
+
+
+            <select
+              value={
                 archiveSort
               }
               onChange={
@@ -5088,6 +5235,10 @@ export function MainsPyqManager() {
                   'latest'
                 );
 
+                setFilterLinkStatus(
+                  'all'
+                );
+
                 setFilterSubject('');
 
               }}
@@ -5098,6 +5249,147 @@ export function MainsPyqManager() {
           </div>
 
         </div>
+
+
+        {!loading && (
+
+          <div
+            style={{
+              display:
+                'grid',
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(145px, 1fr))',
+              gap:
+                '8px',
+              marginTop:
+                '14px'
+            }}
+          >
+
+            <div
+              style={{
+                padding:
+                  '10px',
+                borderRadius:
+                  '10px',
+                border:
+                  '1px solid rgba(255,255,255,.08)',
+                background:
+                  'rgba(255,255,255,.02)'
+              }}
+            >
+              <strong>
+                {archiveStats.masters}
+              </strong>
+
+              <small
+                style={{
+                  display:
+                    'block',
+                  color:
+                    '#94a3b8'
+                }}
+              >
+                Master questions
+              </small>
+            </div>
+
+
+            <div
+              style={{
+                padding:
+                  '10px',
+                borderRadius:
+                  '10px',
+                border:
+                  '1px solid rgba(255,255,255,.08)',
+                background:
+                  'rgba(255,255,255,.02)'
+              }}
+            >
+              <strong>
+                {archiveStats.totalAppearances}
+              </strong>
+
+              <small
+                style={{
+                  display:
+                    'block',
+                  color:
+                    '#94a3b8'
+                }}
+              >
+                Linked appearances
+              </small>
+            </div>
+
+
+            <div
+              style={{
+                padding:
+                  '10px',
+                borderRadius:
+                  '10px',
+                border:
+                  '1px solid rgba(255,255,255,.08)',
+                background:
+                  'rgba(255,255,255,.02)'
+              }}
+            >
+              <strong>
+                {archiveStats.repeatedMasters}
+              </strong>
+
+              <small
+                style={{
+                  display:
+                    'block',
+                  color:
+                    '#94a3b8'
+                }}
+              >
+                Repeated masters
+              </small>
+            </div>
+
+
+            <div
+              style={{
+                padding:
+                  '10px',
+                borderRadius:
+                  '10px',
+                border:
+                  archiveStats.missingLinks >
+                    0
+                    ? '1px solid rgba(245,158,11,.45)'
+                    : '1px solid rgba(255,255,255,.08)',
+                background:
+                  archiveStats.missingLinks >
+                    0
+                    ? 'rgba(245,158,11,.06)'
+                    : 'rgba(255,255,255,.02)'
+              }}
+            >
+              <strong>
+                {archiveStats.missingLinks}
+              </strong>
+
+              <small
+                style={{
+                  display:
+                    'block',
+                  color:
+                    '#94a3b8'
+                }}
+              >
+                Missing canonical links
+              </small>
+            </div>
+
+          </div>
+
+        )}
 
 
         {!loading && (
