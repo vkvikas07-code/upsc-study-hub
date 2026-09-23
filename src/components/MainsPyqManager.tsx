@@ -1043,6 +1043,134 @@ export function MainsPyqManager() {
   }
 
 
+  function prepareAnotherAppearance(
+    item:
+      PyqRow
+  ) {
+
+    if (
+      item.section_type ===
+      'essay'
+    ) {
+
+      setPaperTab(
+        'essay'
+      );
+
+    } else if (
+      item.section_type ===
+      'optional'
+    ) {
+
+      setPaperTab(
+        'optional'
+      );
+
+
+      if (
+        item.optional_subject
+      ) {
+
+        setOptionalSubject(
+          item.optional_subject
+        );
+      }
+
+
+      if (
+        item.optional_paper ===
+          'Paper-I' ||
+        item.optional_paper ===
+          'Paper-II'
+      ) {
+
+        setOptionalPaper(
+          item.optional_paper
+        );
+      }
+
+    } else {
+
+      const nextGsPaper:
+        PaperTab =
+          item.gs_paper ===
+            'GS-II' ||
+          item.gs_paper ===
+            'GS-III' ||
+          item.gs_paper ===
+            'GS-IV'
+            ? item.gs_paper
+            : 'GS-I';
+
+
+      setPaperTab(
+        nextGsPaper
+      );
+    }
+
+
+    setSubject(
+      item.subject
+    );
+
+    setTopic(
+      item.topic ||
+      ''
+    );
+
+    setSubtopic(
+      item.subtopic ||
+      ''
+    );
+
+    setRelevantGsPapers(
+      item.relevant_gs_papers ||
+      []
+    );
+
+
+    /*
+     * Appearance-specific fields must be entered
+     * for the NEW paper/year, so do not copy the
+     * old question number, marks or word limit.
+     */
+
+    setQuestion(
+      item.question
+    );
+
+    setQuestionNumber('');
+    setMarks('');
+    setWordLimit('');
+    setSourceUrl('');
+
+    setMatches([]);
+
+
+    setMessage(
+      'Master question loaded. Now choose the new exam, year and paper, then enter that appearance\'s question number, marks and word limit.'
+    );
+
+
+    window.requestAnimationFrame(
+      () => {
+
+        document
+          .getElementById(
+            'mains-pyq-entry-form'
+          )
+          ?.scrollIntoView({
+            behavior:
+              'smooth',
+            block:
+              'start'
+          });
+
+      }
+    );
+  }
+
+
   function validateCurrentPaper() {
 
     if (
@@ -2525,6 +2653,7 @@ export function MainsPyqManager() {
 
 
       <form
+        id="mains-pyq-entry-form"
         className="panel admin-form"
         onSubmit={
           saveQuestion
@@ -3696,6 +3825,12 @@ export function MainsPyqManager() {
 
                     <div
                       style={{
+                        display:
+                          'flex',
+                        gap:
+                          '8px',
+                        flexWrap:
+                          'wrap',
                         marginTop:
                           '10px'
                       }}
@@ -3721,6 +3856,19 @@ export function MainsPyqManager() {
                               item.id
                             ? 'Hide Appearances'
                             : 'View Appearances'}
+                      </button>
+
+
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        onClick={() =>
+                          prepareAnotherAppearance(
+                            item
+                          )
+                        }
+                      >
+                        + Add Another Appearance
                       </button>
 
                     </div>
