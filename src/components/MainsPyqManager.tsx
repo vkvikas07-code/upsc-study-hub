@@ -320,6 +320,88 @@ function appearanceLabel(
 }
 
 
+function parseMainsMatches(
+  data:
+    unknown
+):
+  MainsMatch[] {
+
+  if (
+    !Array.isArray(
+      data
+    )
+  ) {
+
+    return [];
+  }
+
+
+  return (
+    data as Array<
+      Record<
+        string,
+        unknown
+      >
+    >
+  ).map(
+    item => ({
+
+      question_id:
+        String(
+          item.question_id
+        ),
+
+      question:
+        String(
+          item.question ||
+          ''
+        ),
+
+      subject:
+        String(
+          item.subject ||
+          ''
+        ),
+
+      topic:
+        item.topic
+          ? String(
+              item.topic
+            )
+          : null,
+
+      subtopic:
+        item.subtopic
+          ? String(
+              item.subtopic
+            )
+          : null,
+
+      status:
+        String(
+          item.status ||
+          ''
+        ),
+
+      appearance_count:
+        Number(
+          item.appearance_count ||
+          0
+        ),
+
+      appearances:
+        Array.isArray(
+          item.appearances
+        )
+          ? item.appearances as
+              MainsAppearance[]
+          : []
+
+    })
+  );
+}
+
+
 export function MainsPyqManager() {
 
   /*
@@ -648,6 +730,42 @@ export function MainsPyqManager() {
     setFilterSubject
   ] =
     useState('');
+
+
+  const [
+    expandedQuestionId,
+    setExpandedQuestionId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
+
+
+  const [
+    archiveAppearances,
+    setArchiveAppearances
+  ] =
+    useState<
+      Record<
+        string,
+        MainsAppearance[]
+      >
+    >({});
+
+
+  const [
+    loadingAppearanceId,
+    setLoadingAppearanceId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
 
 
   /*
@@ -1210,73 +1328,9 @@ export function MainsPyqManager() {
 
 
     const found =
-      (
-        (
-          data ||
-          []
-        ) as Array<
-          Record<
-            string,
-            unknown
-          >
-        >
-      ).map(
-        item => ({
-
-          question_id:
-            String(
-              item.question_id
-            ),
-
-          question:
-            String(
-              item.question ||
-              ''
-            ),
-
-          subject:
-            String(
-              item.subject ||
-              ''
-            ),
-
-          topic:
-            item.topic
-              ? String(
-                  item.topic
-                )
-              : null,
-
-          subtopic:
-            item.subtopic
-              ? String(
-                  item.subtopic
-                )
-              : null,
-
-          status:
-            String(
-              item.status ||
-              ''
-            ),
-
-          appearance_count:
-            Number(
-              item.appearance_count ||
-              0
-            ),
-
-          appearances:
-            Array.isArray(
-              item.appearances
-            )
-              ? item.appearances as
-                  MainsAppearance[]
-              : []
-
-        })
-      ) as
-        MainsMatch[];
+      parseMainsMatches(
+        data
+      );
 
 
     setMatches(
@@ -1296,6 +1350,108 @@ export function MainsPyqManager() {
 
 
     return found;
+  }
+
+
+  async function toggleArchiveAppearances(
+    item:
+      PyqRow
+  ) {
+
+    if (!supabase) {
+
+      setMessage(
+        'Supabase is not configured.'
+      );
+
+      return;
+    }
+
+
+    if (
+      expandedQuestionId ===
+      item.id
+    ) {
+
+      setExpandedQuestionId(
+        null
+      );
+
+      return;
+    }
+
+
+    setExpandedQuestionId(
+      item.id
+    );
+
+
+    if (
+      archiveAppearances[
+        item.id
+      ]
+    ) {
+
+      return;
+    }
+
+
+    setLoadingAppearanceId(
+      item.id
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .rpc(
+          'find_mains_question_matches',
+          {
+            p_question:
+              item.question
+          }
+        );
+
+
+    setLoadingAppearanceId(
+      null
+    );
+
+
+    if (error) {
+
+      setMessage(
+        error.message
+      );
+
+      return;
+    }
+
+
+    const exactMatch =
+      parseMainsMatches(
+        data
+      ).find(
+        match =>
+          match.question_id ===
+          item.id
+      );
+
+
+    setArchiveAppearances(
+      current => ({
+
+        ...current,
+
+        [item.id]:
+          exactMatch
+            ?.appearances ||
+          []
+
+      })
+    );
   }
 
 
@@ -3536,6 +3692,124 @@ export function MainsPyqManager() {
                         ? ` • ${item.marks} marks`
                         : ''}
                     </small>
+
+
+                    <div
+                      style={{
+                        marginTop:
+                          '10px'
+                      }}
+                    >
+
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        disabled={
+                          loadingAppearanceId ===
+                          item.id
+                        }
+                        onClick={() =>
+                          void toggleArchiveAppearances(
+                            item
+                          )
+                        }
+                      >
+                        {loadingAppearanceId ===
+                          item.id
+                          ? 'Loading appearances...'
+                          : expandedQuestionId ===
+                              item.id
+                            ? 'Hide Appearances'
+                            : 'View Appearances'}
+                      </button>
+
+                    </div>
+
+
+                    {expandedQuestionId ===
+                      item.id && (
+
+                      <div
+                        style={{
+                          display:
+                            'grid',
+                          gap:
+                            '7px',
+                          marginTop:
+                            '10px',
+                          padding:
+                            '10px',
+                          borderRadius:
+                            '10px',
+                          border:
+                            '1px solid rgba(255,255,255,.07)',
+                          background:
+                            'rgba(255,255,255,.02)'
+                        }}
+                      >
+
+                        {(archiveAppearances[
+                          item.id
+                        ] || []).length >
+                          0 ? (
+
+                          (archiveAppearances[
+                            item.id
+                          ] || []).map(
+                            (
+                              appearance,
+                              index
+                            ) => (
+
+                              <div
+                                key={
+                                  appearance.appearance_id ||
+                                  `${item.id}-${index}`
+                                }
+                              >
+                                <small
+                                  style={{
+                                    color:
+                                      '#cbd5e1'
+                                  }}
+                                >
+                                  {appearanceLabel(
+                                    appearance
+                                  )}
+                                </small>
+                              </div>
+
+                            )
+                          )
+
+                        ) : loadingAppearanceId ===
+                          item.id ? (
+
+                          <small
+                            style={{
+                              color:
+                                '#94a3b8'
+                            }}
+                          >
+                            Loading...
+                          </small>
+
+                        ) : (
+
+                          <small
+                            style={{
+                              color:
+                                '#94a3b8'
+                            }}
+                          >
+                            No canonical appearances are linked yet.
+                          </small>
+
+                        )}
+
+                      </div>
+
+                    )}
 
                   </article>
 
