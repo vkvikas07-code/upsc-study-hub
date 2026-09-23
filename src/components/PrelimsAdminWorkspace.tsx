@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useState
 } from 'react';
 
@@ -34,10 +33,6 @@ type TabItem = {
 };
 
 
-const STORAGE_KEY =
-  'upsc-prelims-admin-workspace';
-
-
 const TABS: TabItem[] = [
   {
     id: 'quick-import',
@@ -62,43 +57,6 @@ const TABS: TabItem[] = [
 ];
 
 
-function isWorkspace(
-  value: string | null
-): value is PrelimsWorkspace {
-
-  return (
-    value === 'quick-import' ||
-    value === 'editor' ||
-    value === 'bank' ||
-    value === 'review'
-  );
-}
-
-
-function getInitialWorkspace():
-  PrelimsWorkspace {
-
-  if (
-    typeof window ===
-    'undefined'
-  ) {
-    return 'quick-import';
-  }
-
-
-  const saved =
-    window.localStorage
-      .getItem(
-        STORAGE_KEY
-      );
-
-
-  return isWorkspace(saved)
-    ? saved
-    : 'quick-import';
-}
-
-
 export function PrelimsAdminWorkspace() {
 
   const [
@@ -106,225 +64,16 @@ export function PrelimsAdminWorkspace() {
     setWorkspace
   ] =
     useState<PrelimsWorkspace>(
-      getInitialWorkspace
+      'quick-import'
     );
-
-
-  const [
-    visited,
-    setVisited
-  ] =
-    useState<
-      Set<PrelimsWorkspace>
-    >(
-      () =>
-        new Set([
-          getInitialWorkspace()
-        ])
-    );
-
-
-  const [
-    editQuestionId,
-    setEditQuestionId
-  ] =
-    useState<string | null>(
-      null
-    );
-
-
-  /*
-   * requestKey changes every time Edit is clicked.
-   * This guarantees that clicking the same question
-   * again reloads it in the editor.
-   */
-  const [
-    editRequestKey,
-    setEditRequestKey
-  ] =
-    useState(0);
 
 
   const activeTab =
     TABS.find(
-      item =>
-        item.id ===
+      tab =>
+        tab.id ===
         workspace
     );
-
-
-  useEffect(
-    () => {
-
-      if (
-        typeof window ===
-        'undefined'
-      ) {
-        return;
-      }
-
-
-      window.localStorage
-        .setItem(
-          STORAGE_KEY,
-          workspace
-        );
-
-    },
-    [
-      workspace
-    ]
-  );
-
-
-  function markVisited(
-    next: PrelimsWorkspace
-  ):
-    void {
-
-    setVisited(
-      current => {
-
-        const updated =
-          new Set(
-            current
-          );
-
-
-        updated.add(
-          next
-        );
-
-
-        return updated;
-      }
-    );
-  }
-
-
-  function openWorkspace(
-    next: PrelimsWorkspace
-  ):
-    void {
-
-    markVisited(
-      next
-    );
-
-
-    setWorkspace(
-      next
-    );
-
-
-    window
-      .requestAnimationFrame(
-        () => {
-
-          const workspaceTop =
-            document
-              .getElementById(
-                'prelims-workspace-content'
-              );
-
-
-          workspaceTop
-            ?.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start'
-            });
-
-        }
-      );
-  }
-
-
-  function openQuestionForEdit(
-    questionId: string
-  ):
-    void {
-
-    setEditQuestionId(
-      questionId
-    );
-
-
-    setEditRequestKey(
-      current =>
-        current + 1
-    );
-
-
-    markVisited(
-      'editor'
-    );
-
-
-    setWorkspace(
-      'editor'
-    );
-
-
-    window
-      .requestAnimationFrame(
-        () => {
-
-          const workspaceTop =
-            document
-              .getElementById(
-                'prelims-workspace-content'
-              );
-
-
-          workspaceTop
-            ?.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start'
-            });
-
-        }
-      );
-  }
-
-
-  function finishEditing():
-    void {
-
-    setEditQuestionId(
-      null
-    );
-
-
-    markVisited(
-      'bank'
-    );
-
-
-    setWorkspace(
-      'bank'
-    );
-
-
-    window
-      .requestAnimationFrame(
-        () => {
-
-          const workspaceTop =
-            document
-              .getElementById(
-                'prelims-workspace-content'
-              );
-
-
-          workspaceTop
-            ?.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start'
-            });
-
-        }
-      );
-  }
 
 
   return (
@@ -334,15 +83,8 @@ export function PrelimsAdminWorkspace() {
       <section
         className="panel"
         style={{
-          position: 'sticky',
-          top: '8px',
-          zIndex: 30,
-          padding: '10px 12px',
-          marginBottom: '12px',
-          background: 'rgba(15, 23, 42, 0.96)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          boxShadow: '0 8px 30px rgba(0,0,0,.18)'
+          padding: '12px 14px',
+          marginBottom: '12px'
         }}
       >
 
@@ -350,57 +92,40 @@ export function PrelimsAdminWorkspace() {
           style={{
             display: 'grid',
             gridTemplateColumns:
-              'repeat(4, minmax(0, 1fr))',
+              'repeat(auto-fit, minmax(150px, 1fr))',
             gap: '8px'
           }}
         >
 
           {
             TABS.map(
-              tab => {
+              tab => (
 
-                const active =
-                  workspace ===
-                  tab.id;
-
-
-                return (
-
-                  <button
-                    key={
+                <button
+                  key={
+                    tab.id
+                  }
+                  type="button"
+                  className={
+                    workspace === tab.id
+                      ? 'filter active'
+                      : 'filter'
+                  }
+                  onClick={() =>
+                    setWorkspace(
                       tab.id
-                    }
-                    type="button"
-                    className={
-                      active
-                        ? 'filter active'
-                        : 'filter'
-                    }
-                    aria-pressed={
-                      active
-                    }
-                    onClick={() =>
-                      openWorkspace(
-                        tab.id
-                      )
-                    }
-                    style={{
-                      minHeight: '42px',
-                      whiteSpace: 'normal',
-                      lineHeight: 1.2,
-                      fontWeight:
-                        active
-                          ? 800
-                          : 600
-                    }}
-                  >
-                    {
-                      tab.label
-                    }
-                  </button>
+                    )
+                  }
+                  style={{
+                    minHeight: '42px',
+                    whiteSpace: 'normal',
+                    lineHeight: 1.2
+                  }}
+                >
+                  {tab.label}
+                </button>
 
-                );
-              }
+              )
             )
           }
 
@@ -410,37 +135,15 @@ export function PrelimsAdminWorkspace() {
         {
           activeTab && (
 
-            <div
+            <small
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '10px',
-                marginTop: '7px',
-                flexWrap: 'wrap'
+                display: 'block',
+                marginTop: '8px',
+                color: '#94a3b8'
               }}
             >
-
-              <small
-                style={{
-                  color: '#94a3b8'
-                }}
-              >
-                {
-                  activeTab.helper
-                }
-              </small>
-
-
-              <small
-                style={{
-                  color: '#64748b'
-                }}
-              >
-                Workspace data remains available while switching tabs.
-              </small>
-
-            </div>
+              {activeTab.helper}
+            </small>
 
           )
         }
@@ -448,111 +151,44 @@ export function PrelimsAdminWorkspace() {
       </section>
 
 
-      <div
-        id="prelims-workspace-content"
-        style={{
-          scrollMarginTop: '92px'
-        }}
-      >
+      {
+        workspace ===
+          'quick-import' && (
 
-        {
-          visited.has(
-            'quick-import'
-          ) && (
+          <PrelimsPyqQuickImport />
 
-            <div
-              style={{
-                display:
-                  workspace ===
-                    'quick-import'
-                    ? 'block'
-                    : 'none'
-              }}
-            >
-              <PrelimsPyqQuickImport />
-            </div>
-
-          )
-        }
+        )
+      }
 
 
-        {
-          visited.has(
-            'editor'
-          ) && (
+      {
+        workspace ===
+          'editor' && (
 
-            <div
-              style={{
-                display:
-                  workspace ===
-                    'editor'
-                    ? 'block'
-                    : 'none'
-              }}
-            >
-              <CompactMcqEditor
-                editQuestionId={
-                  editQuestionId
-                }
-                editRequestKey={
-                  editRequestKey
-                }
-                onUpdated={
-                  finishEditing
-                }
-              />
-            </div>
+          <CompactMcqEditor />
 
-          )
-        }
+        )
+      }
 
 
-        {
-          visited.has(
-            'bank'
-          ) && (
+      {
+        workspace ===
+          'bank' && (
 
-            <div
-              style={{
-                display:
-                  workspace ===
-                    'bank'
-                    ? 'block'
-                    : 'none'
-              }}
-            >
-              <CompactQuestionBank
-                onEditQuestion={
-                  openQuestionForEdit
-                }
-              />
-            </div>
+          <CompactQuestionBank />
 
-          )
-        }
+        )
+      }
 
 
-        {
-          visited.has(
-            'review'
-          ) && (
+      {
+        workspace ===
+          'review' && (
 
-            <div
-              style={{
-                display:
-                  workspace ===
-                    'review'
-                    ? 'block'
-                    : 'none'
-              }}
-            >
-              <PrelimsImportReview />
-            </div>
+          <PrelimsImportReview />
 
-          )
-        }
-
-      </div>
+        )
+      }
 
     </div>
 
