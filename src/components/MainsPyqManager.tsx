@@ -1211,8 +1211,15 @@ export function MainsPyqManager() {
 
     const found =
       (
-        data ||
-        []
+        (
+          data ||
+          []
+        ) as Array<
+          Record<
+            string,
+            unknown
+          >
+        >
       ).map(
         item => ({
 
