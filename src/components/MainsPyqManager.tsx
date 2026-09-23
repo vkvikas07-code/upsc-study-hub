@@ -262,6 +262,32 @@ function safeNumberOrNull(
 }
 
 
+function safeIntegerOrNull(
+  value:
+    string
+) {
+
+  const numericValue =
+    safeNumberOrNull(
+      value
+    );
+
+
+  if (
+    numericValue ===
+    null
+  ) {
+
+    return null;
+  }
+
+
+  return Math.trunc(
+    numericValue
+  );
+}
+
+
 function appearanceLabel(
   appearance:
     MainsAppearance
@@ -766,6 +792,79 @@ export function MainsPyqManager() {
     >(
       null
     );
+
+
+  const [
+    editingAppearanceId,
+    setEditingAppearanceId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
+
+
+  const [
+    appearanceActionId,
+    setAppearanceActionId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
+
+
+  const [
+    appearanceEditQuestionNumber,
+    setAppearanceEditQuestionNumber
+  ] =
+    useState('');
+
+
+  const [
+    appearanceEditOriginalQuestion,
+    setAppearanceEditOriginalQuestion
+  ] =
+    useState('');
+
+
+  const [
+    appearanceEditMarks,
+    setAppearanceEditMarks
+  ] =
+    useState('');
+
+
+  const [
+    appearanceEditWordLimit,
+    setAppearanceEditWordLimit
+  ] =
+    useState('');
+
+
+  const [
+    appearanceEditSource,
+    setAppearanceEditSource
+  ] =
+    useState('');
+
+
+  const [
+    appearanceEditSourceUrl,
+    setAppearanceEditSourceUrl
+  ] =
+    useState('');
+
+
+  const [
+    appearanceEditNotes,
+    setAppearanceEditNotes
+  ] =
+    useState('');
 
 
   /*
@@ -1579,6 +1678,482 @@ export function MainsPyqManager() {
           []
 
       })
+    );
+  }
+
+
+  function resetAppearanceEditor() {
+
+    setEditingAppearanceId(
+      null
+    );
+
+    setAppearanceEditQuestionNumber('');
+    setAppearanceEditOriginalQuestion('');
+    setAppearanceEditMarks('');
+    setAppearanceEditWordLimit('');
+    setAppearanceEditSource('');
+    setAppearanceEditSourceUrl('');
+    setAppearanceEditNotes('');
+  }
+
+
+  async function reloadArchiveAppearances(
+    item:
+      PyqRow
+  ) {
+
+    if (!supabase) {
+
+      return;
+    }
+
+
+    setLoadingAppearanceId(
+      item.id
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .rpc(
+          'find_mains_question_matches',
+          {
+            p_question:
+              item.question
+          }
+        );
+
+
+    setLoadingAppearanceId(
+      null
+    );
+
+
+    if (error) {
+
+      setMessage(
+        error.message
+      );
+
+      return;
+    }
+
+
+    const exactMatch =
+      parseMainsMatches(
+        data
+      ).find(
+        match =>
+          match.question_id ===
+          item.id
+      );
+
+
+    setArchiveAppearances(
+      current => ({
+
+        ...current,
+
+        [item.id]:
+          exactMatch
+            ?.appearances ||
+          []
+
+      })
+    );
+  }
+
+
+  async function startEditAppearance(
+    item:
+      PyqRow,
+    appearance:
+      MainsAppearance
+  ) {
+
+    if (!supabase) {
+
+      setMessage(
+        'Supabase is not configured.'
+      );
+
+      return;
+    }
+
+
+    const appearanceId =
+      appearance
+        .appearance_id;
+
+
+    if (!appearanceId) {
+
+      setMessage(
+        'This appearance does not have a valid ID.'
+      );
+
+      return;
+    }
+
+
+    setAppearanceActionId(
+      appearanceId
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from(
+          'mains_question_appearances'
+        )
+        .select(
+          `
+            id,
+            question_number,
+            original_question,
+            marks,
+            word_limit,
+            source,
+            source_url,
+            notes
+          `
+        )
+        .eq(
+          'id',
+          appearanceId
+        )
+        .single();
+
+
+    setAppearanceActionId(
+      null
+    );
+
+
+    if (
+      error ||
+      !data
+    ) {
+
+      setMessage(
+        error?.message ||
+        'Unable to load the appearance.'
+      );
+
+      return;
+    }
+
+
+    setEditingAppearanceId(
+      appearanceId
+    );
+
+
+    setAppearanceEditQuestionNumber(
+      data.question_number
+        ? String(
+            data.question_number
+          )
+        : ''
+    );
+
+
+    setAppearanceEditOriginalQuestion(
+      data.original_question
+        ? String(
+            data.original_question
+          )
+        : item.question
+    );
+
+
+    setAppearanceEditMarks(
+      data.marks !==
+        null &&
+      data.marks !==
+        undefined
+        ? String(
+            data.marks
+          )
+        : ''
+    );
+
+
+    setAppearanceEditWordLimit(
+      data.word_limit !==
+        null &&
+      data.word_limit !==
+        undefined
+        ? String(
+            data.word_limit
+          )
+        : ''
+    );
+
+
+    setAppearanceEditSource(
+      data.source
+        ? String(
+            data.source
+          )
+        : ''
+    );
+
+
+    setAppearanceEditSourceUrl(
+      data.source_url
+        ? String(
+            data.source_url
+          )
+        : ''
+    );
+
+
+    setAppearanceEditNotes(
+      data.notes
+        ? String(
+            data.notes
+          )
+        : ''
+    );
+
+
+    setMessage(
+      'Edit only this appearance. The master question will remain unchanged.'
+    );
+  }
+
+
+  async function saveAppearanceEdit(
+    item:
+      PyqRow
+  ) {
+
+    if (
+      !supabase ||
+      !editingAppearanceId
+    ) {
+
+      return;
+    }
+
+
+    const appearanceId =
+      editingAppearanceId;
+
+
+    setAppearanceActionId(
+      appearanceId
+    );
+
+
+    const cleanOriginalQuestion =
+      appearanceEditOriginalQuestion
+        .trim();
+
+
+    const {
+      error
+    } =
+      await supabase
+        .rpc(
+          'update_mains_question_appearance',
+          {
+
+            p_appearance_id:
+              appearanceId,
+
+            p_question_number:
+              appearanceEditQuestionNumber
+                .trim() ||
+              null,
+
+            p_original_question:
+              cleanOriginalQuestion &&
+              cleanOriginalQuestion !==
+                item.question.trim()
+                ? cleanOriginalQuestion
+                : null,
+
+            p_marks:
+              safeNumberOrNull(
+                appearanceEditMarks
+              ),
+
+            p_word_limit:
+              safeIntegerOrNull(
+                appearanceEditWordLimit
+              ),
+
+            p_source:
+              appearanceEditSource
+                .trim() ||
+              null,
+
+            p_source_url:
+              appearanceEditSourceUrl
+                .trim() ||
+              null,
+
+            p_notes:
+              appearanceEditNotes
+                .trim() ||
+              null
+
+          }
+        );
+
+
+    setAppearanceActionId(
+      null
+    );
+
+
+    if (error) {
+
+      setMessage(
+        error.message
+      );
+
+      return;
+    }
+
+
+    resetAppearanceEditor();
+
+
+    await reloadArchiveAppearances(
+      item
+    );
+
+
+    setMessage(
+      'Appearance updated successfully. The master question was not changed.'
+    );
+  }
+
+
+  async function removeAppearance(
+    item:
+      PyqRow,
+    appearance:
+      MainsAppearance
+  ) {
+
+    if (!supabase) {
+
+      setMessage(
+        'Supabase is not configured.'
+      );
+
+      return;
+    }
+
+
+    const appearanceId =
+      appearance
+        .appearance_id;
+
+
+    if (!appearanceId) {
+
+      setMessage(
+        'This appearance does not have a valid ID.'
+      );
+
+      return;
+    }
+
+
+    const confirmed =
+      window.confirm(
+        'Remove only this paper/year appearance? The master Mains question will remain in the archive.'
+      );
+
+
+    if (!confirmed) {
+
+      return;
+    }
+
+
+    setAppearanceActionId(
+      appearanceId
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .rpc(
+          'delete_mains_question_appearance',
+          {
+            p_appearance_id:
+              appearanceId
+          }
+        );
+
+
+    setAppearanceActionId(
+      null
+    );
+
+
+    if (error) {
+
+      setMessage(
+        error.message
+      );
+
+      return;
+    }
+
+
+    if (
+      editingAppearanceId ===
+      appearanceId
+    ) {
+
+      resetAppearanceEditor();
+    }
+
+
+    await reloadArchiveAppearances(
+      item
+    );
+
+
+    const result =
+      Array.isArray(
+        data
+      )
+        ? data[0]
+        : data;
+
+
+    const remaining =
+      result?.remaining_appearances !==
+        undefined
+        ? Number(
+            result.remaining_appearances
+          )
+        : null;
+
+
+    setMessage(
+      remaining ===
+        null
+        ? 'Appearance removed. The master question was kept.'
+        : `Appearance removed. ${remaining} appearance${remaining === 1 ? '' : 's'} remain for this master question.`
     );
   }
 
@@ -3907,27 +4482,359 @@ export function MainsPyqManager() {
                             (
                               appearance,
                               index
-                            ) => (
+                            ) => {
 
-                              <div
-                                key={
-                                  appearance.appearance_id ||
-                                  `${item.id}-${index}`
-                                }
-                              >
-                                <small
+                              const appearanceId =
+                                appearance
+                                  .appearance_id ||
+                                null;
+
+
+                              const isEditing =
+                                appearanceId !==
+                                  null &&
+                                editingAppearanceId ===
+                                  appearanceId;
+
+
+                              const isWorking =
+                                appearanceId !==
+                                  null &&
+                                appearanceActionId ===
+                                  appearanceId;
+
+
+                              return (
+
+                                <div
+                                  key={
+                                    appearanceId ||
+                                    `${item.id}-${index}`
+                                  }
                                   style={{
-                                    color:
-                                      '#cbd5e1'
+                                    display:
+                                      'grid',
+                                    gap:
+                                      '8px',
+                                    padding:
+                                      '10px',
+                                    borderRadius:
+                                      '10px',
+                                    border:
+                                      '1px solid rgba(255,255,255,.07)',
+                                    background:
+                                      'rgba(255,255,255,.02)'
                                   }}
                                 >
-                                  {appearanceLabel(
-                                    appearance
-                                  )}
-                                </small>
-                              </div>
 
-                            )
+                                  <div
+                                    style={{
+                                      display:
+                                        'flex',
+                                      justifyContent:
+                                        'space-between',
+                                      alignItems:
+                                        'center',
+                                      gap:
+                                        '10px',
+                                      flexWrap:
+                                        'wrap'
+                                    }}
+                                  >
+
+                                    <small
+                                      style={{
+                                        color:
+                                          '#cbd5e1'
+                                      }}
+                                    >
+                                      {appearanceLabel(
+                                        appearance
+                                      )}
+                                    </small>
+
+
+                                    <div
+                                      style={{
+                                        display:
+                                          'flex',
+                                        gap:
+                                          '6px',
+                                        flexWrap:
+                                          'wrap'
+                                      }}
+                                    >
+
+                                      <button
+                                        type="button"
+                                        className="secondary-btn"
+                                        disabled={
+                                          !appearanceId ||
+                                          isWorking
+                                        }
+                                        onClick={() =>
+                                          void startEditAppearance(
+                                            item,
+                                            appearance
+                                          )
+                                        }
+                                      >
+                                        {isWorking
+                                          ? 'Working...'
+                                          : 'Edit'}
+                                      </button>
+
+
+                                      <button
+                                        type="button"
+                                        className="secondary-btn"
+                                        disabled={
+                                          !appearanceId ||
+                                          isWorking
+                                        }
+                                        onClick={() =>
+                                          void removeAppearance(
+                                            item,
+                                            appearance
+                                          )
+                                        }
+                                      >
+                                        Remove
+                                      </button>
+
+                                    </div>
+
+                                  </div>
+
+
+                                  {isEditing && (
+
+                                    <div
+                                      style={{
+                                        display:
+                                          'grid',
+                                        gap:
+                                          '10px',
+                                        marginTop:
+                                          '4px',
+                                        paddingTop:
+                                          '10px',
+                                        borderTop:
+                                          '1px solid rgba(255,255,255,.07)'
+                                      }}
+                                    >
+
+                                      <div
+                                        style={{
+                                          display:
+                                            'grid',
+                                          gridTemplateColumns:
+                                            'repeat(auto-fit, minmax(150px, 1fr))',
+                                          gap:
+                                            '10px'
+                                        }}
+                                      >
+
+                                        <label>
+                                          Question No.
+
+                                          <input
+                                            value={
+                                              appearanceEditQuestionNumber
+                                            }
+                                            onChange={
+                                              event =>
+                                                setAppearanceEditQuestionNumber(
+                                                  event
+                                                    .target
+                                                    .value
+                                                )
+                                            }
+                                            placeholder="5 or 3(a)"
+                                          />
+                                        </label>
+
+
+                                        <label>
+                                          Marks
+
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            step="0.5"
+                                            value={
+                                              appearanceEditMarks
+                                            }
+                                            onChange={
+                                              event =>
+                                                setAppearanceEditMarks(
+                                                  event
+                                                    .target
+                                                    .value
+                                                )
+                                            }
+                                          />
+                                        </label>
+
+
+                                        <label>
+                                          Word Limit
+
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            value={
+                                              appearanceEditWordLimit
+                                            }
+                                            onChange={
+                                              event =>
+                                                setAppearanceEditWordLimit(
+                                                  event
+                                                    .target
+                                                    .value
+                                                )
+                                            }
+                                          />
+                                        </label>
+
+
+                                        <label>
+                                          Source
+
+                                          <input
+                                            value={
+                                              appearanceEditSource
+                                            }
+                                            onChange={
+                                              event =>
+                                                setAppearanceEditSource(
+                                                  event
+                                                    .target
+                                                    .value
+                                                )
+                                            }
+                                            placeholder="UPSC / MPSC"
+                                          />
+                                        </label>
+
+                                      </div>
+
+
+                                      <label>
+                                        Exact Wording for This Appearance
+
+                                        <textarea
+                                          rows={4}
+                                          value={
+                                            appearanceEditOriginalQuestion
+                                          }
+                                          onChange={
+                                            event =>
+                                              setAppearanceEditOriginalQuestion(
+                                                event
+                                                  .target
+                                                  .value
+                                              )
+                                          }
+                                          placeholder="Leave as the master wording if unchanged."
+                                        />
+                                      </label>
+
+
+                                      <label>
+                                        Source URL
+
+                                        <input
+                                          type="url"
+                                          value={
+                                            appearanceEditSourceUrl
+                                          }
+                                          onChange={
+                                            event =>
+                                              setAppearanceEditSourceUrl(
+                                                event
+                                                  .target
+                                                  .value
+                                              )
+                                          }
+                                          placeholder="Official paper URL"
+                                        />
+                                      </label>
+
+
+                                      <label>
+                                        Notes
+
+                                        <textarea
+                                          rows={2}
+                                          value={
+                                            appearanceEditNotes
+                                          }
+                                          onChange={
+                                            event =>
+                                              setAppearanceEditNotes(
+                                                event
+                                                  .target
+                                                  .value
+                                              )
+                                          }
+                                          placeholder="Optional admin note"
+                                        />
+                                      </label>
+
+
+                                      <div
+                                        style={{
+                                          display:
+                                            'flex',
+                                          gap:
+                                            '8px',
+                                          flexWrap:
+                                            'wrap'
+                                        }}
+                                      >
+
+                                        <button
+                                          type="button"
+                                          className="primary-btn"
+                                          disabled={
+                                            isWorking
+                                          }
+                                          onClick={() =>
+                                            void saveAppearanceEdit(
+                                              item
+                                            )
+                                          }
+                                        >
+                                          {isWorking
+                                            ? 'Saving...'
+                                            : 'Save Appearance'}
+                                        </button>
+
+
+                                        <button
+                                          type="button"
+                                          className="secondary-btn"
+                                          disabled={
+                                            isWorking
+                                          }
+                                          onClick={
+                                            resetAppearanceEditor
+                                          }
+                                        >
+                                          Cancel
+                                        </button>
+
+                                      </div>
+
+                                    </div>
+
+                                  )}
+
+                                </div>
+
+                              );
+                            }
                           )
 
                         ) : loadingAppearanceId ===
