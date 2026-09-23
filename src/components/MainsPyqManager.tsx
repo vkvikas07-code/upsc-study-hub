@@ -13,12 +13,7 @@ import {
 } from '../lib/supabase';
 
 
-type ExamMode =
-  | 'upsc'
-  | 'state';
-
-
-type UpscPaperTab =
+type PaperTab =
   | 'essay'
   | 'GS-I'
   | 'GS-II'
@@ -27,23 +22,9 @@ type UpscPaperTab =
   | 'optional';
 
 
-type PaperType =
-  | 'essay'
-  | 'gs'
-  | 'optional'
-  | 'language'
-  | 'other';
-
-
 type QuestionStatus =
   | 'draft'
   | 'published';
-
-
-type FullQuestionStatus =
-  | 'draft'
-  | 'published'
-  | 'archived';
 
 
 type PaperStatus =
@@ -51,80 +32,95 @@ type PaperStatus =
   | 'published';
 
 
+type MainsOrigin =
+  | 'cse'
+  | 'upsc'
+  | 'state';
+
+
 type PyqRow = {
   id: string;
   question: string;
 
   section_type:
-    PaperType;
+    | 'essay'
+    | 'gs'
+    | 'optional';
 
-  gs_paper:
-    string |
-    null;
+  gs_paper: string | null;
 
   optional_subject:
-    string |
-    null;
+    string | null;
 
   optional_paper:
-    string |
-    null;
+    string | null;
 
-  exam_authority:
-    string |
-    null;
-
-  exam_name:
-    string |
-    null;
-
-  state_name:
-    string |
-    null;
-
-  paper_name:
-    string |
-    null;
-
-  subject:
-    string;
+  subject: string;
 
   topic:
-    string |
-    null;
+    string | null;
 
   subtopic:
-    string |
-    null;
+    string | null;
 
   question_number:
-    string |
-    null;
+    string | null;
 
   marks:
-    number |
-    null;
+    number | null;
 
   word_limit:
-    number |
-    null;
+    number | null;
 
   pyq_year:
-    number |
-    null;
+    number | null;
 
   essay_section:
-    string |
-    null;
+    string | null;
 
   relevant_gs_papers:
     string[];
 
   status:
-    FullQuestionStatus;
+    | 'draft'
+    | 'published'
+    | 'archived';
 
-  created_at:
-    string;
+  created_at: string;
+};
+
+
+type MainsAppearance = {
+  appearance_id?: string | null;
+  appearance_type?: string | null;
+  question_number?: string | null;
+  marks?: number | null;
+  word_limit?: number | null;
+
+  exam_paper_id?: string | null;
+
+  exam_family?: string | null;
+  commission?: string | null;
+  state?: string | null;
+
+  exam_name?: string | null;
+  exam_cycle?: string | null;
+
+  year?: number | null;
+  stage?: string | null;
+  paper?: string | null;
+};
+
+
+type MainsMatch = {
+  question_id: string;
+  question: string;
+  subject: string;
+  topic: string | null;
+  subtopic: string | null;
+  status: string;
+  appearance_count: number;
+  appearances: MainsAppearance[];
 };
 
 
@@ -195,10 +191,6 @@ const PYQ_SELECT = `
   gs_paper,
   optional_subject,
   optional_paper,
-  exam_authority,
-  exam_name,
-  state_name,
-  paper_name,
   subject,
   topic,
   subtopic,
@@ -213,14 +205,14 @@ const PYQ_SELECT = `
 `;
 
 
-function upscPaperName(
-  tab: UpscPaperTab,
+function paperLabel(
+  paperTab: PaperTab,
   optionalSubject: string,
   optionalPaper: string
 ) {
 
   if (
-    tab ===
+    paperTab ===
     'essay'
   ) {
 
@@ -229,7 +221,7 @@ function upscPaperName(
 
 
   if (
-    tab ===
+    paperTab ===
     'optional'
   ) {
 
@@ -237,104 +229,120 @@ function upscPaperName(
   }
 
 
-  return tab;
+  return paperTab;
 }
 
 
-function upscPaperType(
-  tab: UpscPaperTab
-): PaperType {
+function safeNumberOrNull(
+  value:
+    string
+) {
 
-  if (
-    tab ===
-    'essay'
-  ) {
+  const trimmed =
+    value.trim();
 
-    return 'essay';
+
+  if (!trimmed) {
+
+    return null;
   }
 
 
-  if (
-    tab ===
-    'optional'
-  ) {
-
-    return 'optional';
-  }
+  const numericValue =
+    Number(
+      trimmed
+    );
 
 
-  return 'gs';
+  return Number.isFinite(
+    numericValue
+  )
+    ? numericValue
+    : null;
+}
+
+
+function appearanceLabel(
+  appearance:
+    MainsAppearance
+) {
+
+  const parts = [
+
+    appearance.commission ||
+      appearance.exam_family ||
+      'Exam',
+
+    appearance.state ||
+      null,
+
+    appearance.exam_name ||
+      null,
+
+    appearance.year !==
+      null &&
+    appearance.year !==
+      undefined
+      ? String(
+          appearance.year
+        )
+      : null,
+
+    appearance.paper ||
+      null,
+
+    appearance.question_number
+      ? `Q${appearance.question_number}`
+      : null,
+
+    appearance.marks !==
+      null &&
+    appearance.marks !==
+      undefined
+      ? `${appearance.marks} marks`
+      : null,
+
+    appearance.word_limit !==
+      null &&
+    appearance.word_limit !==
+      undefined
+      ? `${appearance.word_limit} words`
+      : null
+
+  ].filter(
+    Boolean
+  );
+
+
+  return parts.join(
+    ' • '
+  );
 }
 
 
 export function MainsPyqManager() {
 
   /*
-   * EXAM SOURCE
+   * =========================================
+   * EXAM / PAPER
+   * =========================================
    */
 
   const [
-    examMode,
-    setExamMode
+    origin,
+    setOrigin
   ] =
-    useState<ExamMode>(
-      'upsc'
+    useState<MainsOrigin>(
+      'cse'
     );
 
 
   const [
-    examAuthority,
-    setExamAuthority
+    paperTab,
+    setPaperTab
   ] =
-    useState(
-      'UPSC'
-    );
-
-
-  const [
-    examName,
-    setExamName
-  ] =
-    useState(
-      'Civil Services Examination'
-    );
-
-
-  const [
-    stateName,
-    setStateName
-  ] =
-    useState('');
-
-
-  /*
-   * PAPER
-   */
-
-  const [
-    upscTab,
-    setUpscTab
-  ] =
-    useState<UpscPaperTab>(
+    useState<PaperTab>(
       'GS-I'
-    );
-
-
-  const [
-    statePaperType,
-    setStatePaperType
-  ] =
-    useState<PaperType>(
-      'gs'
-    );
-
-
-  const [
-    statePaperName,
-    setStatePaperName
-  ] =
-    useState(
-      'General Studies-I'
     );
 
 
@@ -378,7 +386,99 @@ export function MainsPyqManager() {
 
 
   /*
-   * QUESTION CLASSIFICATION
+   * OTHER UPSC
+   */
+
+  const [
+    upscExamName,
+    setUpscExamName
+  ] =
+    useState('');
+
+
+  const [
+    upscExamCycle,
+    setUpscExamCycle
+  ] =
+    useState('');
+
+
+  const [
+    upscExamStage,
+    setUpscExamStage
+  ] =
+    useState(
+      'Mains'
+    );
+
+
+  const [
+    upscExamPaper,
+    setUpscExamPaper
+  ] =
+    useState('');
+
+
+  /*
+   * STATE PSC
+   */
+
+  const [
+    statePscState,
+    setStatePscState
+  ] =
+    useState(
+      'Maharashtra'
+    );
+
+
+  const [
+    statePscName,
+    setStatePscName
+  ] =
+    useState(
+      'MPSC'
+    );
+
+
+  const [
+    statePscExamName,
+    setStatePscExamName
+  ] =
+    useState(
+      'State Services Examination'
+    );
+
+
+  const [
+    statePscCycle,
+    setStatePscCycle
+  ] =
+    useState('');
+
+
+  const [
+    statePscStage,
+    setStatePscStage
+  ] =
+    useState(
+      'Mains'
+    );
+
+
+  const [
+    statePscPaper,
+    setStatePscPaper
+  ] =
+    useState(
+      'GS-II'
+    );
+
+
+  /*
+   * =========================================
+   * MASTER QUESTION
+   * =========================================
    */
 
   const [
@@ -405,15 +505,21 @@ export function MainsPyqManager() {
 
 
   const [
-    questionNumber,
-    setQuestionNumber
+    question,
+    setQuestion
   ] =
     useState('');
 
 
+  /*
+   * =========================================
+   * CURRENT APPEARANCE
+   * =========================================
+   */
+
   const [
-    question,
-    setQuestion
+    questionNumber,
+    setQuestionNumber
   ] =
     useState('');
 
@@ -447,14 +553,10 @@ export function MainsPyqManager() {
     relevantGsPapers,
     setRelevantGsPapers
   ] =
-    useState<string[]>(
-      []
-    );
+    useState<
+      string[]
+    >([]);
 
-
-  /*
-   * STATUS
-   */
 
   const [
     paperStatus,
@@ -475,12 +577,23 @@ export function MainsPyqManager() {
 
 
   /*
+   * =========================================
    * UI STATE
+   * =========================================
    */
 
   const [
     saving,
     setSaving
+  ] =
+    useState(
+      false
+    );
+
+
+  const [
+    checking,
+    setChecking
   ] =
     useState(
       false
@@ -497,18 +610,6 @@ export function MainsPyqManager() {
 
 
   const [
-    changingStatusId,
-    setChangingStatusId
-  ] =
-    useState<
-      string |
-      null
-    >(
-      null
-    );
-
-
-  const [
     message,
     setMessage
   ] =
@@ -516,21 +617,21 @@ export function MainsPyqManager() {
 
 
   const [
-    questions,
-    setQuestions
+    matches,
+    setMatches
   ] =
-    useState<PyqRow[]>(
-      []
-    );
+    useState<
+      MainsMatch[]
+    >([]);
 
 
   const [
-    filterAuthority,
-    setFilterAuthority
+    questions,
+    setQuestions
   ] =
-    useState(
-      'all'
-    );
+    useState<
+      PyqRow[]
+    >([]);
 
 
   const [
@@ -550,164 +651,58 @@ export function MainsPyqManager() {
 
 
   /*
-   * DERIVED PAPER VALUES
+   * =========================================
+   * DERIVED VALUES
+   * =========================================
    */
 
-  const currentPaperType:
-    PaperType =
-      examMode ===
-        'upsc'
-        ? upscPaperType(
-            upscTab
-          )
-        : statePaperType;
+  const numericYear =
+    Number(
+      year
+    );
+
+
+  const sectionType:
+    'essay' |
+    'gs' |
+    'optional' =
+      paperTab ===
+        'essay'
+        ? 'essay'
+        : paperTab ===
+            'optional'
+          ? 'optional'
+          : 'gs';
 
 
   const currentPaperName =
-    examMode ===
-      'upsc'
-      ? upscPaperName(
-          upscTab,
+    origin ===
+      'cse'
+      ? paperLabel(
+          paperTab,
           optionalSubject,
           optionalPaper
         )
-      : statePaperName
-          .trim();
+      : origin ===
+          'upsc'
+        ? upscExamPaper.trim()
+        : statePscPaper.trim();
 
 
-  const currentGsPaper =
-    examMode ===
-      'upsc' &&
-    currentPaperType ===
-      'gs'
-      ? upscTab
-      : null;
-
-
-  /*
-   * EXAM MODE DEFAULTS
-   */
-
-  useEffect(
-    () => {
-
-      if (
-        examMode ===
-        'upsc'
-      ) {
-
-        setExamAuthority(
-          'UPSC'
-        );
-
-        setExamName(
-          'Civil Services Examination'
-        );
-
-        setStateName('');
-
-      } else {
-
-        setExamAuthority(
-          'MPSC'
-        );
-
-        setExamName(
-          'State Services Examination'
-        );
-
-        setStateName(
-          'Maharashtra'
-        );
-      }
-
-    },
-    [
-      examMode
-    ]
-  );
+  const currentSourceName =
+    origin ===
+      'state'
+      ? (
+          statePscName.trim() ||
+          'State PSC'
+        )
+      : 'UPSC';
 
 
   /*
-   * PAPER DEFAULTS
-   */
-
-  useEffect(
-    () => {
-
-      if (
-        currentPaperType ===
-        'essay'
-      ) {
-
-        setSubject(
-          'Essay'
-        );
-
-        setMarks(
-          '125'
-        );
-
-        setWordLimit('');
-
-        return;
-      }
-
-
-      if (
-        currentPaperType ===
-        'optional'
-      ) {
-
-        setSubject(
-          optionalSubject
-        );
-
-        setMarks(
-          '10'
-        );
-
-        setWordLimit(
-          '150'
-        );
-
-        return;
-      }
-
-
-      if (
-        currentPaperType ===
-        'language'
-      ) {
-
-        setSubject(
-          currentPaperName ||
-          'Language'
-        );
-
-        return;
-      }
-
-
-      setMarks(
-        '10'
-      );
-
-      setWordLimit(
-        '150'
-      );
-
-    },
-    [
-      currentPaperType,
-      currentPaperName,
-      optionalSubject
-    ]
-  );
-
-
-  /*
-   * LOAD PYQs
+   * =========================================
+   * LOAD LEGACY MASTER ARCHIVE
+   * =========================================
    */
 
   async function loadQuestions() {
@@ -725,8 +720,6 @@ export function MainsPyqManager() {
     setLoading(
       true
     );
-
-    setMessage('');
 
 
     const {
@@ -759,13 +752,11 @@ export function MainsPyqManager() {
           }
         )
         .limit(
-          1000
+          250
         );
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       setMessage(
         error.message
@@ -788,11 +779,11 @@ export function MainsPyqManager() {
           ...item,
 
           relevant_gs_papers:
-            item
-              .relevant_gs_papers ||
+            item.relevant_gs_papers ||
             []
         })
-      ) as PyqRow[]
+      ) as
+        PyqRow[]
     );
 
 
@@ -813,11 +804,96 @@ export function MainsPyqManager() {
 
 
   /*
-   * RELEVANT GS
+   * =========================================
+   * PAPER DEFAULTS
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+
+      if (
+        paperTab ===
+        'essay'
+      ) {
+
+        setSubject(
+          'Essay'
+        );
+
+        setMarks(
+          '125'
+        );
+
+        setWordLimit(
+          ''
+        );
+
+      } else if (
+        paperTab ===
+        'optional'
+      ) {
+
+        setSubject(
+          optionalSubject
+        );
+
+        setMarks(
+          '10'
+        );
+
+        setWordLimit(
+          '150'
+        );
+
+      } else {
+
+        setMarks(
+          '10'
+        );
+
+        setWordLimit(
+          '150'
+        );
+      }
+
+    },
+    [
+      paperTab
+    ]
+  );
+
+
+  useEffect(
+    () => {
+
+      if (
+        paperTab ===
+        'optional'
+      ) {
+
+        setSubject(
+          optionalSubject
+        );
+      }
+
+    },
+    [
+      optionalSubject,
+      paperTab
+    ]
+  );
+
+
+  /*
+   * =========================================
+   * HELPERS
+   * =========================================
    */
 
   function toggleRelevantGs(
-    paper: string
+    paper:
+      string
   ) {
 
     setRelevantGsPapers(
@@ -845,39 +921,409 @@ export function MainsPyqManager() {
     setTopic('');
     setSubtopic('');
     setRelevantGsPapers([]);
+    setMatches([]);
+  }
+
+
+  function validateCurrentPaper() {
+
+    if (
+      !Number.isInteger(
+        numericYear
+      ) ||
+      numericYear <
+        1950 ||
+      numericYear >
+        2100
+    ) {
+
+      return 'Enter a valid examination year.';
+    }
+
+
+    if (
+      !subject.trim()
+    ) {
+
+      return 'Enter the subject.';
+    }
+
+
+    if (
+      !question.trim()
+    ) {
+
+      return 'Enter the exact Mains question.';
+    }
+
+
+    if (
+      paperTab ===
+        'optional' &&
+      (
+        !optionalSubject ||
+        !optionalPaper
+      )
+    ) {
+
+      return 'Select Optional Subject and Paper.';
+    }
+
+
+    if (
+      origin ===
+      'upsc'
+    ) {
+
+      if (
+        !upscExamName.trim()
+      ) {
+
+        return 'Enter the UPSC examination name.';
+      }
+
+
+      if (
+        !upscExamPaper.trim()
+      ) {
+
+        return 'Enter the UPSC paper name.';
+      }
+    }
+
+
+    if (
+      origin ===
+      'state'
+    ) {
+
+      if (
+        !statePscState.trim()
+      ) {
+
+        return 'Enter the State / UT.';
+      }
+
+
+      if (
+        !statePscName.trim()
+      ) {
+
+        return 'Enter the PSC name.';
+      }
+
+
+      if (
+        !statePscExamName.trim()
+      ) {
+
+        return 'Enter the State PSC examination name.';
+      }
+
+
+      if (
+        !statePscPaper.trim()
+      ) {
+
+        return 'Enter the State PSC paper name.';
+      }
+    }
+
+
+    return null;
+  }
+
+
+  function buildAppearanceMetadata() {
+
+    const common = {
+
+      source:
+        currentSourceName,
+
+      source_url:
+        sourceUrl.trim() ||
+        null,
+
+      status:
+        paperStatus
+    };
+
+
+    if (
+      origin ===
+      'cse'
+    ) {
+
+      return {
+
+        ...common,
+
+        pyq_year:
+          String(
+            numericYear
+          ),
+
+        exam_stage:
+          'mains',
+
+        paper:
+          currentPaperName
+      };
+    }
+
+
+    if (
+      origin ===
+      'upsc'
+    ) {
+
+      return {
+
+        ...common,
+
+        upsc_exam_name:
+          upscExamName.trim(),
+
+        upsc_exam_cycle:
+          upscExamCycle.trim() ||
+          null,
+
+        upsc_exam_year:
+          String(
+            numericYear
+          ),
+
+        upsc_exam_stage:
+          upscExamStage.trim() ||
+          'Mains',
+
+        upsc_exam_paper:
+          upscExamPaper.trim()
+      };
+    }
+
+
+    return {
+
+      ...common,
+
+      state_psc_state:
+        statePscState.trim(),
+
+      state_psc_name:
+        statePscName.trim(),
+
+      state_psc_exam_name:
+        statePscExamName.trim(),
+
+      state_psc_cycle:
+        statePscCycle.trim() ||
+        null,
+
+      state_psc_year:
+        String(
+          numericYear
+        ),
+
+      state_psc_stage:
+        statePscStage.trim() ||
+        'Mains',
+
+      state_psc_paper:
+        statePscPaper.trim()
+    };
+  }
+
+
+  async function findExistingMatches(
+    showMessage:
+      boolean
+  ):
+    Promise<
+      MainsMatch[]
+    > {
+
+    if (!supabase) {
+
+      if (showMessage) {
+
+        setMessage(
+          'Supabase is not configured.'
+        );
+      }
+
+      return [];
+    }
+
+
+    if (
+      !question.trim()
+    ) {
+
+      if (showMessage) {
+
+        setMessage(
+          'Enter a Mains question first.'
+        );
+      }
+
+      return [];
+    }
+
+
+    setChecking(
+      true
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .rpc(
+          'find_mains_question_matches',
+          {
+            p_question:
+              question.trim()
+          }
+        );
+
+
+    setChecking(
+      false
+    );
+
+
+    if (error) {
+
+      if (showMessage) {
+
+        setMessage(
+          error.message
+        );
+      }
+
+      return [];
+    }
+
+
+    const found =
+      (
+        data ||
+        []
+      ).map(
+        item => ({
+
+          question_id:
+            String(
+              item.question_id
+            ),
+
+          question:
+            String(
+              item.question ||
+              ''
+            ),
+
+          subject:
+            String(
+              item.subject ||
+              ''
+            ),
+
+          topic:
+            item.topic
+              ? String(
+                  item.topic
+                )
+              : null,
+
+          subtopic:
+            item.subtopic
+              ? String(
+                  item.subtopic
+                )
+              : null,
+
+          status:
+            String(
+              item.status ||
+              ''
+            ),
+
+          appearance_count:
+            Number(
+              item.appearance_count ||
+              0
+            ),
+
+          appearances:
+            Array.isArray(
+              item.appearances
+            )
+              ? item.appearances as
+                  MainsAppearance[]
+              : []
+
+        })
+      ) as
+        MainsMatch[];
+
+
+    setMatches(
+      found
+    );
+
+
+    if (showMessage) {
+
+      setMessage(
+        found.length >
+          0
+          ? `Found ${found.length} existing master question${found.length === 1 ? '' : 's'}. You can link this paper instead of creating a duplicate.`
+          : 'No exact existing master question found. This can be saved as a new master question.'
+      );
+    }
+
+
+    return found;
   }
 
 
   /*
-   * FIND OR CREATE PAPER MASTER
+   * =========================================
+   * LEGACY UPSC CSE PAPER
+   *
+   * Kept only for the existing CSE archive
+   * so old screens continue working.
+   * =========================================
    */
 
-  async function findOrCreatePaper(
-    userId: string
+  async function findOrCreateLegacyCsePaper(
+    userId:
+      string
   ) {
 
-    if (!supabase) {
-
-      throw new Error(
-        'Supabase is not configured.'
-      );
-    }
-
-
-    const numericYear =
-      Number(
-        year
-      );
-
-
     if (
-      !currentPaperName
+      !supabase ||
+      origin !==
+        'cse'
     ) {
 
-      throw new Error(
-        'Enter the paper name.'
-      );
+      return null;
     }
+
+
+    const paperType =
+      paperTab ===
+        'essay'
+        ? 'essay'
+        : paperTab ===
+            'optional'
+          ? 'optional'
+          : 'gs';
 
 
     let query =
@@ -893,57 +1339,49 @@ export function MainsPyqManager() {
           numericYear
         )
         .eq(
-          'exam_authority',
-          examAuthority.trim()
-        )
-        .eq(
-          'exam_name',
-          examName.trim()
-        )
-        .eq(
           'paper_type',
-          currentPaperType
-        )
-        .eq(
-          'paper_name',
-          currentPaperName
+          paperType
         );
 
 
     if (
-      currentGsPaper
+      paperType ===
+      'essay'
     ) {
 
       query =
-        query.eq(
-          'gs_paper',
-          currentGsPaper
-        );
+        query
+          .is(
+            'gs_paper',
+            null
+          )
+          .is(
+            'optional_subject',
+            null
+          )
+          .is(
+            'optional_paper',
+            null
+          );
 
-    } else {
-
-      query =
-        query.is(
-          'gs_paper',
-          null
-        );
-    }
-
-
-    if (
-      currentPaperType ===
-      'optional'
+    } else if (
+      paperType ===
+      'gs'
     ) {
 
       query =
         query
           .eq(
-            'optional_subject',
-            optionalSubject
+            'gs_paper',
+            paperTab
           )
-          .eq(
+          .is(
+            'optional_subject',
+            null
+          )
+          .is(
             'optional_paper',
-            optionalPaper
+            null
           );
 
     } else {
@@ -951,12 +1389,16 @@ export function MainsPyqManager() {
       query =
         query
           .is(
-            'optional_subject',
+            'gs_paper',
             null
           )
-          .is(
+          .eq(
+            'optional_subject',
+            optionalSubject
+          )
+          .eq(
             'optional_paper',
-            null
+            optionalPaper
           );
     }
 
@@ -971,9 +1413,7 @@ export function MainsPyqManager() {
         .maybeSingle();
 
 
-    if (
-      existingError
-    ) {
+    if (existingError) {
 
       throw existingError;
     }
@@ -985,7 +1425,7 @@ export function MainsPyqManager() {
 
       const {
         error:
-          updateError
+          paperUpdateError
       } =
         await supabase
           .from(
@@ -993,17 +1433,12 @@ export function MainsPyqManager() {
           )
           .update({
 
-            state_name:
-              stateName.trim() ||
-              null,
+            status:
+              paperStatus,
 
             official_source_url:
               sourceUrl.trim() ||
-              null,
-
-            status:
-              paperStatus
-
+              null
           })
           .eq(
             'id',
@@ -1012,10 +1447,10 @@ export function MainsPyqManager() {
 
 
       if (
-        updateError
+        paperUpdateError
       ) {
 
-        throw updateError;
+        throw paperUpdateError;
       }
 
 
@@ -1026,7 +1461,11 @@ export function MainsPyqManager() {
 
 
     const title =
-      `${numericYear} ${examAuthority.trim()} ${examName.trim()} ${currentPaperName}`;
+      `${numericYear} UPSC Mains ${paperLabel(
+        paperTab,
+        optionalSubject,
+        optionalPaper
+      )}`;
 
 
     const {
@@ -1044,33 +1483,23 @@ export function MainsPyqManager() {
           year:
             numericYear,
 
-          exam_authority:
-            examAuthority.trim(),
-
-          exam_name:
-            examName.trim(),
-
-          state_name:
-            stateName.trim() ||
-            null,
-
           paper_type:
-            currentPaperType,
-
-          paper_name:
-            currentPaperName,
+            paperType,
 
           gs_paper:
-            currentGsPaper,
+            paperType ===
+              'gs'
+              ? paperTab
+              : null,
 
           optional_subject:
-            currentPaperType ===
+            paperType ===
               'optional'
               ? optionalSubject
               : null,
 
           optional_paper:
-            currentPaperType ===
+            paperType ===
               'optional'
               ? optionalPaper
               : null,
@@ -1086,7 +1515,6 @@ export function MainsPyqManager() {
 
           created_by:
             userId
-
         })
         .select(
           'id'
@@ -1102,7 +1530,7 @@ export function MainsPyqManager() {
       throw (
         createError ||
         new Error(
-          'Unable to create PYQ paper.'
+          'Unable to create legacy UPSC Mains paper.'
         )
       );
     }
@@ -1115,11 +1543,186 @@ export function MainsPyqManager() {
 
 
   /*
-   * SAVE QUESTION
+   * =========================================
+   * LINK EXISTING MASTER -> CURRENT PAPER
+   * =========================================
+   */
+
+  async function linkMasterToCurrentPaper(
+    questionId:
+      string,
+    appearanceType:
+      'original' |
+      'repeat'
+  ) {
+
+    if (!supabase) {
+
+      throw new Error(
+        'Supabase is not configured.'
+      );
+    }
+
+
+    const metadata =
+      buildAppearanceMetadata();
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .rpc(
+          'link_existing_mains_question',
+          {
+
+            p_question_id:
+              questionId,
+
+            p_origin:
+              origin,
+
+            p_metadata:
+              metadata,
+
+            p_original_question:
+              question.trim(),
+
+            p_question_number:
+              questionNumber.trim() ||
+              null,
+
+            p_marks:
+              safeNumberOrNull(
+                marks
+              ),
+
+            p_word_limit:
+              safeNumberOrNull(
+                wordLimit
+              ),
+
+            p_appearance_type:
+              appearanceType,
+
+            p_notes:
+              null
+          }
+        );
+
+
+    if (error) {
+
+      throw error;
+    }
+
+
+    const result =
+      Array.isArray(
+        data
+      )
+        ? data[0]
+        : data;
+
+
+    return result;
+  }
+
+
+  async function linkSelectedMatch(
+    match:
+      MainsMatch
+  ) {
+
+    const validationError =
+      validateCurrentPaper();
+
+
+    if (
+      validationError
+    ) {
+
+      setMessage(
+        validationError
+      );
+
+      return;
+    }
+
+
+    setSaving(
+      true
+    );
+
+
+    setMessage(
+      'Linking existing master question to this paper...'
+    );
+
+
+    try {
+
+      const result =
+        await linkMasterToCurrentPaper(
+          match.question_id,
+          'repeat'
+        );
+
+
+      const linkStatus =
+        result?.link_status
+          ? String(
+              result.link_status
+            )
+          : 'linked';
+
+
+      setMessage(
+        linkStatus ===
+          'already_linked'
+          ? 'This master question is already linked to the selected paper and question number.'
+          : `Existing master question linked successfully to ${currentSourceName} ${numericYear} ${currentPaperName}.`
+      );
+
+
+      clearQuestionFields();
+
+      await loadQuestions();
+
+    } catch (
+      caughtError
+    ) {
+
+      setMessage(
+        caughtError instanceof
+          Error
+          ? caughtError.message
+          : 'Unable to link the existing Mains question.'
+      );
+
+    } finally {
+
+      setSaving(
+        false
+      );
+    }
+  }
+
+
+  /*
+   * =========================================
+   * SAVE
+   *
+   * 1. Find exact existing master.
+   * 2. If found -> link another appearance.
+   * 3. Otherwise -> create master + first appearance.
+   * =========================================
    */
 
   async function saveQuestion(
-    event: FormEvent
+    event:
+      FormEvent
   ) {
 
     event.preventDefault();
@@ -1135,98 +1738,16 @@ export function MainsPyqManager() {
     }
 
 
-    const numericYear =
-      Number(
-        year
-      );
+    const validationError =
+      validateCurrentPaper();
 
 
     if (
-      !Number.isInteger(
-        numericYear
-      ) ||
-      numericYear <
-        1950 ||
-      numericYear >
-        2100
+      validationError
     ) {
 
       setMessage(
-        'Enter a valid examination year.'
-      );
-
-      return;
-    }
-
-
-    if (
-      !examAuthority.trim()
-    ) {
-
-      setMessage(
-        'Enter the examination authority.'
-      );
-
-      return;
-    }
-
-
-    if (
-      !examName.trim()
-    ) {
-
-      setMessage(
-        'Enter the examination name.'
-      );
-
-      return;
-    }
-
-
-    if (
-      examMode ===
-        'state' &&
-      !stateName.trim()
-    ) {
-
-      setMessage(
-        'Enter the State / UT.'
-      );
-
-      return;
-    }
-
-
-    if (
-      !currentPaperName
-    ) {
-
-      setMessage(
-        'Enter the paper name.'
-      );
-
-      return;
-    }
-
-
-    if (
-      !subject.trim()
-    ) {
-
-      setMessage(
-        'Enter the subject.'
-      );
-
-      return;
-    }
-
-
-    if (
-      !question.trim()
-    ) {
-
-      setMessage(
-        'Enter the exact question.'
+        validationError
       );
 
       return;
@@ -1237,59 +1758,113 @@ export function MainsPyqManager() {
       true
     );
 
+
     setMessage(
-      'Saving PYQ...'
+      'Checking for an existing Mains question...'
     );
-
-
-    const {
-      data: {
-        user
-      }
-    } =
-      await supabase
-        .auth
-        .getUser();
-
-
-    if (!user) {
-
-      setSaving(
-        false
-      );
-
-      setMessage(
-        'Admin session expired. Sign in again.'
-      );
-
-      return;
-    }
 
 
     try {
 
-      const paperId =
-        await findOrCreatePaper(
+      /*
+       * ALWAYS CHECK BEFORE INSERTING.
+       */
+
+      const existingMatches =
+        await findExistingMatches(
+          false
+        );
+
+
+      if (
+        existingMatches.length >
+        0
+      ) {
+
+        const existing =
+          existingMatches[0];
+
+
+        const result =
+          await linkMasterToCurrentPaper(
+            existing.question_id,
+            'repeat'
+          );
+
+
+        const linkStatus =
+          result?.link_status
+            ? String(
+                result.link_status
+              )
+            : 'linked';
+
+
+        setMessage(
+          linkStatus ===
+            'already_linked'
+            ? 'This question is already linked to the selected paper. No duplicate was created.'
+            : `Existing master question found and linked to ${currentSourceName} ${numericYear} ${currentPaperName}. No duplicate master question was created.`
+        );
+
+
+        clearQuestionFields();
+
+        await loadQuestions();
+
+        return;
+      }
+
+
+      /*
+       * NEW MASTER QUESTION.
+       */
+
+      const {
+        data: {
+          user
+        }
+      } =
+        await supabase
+          .auth
+          .getUser();
+
+
+      if (!user) {
+
+        throw new Error(
+          'Admin session expired. Sign in again.'
+        );
+      }
+
+
+      const legacyPaperId =
+        await findOrCreateLegacyCsePaper(
           user.id
         );
 
 
-      const cleanTags =
-        [
-          examAuthority.trim(),
-          examName.trim(),
-          stateName.trim(),
-          String(
-            numericYear
-          ),
-          currentPaperName,
-          subject.trim(),
-          topic.trim(),
-          subtopic.trim(),
-          'PYQ'
-        ].filter(
-          Boolean
-        );
+      const cleanTags = [
+
+        String(
+          numericYear
+        ),
+
+        currentSourceName,
+
+        currentPaperName,
+
+        subject.trim(),
+
+        topic.trim(),
+
+        subtopic.trim(),
+
+        'Mains PYQ'
+
+      ].filter(
+        Boolean
+      );
 
 
       const {
@@ -1309,32 +1884,22 @@ export function MainsPyqManager() {
               'pyq',
 
             section_type:
-              currentPaperType,
-
-            exam_authority:
-              examAuthority.trim(),
-
-            exam_name:
-              examName.trim(),
-
-            state_name:
-              stateName.trim() ||
-              null,
-
-            paper_name:
-              currentPaperName,
+              sectionType,
 
             gs_paper:
-              currentGsPaper,
+              sectionType ===
+                'gs'
+                ? paperTab
+                : null,
 
             optional_subject:
-              currentPaperType ===
+              sectionType ===
                 'optional'
                 ? optionalSubject
                 : null,
 
             optional_paper:
-              currentPaperType ===
+              sectionType ===
                 'optional'
                 ? optionalPaper
                 : null,
@@ -1355,36 +1920,32 @@ export function MainsPyqManager() {
               null,
 
             essay_section:
-              currentPaperType ===
+              sectionType ===
                 'essay'
                 ? essaySection
                 : null,
 
             marks:
-              marks.trim()
-                ? Number(
-                    marks
-                  )
-                : null,
+              safeNumberOrNull(
+                marks
+              ),
 
             word_limit:
-              wordLimit.trim()
-                ? Number(
-                    wordLimit
-                  )
-                : null,
+              safeNumberOrNull(
+                wordLimit
+              ),
 
             pyq_year:
               numericYear,
 
             pyq_paper_id:
-              paperId,
+              legacyPaperId,
 
             relevant_gs_papers:
               relevantGsPapers,
 
             source:
-              examAuthority.trim(),
+              currentSourceName,
 
             source_url:
               sourceUrl.trim() ||
@@ -1401,7 +1962,6 @@ export function MainsPyqManager() {
 
             created_by:
               user.id
-
           })
           .select(
             PYQ_SELECT
@@ -1417,9 +1977,44 @@ export function MainsPyqManager() {
         throw (
           error ||
           new Error(
-            'Unable to save PYQ.'
+            'Unable to save Mains master question.'
           )
         );
+      }
+
+
+      /*
+       * FIRST GENERIC APPEARANCE.
+       */
+
+      try {
+
+        await linkMasterToCurrentPaper(
+          String(
+            data.id
+          ),
+          'original'
+        );
+
+      } catch (
+        linkError
+      ) {
+
+        const detail =
+          linkError instanceof
+            Error
+            ? linkError.message
+            : 'Unknown appearance-link error.';
+
+
+        setMessage(
+          `Master question was saved, but its paper appearance could not be linked: ${detail}`
+        );
+
+
+        await loadQuestions();
+
+        return;
       }
 
 
@@ -1427,10 +2022,10 @@ export function MainsPyqManager() {
         ...data,
 
         relevant_gs_papers:
-          data
-            .relevant_gs_papers ||
+          data.relevant_gs_papers ||
           []
-      } as PyqRow;
+      } as
+        PyqRow;
 
 
       setQuestions(
@@ -1445,22 +2040,18 @@ export function MainsPyqManager() {
 
 
       setMessage(
-        `Saved ${numericYear} ${examAuthority.trim()} ${currentPaperName} question successfully.`
+        `New master Mains question saved and linked to ${currentSourceName} ${numericYear} ${currentPaperName}.`
       );
 
     } catch (
       caughtError
     ) {
 
-      const errorMessage =
+      setMessage(
         caughtError instanceof
           Error
           ? caughtError.message
-          : 'Unable to save PYQ.';
-
-
-      setMessage(
-        errorMessage
+          : 'Unable to save the Mains PYQ.'
       );
 
     } finally {
@@ -1473,130 +2064,10 @@ export function MainsPyqManager() {
 
 
   /*
-   * CHANGE QUESTION STATUS
+   * =========================================
+   * ARCHIVE FILTERS
+   * =========================================
    */
-
-  async function changeQuestionStatus(
-    item: PyqRow,
-    nextStatus:
-      FullQuestionStatus
-  ) {
-
-    if (!supabase) {
-
-      return;
-    }
-
-
-    setChangingStatusId(
-      item.id
-    );
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from(
-          'mains_questions'
-        )
-        .update({
-          status:
-            nextStatus
-        })
-        .eq(
-          'id',
-          item.id
-        )
-        .select(
-          PYQ_SELECT
-        )
-        .single();
-
-
-    if (
-      error ||
-      !data
-    ) {
-
-      setMessage(
-        error?.message ||
-        'Unable to update question status.'
-      );
-
-      setChangingStatusId(
-        null
-      );
-
-      return;
-    }
-
-
-    const updated = {
-      ...data,
-
-      relevant_gs_papers:
-        data
-          .relevant_gs_papers ||
-        []
-    } as PyqRow;
-
-
-    setQuestions(
-      current =>
-        current.map(
-          questionItem =>
-            questionItem.id ===
-              updated.id
-              ? updated
-              : questionItem
-        )
-    );
-
-
-    setChangingStatusId(
-      null
-    );
-
-
-    setMessage(
-      `Question moved to ${nextStatus}.`
-    );
-  }
-
-
-  /*
-   * FILTER VALUES
-   */
-
-  const authorities =
-    useMemo(
-      () =>
-        Array.from(
-          new Set(
-            questions
-              .map(
-                item =>
-                  item
-                    .exam_authority
-              )
-              .filter(
-                (
-                  item
-                ):
-                  item is string =>
-                  Boolean(
-                    item
-                  )
-              )
-          )
-        ).sort(),
-      [
-        questions
-      ]
-    );
-
 
   const years =
     useMemo(
@@ -1612,18 +2083,19 @@ export function MainsPyqManager() {
                 (
                   item
                 ):
-                  item is number =>
+                  item is
+                    number =>
                   typeof item ===
                     'number'
               )
           )
         ).sort(
           (
-            a,
-            b
+            first: number,
+            second: number
           ) =>
-            b -
-            a
+            second -
+            first
         ),
       [
         questions
@@ -1635,7 +2107,7 @@ export function MainsPyqManager() {
     useMemo(
       () => {
 
-        const search =
+        const subjectQuery =
           filterSubject
             .trim()
             .toLowerCase();
@@ -1643,17 +2115,6 @@ export function MainsPyqManager() {
 
         return questions.filter(
           item => {
-
-            if (
-              filterAuthority !==
-                'all' &&
-              item.exam_authority !==
-                filterAuthority
-            ) {
-
-              return false;
-            }
-
 
             if (
               filterYear !==
@@ -1669,7 +2130,7 @@ export function MainsPyqManager() {
 
 
             if (
-              !search
+              !subjectQuery
             ) {
 
               return true;
@@ -1677,34 +2138,43 @@ export function MainsPyqManager() {
 
 
             return [
-              item.exam_authority || '',
-              item.exam_name || '',
-              item.state_name || '',
-              item.paper_name || '',
+
               item.subject,
-              item.topic || '',
-              item.subtopic || '',
+
+              item.topic ||
+                '',
+
+              item.subtopic ||
+                '',
+
               item.question
+
             ]
               .join(
                 ' '
               )
               .toLowerCase()
               .includes(
-                search
+                subjectQuery
               );
+
           }
         );
 
       },
       [
         questions,
-        filterAuthority,
         filterYear,
         filterSubject
       ]
     );
 
+
+  /*
+   * =========================================
+   * RENDER
+   * =========================================
+   */
 
   return (
 
@@ -1712,15 +2182,10 @@ export function MainsPyqManager() {
       style={{
         display:
           'grid',
-
         gap:
           '16px'
       }}
     >
-
-      {/* =====================================
-          EXAMINATION SOURCE
-      ===================================== */}
 
       <section
         className="panel"
@@ -1729,18 +2194,19 @@ export function MainsPyqManager() {
         <span
           className="eyebrow"
         >
-          MAINS PREVIOUS YEAR PAPERS
+          MAINS PYQ ARCHIVE
         </span>
 
 
         <h2>
-          UPSC + State PSC PYQ Manager
+          Add UPSC and State PSC Mains PYQs
         </h2>
 
 
         <p>
-          Store previous-year Mains questions from UPSC
-          and State Public Service Commissions in one archive.
+          One master question can now be linked to multiple years,
+          multiple papers and multiple commissions without creating
+          duplicate question records.
         </p>
 
 
@@ -1748,13 +2214,10 @@ export function MainsPyqManager() {
           style={{
             display:
               'grid',
-
             gridTemplateColumns:
-              'repeat(auto-fit, minmax(160px, 1fr))',
-
+              'repeat(auto-fit, minmax(150px, 1fr))',
             gap:
-              '10px',
-
+              '8px',
             marginTop:
               '14px'
           }}
@@ -1763,31 +2226,49 @@ export function MainsPyqManager() {
           <button
             type="button"
             className={
-              examMode ===
-                'upsc'
+              origin ===
+                'cse'
                 ? 'filter active'
                 : 'filter'
             }
             onClick={() =>
-              setExamMode(
-                'upsc'
+              setOrigin(
+                'cse'
               )
             }
           >
-            UPSC
+            UPSC CSE
           </button>
 
 
           <button
             type="button"
             className={
-              examMode ===
+              origin ===
+                'upsc'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setOrigin(
+                'upsc'
+              )
+            }
+          >
+            Other UPSC
+          </button>
+
+
+          <button
+            type="button"
+            className={
+              origin ===
                 'state'
                 ? 'filter active'
                 : 'filter'
             }
             onClick={() =>
-              setExamMode(
+              setOrigin(
                 'state'
               )
             }
@@ -1797,103 +2278,108 @@ export function MainsPyqManager() {
 
         </div>
 
+
+        <div
+          style={{
+            display:
+              'grid',
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(110px, 1fr))',
+            gap:
+              '8px',
+            marginTop:
+              '10px'
+          }}
+        >
+
+          {(
+            [
+              [
+                'essay',
+                'Essay'
+              ],
+              [
+                'GS-I',
+                'GS-I'
+              ],
+              [
+                'GS-II',
+                'GS-II'
+              ],
+              [
+                'GS-III',
+                'GS-III'
+              ],
+              [
+                'GS-IV',
+                'GS-IV'
+              ],
+              [
+                'optional',
+                'Optional'
+              ]
+            ] as
+              Array<
+                [
+                  PaperTab,
+                  string
+                ]
+              >
+          ).map(
+            (
+              [
+                value,
+                label
+              ]
+            ) => (
+
+              <button
+                key={
+                  value
+                }
+                type="button"
+                className={
+                  paperTab ===
+                    value
+                    ? 'filter active'
+                    : 'filter'
+                }
+                onClick={() =>
+                  setPaperTab(
+                    value
+                  )
+                }
+              >
+                {label}
+              </button>
+
+            )
+          )}
+
+        </div>
+
       </section>
 
 
-      {/* =====================================
-          EXAM + PAPER DETAILS
-      ===================================== */}
-
-      <section
+      <form
         className="panel admin-form"
+        onSubmit={
+          saveQuestion
+        }
       >
 
         <div
           style={{
             display:
               'grid',
-
             gridTemplateColumns:
-              'repeat(auto-fit, minmax(190px, 1fr))',
-
+              'repeat(auto-fit, minmax(180px, 1fr))',
             gap:
               '12px'
           }}
         >
 
           <label>
-
-            Examination Authority
-
-            <input
-              value={
-                examAuthority
-              }
-              onChange={
-                event =>
-                  setExamAuthority(
-                    event
-                      .target
-                      .value
-                  )
-              }
-              placeholder="UPSC / MPSC / MPPSC / UPPSC"
-            />
-
-          </label>
-
-
-          <label>
-
-            Examination Name
-
-            <input
-              value={
-                examName
-              }
-              onChange={
-                event =>
-                  setExamName(
-                    event
-                      .target
-                      .value
-                  )
-              }
-              placeholder="Civil Services Examination"
-            />
-
-          </label>
-
-
-          {examMode ===
-            'state' && (
-
-            <label>
-
-              State / UT
-
-              <input
-                value={
-                  stateName
-                }
-                onChange={
-                  event =>
-                    setStateName(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="Maharashtra"
-              />
-
-            </label>
-
-          )}
-
-
-          <label>
-
             Year
 
             <input
@@ -1911,206 +2397,235 @@ export function MainsPyqManager() {
                       .value
                   )
               }
+              required
             />
-
           </label>
 
-        </div>
 
+          {origin ===
+            'upsc' && (
 
-        {examMode ===
-          'upsc' ? (
+            <>
+              <label>
+                UPSC Exam Name
 
-          <div
-            style={{
-              display:
-                'grid',
-
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(110px, 1fr))',
-
-              gap:
-                '8px',
-
-              marginTop:
-                '16px'
-            }}
-          >
-
-            {(
-              [
-                [
-                  'essay',
-                  'Essay'
-                ],
-                [
-                  'GS-I',
-                  'GS-I'
-                ],
-                [
-                  'GS-II',
-                  'GS-II'
-                ],
-                [
-                  'GS-III',
-                  'GS-III'
-                ],
-                [
-                  'GS-IV',
-                  'GS-IV'
-                ],
-                [
-                  'optional',
-                  'Optional'
-                ]
-              ] as Array<
-                [
-                  UpscPaperTab,
-                  string
-                ]
-              >
-            ).map(
-              (
-                [
-                  value,
-                  label
-                ]
-              ) => (
-
-                <button
-                  key={
-                    value
+                <input
+                  value={
+                    upscExamName
                   }
-                  type="button"
-                  className={
-                    upscTab ===
-                      value
-                      ? 'filter active'
-                      : 'filter'
+                  onChange={
+                    event =>
+                      setUpscExamName(
+                        event
+                          .target
+                          .value
+                      )
                   }
-                  onClick={() =>
-                    setUpscTab(
-                      value
-                    )
+                  placeholder="CAPF (AC), CDS, ESE..."
+                  required
+                />
+              </label>
+
+
+              <label>
+                Exam Cycle
+
+                <input
+                  value={
+                    upscExamCycle
                   }
-                >
-                  {label}
-                </button>
+                  onChange={
+                    event =>
+                      setUpscExamCycle(
+                        event
+                          .target
+                          .value
+                      )
+                  }
+                  placeholder="Optional cycle / notification"
+                />
+              </label>
 
-              )
-            )}
 
-          </div>
+              <label>
+                Stage
 
-        ) : (
+                <input
+                  value={
+                    upscExamStage
+                  }
+                  onChange={
+                    event =>
+                      setUpscExamStage(
+                        event
+                          .target
+                          .value
+                      )
+                  }
+                  placeholder="Mains"
+                />
+              </label>
 
-          <div
-            style={{
-              display:
-                'grid',
 
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(190px, 1fr))',
+              <label>
+                Paper
 
-              gap:
-                '12px',
+                <input
+                  value={
+                    upscExamPaper
+                  }
+                  onChange={
+                    event =>
+                      setUpscExamPaper(
+                        event
+                          .target
+                          .value
+                      )
+                  }
+                  placeholder="General Studies / Paper II"
+                  required
+                />
+              </label>
+            </>
 
-              marginTop:
-                '16px'
-            }}
-          >
+          )}
+
+
+          {origin ===
+            'state' && (
+
+            <>
+              <label>
+                State / UT
+
+                <input
+                  value={
+                    statePscState
+                  }
+                  onChange={
+                    event =>
+                      setStatePscState(
+                        event
+                          .target
+                          .value
+                      )
+                  }
+                  placeholder="Maharashtra"
+                  required
+                />
+              </label>
+
+
+              <label>
+                PSC
+
+                <input
+                  value={
+                    statePscName
+                  }
+                  onChange={
+                    event =>
+                      setStatePscName(
+                        event
+                          .target
+                          .value
+                      )
+                  }
+                  placeholder="MPSC"
+                  required
+                />
+              </label>
+
+
+              <label>
+                Exam Name
+
+                <input
+                  value={
+                    statePscExamName
+                  }
+                  onChange={
+                    event =>
+                      setStatePscExamName(
+                        event
+                          .target
+                          .value
+                      )
+                  }
+                  placeholder="State Services Examination"
+                  required
+                />
+              </label>
+
+
+              <label>
+                Exam Cycle
+
+                <input
+                  value={
+                    statePscCycle
+                  }
+                  onChange={
+                    event =>
+                      setStatePscCycle(
+                        event
+                          .target
+                          .value
+                      )
+                  }
+                  placeholder="Optional cycle"
+                />
+              </label>
+
+
+              <label>
+                Stage
+
+                <input
+                  value={
+                    statePscStage
+                  }
+                  onChange={
+                    event =>
+                      setStatePscStage(
+                        event
+                          .target
+                          .value
+                      )
+                  }
+                  placeholder="Mains"
+                />
+              </label>
+
+
+              <label>
+                Paper
+
+                <input
+                  value={
+                    statePscPaper
+                  }
+                  onChange={
+                    event =>
+                      setStatePscPaper(
+                        event
+                          .target
+                          .value
+                      )
+                  }
+                  placeholder="GS-II"
+                  required
+                />
+              </label>
+            </>
+
+          )}
+
+
+          {paperTab ===
+            'optional' && (
 
             <label>
-
-              Paper Type
-
-              <select
-                value={
-                  statePaperType
-                }
-                onChange={
-                  event =>
-                    setStatePaperType(
-                      event
-                        .target
-                        .value as
-                          PaperType
-                    )
-                }
-              >
-
-                <option value="gs">
-                  General Studies
-                </option>
-
-                <option value="essay">
-                  Essay
-                </option>
-
-                <option value="optional">
-                  Optional
-                </option>
-
-                <option value="language">
-                  Language
-                </option>
-
-                <option value="other">
-                  Other Paper
-                </option>
-
-              </select>
-
-            </label>
-
-
-            <label>
-
-              Paper Name
-
-              <input
-                value={
-                  statePaperName
-                }
-                onChange={
-                  event =>
-                    setStatePaperName(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="General Studies-I / GS-V / Marathi"
-              />
-
-            </label>
-
-          </div>
-
-        )}
-
-
-        {currentPaperType ===
-          'optional' && (
-
-          <div
-            style={{
-              display:
-                'grid',
-
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(190px, 1fr))',
-
-              gap:
-                '12px',
-
-              marginTop:
-                '12px'
-            }}
-          >
-
-            <label>
-
               Optional Subject
 
               <select
@@ -2145,12 +2660,15 @@ export function MainsPyqManager() {
                 )}
 
               </select>
-
             </label>
 
+          )}
+
+
+          {paperTab ===
+            'optional' && (
 
             <label>
-
               Optional Paper
 
               <select
@@ -2166,7 +2684,6 @@ export function MainsPyqManager() {
                     )
                 }
               >
-
                 <option value="Paper-I">
                   Paper-I
                 </option>
@@ -2174,64 +2691,16 @@ export function MainsPyqManager() {
                 <option value="Paper-II">
                   Paper-II
                 </option>
-
               </select>
-
             </label>
 
-          </div>
-
-        )}
-
-      </section>
+          )}
 
 
-      {/* =====================================
-          QUESTION FORM
-      ===================================== */}
-
-      <form
-        className="panel admin-form"
-        onSubmit={
-          saveQuestion
-        }
-      >
-
-        <h3>
-          Add Question
-        </h3>
-
-
-        <p>
-          {examAuthority}
-          {' • '}
-          {examName}
-          {' • '}
-          {year}
-          {' • '}
-          {currentPaperName ||
-            'Paper'}
-        </p>
-
-
-        <div
-          style={{
-            display:
-              'grid',
-
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(180px, 1fr))',
-
-            gap:
-              '12px'
-          }}
-        >
-
-          {currentPaperType ===
+          {paperTab ===
             'essay' && (
 
             <label>
-
               Essay Section
 
               <select
@@ -2247,7 +2716,6 @@ export function MainsPyqManager() {
                     )
                 }
               >
-
                 <option value="Section A">
                   Section A
                 </option>
@@ -2255,16 +2723,13 @@ export function MainsPyqManager() {
                 <option value="Section B">
                   Section B
                 </option>
-
               </select>
-
             </label>
 
           )}
 
 
           <label>
-
             Subject
 
             <input
@@ -2279,14 +2744,13 @@ export function MainsPyqManager() {
                       .value
                   )
               }
-              placeholder="History"
+              placeholder="Polity"
+              required
             />
-
           </label>
 
 
           <label>
-
             Topic
 
             <input
@@ -2301,14 +2765,12 @@ export function MainsPyqManager() {
                       .value
                   )
               }
-              placeholder="Modern India"
+              placeholder="Democracy"
             />
-
           </label>
 
 
           <label>
-
             Subtopic
 
             <input
@@ -2323,14 +2785,12 @@ export function MainsPyqManager() {
                       .value
                   )
               }
-              placeholder="Social Reform Movement"
+              placeholder="Civil Society"
             />
-
           </label>
 
 
           <label>
-
             Question No.
 
             <input
@@ -2345,19 +2805,18 @@ export function MainsPyqManager() {
                       .value
                   )
               }
-              placeholder="1 / 3(a)"
+              placeholder="5 or 3(a)"
             />
-
           </label>
 
 
           <label>
-
             Marks
 
             <input
               type="number"
               min="0"
+              step="0.5"
               value={
                 marks
               }
@@ -2370,12 +2829,10 @@ export function MainsPyqManager() {
                   )
               }
             />
-
           </label>
 
 
           <label>
-
             Word Limit
 
             <input
@@ -2393,12 +2850,10 @@ export function MainsPyqManager() {
                   )
               }
             />
-
           </label>
 
 
           <label>
-
             Question Status
 
             <select
@@ -2415,7 +2870,6 @@ export function MainsPyqManager() {
                   )
               }
             >
-
               <option value="draft">
                 Draft
               </option>
@@ -2423,14 +2877,11 @@ export function MainsPyqManager() {
               <option value="published">
                 Published
               </option>
-
             </select>
-
           </label>
 
 
           <label>
-
             Paper Status
 
             <select
@@ -2447,17 +2898,14 @@ export function MainsPyqManager() {
                   )
               }
             >
-
               <option value="draft">
-                Draft / Incomplete
+                Draft / incomplete paper
               </option>
 
               <option value="published">
-                Published / Complete
+                Published / verified paper
               </option>
-
             </select>
-
           </label>
 
         </div>
@@ -2465,47 +2913,45 @@ export function MainsPyqManager() {
 
         <label
           style={{
-            display:
-              'block',
-
             marginTop:
               '12px'
           }}
         >
-
-          Exact Question
+          Exact Mains Question
 
           <textarea
             value={
               question
             }
             onChange={
-              event =>
+              event => {
+
                 setQuestion(
                   event
                     .target
                     .value
-                )
+                );
+
+                setMatches(
+                  []
+                );
+              }
             }
             rows={
               5
             }
-            placeholder="Paste the exact question from the official paper."
+            placeholder="Paste the exact question as printed in the paper."
+            required
           />
-
         </label>
 
 
         <label
           style={{
-            display:
-              'block',
-
             marginTop:
               '12px'
           }}
         >
-
           Official Source URL
 
           <input
@@ -2521,9 +2967,8 @@ export function MainsPyqManager() {
                     .value
                 )
             }
-            placeholder="Official commission question-paper URL"
+            placeholder="Official question paper URL"
           />
-
         </label>
 
 
@@ -2543,16 +2988,13 @@ export function MainsPyqManager() {
             style={{
               margin:
                 '4px 0 8px',
-
               color:
                 '#94a3b8',
-
               fontSize:
                 '.82rem'
             }}
           >
-            State PSC and Optional questions can also be tagged
-            for useful UPSC GS overlap.
+            Useful when an Optional or State PSC question also helps UPSC GS preparation.
           </p>
 
 
@@ -2560,10 +3002,8 @@ export function MainsPyqManager() {
             style={{
               display:
                 'flex',
-
               gap:
                 '12px',
-
               flexWrap:
                 'wrap'
             }}
@@ -2579,22 +3019,18 @@ export function MainsPyqManager() {
                   style={{
                     display:
                       'inline-flex',
-
                     alignItems:
                       'center',
-
                     gap:
                       '6px'
                   }}
                 >
-
                   <input
                     type="checkbox"
                     checked={
-                      relevantGsPapers
-                        .includes(
-                          item
-                        )
+                      relevantGsPapers.includes(
+                        item
+                      )
                     }
                     onChange={() =>
                       toggleRelevantGs(
@@ -2604,7 +3040,6 @@ export function MainsPyqManager() {
                   />
 
                   {item}
-
                 </label>
 
               )
@@ -2619,17 +3054,34 @@ export function MainsPyqManager() {
           style={{
             display:
               'flex',
-
             gap:
               '10px',
-
             flexWrap:
               'wrap',
-
             marginTop:
               '16px'
           }}
         >
+
+          <button
+            type="button"
+            className="secondary-btn"
+            disabled={
+              checking ||
+              saving ||
+              !question.trim()
+            }
+            onClick={() =>
+              void findExistingMatches(
+                true
+              )
+            }
+          >
+            {checking
+              ? 'Checking...'
+              : 'Check Existing Question'}
+          </button>
+
 
           <button
             type="submit"
@@ -2640,7 +3092,9 @@ export function MainsPyqManager() {
           >
             {saving
               ? 'Saving...'
-              : 'Save PYQ Question'}
+              : matches.length > 0
+                ? 'Link Existing / Save'
+                : 'Save PYQ'}
           </button>
 
 
@@ -2668,6 +3122,172 @@ export function MainsPyqManager() {
         </div>
 
 
+        {matches.length >
+          0 && (
+
+          <section
+            style={{
+              marginTop:
+                '16px',
+              padding:
+                '14px',
+              border:
+                '1px solid rgba(45,212,191,.28)',
+              borderRadius:
+                '14px',
+              background:
+                'rgba(45,212,191,.05)'
+            }}
+          >
+
+            <strong>
+              Existing master question found
+            </strong>
+
+
+            <p
+              style={{
+                margin:
+                  '6px 0 12px',
+                color:
+                  '#94a3b8'
+              }}
+            >
+              Link the selected year / paper to the existing master instead of creating a duplicate.
+            </p>
+
+
+            <div
+              style={{
+                display:
+                  'grid',
+                gap:
+                  '10px'
+              }}
+            >
+
+              {matches.map(
+                match => (
+
+                  <article
+                    key={
+                      match.question_id
+                    }
+                    style={{
+                      padding:
+                        '12px',
+                      borderRadius:
+                        '12px',
+                      border:
+                        '1px solid rgba(255,255,255,.08)',
+                      background:
+                        'rgba(255,255,255,.025)'
+                    }}
+                  >
+
+                    <strong>
+                      {match.question}
+                    </strong>
+
+
+                    <small
+                      style={{
+                        display:
+                          'block',
+                        marginTop:
+                          '6px',
+                        color:
+                          '#94a3b8'
+                      }}
+                    >
+                      {match.subject}
+
+                      {match.topic
+                        ? ` • ${match.topic}`
+                        : ''}
+
+                      {match.subtopic
+                        ? ` • ${match.subtopic}`
+                        : ''}
+
+                      {` • ${match.appearance_count} appearance${match.appearance_count === 1 ? '' : 's'}`}
+                    </small>
+
+
+                    {match.appearances.length >
+                      0 && (
+
+                      <div
+                        style={{
+                          display:
+                            'grid',
+                          gap:
+                            '5px',
+                          marginTop:
+                            '10px'
+                        }}
+                      >
+
+                        {match.appearances.map(
+                          (
+                            appearance,
+                            index
+                          ) => (
+
+                            <small
+                              key={
+                                appearance.appearance_id ||
+                                `${match.question_id}-${index}`
+                              }
+                              style={{
+                                color:
+                                  '#cbd5e1'
+                              }}
+                            >
+                              {appearanceLabel(
+                                appearance
+                              )}
+                            </small>
+
+                          )
+                        )}
+
+                      </div>
+
+                    )}
+
+
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      disabled={
+                        saving
+                      }
+                      onClick={() =>
+                        void linkSelectedMatch(
+                          match
+                        )
+                      }
+                      style={{
+                        marginTop:
+                          '12px'
+                      }}
+                    >
+                      Link This Existing Question
+                    </button>
+
+                  </article>
+
+                )
+              )}
+
+            </div>
+
+          </section>
+
+        )}
+
+
         {message && (
 
           <p
@@ -2681,10 +3301,6 @@ export function MainsPyqManager() {
       </form>
 
 
-      {/* =====================================
-          SAVED PYQs
-      ===================================== */}
-
       <section
         className="panel"
       >
@@ -2693,16 +3309,12 @@ export function MainsPyqManager() {
           style={{
             display:
               'flex',
-
             justifyContent:
               'space-between',
-
             alignItems:
               'end',
-
             gap:
               '12px',
-
             flexWrap:
               'wrap'
           }}
@@ -2713,12 +3325,23 @@ export function MainsPyqManager() {
             <span
               className="eyebrow"
             >
-              SAVED PYQs
+              SAVED MASTER PYQs
             </span>
 
+
             <h3>
-              Universal question archive
+              Question archive
             </h3>
+
+
+            <small
+              style={{
+                color:
+                  '#94a3b8'
+              }}
+            >
+              This is the master-question archive. Repeated years and papers are stored as appearances.
+            </small>
 
           </div>
 
@@ -2727,53 +3350,12 @@ export function MainsPyqManager() {
             style={{
               display:
                 'flex',
-
               gap:
                 '8px',
-
               flexWrap:
                 'wrap'
             }}
           >
-
-            <select
-              value={
-                filterAuthority
-              }
-              onChange={
-                event =>
-                  setFilterAuthority(
-                    event
-                      .target
-                      .value
-                  )
-              }
-            >
-
-              <option value="all">
-                All commissions
-              </option>
-
-
-              {authorities.map(
-                authority => (
-
-                  <option
-                    key={
-                      authority
-                    }
-                    value={
-                      authority
-                    }
-                  >
-                    {authority}
-                  </option>
-
-                )
-              )}
-
-            </select>
-
 
             <select
               value={
@@ -2788,11 +3370,9 @@ export function MainsPyqManager() {
                   )
               }
             >
-
               <option value="all">
-                All years
+                All master years
               </option>
-
 
               {years.map(
                 item => (
@@ -2812,7 +3392,6 @@ export function MainsPyqManager() {
 
                 )
               )}
-
             </select>
 
 
@@ -2828,7 +3407,7 @@ export function MainsPyqManager() {
                       .value
                   )
               }
-              placeholder="Search paper / subject / topic"
+              placeholder="Subject / topic / subtopic"
             />
 
           </div>
@@ -2848,10 +3427,8 @@ export function MainsPyqManager() {
             style={{
               display:
                 'grid',
-
               gap:
                 '10px',
-
               marginTop:
                 '14px'
             }}
@@ -2860,224 +3437,102 @@ export function MainsPyqManager() {
             {visibleQuestions
               .slice(
                 0,
-                200
+                100
               )
               .map(
-                item => {
+                item => (
 
-                  const changing =
-                    changingStatusId ===
-                    item.id;
+                  <article
+                    key={
+                      item.id
+                    }
+                    style={{
+                      border:
+                        '1px solid rgba(255,255,255,.08)',
+                      borderRadius:
+                        '12px',
+                      padding:
+                        '12px',
+                      background:
+                        'rgba(255,255,255,.02)'
+                    }}
+                  >
 
-
-                  return (
-
-                    <article
-                      key={
-                        item.id
-                      }
+                    <div
                       style={{
-                        border:
-                          '1px solid rgba(255,255,255,.08)',
-
-                        borderRadius:
+                        display:
+                          'flex',
+                        justifyContent:
+                          'space-between',
+                        gap:
                           '12px',
-
-                        padding:
-                          '12px',
-
-                        background:
-                          'rgba(255,255,255,.02)'
+                        flexWrap:
+                          'wrap'
                       }}
                     >
 
-                      <div
-                        style={{
-                          display:
-                            'flex',
+                      <strong>
+                        {item.pyq_year}
+                        {' • '}
 
-                          justifyContent:
-                            'space-between',
-
-                          gap:
-                            '12px',
-
-                          flexWrap:
-                            'wrap'
-                        }}
-                      >
-
-                        <strong>
-
-                          {item.exam_authority ||
-                            'UPSC'}
-
-                          {' • '}
-
-                          {item.pyq_year}
-
-                          {' • '}
-
-                          {item.paper_name ||
-                            item.gs_paper ||
-                            'Paper'}
-
-                        </strong>
+                        {item.section_type ===
+                          'essay'
+                          ? 'Essay'
+                          : item.section_type ===
+                              'optional'
+                            ? `${item.optional_subject || 'Optional'} ${item.optional_paper || ''}`
+                            : item.gs_paper || 'GS'}
+                      </strong>
 
 
-                        <span>
-                          {item.status}
-                        </span>
+                      <span>
+                        {item.status}
+                      </span>
 
-                      </div>
-
-
-                      <small
-                        style={{
-                          color:
-                            '#94a3b8'
-                        }}
-                      >
-
-                        {item.exam_name ||
-                          'Civil Services Examination'}
-
-                        {item.state_name
-                          ? ` • ${item.state_name}`
-                          : ''}
-
-                      </small>
+                    </div>
 
 
-                      <p
-                        style={{
-                          margin:
-                            '8px 0'
-                        }}
-                      >
+                    <p
+                      style={{
+                        margin:
+                          '8px 0'
+                      }}
+                    >
+                      {item.question_number
+                        ? `${item.question_number}. `
+                        : ''}
 
-                        {item.question_number
-                          ? `${item.question_number}. `
-                          : ''}
-
-                        {item.question}
-
-                      </p>
+                      {item.question}
+                    </p>
 
 
-                      <small
-                        style={{
-                          color:
-                            '#94a3b8'
-                        }}
-                      >
+                    <small
+                      style={{
+                        color:
+                          '#94a3b8'
+                      }}
+                    >
+                      Subject:
+                      {' '}
+                      {item.subject}
 
-                        Subject:{' '}
-                        {item.subject}
+                      {item.topic
+                        ? ` • Topic: ${item.topic}`
+                        : ''}
 
-                        {item.topic
-                          ? ` • Topic: ${item.topic}`
-                          : ''}
+                      {item.subtopic
+                        ? ` • Subtopic: ${item.subtopic}`
+                        : ''}
 
-                        {item.subtopic
-                          ? ` • Subtopic: ${item.subtopic}`
-                          : ''}
+                      {item.marks !==
+                        null
+                        ? ` • ${item.marks} marks`
+                        : ''}
+                    </small>
 
-                        {item.marks !==
-                          null
-                          ? ` • ${item.marks} marks`
-                          : ''}
+                  </article>
 
-                      </small>
-
-
-                      <div
-                        style={{
-                          display:
-                            'flex',
-
-                          gap:
-                            '8px',
-
-                          flexWrap:
-                            'wrap',
-
-                          marginTop:
-                            '12px'
-                        }}
-                      >
-
-                        {item.status !==
-                          'published' && (
-
-                          <button
-                            type="button"
-                            className="primary-btn"
-                            disabled={
-                              changing
-                            }
-                            onClick={() =>
-                              void changeQuestionStatus(
-                                item,
-                                'published'
-                              )
-                            }
-                          >
-                            Publish
-                          </button>
-
-                        )}
-
-
-                        {item.status !==
-                          'draft' && (
-
-                          <button
-                            type="button"
-                            className="secondary-btn"
-                            disabled={
-                              changing
-                            }
-                            onClick={() =>
-                              void changeQuestionStatus(
-                                item,
-                                'draft'
-                              )
-                            }
-                          >
-                            Move to Draft
-                          </button>
-
-                        )}
-
-
-                        {item.status !==
-                          'archived' && (
-
-                          <button
-                            type="button"
-                            className="secondary-btn"
-                            disabled={
-                              changing
-                            }
-                            onClick={() =>
-                              void changeQuestionStatus(
-                                item,
-                                'archived'
-                              )
-                            }
-                          >
-                            Archive
-                          </button>
-
-                        )}
-
-                      </div>
-
-                    </article>
-
-                  );
-                }
+                )
               )}
 
 
@@ -3100,3 +3555,6 @@ export function MainsPyqManager() {
 
   );
 }
+
+
+export default MainsPyqManager;
