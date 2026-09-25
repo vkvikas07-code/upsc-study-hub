@@ -119,6 +119,17 @@ export function AdminPage({
   const [adminTab, setAdminTab] =
     useState<AdminTab>('current');
 
+  const [
+  mainsWorkspace,
+  setMainsWorkspace
+] =
+  useState<
+    'pyq' |
+    'practice'
+  >(
+    'pyq'
+  );
+
   const [email, setEmail] =
     useState('');
 
@@ -1686,7 +1697,7 @@ export function AdminPage({
         <PrelimsTestManager />
       </div>
 
-     {/* MAINS QUESTIONS TAB */}
+    {/* MAINS QUESTIONS TAB */}
 <div
   style={{
     display:
@@ -1695,17 +1706,90 @@ export function AdminPage({
         : 'none'
   }}
 >
-  <div
+  <section
+    className="panel"
     style={{
-      display: 'grid',
-      gap: '18px'
+      padding: '12px 14px',
+      marginBottom: '12px'
     }}
   >
-    <MainsPyqManager />
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns:
+          'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: '8px'
+      }}
+    >
+      <button
+        type="button"
+        className={
+          mainsWorkspace === 'pyq'
+            ? 'filter active'
+            : 'filter'
+        }
+        onClick={() =>
+          setMainsWorkspace(
+            'pyq'
+          )
+        }
+        style={{
+          minHeight: '42px',
+          whiteSpace: 'normal'
+        }}
+      >
+        Previous Year Questions
+      </button>
 
-    <MainsQuestionManager />
-  </div>
+      <button
+        type="button"
+        className={
+          mainsWorkspace === 'practice'
+            ? 'filter active'
+            : 'filter'
+        }
+        onClick={() =>
+          setMainsWorkspace(
+            'practice'
+          )
+        }
+        style={{
+          minHeight: '42px',
+          whiteSpace: 'normal'
+        }}
+      >
+        Add / Manage Practice Questions
+      </button>
+    </div>
+
+    <small
+      style={{
+        display: 'block',
+        marginTop: '8px',
+        color: '#94a3b8'
+      }}
+    >
+      {
+        mainsWorkspace === 'pyq'
+          ? 'Add, check and manage Mains previous-year questions and repeated appearances.'
+          : 'Create and manage Mains practice questions.'
+      }
+    </small>
+  </section>
+
+  {
+    mainsWorkspace === 'pyq' && (
+      <MainsPyqManager />
+    )
+  }
+
+  {
+    mainsWorkspace === 'practice' && (
+      <MainsQuestionManager />
+    )
+  }
 </div>
+      
       {/* MAINS EVALUATION TAB */}
       <div
         style={{
