@@ -44,6 +44,10 @@ import {
   supabase
 } from '../lib/supabase';
 
+import {
+  MainsPyqManager
+} from '../components/MainsPyqManager';
+
 
 type ArticleStatus =
   | 'draft'
@@ -1682,18 +1686,26 @@ export function AdminPage({
         <PrelimsTestManager />
       </div>
 
-      {/* MAINS QUESTIONS TAB */}
-      <div
-        style={{
-          display:
-            adminTab === 'mains'
-              ? 'block'
-              : 'none'
-        }}
-      >
-        <MainsQuestionManager />
-      </div>
+     {/* MAINS QUESTIONS TAB */}
+<div
+  style={{
+    display:
+      adminTab === 'mains'
+        ? 'block'
+        : 'none'
+  }}
+>
+  <div
+    style={{
+      display: 'grid',
+      gap: '18px'
+    }}
+  >
+    <MainsPyqManager />
 
+    <MainsQuestionManager />
+  </div>
+</div>
       {/* MAINS EVALUATION TAB */}
       <div
         style={{
