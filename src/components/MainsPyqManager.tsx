@@ -1,113 +1,96 @@
+import {
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
+
+import type {
+  FormEvent
+} from 'react';
+
+import {
+  supabase
+} from '../lib/supabase';
 
 
-                                      <div
-                                        style={{
-                                          display:
-                                            'flex',
-                                          gap:
-                                            '8px',
-                                          flexWrap:
-                                            'wrap'
-                                        }}
-                                      >
-
-                                        <button
-                                          type="button"
-                                          className="primary-btn"
-                                          disabled={
-                                            isWorking
-                                          }
-                                          onClick={() =>
-                                            void saveAppearanceEdit(
-                                              item
-                                            )
-                                          }
-                                        >
-                                          {isWorking
-                                            ? 'Saving...'
-                                            : 'Save Appearance'}
-                                        </button>
+type PaperTab =
+  | 'essay'
+  | 'GS-I'
+  | 'GS-II'
+  | 'GS-III'
+  | 'GS-IV'
+  | 'optional';
 
 
-                                        <button
-                                          type="button"
-                                          className="secondary-btn"
-                                          disabled={
-                                            isWorking
-                                          }
-                                          onClick={
-                                            resetAppearanceEditor
-                                          }
-                                        >
-                                          Cancel
-                                        </button>
-
-                                      </div>
-
-                                    </div>
-
-                                  )}
-
-                                </div>
-
-                              );
-                            }
-                          )
-
-                        ) : loadingAppearanceId ===
-                          item.id ? (
-
-                          <small
-                            style={{
-                              color:
-                                '#94a3b8'
-                            }}
-                          >
-                            Loading...
-                          </small>
-
-                        ) : (
-
-                          <small
-                            style={{
-                              color:
-                                '#94a3b8'
-                            }}
-                          >
-                            No canonical appearances are linked yet.
-                          </small>
-
-                        )}
-
-                      </div>
-
-                    )}
-
-                  </article>
-
-                )
-              )}
+type QuestionStatus =
+  | 'draft'
+  | 'published';
 
 
-            {visibleQuestions.length ===
-              0 && (
-
-              <p>
-                No PYQs match the current filters.
-              </p>
-
-            )}
-
-          </div>
-
-        )}
-
-      </section>
-
-    </section>
-
-  );
-}
+type PaperStatus =
+  | 'draft'
+  | 'published';
 
 
-export default MainsPyqManager;
+type MainsOrigin =
+  | 'cse'
+  | 'upsc'
+  | 'state';
+
+
+type PyqRow = {
+  id: string;
+  question: string;
+
+  section_type:
+    | 'essay'
+    | 'gs'
+    | 'optional';
+
+  gs_paper: string | null;
+
+  optional_subject:
+    string | null;
+
+  optional_paper:
+    string | null;
+
+  subject: string;
+
+  topic:
+    string | null;
+
+  subtopic:
+    string | null;
+
+  question_number:
+    string | null;
+
+  marks:
+    number | null;
+
+  word_limit:
+    number | null;
+
+  pyq_year:
+    number | null;
+
+  essay_section:
+    string | null;
+
+  relevant_gs_papers:
+    string[];
+
+  status:
+    | 'draft'
+    | 'published'
+    | 'archived';
+
+  created_at: string;
+};
+
+
+type MainsAppearance = {
+  appearance_id?: string | null;
+  appearance_type?: string | null;
+  question_number?: string | null;
