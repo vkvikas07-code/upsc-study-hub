@@ -2816,142 +2816,124 @@ export function PracticePage() {
 
 
   function buildPracticeConfig() {
+  return {
+    session_mode:
+      sessionMode,
 
-    return {
+    origin:
+      originFilter,
 
-      session_mode:
-        sessionMode,
+    subject:
+      subjectFilter,
 
-      origin:
-        originFilter,
+    topic:
+      topicFilter,
 
-      subject:
-        subjectFilter,
+    difficulty:
+      difficultyFilter,
 
-      topic:
-        topicFilter,
+    question_type:
+      typeFilter,
 
-      difficulty:
-        difficultyFilter,
+    cse_pyq_year:
+      csePyqYearFilter,
 
-      question_type:
-        typeFilter,
+    upsc_exam:
+      upscExamFilter,
 
-      cse_pyq_year:
-        csePyqYearFilter,
+    upsc_cycle:
+      upscCycleFilter,
 
-      upsc_exam:
-        upscExamFilter,
+    upsc_year:
+      upscYearFilter,
 
-      upsc_cycle:
-        upscCycleFilter,
+    state:
+      stateFilter,
 
-      upsc_year:
-        upscYearFilter,
+    state_exam:
+      stateExamFilter,
 
-      state:
-        stateFilter,
+    state_year:
+      stateYearFilter,
 
-      state_exam:
-        stateExamFilter,
+    session_size:
+      sessionSize,
 
-      state_year:
-        stateYearFilter,
+    search:
+      searchText,
 
-      session_size:
-        sessionSize,
+    bookmarked_only:
+      bookmarkedOnly,
 
-      search:
-        searchText,
+    original_pyq_paper:
+      originalPaperTest
+        ? {
+            exam_paper_id:
+              originalPaperTest
+                .exam_paper_id,
 
-      bookmarked_only:
-  bookmarkedOnly,
+            exam_family:
+              originalPaperTest
+                .exam_family,
 
+            commission:
+              originalPaperTest
+                .commission,
 
-original_pyq_paper:
+            state:
+              originalPaperTest
+                .state,
 
-  originalPaperTest
+            exam_name:
+              originalPaperTest
+                .exam_name,
 
-    ? {
+            exam_cycle:
+              originalPaperTest
+                .exam_cycle,
 
-        exam_paper_id:
-          originalPaperTest
-            .exam_paper_id,
+            exam_year:
+              originalPaperTest
+                .exam_year,
 
-        exam_family:
-          originalPaperTest
-            .exam_family,
+            exam_stage:
+              originalPaperTest
+                .exam_stage,
 
-        commission:
-          originalPaperTest
-            .commission,
+            paper:
+              originalPaperTest
+                .paper,
 
-        state:
-          originalPaperTest
-            .state,
+            paper_code:
+              originalPaperTest
+                .paper_code,
 
-        exam_name:
-          originalPaperTest
-            .exam_name,
+            source:
+              originalPaperTest
+                .source,
 
-        exam_cycle:
-          originalPaperTest
-            .exam_cycle,
+            source_url:
+              originalPaperTest
+                .source_url
+          }
+        : null,
 
-        exam_year:
-          originalPaperTest
-            .exam_year,
+    cse_pattern:
+      sessionMode ===
+        'exam'
+        ? {
+            marks_per_question:
+              CSE_MARKS_PER_QUESTION,
 
-        exam_stage:
-          originalPaperTest
-            .exam_stage,
+            negative_mark:
+              CSE_NEGATIVE_MARK,
 
-        paper:
-          originalPaperTest
-            .paper,
-
-        paper_code:
-          originalPaperTest
-            .paper_code,
-
-        source:
-          originalPaperTest
-            .source,
-
-        source_url:
-          originalPaperTest
-            .source_url
-
-      }
-
-    : null,
-
-
-cse_pattern:
-
-  sessionMode ===
-    'exam'
-
-    ? {
-
-        marks_per_question:
-          CSE_MARKS_PER_QUESTION,
-
-        negative_mark:
-          CSE_NEGATIVE_MARK,
-
-        seconds_per_question:
-          CSE_SECONDS_PER_QUESTION
-
-      }
-
-    : null
-
-          : null
-
-    };
-  }
-
+            seconds_per_question:
+              CSE_SECONDS_PER_QUESTION
+          }
+        : null
+  };
+}
 
 
   function startOriginalPaperTest(
