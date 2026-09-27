@@ -638,16 +638,16 @@ async function removeAppearance(
   );
 
   const {
-    error
-  } =
-    await db
-      .from('question_appearances')
-      .delete()
-      .eq(
-        'id',
+  error
+} =
+  await db.rpc(
+    'delete_prelims_question_appearance',
+    {
+      p_appearance_id:
         appearance.id
-      );
-
+    }
+  );
+  
   setBusyAppearanceId(null);
 
   if (error) {
