@@ -233,6 +233,19 @@ function getYearKey(
   );
 }
 
+function getArticleDateValue(
+  item: CurrentAffair
+): string {
+  return (
+   getArticleDateValue(
+  item
+)Iso ||
+  getArticleDateValue(
+  item
+)
+  );
+}
+
 function formatDayKey(
   value: string
 ): string {
@@ -649,7 +662,9 @@ const [
         .map(
           item =>
             getDayKey(
-              item.publishedAt
+            getArticleDateValue(
+  item
+)
             )
         )
         .filter(
@@ -679,7 +694,9 @@ const availableMonths =
         .map(
           item =>
             getMonthKey(
-              item.publishedAt
+             getArticleDateValue(
+  item
+)
             )
         )
         .filter(
@@ -709,7 +726,9 @@ const availableYears =
         .map(
           item =>
             getYearKey(
-              item.publishedAt
+             getArticleDateValue(
+  item
+)
             )
         )
         .filter(
@@ -755,7 +774,9 @@ const visibleItems =
       ) {
         return (
           getDayKey(
-            item.publishedAt
+         getArticleDateValue(
+  item
+)
           ) ===
           activeDay
         );
@@ -767,7 +788,9 @@ const visibleItems =
       ) {
         return (
           getMonthKey(
-            item.publishedAt
+           getArticleDateValue(
+  item
+)
           ) ===
           activeMonth
         );
@@ -779,7 +802,9 @@ const visibleItems =
       ) {
         return (
           getYearKey(
-            item.publishedAt
+           getArticleDateValue(
+  item
+)
           ) ===
           activeYear
         );
@@ -2013,7 +2038,9 @@ const visibleItems =
 
 
                 <time>
-                  {item.publishedAt}
+                  getArticleDateValue(
+  item
+)
                 </time>
 
               </div>
