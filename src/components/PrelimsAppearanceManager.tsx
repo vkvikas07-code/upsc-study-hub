@@ -91,13 +91,32 @@ export function PrelimsAppearanceManager() {
     setLoading(true);
 
     const { data: questionData, error: questionError } = await db
-      .from('questions')
-      .select(QUESTION_SELECT)
-      .eq('exam_stage', 'prelims')
-      .eq('is_pyq', true)
-      .order('pyq_year', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(500);
+  .from('questions')
+  .select(QUESTION_SELECT)
+  .in(
+    'exam_stage',
+    [
+      'prelims',
+      'Preliminary'
+    ]
+  )
+  .or(
+    'is_pyq.eq.true,pyq_year.not.is.null,upsc_exam_year.not.is.null,state_psc_year.not.is.null'
+  )
+  .order(
+    'pyq_year',
+    {
+      ascending: false,
+      nullsFirst: false
+    }
+  )
+  .order(
+    'created_at',
+    {
+      ascending: false
+    }
+  )
+  .limit(500);
 
     if (questionError) {
       setQuestions([]);
