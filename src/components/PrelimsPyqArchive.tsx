@@ -336,6 +336,17 @@ export function PrelimsPyqArchive({
         family
   ): Promise<void> {
     setLoadingPapers(
+      if (!supabase) {
+  setMessage(
+    'Supabase is not configured.'
+  );
+
+  setLoadingPapers(
+    false
+  );
+
+  return;
+}
       true
     );
 
@@ -481,6 +492,17 @@ export function PrelimsPyqArchive({
     paper:
       PrelimsPyqPaper
   ): Promise<void> {
+    if (!supabase) {
+  setMessage(
+    'Supabase is not configured.'
+  );
+
+  setLoadingQuestions(
+    false
+  );
+
+  return;
+}
     setSelectedPaper(
       paper
     );
