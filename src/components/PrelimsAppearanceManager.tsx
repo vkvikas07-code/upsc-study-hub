@@ -64,6 +64,10 @@ export function PrelimsAppearanceManager() {
     useState<Record<string, Appearance[]>>({});
 
   const [search, setSearch] = useState('');
+  const [filterYear, setFilterYear] = useState('all');
+  const [filterCommission, setFilterCommission] = useState('all');
+  const [filterPaper, setFilterPaper] = useState('all');
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<string | null>(null);
 
@@ -79,52 +83,52 @@ export function PrelimsAppearanceManager() {
 
   const [stateName, setStateName] = useState('Maharashtra');
   const [pscName, setPscName] = useState('MPSC');
+
   const [stateExamName, setStateExamName] =
     useState('State Services Examination');
+
   const [stateCycle, setStateCycle] = useState('');
+
+  const [editingAppearanceId, setEditingAppearanceId] =
+    useState<string | null>(null);
+
+  const [editQuestionNumber, setEditQuestionNumber] =
+    useState('');
+
+  const [busyAppearanceId, setBusyAppearanceId] =
+    useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  const [
-  editingAppearanceId,
-  setEditingAppearanceId
-] = useState<string | null>(null);
-
-const [
-  editQuestionNumber,
-  setEditQuestionNumber
-] = useState('');
-
-const [
-  busyAppearanceId,
-  setBusyAppearanceId
-] = useState<string | null>(null);
-
   async function loadData(): Promise<void> {
     setLoading(true);
+    setMessage('');
 
-    const { data: questionData, error: questionError } = await db
-  .from('questions')
-  .select(QUESTION_SELECT)
-  .or(
-    'is_pyq.eq.true,pyq_year.not.is.null,upsc_exam_year.not.is.null,state_psc_year.not.is.null,exam_stage.ilike.prelim%'
-  )
-  .order(
-    'pyq_year',
-    {
-      ascending: false,
-      nullsFirst: false
-    }
-  )
-  .order(
-    'created_at',
-    {
-      ascending: false
-    }
-  )
-  .limit(500);
+    const {
+      data: questionData,
+      error: questionError
+    } = await db
+      .from('questions')
+      .select(QUESTION_SELECT)
+      .or(
+        'is_pyq.eq.true,pyq_year.not.is.null,upsc_exam_year.not.is.null,state_psc_year.not.is.null,exam_stage.ilike.prelim%'
+      )
+      .order(
+        'pyq_year',
+        {
+          ascending: false,
+          nullsFirst: false
+        }
+      )
+      .order(
+        'created_at',
+        {
+          ascending: false
+        }
+      )
+      .limit(500);
 
     if (questionError) {
       setQuestions([]);
@@ -134,12 +138,13 @@ const [
       return;
     }
 
-    const rows: QuestionRow[] = (questionData || []).map(
-      (row: Record<string, any>) => ({
-        ...row,
-        options: toStrings(row.options)
-      })
-    );
+    const rows: QuestionRow[] =
+      (questionData || []).map(
+        (row: Record<string, any>) => ({
+          ...row,
+          options: toStrings(row.options)
+        })
+      );
 
     setQuestions(rows);
 
@@ -149,7 +154,10 @@ const [
       return;
     }
 
-    const { data: appearanceData, error: appearanceError } = await db
+    const {
+      data: appearanceData,
+      error: appearanceError
+    } = await db
       .from('question_appearances')
       .select(`
         id,
@@ -171,9 +179,11 @@ const [
 
     if (appearanceError) {
       setAppearanceMap({});
+
       setMessage(
         `Questions loaded, but appearances could not be loaded: ${appearanceError.message}`
       );
+
       setLoading(false);
       return;
     }
@@ -181,22 +191,27 @@ const [
     const grouped: Record<string, Appearance[]> = {};
 
     for (const raw of appearanceData || []) {
-      const row = raw as Record<string, any>;
+      const row =
+        raw as Record<string, any>;
 
-      const examRaw = Array.isArray(row.exam_papers)
-        ? row.exam_papers[0]
-        : row.exam_papers;
+      const examRaw =
+        Array.isArray(row.exam_papers)
+          ? row.exam_papers[0]
+          : row.exam_papers;
 
-      const exam = (examRaw || {}) as Record<string, any>;
+      const exam =
+        (examRaw || {}) as Record<string, any>;
 
-      const questionId = String(row.question_id || '');
+      const questionId =
+        String(row.question_id || '');
 
       if (!questionId) {
         continue;
       }
 
       const appearance: Appearance = {
-        id: String(row.id || ''),
+        id:
+          String(row.id || ''),
 
         question_number:
           row.question_number
@@ -238,16 +253,20 @@ const [
         grouped[questionId] = [];
       }
 
-      grouped[questionId].push(appearance);
+      grouped[questionId].push(
+        appearance
+      );
     }
 
-    Object.values(grouped).forEach(list => {
-      list.sort(
-        (a, b) =>
-          (b.exam_year || 0) -
-          (a.exam_year || 0)
-      );
-    });
+    Object
+      .values(grouped)
+      .forEach(list => {
+        list.sort(
+          (a, b) =>
+            (b.exam_year || 0) -
+            (a.exam_year || 0)
+        );
+      });
 
     setAppearanceMap(grouped);
     setLoading(false);
@@ -257,32 +276,200 @@ const [
     void loadData();
   }, []);
 
-  const visibleQuestions = useMemo(() => {
-    const query =
-      search
-        .trim()
-        .toLowerCase();
+  const filterOptions =
+    useMemo(
+      () => {
+        const years =
+          new Set<string>();
 
-    if (!query) {
-      return questions;
-    }
+        const commissions =
+          new Set<string>();
 
-    return questions.filter(item =>
+        const papers =
+          new Set<string>();
+
+        for (const item of questions) {
+          if (
+            item.pyq_year !== null
+          ) {
+            years.add(
+              String(item.pyq_year)
+            );
+          }
+
+          if (item.paper) {
+            papers.add(item.paper);
+          }
+
+          const appearances =
+            appearanceMap[item.id] || [];
+
+          for (
+            const appearance
+            of appearances
+          ) {
+            if (
+              appearance.exam_year !== null
+            ) {
+              years.add(
+                String(
+                  appearance.exam_year
+                )
+              );
+            }
+
+            if (
+              appearance.commission
+            ) {
+              commissions.add(
+                appearance.commission
+              );
+            }
+
+            if (appearance.paper) {
+              papers.add(
+                appearance.paper
+              );
+            }
+          }
+        }
+
+        return {
+          years:
+            Array
+              .from(years)
+              .sort(
+                (a, b) =>
+                  Number(b) -
+                  Number(a)
+              ),
+
+          commissions:
+            Array
+              .from(commissions)
+              .sort(),
+
+          papers:
+            Array
+              .from(papers)
+              .sort()
+        };
+      },
       [
-        item.question,
-        item.subject,
-        item.topic || '',
-        item.paper || '',
-        item.pyq_year || ''
+        questions,
+        appearanceMap
       ]
-        .join(' ')
-        .toLowerCase()
-        .includes(query)
     );
-  }, [
-    questions,
-    search
-  ]);
+
+  const visibleQuestions =
+    useMemo(
+      () => {
+        const query =
+          search
+            .trim()
+            .toLowerCase();
+
+        return questions.filter(
+          item => {
+            const appearances =
+              appearanceMap[item.id] || [];
+
+            const yearMatches =
+              filterYear === 'all' ||
+              String(item.pyq_year) ===
+                filterYear ||
+              appearances.some(
+                appearance =>
+                  String(
+                    appearance.exam_year
+                  ) ===
+                  filterYear
+              );
+
+            if (!yearMatches) {
+              return false;
+            }
+
+            const commissionMatches =
+              filterCommission === 'all' ||
+              appearances.some(
+                appearance =>
+                  appearance.commission ===
+                  filterCommission
+              );
+
+            if (
+              !commissionMatches
+            ) {
+              return false;
+            }
+
+            const paperMatches =
+              filterPaper === 'all' ||
+              item.paper ===
+                filterPaper ||
+              appearances.some(
+                appearance =>
+                  appearance.paper ===
+                  filterPaper
+              );
+
+            if (!paperMatches) {
+              return false;
+            }
+
+            if (!query) {
+              return true;
+            }
+
+            const appearanceText =
+              appearances
+                .map(
+                  appearance =>
+                    [
+                      appearance.commission,
+                      appearance.state,
+                      appearance.exam_name,
+                      appearance.exam_cycle,
+                      appearance.exam_year,
+                      appearance.paper,
+                      appearance.question_number
+                    ]
+                      .filter(Boolean)
+                      .join(' ')
+                )
+                .join(' ');
+
+            return [
+              item.question,
+              item.subject,
+              item.topic || '',
+              item.paper || '',
+              item.pyq_year || '',
+              appearanceText
+            ]
+              .join(' ')
+              .toLowerCase()
+              .includes(query);
+          }
+        );
+      },
+      [
+        questions,
+        appearanceMap,
+        search,
+        filterYear,
+        filterCommission,
+        filterPaper
+      ]
+    );
+
+  function clearFilters(): void {
+    setSearch('');
+    setFilterYear('all');
+    setFilterCommission('all');
+    setFilterPaper('all');
+  }
 
   function openAddAppearance(
     item: QuestionRow
@@ -294,8 +481,7 @@ const [
 
     setYear(
       String(
-        new Date()
-          .getFullYear()
+        new Date().getFullYear()
       )
     );
 
@@ -324,15 +510,11 @@ const [
     );
 
     setStateCycle('');
-
     setMessage('');
   }
 
   function buildMetadata() {
-    if (
-      origin ===
-      'cse'
-    ) {
+    if (origin === 'cse') {
       return {
         pyq_year:
           year.trim(),
@@ -361,10 +543,7 @@ const [
       };
     }
 
-    if (
-      origin ===
-      'upsc'
-    ) {
+    if (origin === 'upsc') {
       return {
         upsc_exam_name:
           upscExamName.trim(),
@@ -455,9 +634,7 @@ const [
       return;
     }
 
-    if (
-      !paper.trim()
-    ) {
+    if (!paper.trim()) {
       setMessage(
         'Enter the paper name.'
       );
@@ -466,8 +643,7 @@ const [
     }
 
     if (
-      origin ===
-        'upsc' &&
+      origin === 'upsc' &&
       !upscExamName.trim()
     ) {
       setMessage(
@@ -478,8 +654,7 @@ const [
     }
 
     if (
-      origin ===
-        'state' &&
+      origin === 'state' &&
       (
         !stateName.trim() ||
         !pscName.trim() ||
@@ -539,8 +714,7 @@ const [
 
     const linkStatus =
       result &&
-      typeof result ===
-        'object' &&
+      typeof result === 'object' &&
       result.link_status
         ? String(
             result.link_status
@@ -558,113 +732,122 @@ const [
 
     await loadData();
   }
-function startEditAppearance(
-  appearance: Appearance
-): void {
-  setEditingAppearanceId(
-    appearance.id
-  );
 
-  setEditQuestionNumber(
-    appearance.question_number || ''
-  );
-}
+  function startEditAppearance(
+    appearance: Appearance
+  ): void {
+    setEditingAppearanceId(
+      appearance.id
+    );
 
-async function saveAppearanceEdit(
-  appearance: Appearance
-): Promise<void> {
-  setBusyAppearanceId(
-    appearance.id
-  );
+    setEditQuestionNumber(
+      appearance.question_number ||
+      ''
+    );
+  }
 
-  const {
-    error
-  } =
-    await db
-      .from('question_appearances')
-      .update({
-        question_number:
-          editQuestionNumber.trim() ||
-          null
-      })
-      .eq(
-        'id',
-        appearance.id
+  async function saveAppearanceEdit(
+    appearance: Appearance
+  ): Promise<void> {
+    setBusyAppearanceId(
+      appearance.id
+    );
+
+    const {
+      error
+    } =
+      await db
+        .from(
+          'question_appearances'
+        )
+        .update({
+          question_number:
+            editQuestionNumber.trim() ||
+            null
+        })
+        .eq(
+          'id',
+          appearance.id
+        );
+
+    setBusyAppearanceId(null);
+
+    if (error) {
+      setMessage(
+        error.message
       );
 
-  setBusyAppearanceId(null);
-
-  if (error) {
-    setMessage(
-      error.message
-    );
-    return;
-  }
-
-  setEditingAppearanceId(null);
-  setEditQuestionNumber('');
-
-  setMessage(
-    'Appearance updated successfully.'
-  );
-
-  await loadData();
-}
-
-async function removeAppearance(
-  appearance: Appearance,
-  totalAppearances: number
-): Promise<void> {
-  if (
-    totalAppearances <= 1
-  ) {
-    setMessage(
-      'The last appearance cannot be removed. Add another appearance first.'
-    );
-    return;
-  }
-
-  const confirmed =
-    window.confirm(
-      'Remove only this appearance? The master Prelims question will remain.'
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  setBusyAppearanceId(
-    appearance.id
-  );
-
-  const {
-  error
-} =
-  await db.rpc(
-    'delete_prelims_question_appearance',
-    {
-      p_appearance_id:
-        appearance.id
+      return;
     }
-  );
-  
-  setBusyAppearanceId(null);
 
-  if (error) {
+    setEditingAppearanceId(null);
+    setEditQuestionNumber('');
+
     setMessage(
-      error.message
+      'Appearance updated successfully.'
     );
-    return;
+
+    await loadData();
   }
 
-  setEditingAppearanceId(null);
+  async function removeAppearance(
+    appearance: Appearance,
+    totalAppearances: number
+  ): Promise<void> {
+    if (
+      totalAppearances <= 1
+    ) {
+      setMessage(
+        'The last appearance cannot be removed. Add another appearance first.'
+      );
 
-  setMessage(
-    'Appearance removed. Master Prelims question kept.'
-  );
+      return;
+    }
 
-  await loadData();
-} 
+    const confirmed =
+      window.confirm(
+        'Remove only this appearance? The master Prelims question will remain.'
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusyAppearanceId(
+      appearance.id
+    );
+
+    const {
+      error
+    } =
+      await db.rpc(
+        'delete_prelims_question_appearance',
+        {
+          p_appearance_id:
+            appearance.id
+        }
+      );
+
+    setBusyAppearanceId(null);
+
+    if (error) {
+      setMessage(
+        error.message
+      );
+
+      return;
+    }
+
+    setEditingAppearanceId(null);
+    setEditQuestionNumber('');
+
+    setMessage(
+      'Appearance removed. Master Prelims question kept.'
+    );
+
+    await loadData();
+  }
+
   return (
     <section
       className="panel"
@@ -675,20 +858,26 @@ async function removeAppearance(
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          justifyContent:
+            'space-between',
+          alignItems:
+            'flex-start',
           gap: '12px',
-          flexWrap: 'wrap'
+          flexWrap:
+            'wrap'
         }}
       >
         <div>
-          <span className="eyebrow">
+          <span
+            className="eyebrow"
+          >
             PRELIMS PYQ APPEARANCES
           </span>
 
           <h2
             style={{
-              margin: '5px 0'
+              margin:
+                '5px 0'
             }}
           >
             Repeated Question Manager
@@ -696,7 +885,8 @@ async function removeAppearance(
 
           <small
             style={{
-              color: '#94a3b8'
+              color:
+                '#94a3b8'
             }}
           >
             Keep one master MCQ and link every year, paper or commission where it appeared.
@@ -721,31 +911,170 @@ async function removeAppearance(
         <div
           className="callout"
           style={{
-            marginTop: '10px'
+            marginTop:
+              '10px'
           }}
         >
           {message}
         </div>
       )}
 
-      <input
-        type="search"
-        value={
-          search
-        }
-        onChange={
-          event =>
-            setSearch(
-              event.target.value
-            )
-        }
-        placeholder="Search PYQ question, subject, topic or year..."
+      <div
         style={{
-          width: '100%',
-          boxSizing: 'border-box',
-          marginTop: '12px'
+          display:
+            'grid',
+          gridTemplateColumns:
+            'repeat(auto-fit, minmax(160px, 1fr))',
+          gap:
+            '8px',
+          marginTop:
+            '12px'
         }}
-      />
+      >
+        <input
+          type="search"
+          value={
+            search
+          }
+          onChange={
+            event =>
+              setSearch(
+                event.target.value
+              )
+          }
+          placeholder="Search question / subject / topic..."
+        />
+
+        <select
+          value={
+            filterYear
+          }
+          onChange={
+            event =>
+              setFilterYear(
+                event.target.value
+              )
+          }
+        >
+          <option
+            value="all"
+          >
+            All Years
+          </option>
+
+          {filterOptions.years.map(
+            item => (
+              <option
+                key={
+                  item
+                }
+                value={
+                  item
+                }
+              >
+                {item}
+              </option>
+            )
+          )}
+        </select>
+
+        <select
+          value={
+            filterCommission
+          }
+          onChange={
+            event =>
+              setFilterCommission(
+                event.target.value
+              )
+          }
+        >
+          <option
+            value="all"
+          >
+            All UPSC / PSC
+          </option>
+
+          {filterOptions.commissions.map(
+            item => (
+              <option
+                key={
+                  item
+                }
+                value={
+                  item
+                }
+              >
+                {item}
+              </option>
+            )
+          )}
+        </select>
+
+        <select
+          value={
+            filterPaper
+          }
+          onChange={
+            event =>
+              setFilterPaper(
+                event.target.value
+              )
+          }
+        >
+          <option
+            value="all"
+          >
+            All Papers
+          </option>
+
+          {filterOptions.papers.map(
+            item => (
+              <option
+                key={
+                  item
+                }
+                value={
+                  item
+                }
+              >
+                {item}
+              </option>
+            )
+          )}
+        </select>
+
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={
+            clearFilters
+          }
+        >
+          Clear Filters
+        </button>
+      </div>
+
+      <small
+        style={{
+          display:
+            'block',
+          marginTop:
+            '8px',
+          color:
+            '#94a3b8'
+        }}
+      >
+        Showing
+        {' '}
+        {visibleQuestions.length}
+        {' '}
+        of
+        {' '}
+        {questions.length}
+        {' '}
+        PYQ master questions
+      </small>
 
       {loading ? (
         <p>
@@ -754,9 +1083,12 @@ async function removeAppearance(
       ) : (
         <div
           style={{
-            display: 'grid',
-            gap: '10px',
-            marginTop: '12px'
+            display:
+              'grid',
+            gap:
+              '10px',
+            marginTop:
+              '12px'
           }}
         >
           {visibleQuestions.map(
@@ -780,7 +1112,8 @@ async function removeAppearance(
                     item.id
                   }
                   style={{
-                    padding: '12px',
+                    padding:
+                      '12px',
                     border:
                       '1px solid rgba(255,255,255,.08)',
                     borderRadius:
@@ -789,11 +1122,14 @@ async function removeAppearance(
                 >
                   <div
                     style={{
-                      display: 'flex',
+                      display:
+                        'flex',
                       justifyContent:
                         'space-between',
-                      gap: '10px',
-                      flexWrap: 'wrap'
+                      gap:
+                        '10px',
+                      flexWrap:
+                        'wrap'
                     }}
                   >
                     <strong>
@@ -804,12 +1140,14 @@ async function removeAppearance(
                         'Prelims'}
                     </strong>
 
-                    <span className="tag">
+                    <span
+                      className="tag"
+                    >
                       {appearances.length}
                       {' '}
                       appearance
                       {appearances.length ===
-                        1
+                      1
                         ? ''
                         : 's'}
                     </span>
@@ -817,7 +1155,8 @@ async function removeAppearance(
 
                   <p
                     style={{
-                      marginBottom: '6px'
+                      marginBottom:
+                        '6px'
                     }}
                   >
                     {item.question}
@@ -825,7 +1164,8 @@ async function removeAppearance(
 
                   <small
                     style={{
-                      color: '#94a3b8'
+                      color:
+                        '#94a3b8'
                     }}
                   >
                     {item.subject}
@@ -835,7 +1175,6 @@ async function removeAppearance(
                       : ''}
 
                     {' • '}
-
                     Answer
                     {' '}
                     {String.fromCharCode(
@@ -846,10 +1185,14 @@ async function removeAppearance(
 
                   <div
                     style={{
-                      display: 'flex',
-                      gap: '8px',
-                      flexWrap: 'wrap',
-                      marginTop: '10px'
+                      display:
+                        'flex',
+                      gap:
+                        '8px',
+                      flexWrap:
+                        'wrap',
+                      marginTop:
+                        '10px'
                     }}
                   >
                     <button
@@ -884,10 +1227,14 @@ async function removeAppearance(
                   {expanded && (
                     <div
                       style={{
-                        display: 'grid',
-                        gap: '7px',
-                        marginTop: '10px',
-                        padding: '10px',
+                        display:
+                          'grid',
+                        gap:
+                          '7px',
+                        marginTop:
+                          '10px',
+                        padding:
+                          '10px',
                         border:
                           '1px solid rgba(255,255,255,.06)',
                         borderRadius:
@@ -895,150 +1242,177 @@ async function removeAppearance(
                       }}
                     >
                       {appearances.length ? (
-  appearances.map(
-    appearance => {
-      const editing =
-        editingAppearanceId ===
-        appearance.id;
+                        appearances.map(
+                          appearance => {
+                            const editing =
+                              editingAppearanceId ===
+                              appearance.id;
 
-      const busy =
-        busyAppearanceId ===
-        appearance.id;
+                            const busy =
+                              busyAppearanceId ===
+                              appearance.id;
 
-      return (
-        <div
-          key={appearance.id}
-          style={{
-            display: 'grid',
-            gap: '8px',
-            padding: '8px',
-            border:
-              '1px solid rgba(255,255,255,.06)',
-            borderRadius: '8px'
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent:
-                'space-between',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap'
-            }}
-          >
-            <small
-              style={{
-                color: '#cbd5e1'
-              }}
-            >
-              {appearanceLabel(
-                appearance
-              )}
-            </small>
+                            return (
+                              <div
+                                key={
+                                  appearance.id
+                                }
+                                style={{
+                                  display:
+                                    'grid',
+                                  gap:
+                                    '8px',
+                                  padding:
+                                    '8px',
+                                  border:
+                                    '1px solid rgba(255,255,255,.06)',
+                                  borderRadius:
+                                    '8px'
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display:
+                                      'flex',
+                                    justifyContent:
+                                      'space-between',
+                                    alignItems:
+                                      'center',
+                                    gap:
+                                      '8px',
+                                    flexWrap:
+                                      'wrap'
+                                  }}
+                                >
+                                  <small
+                                    style={{
+                                      color:
+                                        '#cbd5e1'
+                                    }}
+                                  >
+                                    {appearanceLabel(
+                                      appearance
+                                    )}
+                                  </small>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: '6px',
-                flexWrap: 'wrap'
-              }}
-            >
-              <button
-                type="button"
-                className="secondary-btn"
-                disabled={busy}
-                onClick={() =>
-                  startEditAppearance(
-                    appearance
-                  )
-                }
-              >
-                Edit Q No.
-              </button>
+                                  <div
+                                    style={{
+                                      display:
+                                        'flex',
+                                      gap:
+                                        '6px',
+                                      flexWrap:
+                                        'wrap'
+                                    }}
+                                  >
+                                    <button
+                                      type="button"
+                                      className="secondary-btn"
+                                      disabled={
+                                        busy
+                                      }
+                                      onClick={() =>
+                                        startEditAppearance(
+                                          appearance
+                                        )
+                                      }
+                                    >
+                                      Edit Q No.
+                                    </button>
 
-              <button
-                type="button"
-                className="secondary-btn"
-                disabled={
-                  busy ||
-                  appearances.length <= 1
-                }
-                onClick={() =>
-                  void removeAppearance(
-                    appearance,
-                    appearances.length
-                  )
-                }
-              >
-                {busy
-                  ? 'Working...'
-                  : 'Remove'}
-              </button>
-            </div>
-          </div>
+                                    <button
+                                      type="button"
+                                      className="secondary-btn"
+                                      disabled={
+                                        busy ||
+                                        appearances.length <=
+                                          1
+                                      }
+                                      onClick={() =>
+                                        void removeAppearance(
+                                          appearance,
+                                          appearances.length
+                                        )
+                                      }
+                                    >
+                                      {busy
+                                        ? 'Working...'
+                                        : 'Remove'}
+                                    </button>
+                                  </div>
+                                </div>
 
-          {editing && (
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                flexWrap: 'wrap',
-                alignItems: 'end'
-              }}
-            >
-              <label>
-                Question No.
+                                {editing && (
+                                  <div
+                                    style={{
+                                      display:
+                                        'flex',
+                                      gap:
+                                        '8px',
+                                      flexWrap:
+                                        'wrap',
+                                      alignItems:
+                                        'end'
+                                    }}
+                                  >
+                                    <label>
+                                      Question No.
 
-                <input
-                  value={
-                    editQuestionNumber
-                  }
-                  onChange={
-                    event =>
-                      setEditQuestionNumber(
-                        event.target.value
-                      )
-                  }
-                />
-              </label>
+                                      <input
+                                        value={
+                                          editQuestionNumber
+                                        }
+                                        onChange={
+                                          event =>
+                                            setEditQuestionNumber(
+                                              event.target.value
+                                            )
+                                        }
+                                      />
+                                    </label>
 
-              <button
-                type="button"
-                className="primary-btn"
-                disabled={busy}
-                onClick={() =>
-                  void saveAppearanceEdit(
-                    appearance
-                  )
-                }
-              >
-                Save
-              </button>
+                                    <button
+                                      type="button"
+                                      className="primary-btn"
+                                      disabled={
+                                        busy
+                                      }
+                                      onClick={() =>
+                                        void saveAppearanceEdit(
+                                          appearance
+                                        )
+                                      }
+                                    >
+                                      {busy
+                                        ? 'Saving...'
+                                        : 'Save'}
+                                    </button>
 
-              <button
-                type="button"
-                className="secondary-btn"
-                disabled={busy}
-                onClick={() => {
-                  setEditingAppearanceId(
-                    null
-                  );
+                                    <button
+                                      type="button"
+                                      className="secondary-btn"
+                                      disabled={
+                                        busy
+                                      }
+                                      onClick={() => {
+                                        setEditingAppearanceId(
+                                          null
+                                        );
 
-                  setEditQuestionNumber(
-                    ''
-                  );
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-        </div>
-      );
-    }
-  )
-) : (
+                                        setEditQuestionNumber(
+                                          ''
+                                        );
+                                      }}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                        )
+                      ) : (
                         <small
                           style={{
                             color:
@@ -1054,10 +1428,14 @@ async function removeAppearance(
                   {adding && (
                     <div
                       style={{
-                        display: 'grid',
-                        gap: '10px',
-                        marginTop: '10px',
-                        padding: '12px',
+                        display:
+                          'grid',
+                        gap:
+                          '10px',
+                        marginTop:
+                          '10px',
+                        padding:
+                          '12px',
                         border:
                           '1px solid rgba(20,184,166,.35)',
                         borderRadius:
@@ -1070,10 +1448,12 @@ async function removeAppearance(
 
                       <div
                         style={{
-                          display: 'grid',
+                          display:
+                            'grid',
                           gridTemplateColumns:
                             'repeat(auto-fit, minmax(150px, 1fr))',
-                          gap: '8px'
+                          gap:
+                            '8px'
                         }}
                       >
                         <label>
@@ -1086,9 +1466,9 @@ async function removeAppearance(
                             onChange={
                               event => {
                                 const next =
-                                  event.target
-                                    .value as
-                                    Origin;
+                                  event
+                                    .target
+                                    .value as Origin;
 
                                 setOrigin(
                                   next
@@ -1142,7 +1522,8 @@ async function removeAppearance(
                             onChange={
                               event =>
                                 setYear(
-                                  event.target
+                                  event
+                                    .target
                                     .value
                                 )
                             }
@@ -1153,7 +1534,7 @@ async function removeAppearance(
                           Paper
 
                           {origin ===
-                            'cse' ? (
+                          'cse' ? (
                             <select
                               value={
                                 paper
@@ -1161,7 +1542,8 @@ async function removeAppearance(
                               onChange={
                                 event =>
                                   setPaper(
-                                    event.target
+                                    event
+                                      .target
                                       .value
                                   )
                               }
@@ -1186,7 +1568,8 @@ async function removeAppearance(
                               onChange={
                                 event =>
                                   setPaper(
-                                    event.target
+                                    event
+                                      .target
                                       .value
                                   )
                               }
@@ -1205,7 +1588,8 @@ async function removeAppearance(
                             onChange={
                               event =>
                                 setQuestionNumber(
-                                  event.target
+                                  event
+                                    .target
                                     .value
                                 )
                             }
@@ -1215,13 +1599,15 @@ async function removeAppearance(
                       </div>
 
                       {origin ===
-                        'upsc' && (
+                      'upsc' && (
                         <div
                           style={{
-                            display: 'grid',
+                            display:
+                              'grid',
                             gridTemplateColumns:
                               'repeat(auto-fit, minmax(170px, 1fr))',
-                            gap: '8px'
+                            gap:
+                              '8px'
                           }}
                         >
                           <label>
@@ -1234,7 +1620,8 @@ async function removeAppearance(
                               onChange={
                                 event =>
                                   setUpscExamName(
-                                    event.target
+                                    event
+                                      .target
                                       .value
                                   )
                               }
@@ -1252,7 +1639,8 @@ async function removeAppearance(
                               onChange={
                                 event =>
                                   setUpscExamCycle(
-                                    event.target
+                                    event
+                                      .target
                                       .value
                                   )
                               }
@@ -1262,13 +1650,15 @@ async function removeAppearance(
                       )}
 
                       {origin ===
-                        'state' && (
+                      'state' && (
                         <div
                           style={{
-                            display: 'grid',
+                            display:
+                              'grid',
                             gridTemplateColumns:
                               'repeat(auto-fit, minmax(160px, 1fr))',
-                            gap: '8px'
+                            gap:
+                              '8px'
                           }}
                         >
                           <label>
@@ -1281,7 +1671,8 @@ async function removeAppearance(
                               onChange={
                                 event =>
                                   setStateName(
-                                    event.target
+                                    event
+                                      .target
                                       .value
                                   )
                               }
@@ -1298,7 +1689,8 @@ async function removeAppearance(
                               onChange={
                                 event =>
                                   setPscName(
-                                    event.target
+                                    event
+                                      .target
                                       .value
                                   )
                               }
@@ -1315,7 +1707,8 @@ async function removeAppearance(
                               onChange={
                                 event =>
                                   setStateExamName(
-                                    event.target
+                                    event
+                                      .target
                                       .value
                                   )
                               }
@@ -1332,7 +1725,8 @@ async function removeAppearance(
                               onChange={
                                 event =>
                                   setStateCycle(
-                                    event.target
+                                    event
+                                      .target
                                       .value
                                   )
                               }
@@ -1343,10 +1737,12 @@ async function removeAppearance(
 
                       <div
                         style={{
-                          display: 'grid',
+                          display:
+                            'grid',
                           gridTemplateColumns:
                             'repeat(auto-fit, minmax(180px, 1fr))',
-                          gap: '8px'
+                          gap:
+                            '8px'
                         }}
                       >
                         <label>
@@ -1359,7 +1755,8 @@ async function removeAppearance(
                             onChange={
                               event =>
                                 setSource(
-                                  event.target
+                                  event
+                                    .target
                                     .value
                                 )
                             }
@@ -1377,7 +1774,8 @@ async function removeAppearance(
                             onChange={
                               event =>
                                 setSourceUrl(
-                                  event.target
+                                  event
+                                    .target
                                     .value
                                 )
                             }
@@ -1387,9 +1785,12 @@ async function removeAppearance(
 
                       <div
                         style={{
-                          display: 'flex',
-                          gap: '8px',
-                          flexWrap: 'wrap'
+                          display:
+                            'flex',
+                          gap:
+                            '8px',
+                          flexWrap:
+                            'wrap'
                         }}
                       >
                         <button
@@ -1432,7 +1833,9 @@ async function removeAppearance(
           )}
 
           {!visibleQuestions.length && (
-            <div className="callout">
+            <div
+              className="callout"
+            >
               No Prelims PYQs found.
             </div>
           )}
