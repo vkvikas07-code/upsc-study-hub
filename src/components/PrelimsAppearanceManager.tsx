@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';const [message, setMessage] = useState('');
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 type Origin = 'cse' | 'upsc' | 'state';
