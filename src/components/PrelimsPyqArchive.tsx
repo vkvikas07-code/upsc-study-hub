@@ -73,14 +73,18 @@ function normalizeOptions(
   value: unknown
 ): string[] {
   if (
-    !Array.isArray(value)
+    !Array.isArray(
+      value
+    )
   ) {
     return [];
   }
 
   return value.map(
     item =>
-      String(item)
+      String(
+        item
+      )
   );
 }
 
@@ -88,7 +92,9 @@ function normalizeTags(
   value: unknown
 ): string[] {
   if (
-    !Array.isArray(value)
+    !Array.isArray(
+      value
+    )
   ) {
     return [];
   }
@@ -96,9 +102,13 @@ function normalizeTags(
   return value
     .map(
       item =>
-        String(item)
+        String(
+          item
+        )
     )
-    .filter(Boolean);
+    .filter(
+      Boolean
+    );
 }
 
 function safeNumber(
@@ -106,7 +116,9 @@ function safeNumber(
   fallback = 0
 ): number {
   const parsed =
-    Number(value);
+    Number(
+      value
+    );
 
   return Number.isFinite(
     parsed
@@ -127,7 +139,9 @@ function nullableNumber(
   }
 
   const parsed =
-    Number(value);
+    Number(
+      value
+    );
 
   return Number.isFinite(
     parsed
@@ -147,7 +161,9 @@ function nullableText(
   }
 
   const text =
-    clean(value);
+    clean(
+      value
+    );
 
   return text ||
     null;
@@ -157,7 +173,8 @@ function optionLetter(
   index: number
 ): string {
   return String.fromCharCode(
-    65 + index
+    65 +
+    index
   );
 }
 
@@ -196,14 +213,19 @@ function questionNumberLabel(
   index: number
 ): string {
   const number =
-    clean(value);
+    clean(
+      value
+    );
 
-  if (number) {
+  if (
+    number
+  ) {
     return number;
   }
 
   return String(
-    index + 1
+    index +
+    1
   );
 }
 
@@ -285,7 +307,9 @@ export function PrelimsPyqArchive({
   ] =
     useState<
       PrelimsPyqPaper | null
-    >(null);
+    >(
+      null
+    );
 
   const [
     questions,
@@ -310,47 +334,60 @@ export function PrelimsPyqArchive({
     searchText,
     setSearchText
   ] =
-    useState('');
+    useState(
+      ''
+    );
 
   const [
     loadingPapers,
     setLoadingPapers
   ] =
-    useState(true);
+    useState(
+      true
+    );
 
   const [
     loadingQuestions,
     setLoadingQuestions
   ] =
-    useState(false);
+    useState(
+      false
+    );
 
   const [
     message,
     setMessage
   ] =
-    useState('');
+    useState(
+      ''
+    );
 
   async function loadPapers(
     requestedFamily:
       ExamFamily =
         family
   ): Promise<void> {
+    if (
+      !supabase
+    ) {
+      setMessage(
+        'Supabase is not configured.'
+      );
+
+      setLoadingPapers(
+        false
+      );
+
+      return;
+    }
+
     setLoadingPapers(
-      if (!supabase) {
-  setMessage(
-    'Supabase is not configured.'
-  );
-
-  setLoadingPapers(
-    false
-  );
-
-  return;
-}
       true
     );
 
-    setMessage('');
+    setMessage(
+      ''
+    );
 
     const {
       data,
@@ -367,7 +404,9 @@ export function PrelimsPyqArchive({
         }
       );
 
-    if (error) {
+    if (
+      error
+    ) {
       console.error(
         'Unable to load Prelims PYQ papers:',
         error
@@ -378,7 +417,9 @@ export function PrelimsPyqArchive({
         'Unable to load Prelims PYQ papers.'
       );
 
-      setPapers([]);
+      setPapers(
+        []
+      );
 
       setLoadingPapers(
         false
@@ -390,7 +431,9 @@ export function PrelimsPyqArchive({
     const formatted:
       PrelimsPyqPaper[] =
       (
-        Array.isArray(data)
+        Array.isArray(
+          data
+        )
           ? data
           : []
       ).map(
@@ -492,22 +535,27 @@ export function PrelimsPyqArchive({
     paper:
       PrelimsPyqPaper
   ): Promise<void> {
-    if (!supabase) {
-  setMessage(
-    'Supabase is not configured.'
-  );
+    if (
+      !supabase
+    ) {
+      setMessage(
+        'Supabase is not configured.'
+      );
 
-  setLoadingQuestions(
-    false
-  );
+      setLoadingQuestions(
+        false
+      );
 
-  return;
-}
+      return;
+    }
+
     setSelectedPaper(
       paper
     );
 
-    setQuestions([]);
+    setQuestions(
+      []
+    );
 
     setRevealedAnswers(
       {}
@@ -517,7 +565,9 @@ export function PrelimsPyqArchive({
       true
     );
 
-    setMessage('');
+    setMessage(
+      ''
+    );
 
     const {
       data,
@@ -531,7 +581,9 @@ export function PrelimsPyqArchive({
         }
       );
 
-    if (error) {
+    if (
+      error
+    ) {
       console.error(
         'Unable to load paper questions:',
         error
@@ -552,7 +604,9 @@ export function PrelimsPyqArchive({
     const formatted:
       PrelimsPyqPaperQuestion[] =
       (
-        Array.isArray(data)
+        Array.isArray(
+          data
+        )
           ? data
           : []
       ).map(
@@ -678,7 +732,9 @@ export function PrelimsPyqArchive({
             .trim()
             .toLowerCase();
 
-        if (!query) {
+        if (
+          !query
+        ) {
           return papers;
         }
 
@@ -705,7 +761,9 @@ export function PrelimsPyqArchive({
                     value !==
                       undefined
                 )
-                .join(' ')
+                .join(
+                  ' '
+                )
                 .toLowerCase();
 
             return searchable
@@ -733,13 +791,17 @@ export function PrelimsPyqArchive({
       null
     );
 
-    setQuestions([]);
+    setQuestions(
+      []
+    );
 
     setRevealedAnswers(
       {}
     );
 
-    setMessage('');
+    setMessage(
+      ''
+    );
 
     void loadPapers(
       nextFamily
@@ -752,13 +814,17 @@ export function PrelimsPyqArchive({
       null
     );
 
-    setQuestions([]);
+    setQuestions(
+      []
+    );
 
     setRevealedAnswers(
       {}
     );
 
-    setMessage('');
+    setMessage(
+      ''
+    );
   }
 
   function toggleAnswer(
@@ -810,7 +876,8 @@ export function PrelimsPyqArchive({
     void {
     if (
       !selectedPaper ||
-      questions.length === 0
+      questions.length ===
+        0
     ) {
       setMessage(
         'No questions are available for this paper.'
@@ -834,7 +901,9 @@ export function PrelimsPyqArchive({
         selectedPaper,
 
       questions:
-        [...questions]
+        [
+          ...questions
+        ]
     });
   }
 
@@ -1438,7 +1507,8 @@ export function PrelimsPyqArchive({
         <button
           type="button"
           className={
-            family === 'all'
+            family ===
+              'all'
               ? 'primary-btn'
               : 'secondary-btn'
           }
@@ -1455,7 +1525,7 @@ export function PrelimsPyqArchive({
           type="button"
           className={
             family ===
-            'upsc_cse'
+              'upsc_cse'
               ? 'primary-btn'
               : 'secondary-btn'
           }
@@ -1472,7 +1542,7 @@ export function PrelimsPyqArchive({
           type="button"
           className={
             family ===
-            'upsc_other'
+              'upsc_other'
               ? 'primary-btn'
               : 'secondary-btn'
           }
@@ -1489,7 +1559,7 @@ export function PrelimsPyqArchive({
           type="button"
           className={
             family ===
-            'state_psc'
+              'state_psc'
               ? 'primary-btn'
               : 'secondary-btn'
           }
