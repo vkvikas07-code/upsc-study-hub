@@ -498,6 +498,12 @@ export function CurrentPage({
     );
 
   const [
+  selectedNewspaperDay,
+  setSelectedNewspaperDay
+] =
+  useState('');
+  
+  const [
     selected,
     setSelected
   ] =
@@ -657,6 +663,53 @@ export function CurrentPage({
     );
 
 
+  const availableNewspaperDays =
+  Array.from(
+    new Set(
+      items
+        .filter(
+          item => {
+            const sourceKey =
+              getNewspaperKey(
+                item.source
+              );
+
+            return (
+              sourceKey ===
+                'the_hindu' ||
+              sourceKey ===
+                'indian_express'
+            );
+          }
+        )
+        .map(
+          item =>
+            getDayKey(
+              getArticleDateValue(
+                item
+              )
+            )
+        )
+        .filter(
+          (
+            value
+          ):
+            value is string =>
+              Boolean(
+                value
+              )
+        )
+    )
+  ).sort(
+    (
+      a,
+      b
+    ) =>
+      b.localeCompare(
+        a
+      )
+  );
+  
   const activeDay =
     selectedDay ||
     availableDays[0] ||
@@ -672,6 +725,10 @@ export function CurrentPage({
     availableYears[0] ||
     '';
 
+  const activeNewspaperDay =
+  selectedNewspaperDay ||
+  availableNewspaperDays[0] ||
+  '';
 
   const visibleItems =
     filteredItems.filter(
@@ -718,27 +775,41 @@ export function CurrentPage({
           );
         }
 
-        const sourceKey =
-          getNewspaperKey(
-            item.source
-          );
+       const sourceKey =
+  getNewspaperKey(
+    item.source
+  );
 
-        if (
-          newspaperFilter ===
-          'all'
-        ) {
-          return (
-            sourceKey ===
-              'the_hindu' ||
-            sourceKey ===
-              'indian_express'
-          );
-        }
+const articleDay =
+  getDayKey(
+    getArticleDateValue(
+      item
+    )
+  );
 
-        return (
-          sourceKey ===
-          newspaperFilter
-        );
+if (
+  articleDay !==
+  activeNewspaperDay
+) {
+  return false;
+}
+
+if (
+  newspaperFilter ===
+  'all'
+) {
+  return (
+    sourceKey ===
+      'the_hindu' ||
+    sourceKey ===
+      'indian_express'
+  );
+}
+
+return (
+  sourceKey ===
+  newspaperFilter
+);
       }
     );
 
@@ -1390,12 +1461,21 @@ export function CurrentPage({
                 ? 'filter active'
                 : 'filter'
             }
-            onClick={() =>
-              setViewMode(
-                'newspaper'
-              )
-            }
-          >
+           onClick={() => {
+  setViewMode(
+    'newspaper'
+  );
+
+  if (
+    filter ===
+    'pib'
+  ) {
+    setFilter(
+      'all'
+    );
+  }
+}
+             >
             Newspaper Reading
           </button>
         </div>
@@ -1560,6 +1640,55 @@ export function CurrentPage({
               UPSC-focused newspaper reading with special emphasis on The Hindu and The Indian Express.
             </p>
 
+            <label
+  style={{
+    display:
+      'grid',
+
+    gap:
+      '7px',
+
+    marginTop:
+      '14px',
+
+    marginBottom:
+      '14px'
+  }}
+>
+  Newspaper Date
+
+  <select
+    value={
+      activeNewspaperDay
+    }
+    onChange={
+      event =>
+        setSelectedNewspaperDay(
+          event
+            .target
+            .value
+        )
+    }
+  >
+    {availableNewspaperDays.map(
+      value => (
+        <option
+          key={
+            value
+          }
+          value={
+            value
+          }
+        >
+          {formatDayKey(
+            value
+          )}
+        </option>
+      )
+    )}
+  </select>
+</label>
+            
             <div
               className="filter-row"
             >
