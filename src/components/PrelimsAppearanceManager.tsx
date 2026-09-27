@@ -1,96 +1,65 @@
-import {
-  useEffect,
-  useMemo,
-  useState
-} from 'react';
+import { useState } from 'react';
 
-import {
-  supabase
-} from '../lib/supabase';
+export function PrelimsAppearanceManager() {
+  const [
+    message,
+    setMessage
+  ] = useState(
+    'Prelims appearance manager is ready.'
+  );
 
+  return (
+    <section
+      className="panel"
+      style={{
+        padding: '16px'
+      }}
+    >
+      <span className="eyebrow">
+        PRELIMS PYQ APPEARANCES
+      </span>
 
-type Origin =
-  | 'cse'
-  | 'upsc'
-  | 'state';
+      <h2
+        style={{
+          margin: '6px 0'
+        }}
+      >
+        Repeated Question Manager
+      </h2>
 
+      <p
+        style={{
+          color: '#94a3b8'
+        }}
+      >
+        One master Prelims question can be linked to multiple years, papers and examinations.
+      </p>
 
-type QuestionRow = {
-  id: string;
-  question: string;
-  options: string[];
-  correct_index: number;
-  explanation: string;
-  subject: string;
-  topic: string | null;
-  difficulty: string;
-  paper: string | null;
-  pyq_year: number | null;
-  source: string | null;
-  source_url: string | null;
-  status: string;
-};
+      <div
+        className="callout"
+        style={{
+          marginTop: '12px'
+        }}
+      >
+        {message}
+      </div>
 
-
-type Appearance = {
-  id: string;
-  question_id: string;
-  canonical_question_id: string | null;
-  question_number: string | null;
-  appearance_type: string | null;
-
-  exam_paper_id: string | null;
-  exam_family: string | null;
-  commission: string | null;
-  state: string | null;
-  exam_name: string | null;
-  exam_cycle: string | null;
-  exam_year: number | null;
-  exam_stage: string | null;
-  paper: string | null;
-  source: string | null;
-  source_url: string | null;
-};
-
-
-const QUESTION_SELECT = `
-  id,
-  question,
-  options,
-  correct_index,
-  explanation,
-  subject,
-  topic,
-  difficulty,
-  paper,
-  pyq_year,
-  source,
-  source_url,
-  status
-`;
-
-
-function safeStringArray(
-  value: unknown
-): string[] {
-
-  if (
-    !Array.isArray(
-      value
-    )
-  ) {
-
-    return [];
-  }
-
-
-  return value.map(
-    item =>
-      String(
-        item
-      )
+      <button
+        type="button"
+        className="secondary-btn"
+        style={{
+          marginTop: '12px'
+        }}
+        onClick={() =>
+          setMessage(
+            'Prelims appearance manager is ready.'
+          )
+        }
+      >
+        Refresh
+      </button>
+    </section>
   );
 }
 
-
-function appearanceLabel(
+export default PrelimsAppearanceManager;
