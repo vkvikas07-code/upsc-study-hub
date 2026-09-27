@@ -895,24 +895,150 @@ async function removeAppearance(
                       }}
                     >
                       {appearances.length ? (
-                        appearances.map(
-                          appearance => (
-                            <small
-                              key={
-                                appearance.id
-                              }
-                              style={{
-                                color:
-                                  '#cbd5e1'
-                              }}
-                            >
-                              {appearanceLabel(
-                                appearance
-                              )}
-                            </small>
-                          )
-                        )
-                      ) : (
+  appearances.map(
+    appearance => {
+      const editing =
+        editingAppearanceId ===
+        appearance.id;
+
+      const busy =
+        busyAppearanceId ===
+        appearance.id;
+
+      return (
+        <div
+          key={appearance.id}
+          style={{
+            display: 'grid',
+            gap: '8px',
+            padding: '8px',
+            border:
+              '1px solid rgba(255,255,255,.06)',
+            borderRadius: '8px'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent:
+                'space-between',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap'
+            }}
+          >
+            <small
+              style={{
+                color: '#cbd5e1'
+              }}
+            >
+              {appearanceLabel(
+                appearance
+              )}
+            </small>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '6px',
+                flexWrap: 'wrap'
+              }}
+            >
+              <button
+                type="button"
+                className="secondary-btn"
+                disabled={busy}
+                onClick={() =>
+                  startEditAppearance(
+                    appearance
+                  )
+                }
+              >
+                Edit Q No.
+              </button>
+
+              <button
+                type="button"
+                className="secondary-btn"
+                disabled={
+                  busy ||
+                  appearances.length <= 1
+                }
+                onClick={() =>
+                  void removeAppearance(
+                    appearance,
+                    appearances.length
+                  )
+                }
+              >
+                {busy
+                  ? 'Working...'
+                  : 'Remove'}
+              </button>
+            </div>
+          </div>
+
+          {editing && (
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap',
+                alignItems: 'end'
+              }}
+            >
+              <label>
+                Question No.
+
+                <input
+                  value={
+                    editQuestionNumber
+                  }
+                  onChange={
+                    event =>
+                      setEditQuestionNumber(
+                        event.target.value
+                      )
+                  }
+                />
+              </label>
+
+              <button
+                type="button"
+                className="primary-btn"
+                disabled={busy}
+                onClick={() =>
+                  void saveAppearanceEdit(
+                    appearance
+                  )
+                }
+              >
+                Save
+              </button>
+
+              <button
+                type="button"
+                className="secondary-btn"
+                disabled={busy}
+                onClick={() => {
+                  setEditingAppearanceId(
+                    null
+                  );
+
+                  setEditQuestionNumber(
+                    ''
+                  );
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+  )
+) : (
                         <small
                           style={{
                             color:
