@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';const [message, setMessage] = useState('');
 import { supabase } from '../lib/supabase';
 
 type Origin = 'cse' | 'upsc' | 'state';
@@ -86,6 +86,21 @@ export function PrelimsAppearanceManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+
+  const [
+  editingAppearanceId,
+  setEditingAppearanceId
+] = useState<string | null>(null);
+
+const [
+  editQuestionNumber,
+  setEditQuestionNumber
+] = useState('');
+
+const [
+  busyAppearanceId,
+  setBusyAppearanceId
+] = useState<string | null>(null);
 
   async function loadData(): Promise<void> {
     setLoading(true);
@@ -543,7 +558,113 @@ export function PrelimsAppearanceManager() {
 
     await loadData();
   }
+function startEditAppearance(
+  appearance: Appearance
+): void {
+  setEditingAppearanceId(
+    appearance.id
+  );
 
+  setEditQuestionNumber(
+    appearance.question_number || ''
+  );
+}
+
+async function saveAppearanceEdit(
+  appearance: Appearance
+): Promise<void> {
+  setBusyAppearanceId(
+    appearance.id
+  );
+
+  const {
+    error
+  } =
+    await db
+      .from('question_appearances')
+      .update({
+        question_number:
+          editQuestionNumber.trim() ||
+          null
+      })
+      .eq(
+        'id',
+        appearance.id
+      );
+
+  setBusyAppearanceId(null);
+
+  if (error) {
+    setMessage(
+      error.message
+    );
+    return;
+  }
+
+  setEditingAppearanceId(null);
+  setEditQuestionNumber('');
+
+  setMessage(
+    'Appearance updated successfully.'
+  );
+
+  await loadData();
+}
+
+async function removeAppearance(
+  appearance: Appearance,
+  totalAppearances: number
+): Promise<void> {
+  if (
+    totalAppearances <= 1
+  ) {
+    setMessage(
+      'The last appearance cannot be removed. Add another appearance first.'
+    );
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      'Remove only this appearance? The master Prelims question will remain.'
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setBusyAppearanceId(
+    appearance.id
+  );
+
+  const {
+    error
+  } =
+    await db
+      .from('question_appearances')
+      .delete()
+      .eq(
+        'id',
+        appearance.id
+      );
+
+  setBusyAppearanceId(null);
+
+  if (error) {
+    setMessage(
+      error.message
+    );
+    return;
+  }
+
+  setEditingAppearanceId(null);
+
+  setMessage(
+    'Appearance removed. Master Prelims question kept.'
+  );
+
+  await loadData();
+} 
   return (
     <section
       className="panel"
