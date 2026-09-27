@@ -1420,20 +1420,21 @@ export default function SecureApp() {
             .from(
               'current_affairs'
             )
-            .select(
-              `
-              id,
-              title,
-              source,
-              subject,
-              summary,
-              tags,
-              prelims,
-              mains,
-              published_at,
-              status
-              `
-            )
+           .select(
+  `
+  id,
+  title,
+  source,
+  source_url,
+  subject,
+  summary,
+  tags,
+  prelims,
+  mains,
+  published_at,
+  status
+  `
+)
             .eq(
               'status',
               'published'
@@ -1481,10 +1482,13 @@ export default function SecureApp() {
                 item.title,
 
               source:
-                item.source,
+  item.source,
 
-              subject:
-                item.subject,
+sourceUrl:
+  item.source_url,
+
+subject:
+  item.subject,
 
               summary:
                 item.summary,
@@ -1501,27 +1505,33 @@ export default function SecureApp() {
 
               publishedAt:
 
-                item.published_at
+                publishedAt:
 
-                  ? new Date(
-                      item.published_at
-                    )
-                      .toLocaleDateString(
-                        'en-IN',
-                        {
-                          day:
-                            '2-digit',
+  item.published_at
 
-                          month:
-                            'short',
+    ? new Date(
+        item.published_at
+      )
+        .toLocaleDateString(
+          'en-IN',
+          {
+            day:
+              '2-digit',
 
-                          year:
-                            'numeric'
-                        }
-                      )
+            month:
+              'short',
 
-                  : ''
+            year:
+              'numeric'
+          }
+        )
 
+    : '',
+
+publishedAtIso:
+  item.published_at ||
+  null
+              
             })
           )
 
