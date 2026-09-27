@@ -24,6 +24,303 @@ type FilterKey =
   | 'prelims'
   | 'mains'
   | 'pib';
+type CurrentView =
+  | 'daily'
+  | 'monthly'
+  | 'yearly'
+  | 'newspaper';
+
+type NewspaperKey =
+  | 'all'
+  | 'the_hindu'
+  | 'indian_express';
+
+function parsePublishedDate(
+  value: string
+): Date | null {
+  const clean =
+    value
+      .trim();
+
+  const lower =
+    clean
+      .toLowerCase();
+
+  const today =
+    new Date();
+
+  if (
+    lower ===
+    'today'
+  ) {
+    return new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+  }
+
+  if (
+    lower ===
+    'yesterday'
+  ) {
+    const date =
+      new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      );
+
+    date.setDate(
+      date.getDate() -
+      1
+    );
+
+    return date;
+  }
+
+  const monthMap:
+    Record<
+      string,
+      number
+    > = {
+      jan: 0,
+      feb: 1,
+      mar: 2,
+      apr: 3,
+      may: 4,
+      jun: 5,
+      jul: 6,
+      aug: 7,
+      sep: 8,
+      oct: 9,
+      nov: 10,
+      dec: 11
+    };
+
+  const match =
+    clean.match(
+      /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/
+    );
+
+  if (
+    match
+  ) {
+    const day =
+      Number(
+        match[1]
+      );
+
+    const month =
+      monthMap[
+        match[2]
+          .toLowerCase()
+      ];
+
+    const year =
+      Number(
+        match[3]
+      );
+
+    if (
+      month !==
+      undefined
+    ) {
+      return new Date(
+        year,
+        month,
+        day
+      );
+    }
+  }
+
+  const parsed =
+    new Date(
+      clean
+    );
+
+  if (
+    Number.isNaN(
+      parsed.getTime()
+    )
+  ) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function getDayKey(
+  value: string
+): string | null {
+  const date =
+    parsePublishedDate(
+      value
+    );
+
+  if (
+    !date
+  ) {
+    return null;
+  }
+
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
+      date.getMonth() +
+      1
+    ).padStart(
+      2,
+      '0'
+    );
+
+  const day =
+    String(
+      date.getDate()
+    ).padStart(
+      2,
+      '0'
+    );
+
+  return (
+    `${year}-${month}-${day}`
+  );
+}
+
+function getMonthKey(
+  value: string
+): string | null {
+  const date =
+    parsePublishedDate(
+      value
+    );
+
+  if (
+    !date
+  ) {
+    return null;
+  }
+
+  return (
+    `${date.getFullYear()}-${String(
+      date.getMonth() +
+      1
+    ).padStart(
+      2,
+      '0'
+    )}`
+  );
+}
+
+function getYearKey(
+  value: string
+): string | null {
+  const date =
+    parsePublishedDate(
+      value
+    );
+
+  if (
+    !date
+  ) {
+    return null;
+  }
+
+  return String(
+    date.getFullYear()
+  );
+}
+
+function formatDayKey(
+  value: string
+): string {
+  const [
+    year,
+    month,
+    day
+  ] =
+    value
+      .split('-')
+      .map(Number);
+
+  return new Date(
+    year,
+    month - 1,
+    day
+  ).toLocaleDateString(
+    'en-IN',
+    {
+      day:
+        '2-digit',
+
+      month:
+        'long',
+
+      year:
+        'numeric'
+    }
+  );
+}
+
+function formatMonthKey(
+  value: string
+): string {
+  const [
+    year,
+    month
+  ] =
+    value
+      .split('-')
+      .map(Number);
+
+  return new Date(
+    year,
+    month - 1,
+    1
+  ).toLocaleDateString(
+    'en-IN',
+    {
+      month:
+        'long',
+
+      year:
+        'numeric'
+    }
+  );
+}
+
+function getNewspaperKey(
+  source: string
+):
+  | NewspaperKey
+  | 'other' {
+  const clean =
+    source
+      .trim()
+      .toLowerCase();
+
+  if (
+    clean.includes(
+      'the hindu'
+    ) ||
+    clean ===
+      'hindu'
+  ) {
+    return 'the_hindu';
+  }
+
+  if (
+    clean.includes(
+      'indian express'
+    )
+  ) {
+    return 'indian_express';
+  }
+
+  return 'other';
+}
 
 
 type DetailedArticle =
@@ -217,6 +514,39 @@ export function CurrentPage({
       'all'
     );
 
+  const [
+  viewMode,
+  setViewMode
+] =
+  useState<CurrentView>(
+    'daily'
+  );
+
+const [
+  selectedDay,
+  setSelectedDay
+] =
+  useState('');
+
+const [
+  selectedMonth,
+  setSelectedMonth
+] =
+  useState('');
+
+const [
+  selectedYear,
+  setSelectedYear
+] =
+  useState('');
+
+const [
+  newspaperFilter,
+  setNewspaperFilter
+] =
+  useState<NewspaperKey>(
+    'all'
+  );
 
   /*
    * =========================================
@@ -312,6 +642,172 @@ export function CurrentPage({
       }
     );
 
+  const availableDays =
+  Array.from(
+    new Set(
+      items
+        .map(
+          item =>
+            getDayKey(
+              item.publishedAt
+            )
+        )
+        .filter(
+          (
+            value
+          ):
+            value is string =>
+              Boolean(
+                value
+              )
+        )
+    )
+  ).sort(
+    (
+      a,
+      b
+    ) =>
+      b.localeCompare(
+        a
+      )
+  );
+
+const availableMonths =
+  Array.from(
+    new Set(
+      items
+        .map(
+          item =>
+            getMonthKey(
+              item.publishedAt
+            )
+        )
+        .filter(
+          (
+            value
+          ):
+            value is string =>
+              Boolean(
+                value
+              )
+        )
+    )
+  ).sort(
+    (
+      a,
+      b
+    ) =>
+      b.localeCompare(
+        a
+      )
+  );
+
+const availableYears =
+  Array.from(
+    new Set(
+      items
+        .map(
+          item =>
+            getYearKey(
+              item.publishedAt
+            )
+        )
+        .filter(
+          (
+            value
+          ):
+            value is string =>
+              Boolean(
+                value
+              )
+        )
+    )
+  ).sort(
+    (
+      a,
+      b
+    ) =>
+      Number(b) -
+      Number(a)
+  );
+
+const activeDay =
+  selectedDay ||
+  availableDays[0] ||
+  '';
+
+const activeMonth =
+  selectedMonth ||
+  availableMonths[0] ||
+  '';
+
+const activeYear =
+  selectedYear ||
+  availableYears[0] ||
+  '';
+
+const visibleItems =
+  filteredItems.filter(
+    item => {
+      if (
+        viewMode ===
+        'daily'
+      ) {
+        return (
+          getDayKey(
+            item.publishedAt
+          ) ===
+          activeDay
+        );
+      }
+
+      if (
+        viewMode ===
+        'monthly'
+      ) {
+        return (
+          getMonthKey(
+            item.publishedAt
+          ) ===
+          activeMonth
+        );
+      }
+
+      if (
+        viewMode ===
+        'yearly'
+      ) {
+        return (
+          getYearKey(
+            item.publishedAt
+          ) ===
+          activeYear
+        );
+      }
+
+      const sourceKey =
+        getNewspaperKey(
+          item.source
+        );
+
+      if (
+        newspaperFilter ===
+        'all'
+      ) {
+        return (
+          sourceKey ===
+            'the_hindu' ||
+          sourceKey ===
+            'indian_express'
+        );
+      }
+
+      return (
+        sourceKey ===
+        newspaperFilter
+      );
+    }
+  );
 
   /*
    * =========================================
@@ -1057,6 +1553,323 @@ export function CurrentPage({
         subtitle="Relevant, linked and revision-ready"
       />
 
+      <section
+  className="panel"
+  style={{
+    marginBottom:
+      '18px',
+
+    padding:
+      '14px'
+  }}
+>
+  <span
+    className="eyebrow"
+  >
+    CURRENT AFFAIRS HUB
+  </span>
+
+  <div
+    style={{
+      display:
+        'grid',
+
+      gridTemplateColumns:
+        'repeat(auto-fit,minmax(150px,1fr))',
+
+      gap:
+        '8px',
+
+      marginTop:
+        '12px'
+    }}
+  >
+    <button
+      type="button"
+      className={
+        viewMode ===
+          'daily'
+          ? 'filter active'
+          : 'filter'
+      }
+      onClick={() =>
+        setViewMode(
+          'daily'
+        )
+      }
+    >
+      Daily
+    </button>
+
+    <button
+      type="button"
+      className={
+        viewMode ===
+          'monthly'
+          ? 'filter active'
+          : 'filter'
+      }
+      onClick={() =>
+        setViewMode(
+          'monthly'
+        )
+      }
+    >
+      Monthly
+    </button>
+
+    <button
+      type="button"
+      className={
+        viewMode ===
+          'yearly'
+          ? 'filter active'
+          : 'filter'
+      }
+      onClick={() =>
+        setViewMode(
+          'yearly'
+        )
+      }
+    >
+      Yearly
+    </button>
+
+    <button
+      type="button"
+      className={
+        viewMode ===
+          'newspaper'
+          ? 'filter active'
+          : 'filter'
+      }
+      onClick={() =>
+        setViewMode(
+          'newspaper'
+        )
+      }
+    >
+      Newspaper Reading
+    </button>
+  </div>
+
+  {viewMode ===
+    'daily' && (
+    <label
+      style={{
+        display:
+          'grid',
+
+        gap:
+          '7px',
+
+        marginTop:
+          '16px'
+      }}
+    >
+      Select Date
+
+      <select
+        value={
+          activeDay
+        }
+        onChange={
+          event =>
+            setSelectedDay(
+              event
+                .target
+                .value
+            )
+        }
+      >
+        {availableDays.map(
+          value => (
+            <option
+              key={
+                value
+              }
+              value={
+                value
+              }
+            >
+              {formatDayKey(
+                value
+              )}
+            </option>
+          )
+        )}
+      </select>
+    </label>
+  )}
+
+  {viewMode ===
+    'monthly' && (
+    <label
+      style={{
+        display:
+          'grid',
+
+        gap:
+          '7px',
+
+        marginTop:
+          '16px'
+      }}
+    >
+      Select Month
+
+      <select
+        value={
+          activeMonth
+        }
+        onChange={
+          event =>
+            setSelectedMonth(
+              event
+                .target
+                .value
+            )
+        }
+      >
+        {availableMonths.map(
+          value => (
+            <option
+              key={
+                value
+              }
+              value={
+                value
+              }
+            >
+              {formatMonthKey(
+                value
+              )}
+            </option>
+          )
+        )}
+      </select>
+    </label>
+  )}
+
+  {viewMode ===
+    'yearly' && (
+    <label
+      style={{
+        display:
+          'grid',
+
+        gap:
+          '7px',
+
+        marginTop:
+          '16px'
+      }}
+    >
+      Select Year
+
+      <select
+        value={
+          activeYear
+        }
+        onChange={
+          event =>
+            setSelectedYear(
+              event
+                .target
+                .value
+            )
+        }
+      >
+        {availableYears.map(
+          value => (
+            <option
+              key={
+                value
+              }
+              value={
+                value
+              }
+            >
+              {value}
+            </option>
+          )
+        )}
+      </select>
+    </label>
+  )}
+
+  {viewMode ===
+    'newspaper' && (
+    <>
+      <p
+        style={{
+          marginTop:
+            '16px',
+
+          color:
+            '#94a3b8'
+        }}
+      >
+        UPSC-focused newspaper reading with special emphasis on The Hindu and The Indian Express.
+      </p>
+
+      <div
+        className="filter-row"
+      >
+        <button
+          type="button"
+          className={
+            newspaperFilter ===
+              'all'
+              ? 'filter active'
+              : 'filter'
+          }
+          onClick={() =>
+            setNewspaperFilter(
+              'all'
+            )
+          }
+        >
+          All Newspapers
+        </button>
+
+        <button
+          type="button"
+          className={
+            newspaperFilter ===
+              'the_hindu'
+              ? 'filter active'
+              : 'filter'
+          }
+          onClick={() =>
+            setNewspaperFilter(
+              'the_hindu'
+            )
+          }
+        >
+          The Hindu
+        </button>
+
+        <button
+          type="button"
+          className={
+            newspaperFilter ===
+              'indian_express'
+              ? 'filter active'
+              : 'filter'
+          }
+          onClick={() =>
+            setNewspaperFilter(
+              'indian_express'
+            )
+          }
+        >
+          Indian Express
+        </button>
+      </div>
+    </>
+  )}
+</section>
 
       {/* =================================
           FILTERS
@@ -1179,7 +1992,7 @@ export function CurrentPage({
         className="article-list"
       >
 
-        {filteredItems.map(
+        {visibleItems.map(
           item => (
 
             <article
@@ -1286,8 +2099,8 @@ export function CurrentPage({
             EMPTY STATE
         ================================= */}
 
-        {filteredItems.length ===
-          0 && (
+      {visibleItems.length ===
+  0 && (
 
           <div
             className="panel"
