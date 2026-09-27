@@ -4,10 +4,12 @@ export type CurrentAffair = {
   id: string;
   title: string;
   source: string;
+  sourceUrl?: string | null;
   subject: string;
   summary: string;
   tags: string[];
   publishedAt: string;
+  publishedAtIso?: string | null;
   prelims: boolean;
   mains: boolean;
 };
