@@ -35,6 +35,10 @@ import {
   PendingEvaluationBadge
 } from '../components/PendingEvaluationBadge';
 
+import {
+  MainsPyqManager
+} from '../components/MainsPyqManager';
+
 import type {
   CurrentAffair
 } from '../types';
@@ -44,16 +48,10 @@ import {
   supabase
 } from '../lib/supabase';
 
-import {
-  MainsPyqManager
-} from '../components/MainsPyqManager';
-
-
 type ArticleStatus =
   | 'draft'
   | 'published'
   | 'archived';
-
 
 type AdminTab =
   | 'current'
@@ -62,6 +60,9 @@ type AdminTab =
   | 'mains'
   | 'evaluation';
 
+type MainsWorkspace =
+  | 'pyq'
+  | 'practice';
 
 type AdminArticle = {
   id: string;
@@ -85,7 +86,6 @@ type AdminArticle = {
   created_at: string;
   updated_at: string;
 };
-
 
 const ARTICLE_SELECT = `
   id,
