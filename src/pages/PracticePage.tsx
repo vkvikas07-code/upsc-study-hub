@@ -7,7 +7,10 @@ import {
 
 import { TopBar } from '../components/TopBar';
 import { PrelimsBookmarkButton } from '../components/PrelimsBookmarkButton';
-import { PrelimsPyqArchive } from '../components/PrelimsPyqArchive';
+import {
+  PrelimsPyqArchive,
+  type PrelimsPaperTestPayload
+} from '../components/PrelimsPyqArchive';
 import { supabase } from '../lib/supabase';
 
 
@@ -2881,6 +2884,295 @@ export function PracticePage() {
 
 
 
+  function startOriginalPaperTest(
+  payload: PrelimsPaperTestPayload
+) {
+  if (
+    payload.paper.exam_family !==
+    'upsc_cse'
+  ) {
+    setSetupMessage(
+      'Original paper test mode is currently available for UPSC CSE only.'
+    );
+
+    return;
+  }
+
+  if (
+    payload.questions.length ===
+    0
+  ) {
+    setSetupMessage(
+      'No questions are available for this paper.'
+    );
+
+    return;
+  }
+
+  const paperYear =
+    payload.paper.exam_year;
+
+  const selectedSet:
+    LiveQuestion[] =
+    payload.questions.map(
+      item => ({
+        id:
+          item.canonical_question_id ||
+          item.question_id,
+
+        question:
+          item.question,
+
+        options:
+          [...item.options],
+
+        correct_index:
+          item.correct_index,
+
+        explanation:
+          item.explanation,
+
+        subject:
+          item.subject,
+
+        difficulty:
+          normalizeDifficulty(
+            item.difficulty
+          ),
+
+        topic:
+          item.topic,
+
+        paper:
+          payload.paper.paper,
+
+        tags:
+          [...item.tags],
+
+        source:
+          item.source ||
+          payload.paper.source,
+
+        source_url:
+          item.source_url ||
+          payload.paper.source_url,
+
+        is_pyq:
+          true,
+
+        appearance_count:
+          1,
+
+        origins:
+          ['cse'],
+
+        cse_pyq_years:
+          paperYear
+            ? [paperYear]
+            : [],
+
+        upsc_exam_names:
+          [],
+
+        upsc_exam_cycles:
+          [],
+
+        upsc_exam_years:
+          [],
+
+        state_psc_states:
+          [],
+
+        state_psc_names:
+          [],
+
+        state_psc_exam_names:
+          [],
+
+        state_psc_years:
+          [],
+
+        stored_question_ids:
+          item.question_id
+            ? [item.question_id]
+            : [],
+
+        appearances:
+          [
+            {
+              appearance_id:
+                item.appearance_id,
+
+              stored_question_id:
+                item.question_id,
+
+              exam_paper_id:
+                item.exam_paper_id,
+
+              exam_family:
+                payload.paper.exam_family,
+
+              commission:
+                payload.paper.commission,
+
+              state:
+                payload.paper.state,
+
+              exam_name:
+                payload.paper.exam_name,
+
+              exam_cycle:
+                payload.paper.exam_cycle,
+
+              year:
+                payload.paper.exam_year,
+
+              stage:
+                payload.paper.exam_stage,
+
+              paper:
+                payload.paper.paper,
+
+              question_number:
+                item.question_number,
+
+              appearance_type:
+                item.appearance_type,
+
+              source_reference:
+                item.source_url ||
+                item.source ||
+                payload.paper.source_url ||
+                payload.paper.source
+            }
+          ]
+      })
+    );
+
+  setSessionMode(
+    'exam'
+  );
+
+  setOriginFilter(
+    'cse'
+  );
+
+  setTypeFilter(
+    'pyq'
+  );
+
+  setCsePyqYearFilter(
+    paperYear
+      ? String(paperYear)
+      : 'all'
+  );
+
+  setSessionSize(
+    'all'
+  );
+
+  setSubjectFilter(
+    'all'
+  );
+
+  setTopicFilter(
+    'all'
+  );
+
+  setDifficultyFilter(
+    'all'
+  );
+
+  setSearchText(
+    ''
+  );
+
+  setBookmarkedOnly(
+    false
+  );
+
+  setQuestions(
+    selectedSet
+  );
+
+  setIndex(
+    0
+  );
+
+  setSelected(
+    null
+  );
+
+  setScore(
+    0
+  );
+
+  setAnswers(
+    []
+  );
+
+  setFinished(
+    false
+  );
+
+  setExamSelections(
+    {}
+  );
+
+  setMarkedForReview(
+    {}
+  );
+
+  setExamResult(
+    null
+  );
+
+  setShowExamReview(
+    false
+  );
+
+  setExamSubmitting(
+    false
+  );
+
+  setAttemptSaved(
+    false
+  );
+
+  setResultMessage(
+    ''
+  );
+
+  setSetupMessage(
+    ''
+  );
+
+  setSessionStartedAt(
+    Date.now()
+  );
+
+  const limit =
+    selectedSet.length *
+    CSE_SECONDS_PER_QUESTION;
+
+  setTimeLimitSeconds(
+    limit
+  );
+
+  setTimeLeft(
+    limit
+  );
+
+  setPracticeStarted(
+    true
+  );
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+  
   function startPractice() {
 
     if (
@@ -5469,7 +5761,11 @@ export function PracticePage() {
             </p>
 
 
-            <PrelimsPyqArchive />
+           <PrelimsPyqArchive
+  onStartPaperTest={
+    startOriginalPaperTest
+  }
+/>
 
           </details>
 
