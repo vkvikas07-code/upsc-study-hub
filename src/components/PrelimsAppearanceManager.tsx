@@ -93,15 +93,8 @@ export function PrelimsAppearanceManager() {
     const { data: questionData, error: questionError } = await db
   .from('questions')
   .select(QUESTION_SELECT)
-  .in(
-    'exam_stage',
-    [
-      'prelims',
-      'Preliminary'
-    ]
-  )
   .or(
-    'is_pyq.eq.true,pyq_year.not.is.null,upsc_exam_year.not.is.null,state_psc_year.not.is.null'
+    'is_pyq.eq.true,pyq_year.not.is.null,upsc_exam_year.not.is.null,state_psc_year.not.is.null,exam_stage.ilike.prelim%'
   )
   .order(
     'pyq_year',
