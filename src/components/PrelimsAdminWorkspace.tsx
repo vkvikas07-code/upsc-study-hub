@@ -18,9 +18,14 @@ import {
   PrelimsImportReview
 } from './PrelimsImportReview';
 
+import {
+  PrelimsAppearanceManager
+} from './PrelimsAppearanceManager';
+
 
 type PrelimsWorkspace =
   | 'quick-import'
+  | 'appearances'
   | 'editor'
   | 'bank'
   | 'review';
@@ -37,22 +42,32 @@ const TABS: TabItem[] = [
   {
     id: 'quick-import',
     label: 'Quick PYQ Import',
-    helper: 'Import a complete previous-year paper quickly.'
+    helper:
+      'Import a complete previous-year paper quickly.'
+  },
+  {
+    id: 'appearances',
+    label: 'PYQ Appearances',
+    helper:
+      'View repeated Prelims questions and link the same master question to another year, paper or examination.'
   },
   {
     id: 'editor',
     label: 'Add / Edit MCQ',
-    helper: 'Create or edit one Prelims question.'
+    helper:
+      'Create or edit one Prelims question.'
   },
   {
     id: 'bank',
     label: 'Question Bank',
-    helper: 'Search, filter and manage stored questions.'
+    helper:
+      'Search, filter and manage stored questions.'
   },
   {
     id: 'review',
     label: 'Import Review',
-    helper: 'Resolve duplicate or conflicting imported PYQs.'
+    helper:
+      'Resolve duplicate or conflicting imported PYQs.'
   }
 ];
 
@@ -156,6 +171,16 @@ export function PrelimsAdminWorkspace() {
           'quick-import' && (
 
           <PrelimsPyqQuickImport />
+
+        )
+      }
+
+
+      {
+        workspace ===
+          'appearances' && (
+
+          <PrelimsAppearanceManager />
 
         )
       }
