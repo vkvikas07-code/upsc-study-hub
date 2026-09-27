@@ -961,6 +961,15 @@ export function PracticePage() {
       false
     );
 
+  const [
+  originalPaperTest,
+  setOriginalPaperTest
+] =
+  useState<
+    PrelimsPaperTestPayload['paper'] | null
+  >(
+    null
+  );
 
 
   const [
@@ -2856,26 +2865,87 @@ export function PracticePage() {
         searchText,
 
       bookmarked_only:
-        bookmarkedOnly,
+  bookmarkedOnly,
 
 
-      cse_pattern:
+original_pyq_paper:
 
-        sessionMode ===
-          'exam'
+  originalPaperTest
 
-          ? {
+    ? {
 
-              marks_per_question:
-                CSE_MARKS_PER_QUESTION,
+        exam_paper_id:
+          originalPaperTest
+            .exam_paper_id,
 
-              negative_mark:
-                CSE_NEGATIVE_MARK,
+        exam_family:
+          originalPaperTest
+            .exam_family,
 
-              seconds_per_question:
-                CSE_SECONDS_PER_QUESTION
+        commission:
+          originalPaperTest
+            .commission,
 
-            }
+        state:
+          originalPaperTest
+            .state,
+
+        exam_name:
+          originalPaperTest
+            .exam_name,
+
+        exam_cycle:
+          originalPaperTest
+            .exam_cycle,
+
+        exam_year:
+          originalPaperTest
+            .exam_year,
+
+        exam_stage:
+          originalPaperTest
+            .exam_stage,
+
+        paper:
+          originalPaperTest
+            .paper,
+
+        paper_code:
+          originalPaperTest
+            .paper_code,
+
+        source:
+          originalPaperTest
+            .source,
+
+        source_url:
+          originalPaperTest
+            .source_url
+
+      }
+
+    : null,
+
+
+cse_pattern:
+
+  sessionMode ===
+    'exam'
+
+    ? {
+
+        marks_per_question:
+          CSE_MARKS_PER_QUESTION,
+
+        negative_mark:
+          CSE_NEGATIVE_MARK,
+
+        seconds_per_question:
+          CSE_SECONDS_PER_QUESTION
+
+      }
+
+    : null
 
           : null
 
@@ -2911,6 +2981,10 @@ export function PracticePage() {
 
   const paperYear =
     payload.paper.exam_year;
+
+    setOriginalPaperTest(
+  payload.paper
+);
 
   const selectedSet:
     LiveQuestion[] =
@@ -3174,6 +3248,9 @@ export function PracticePage() {
 }
   
   function startPractice() {
+    setOriginalPaperTest(
+  null
+);
 
     if (
       filteredQuestions
@@ -4364,7 +4441,6 @@ export function PracticePage() {
 
     resetActiveSession();
 
-
     void loadBookmarkedQuestionIds();
   }
 
@@ -4399,6 +4475,9 @@ export function PracticePage() {
       </div>
 
     );
+    setOriginalPaperTest(
+  null
+);
   }
 
 
