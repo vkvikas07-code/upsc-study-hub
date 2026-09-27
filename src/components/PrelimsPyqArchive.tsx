@@ -1076,7 +1076,9 @@ export function PrelimsPyqArchive({
               '18px'
           }}
         >
-          {onStartPaperTest && (
+         {onStartPaperTest &&
+  selectedPaper.exam_family ===
+    'upsc_cse' && (
             <button
               type="button"
               className="primary-btn"
