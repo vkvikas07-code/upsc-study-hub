@@ -1503,9 +1503,7 @@ subject:
               mains:
                 item.mains,
 
-              publishedAt:
-
-                publishedAt:
+             publishedAt:
 
   item.published_at
 
