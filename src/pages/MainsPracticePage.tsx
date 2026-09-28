@@ -199,8 +199,8 @@ function WorkspaceTabs({
           display:
             'grid',
 
-  gridTemplateColumns:
-  'repeat(3, minmax(0, 1fr))',
+          gridTemplateColumns:
+            'repeat(3, minmax(0, 1fr))',
 
           gap:
             '8px'
@@ -240,6 +240,24 @@ function WorkspaceTabs({
           }
         >
           Previous Year Papers
+        </button>
+
+
+        <button
+          type="button"
+          className={
+            active ===
+              'evaluations'
+              ? 'filter active'
+              : 'filter'
+          }
+          onClick={() =>
+            onChange(
+              'evaluations'
+            )
+          }
+        >
+          My Evaluations
         </button>
 
       </div>
@@ -836,13 +854,6 @@ export function MainsPracticePage() {
   }
 
 
-  /*
-   * Direct answer writing from the
-   * UPSC + State PSC PYQ Archive.
-   *
-   * MainsPyqArchiveQuestion is already
-   * restricted to GS and Optional.
-   */
   function startPyqAnswerWriting(
     item:
       MainsPyqArchiveQuestion
@@ -983,12 +994,6 @@ export function MainsPracticePage() {
   }
 
 
-  /*
-   * =====================================
-   * ANSWER WRITING WORKSPACE
-   * =====================================
-   */
-
   if (
     selectedQuestion
   ) {
@@ -1008,63 +1013,41 @@ export function MainsPracticePage() {
   }
 
 
-  /*
+  if (
+    workspaceView ===
+    'evaluations'
+  ) {
 
-  /*
- * =====================================
- * MY EVALUATIONS
- * =====================================
- */
+    return (
 
-if (
-  workspaceView ===
-  'evaluations'
-) {
-  return (
-    <div
-      className="page-wrap mains-practice-page"
-    >
-      <TopBar
-        title="Mains Practice"
-        subtitle="Your submitted answers, scores and evaluator feedback"
-      />
+      <div
+        className="page-wrap mains-practice-page"
+      >
 
-      <WorkspaceTabs
-        active={
-          workspaceView
-        }
-        onChange={
-          setWorkspaceView
-        }
-      />
+        <TopBar
+          title="Mains Practice"
+          subtitle="Your submitted answers, scores and evaluator feedback"
+        />
 
-      <MyMainsEvaluations />
-    </div>
-  );
-}
-  
-   * =====================================
-   * PREVIOUS YEAR PAPERS
-   * =====================================
-   */
 
-  <button
-  type="button"
-  className={
-    active ===
-      'evaluations'
-      ? 'filter active'
-      : 'filter'
+        <WorkspaceTabs
+          active={
+            workspaceView
+          }
+          onChange={
+            setWorkspaceView
+          }
+        />
+
+
+        <MyMainsEvaluations />
+
+      </div>
+
+    );
   }
-  onClick={() =>
-    onChange(
-      'evaluations'
-    )
-  }
->
-  My Evaluations
-</button>
-  
+
+
   if (
     workspaceView ===
     'pyq'
@@ -1103,12 +1086,6 @@ if (
     );
   }
 
-
-  /*
-   * =====================================
-   * LOADING
-   * =====================================
-   */
 
   if (
     loading
@@ -1151,12 +1128,6 @@ if (
     );
   }
 
-
-  /*
-   * =====================================
-   * ERROR
-   * =====================================
-   */
 
   if (
     error
@@ -1216,12 +1187,6 @@ if (
   }
 
 
-  /*
-   * =====================================
-   * MAIN PAGE
-   * =====================================
-   */
-
   return (
 
     <div
@@ -1243,10 +1208,6 @@ if (
         }
       />
 
-
-      {/* =====================================
-          FILTERS
-      ===================================== */}
 
       <section
         className="panel"
@@ -1727,10 +1688,6 @@ if (
 
       </section>
 
-
-      {/* =====================================
-          RESULTS
-      ===================================== */}
 
       <section
         style={{
