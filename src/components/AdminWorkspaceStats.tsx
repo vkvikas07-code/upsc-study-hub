@@ -10,6 +10,7 @@ import {
 
 type AdminTab =
   | 'current'
+  | 'resources'
   | 'mcq'
   | 'mains'
   | 'evaluation';
@@ -49,6 +50,11 @@ export function AdminWorkspaceStats({
   ] =
     useState(0);
 
+    const [
+    studyResources,
+    setStudyResources
+  ] =
+    useState(0);
 
   const [
     mcqs,
@@ -121,6 +127,25 @@ export function AdminWorkspaceStats({
           }
         );
 
+        const {
+      count:
+        resourceCount
+    } =
+      await supabase
+        .from(
+          'study_resources'
+        )
+        .select(
+          'id',
+          {
+            count:
+              'exact',
+
+            head:
+              true
+          }
+        );
+    
 
     const {
       count:
@@ -171,6 +196,10 @@ export function AdminWorkspaceStats({
       0
     );
 
+        setStudyResources(
+      resourceCount ||
+      0
+    );
 
     setMcqs(
       mcqCount ||
@@ -504,7 +533,38 @@ export function AdminWorkspaceStats({
 
         </button>
 
+        <button
+          type="button"
+          className="metric-card"
+          style={
+            cardStyle
+          }
+          onClick={() =>
+            onNavigate(
+              'resources'
+            )
+          }
+        >
+          <div>
+            <span>
+              Study Material
+            </span>
 
+            <strong>
+              {
+                loading
+                  ? '...'
+                  : studyResources
+              }
+            </strong>
+
+            <small>
+              Open Study Material →
+            </small>
+          </div>
+        </button>
+        
+        
         <button
           type="button"
           className="metric-card"
