@@ -1420,7 +1420,7 @@ export default function SecureApp() {
             .from(
               'current_affairs'
             )
-           .select(
+          .select(
   `
   id,
   title,
@@ -1431,6 +1431,8 @@ export default function SecureApp() {
   tags,
   prelims,
   mains,
+  monthly_selected,
+  yearly_selected,
   published_at,
   status
   `
@@ -1500,10 +1502,18 @@ subject:
               prelims:
                 item.prelims,
 
-              mains:
-                item.mains,
+             mains:
+  item.mains,
 
-             publishedAt:
+monthlySelected:
+  item.monthly_selected ===
+  true,
+
+yearlySelected:
+  item.yearly_selected ===
+  true,
+
+publishedAt:
 
   item.published_at
 
