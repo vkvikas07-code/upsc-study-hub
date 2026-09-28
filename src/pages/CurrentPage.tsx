@@ -652,6 +652,136 @@ export function CurrentPage({
             .trim()
             .toLowerCase();
 
+        function renderArticleCard(
+  item: CurrentAffair
+) {
+  return (
+    <article
+      className="article-card"
+      key={
+        item.id
+      }
+    >
+      <div
+        className="article-meta"
+      >
+        <span>
+          {item.subject}
+        </span>
+
+        <time>
+          {item.publishedAt}
+        </time>
+      </div>
+
+      <h2>
+        {item.title}
+      </h2>
+
+      <p>
+        {item.summary}
+      </p>
+
+      <div
+        className="tag-row"
+      >
+        {item.prelims && (
+          <span
+            className="tag"
+          >
+            Prelims
+          </span>
+        )}
+
+        {item.mains && (
+          <span
+            className="tag"
+          >
+            Mains
+          </span>
+        )}
+
+        {item.tags.map(
+          tag => (
+            <span
+              className="tag"
+              key={
+                tag
+              }
+            >
+              {tag}
+            </span>
+          )
+        )}
+      </div>
+
+      <div
+        className="article-foot"
+      >
+        <small>
+          Source:
+          {' '}
+          {item.source}
+        </small>
+
+        <div
+          style={{
+            display:
+              'flex',
+
+            gap:
+              '10px',
+
+            alignItems:
+              'center',
+
+            flexWrap:
+              'wrap'
+          }}
+        >
+          {item.sourceUrl && (
+            <a
+              href={
+                item.sourceUrl
+              }
+              target="_blank"
+              rel="noreferrer"
+              className="text-btn"
+              style={{
+                textDecoration:
+                  'none'
+              }}
+            >
+              Original source ↗
+            </a>
+          )}
+
+          <button
+            className="text-btn"
+            type="button"
+            disabled={
+              loadingId ===
+              item.id
+            }
+            onClick={() =>
+              void openAnalysis(
+                item
+              )
+            }
+          >
+            {
+              loadingId ===
+                item.id
+                ? 'Loading...'
+                : 'Read analysis'
+            }
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+        
         if (
           search
         ) {
@@ -2203,162 +2333,165 @@ const yearlyGroups =
       )}
 
 
-      <section
-        className="article-list"
-      >
-        {visibleItems.map(
-          item => (
-            <article
-              className="article-card"
-              key={
-                item.id
-              }
-            >
-              <div
-                className="article-meta"
-              >
-                <span>
-                  {item.subject}
-                </span>
+     <section
+  className="article-list"
+>
+  {viewMode ===
+    'monthly' &&
+    monthlyGroups.map(
+      group => (
+        <section
+          key={
+            group.key
+          }
+          style={{
+            display:
+              'grid',
 
-                <time>
-                  {item.publishedAt}
-                </time>
-              </div>
+            gap:
+              '14px',
 
-
-              <h2>
-                {item.title}
-              </h2>
-
-
-              <p>
-                {item.summary}
-              </p>
-
-
-              <div
-                className="tag-row"
-              >
-                {item.prelims && (
-                  <span
-                    className="tag"
-                  >
-                    Prelims
-                  </span>
-                )}
-
-
-                {item.mains && (
-                  <span
-                    className="tag"
-                  >
-                    Mains
-                  </span>
-                )}
-
-
-                {item.tags.map(
-                  tag => (
-                    <span
-                      className="tag"
-                      key={
-                        tag
-                      }
-                    >
-                      {tag}
-                    </span>
-                  )
-                )}
-              </div>
-
-
-              <div
-                className="article-foot"
-              >
-                <small>
-                  Source:
-                  {' '}
-                  {item.source}
-                </small>
-
-
-                <div
-                  style={{
-                    display:
-                      'flex',
-
-                    gap:
-                      '10px',
-
-                    alignItems:
-                      'center',
-
-                    flexWrap:
-                      'wrap'
-                  }}
-                >
-                  {item.sourceUrl && (
-                    <a
-                      href={
-                        item.sourceUrl
-                      }
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-btn"
-                      style={{
-                        textDecoration:
-                          'none'
-                      }}
-                    >
-                      Original source ↗
-                    </a>
-                  )}
-
-
-                  <button
-                    className="text-btn"
-                    type="button"
-                    disabled={
-                      loadingId ===
-                      item.id
-                    }
-                    onClick={() =>
-                      void openAnalysis(
-                        item
-                      )
-                    }
-                  >
-                    {
-                      loadingId ===
-                        item.id
-                        ? 'Loading...'
-                        : 'Read analysis'
-                    }
-                  </button>
-                </div>
-              </div>
-            </article>
-          )
-        )}
-
-
-        {visibleItems.length ===
-          0 && (
+            marginBottom:
+              '24px'
+          }}
+        >
           <div
             className="panel"
+            style={{
+              padding:
+                '16px'
+            }}
           >
-            <p
+            <span
+              className="eyebrow"
+            >
+              DATE
+            </span>
+
+            <h2
               style={{
                 margin:
-                  0
+                  '6px 0'
               }}
             >
-              No Current Affairs match this view or filter yet.
-            </p>
+              {group.title}
+            </h2>
+
+            <small>
+              {group.items.length}
+              {' '}
+              {
+                group.items.length ===
+                  1
+                  ? 'article'
+                  : 'articles'
+              }
+            </small>
           </div>
-        )}
-      </section>
+
+          {group.items.map(
+            item =>
+              renderArticleCard(
+                item
+              )
+          )}
+        </section>
+      )
+    )}
+
+
+  {viewMode ===
+    'yearly' &&
+    yearlyGroups.map(
+      group => (
+        <section
+          key={
+            group.key
+          }
+          style={{
+            display:
+              'grid',
+
+            gap:
+              '14px',
+
+            marginBottom:
+              '26px'
+          }}
+        >
+          <div
+            className="panel"
+            style={{
+              padding:
+                '16px'
+            }}
+          >
+            <span
+              className="eyebrow"
+            >
+              MONTH
+            </span>
+
+            <h2
+              style={{
+                margin:
+                  '6px 0'
+              }}
+            >
+              {group.title}
+            </h2>
+
+            <small>
+              {group.items.length}
+              {' '}
+              {
+                group.items.length ===
+                  1
+                  ? 'article'
+                  : 'articles'
+              }
+            </small>
+          </div>
+
+          {group.items.map(
+            item =>
+              renderArticleCard(
+                item
+              )
+          )}
+        </section>
+      )
+    )}
+
+
+  {(viewMode ===
+      'daily' ||
+    viewMode ===
+      'newspaper') &&
+    visibleItems.map(
+      item =>
+        renderArticleCard(
+          item
+        )
+    )}
+
+
+  {visibleItems.length ===
+    0 && (
+    <div
+      className="panel"
+    >
+      <p
+        style={{
+          margin:
+            0
+        }}
+      >
+        No Current Affairs match this view or filter yet.
+      </p>
+    </div>
+  )}
+</section>
     </div>
   );
 }
