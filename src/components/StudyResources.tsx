@@ -984,6 +984,175 @@ export function StudyResources({
 
       </section>
 
+            <section
+        className="panel"
+        style={{
+          marginTop:
+            '18px'
+        }}
+      >
+        <span
+          className="eyebrow"
+        >
+          QUICK ACCESS
+        </span>
+
+        <h3>
+          Choose Study Material
+        </h3>
+
+        <div
+          style={{
+            display:
+              'grid',
+
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(150px, 1fr))',
+
+            gap:
+              '10px',
+
+            marginTop:
+              '14px'
+          }}
+        >
+          <button
+            type="button"
+            className={
+              typeFilter ===
+                'all'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setTypeFilter(
+                'all'
+              )
+            }
+          >
+            All Material
+          </button>
+
+          <button
+            type="button"
+            className={
+              typeFilter ===
+                'standard_book'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setTypeFilter(
+                'standard_book'
+              )
+            }
+          >
+            Standard Books
+          </button>
+
+          <button
+            type="button"
+            className={
+              typeFilter ===
+                'official_source'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setTypeFilter(
+                'official_source'
+              )
+            }
+          >
+            Official Sources
+          </button>
+
+          <button
+            type="button"
+            className={
+              typeFilter ===
+                'monthly_current_affairs'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setTypeFilter(
+                'monthly_current_affairs'
+              )
+            }
+          >
+            Monthly CA
+          </button>
+
+          <button
+            type="button"
+            className={
+              typeFilter ===
+                'notes'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setTypeFilter(
+                'notes'
+              )
+            }
+          >
+            Notes
+          </button>
+
+          <button
+            type="button"
+            className={
+              typeFilter ===
+                'report'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setTypeFilter(
+                'report'
+              )
+            }
+          >
+            Reports
+          </button>
+
+          <button
+            type="button"
+            className={
+              typeFilter ===
+                'pyq_resource'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setTypeFilter(
+                'pyq_resource'
+              )
+            }
+          >
+            PYQ Resources
+          </button>
+
+          <button
+            type="button"
+            className={
+              typeFilter ===
+                'syllabus_resource'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              setTypeFilter(
+                'syllabus_resource'
+              )
+            }
+          >
+            Syllabus Resources
+          </button>
+        </div>
+      </section>
 
       {/* =====================================
           FILTER RESOURCE PANEL
