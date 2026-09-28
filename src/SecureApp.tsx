@@ -136,7 +136,6 @@ const defaultTasks: DailyTask[] = [
  */
 
 function getLocalDateKey() {
-
   const now =
     new Date();
 
@@ -172,7 +171,6 @@ function getLocalDateKey() {
 function getTaskStorageKey(
   day: string
 ) {
-
   return `upsc_tasks_${day}`;
 }
 
@@ -180,9 +178,7 @@ function getTaskStorageKey(
 function loadTasksForDay(
   day: string
 ): DailyTask[] {
-
   try {
-
     const stored =
       localStorage.getItem(
         getTaskStorageKey(
@@ -190,25 +186,20 @@ function loadTasksForDay(
         )
       );
 
-
     if (!stored) {
-
       return defaultTasks.map(
         task => ({
           ...task
         })
       );
     }
-
 
     const parsed =
       JSON.parse(
         stored
       );
 
-
     if (!Array.isArray(parsed)) {
-
       return defaultTasks.map(
         task => ({
           ...task
@@ -216,10 +207,8 @@ function loadTasksForDay(
       );
     }
 
-
     return defaultTasks.map(
       defaultTask => {
-
         const storedTask =
           parsed.find(
             item =>
@@ -228,21 +217,16 @@ function loadTasksForDay(
                 defaultTask.id
           );
 
-
         return {
-
           ...defaultTask,
 
           done:
             storedTask?.done ===
             true
-
         };
       }
     );
-
   } catch {
-
     return defaultTasks.map(
       task => ({
         ...task
@@ -261,31 +245,26 @@ function loadTasksForDay(
 function normalizeRole(
   value: unknown
 ): UserRole {
-
   if (
     value === 'admin' ||
     value === 'editor'
   ) {
-
     return value;
   }
-
 
   return 'student';
 }
 
+
 function normalizeLearnerStatus(
   value: unknown
 ): LearnerStatus {
-
   if (
     value ===
-      'serious'
+    'serious'
   ) {
-
     return 'serious';
   }
-
 
   return 'basic';
 }
@@ -294,50 +273,48 @@ function normalizeLearnerStatus(
 function normalizeAccessPlan(
   value: unknown
 ): AccessPlan {
-
   if (
     value === 'free_full' ||
     value === 'paid_full' ||
     value === 'scholarship'
   ) {
-
     return value;
   }
-
 
   return 'preview';
 }
 
+
 function getFallbackName(
   session: Session
 ) {
-
   const metadataName =
-    session.user.user_metadata
+    session
+      .user
+      .user_metadata
       ?.display_name;
-
 
   if (
     typeof metadataName ===
       'string' &&
     metadataName.trim()
   ) {
-
     return metadataName.trim();
   }
-
 
   const email =
     session.user.email ||
     '';
 
-
   const prefix =
-    email.split('@')[0];
+    email.split(
+      '@'
+    )[0];
 
-
-  return prefix ||
-    'Aspirant';
+  return (
+    prefix ||
+    'Aspirant'
+  );
 }
 
 
@@ -352,13 +329,10 @@ function LoadingCard({
 }: {
   text: string;
 }) {
-
   return (
-
     <div
       className="page-wrap"
     >
-
       <section
         className="panel"
         style={{
@@ -366,13 +340,10 @@ function LoadingCard({
             '20px'
         }}
       >
-
         <h2>
           {text}
         </h2>
-
       </section>
-
     </div>
   );
 }
@@ -393,9 +364,7 @@ function AccountStatusCard({
   profile: UserProfile;
   onSignOut: () => void;
 }) {
-
   return (
-
     <div
       className="page-wrap"
       style={{
@@ -403,11 +372,9 @@ function AccountStatusCard({
           0
       }}
     >
-
       <section
         className="panel"
         style={{
-
           display:
             'flex',
 
@@ -422,18 +389,14 @@ function AccountStatusCard({
 
           flexWrap:
             'wrap'
-
         }}
       >
-
         <div>
-
           <span
             className="eyebrow"
           >
             SIGNED IN
           </span>
-
 
           <h3
             style={{
@@ -443,7 +406,6 @@ function AccountStatusCard({
           >
             {profile.displayName}
           </h3>
-
 
           <p
             style={{
@@ -455,9 +417,7 @@ function AccountStatusCard({
             {' · '}
             {profile.role}
           </p>
-
         </div>
-
 
         <button
           type="button"
@@ -468,9 +428,7 @@ function AccountStatusCard({
         >
           Sign Out
         </button>
-
       </section>
-
     </div>
   );
 }
@@ -487,44 +445,35 @@ function AccessDenied({
 }: {
   onBack: () => void;
 }) {
-
   return (
-
     <div
       className="page-wrap"
     >
-
       <section
         className="panel"
         style={{
-
           maxWidth:
             '680px',
 
           margin:
             '20px auto 0'
-
         }}
       >
-
         <span
           className="eyebrow"
         >
           PROTECTED AREA
         </span>
 
-
         <h2>
           Editor access required
         </h2>
-
 
         <p>
           Your account is signed in as a student.
           Admin Studio is available only to approved
           editor or admin accounts.
         </p>
-
 
         <button
           type="button"
@@ -535,9 +484,7 @@ function AccessDenied({
         >
           Return to My Study
         </button>
-
       </section>
-
     </div>
   );
 }
@@ -572,10 +519,12 @@ export default function SecureApp() {
     learnSubject,
     setLearnSubject
   ] =
-    useState<string | null>(
+    useState<
+      string |
+      null
+    >(
       null
     );
-
 
   const [
     learnMode,
@@ -620,7 +569,9 @@ export default function SecureApp() {
     tasks,
     setTasksState
   ] =
-    useState<DailyTask[]>(
+    useState<
+      DailyTask[]
+    >(
       () =>
         loadTasksForDay(
           getLocalDateKey()
@@ -636,7 +587,9 @@ export default function SecureApp() {
     articles,
     setArticles
   ] =
-    useState<CurrentAffair[]>(
+    useState<
+      CurrentAffair[]
+    >(
       () =>
         supabase
           ? []
@@ -652,19 +605,23 @@ export default function SecureApp() {
     session,
     setSession
   ] =
-    useState<Session | null>(
+    useState<
+      Session |
+      null
+    >(
       null
     );
-
 
   const [
     profile,
     setProfile
   ] =
-    useState<UserProfile | null>(
+    useState<
+      UserProfile |
+      null
+    >(
       null
     );
-
 
   const [
     authReady,
@@ -675,12 +632,13 @@ export default function SecureApp() {
     );
 
   const [
-  visitorAccountOpen,
-  setVisitorAccountOpen
-] =
-  useState(
-    false
-  );
+    visitorAccountOpen,
+    setVisitorAccountOpen
+  ] =
+    useState(
+      false
+    );
+
 
   /*
    * =========================================
@@ -689,60 +647,38 @@ export default function SecureApp() {
    */
 
   function setTasks(
-    next: DailyTask[]
+    next:
+      DailyTask[]
   ) {
-
-    /*
-     * Update screen immediately.
-     */
-
     setTasksState(
       next
     );
 
-
-    /*
-     * Keep offline backup.
-     */
-
     localStorage.setItem(
-
       getTaskStorageKey(
         taskDay
       ),
-
       JSON.stringify(
         next
       )
-
     );
-
 
     const client =
       supabase;
 
-
     const userId =
       session?.user.id;
-
-
-    /*
-     * Signed out/offline.
-     */
 
     if (
       !client ||
       !userId
     ) {
-
       return;
     }
-
 
     const rows =
       next.map(
         task => ({
-
           user_id:
             userId,
 
@@ -758,14 +694,8 @@ export default function SecureApp() {
           updated_at:
             new Date()
               .toISOString()
-
         })
       );
-
-
-    /*
-     * Cloud save.
-     */
 
     void client
       .from(
@@ -782,9 +712,7 @@ export default function SecureApp() {
         ({
           error
         }) => {
-
           if (error) {
-
             console.error(
               'Unable to sync daily tasks:',
               error
@@ -801,35 +729,168 @@ export default function SecureApp() {
    * =========================================
    */
 
- function publish(
-  item: CurrentAffair
-) {
-  setArticles(
-    current => {
-      const alreadyExists =
-        current.some(
-          article =>
-            article.id ===
-            item.id
-        );
-
-      if (alreadyExists) {
-        return current.map(
-          article =>
-            article.id ===
+  function publish(
+    item:
+      CurrentAffair
+  ) {
+    setArticles(
+      current => {
+        const alreadyExists =
+          current.some(
+            article =>
+              article.id ===
               item.id
-              ? item
-              : article
-        );
-      }
+          );
 
-      return [
-        item,
-        ...current
-      ];
+        if (alreadyExists) {
+          return current.map(
+            article =>
+              article.id ===
+                item.id
+                ? item
+                : article
+          );
+        }
+
+        return [
+          item,
+          ...current
+        ];
+      }
+    );
+  }
+
+
+  /*
+   * =========================================
+   * LOAD CURRENT AFFAIRS
+   * =========================================
+   */
+
+  async function loadCurrentAffairs() {
+    if (!supabase) {
+      return;
     }
-  );
-}
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from(
+          'current_affairs'
+        )
+        .select(
+          `
+          id,
+          title,
+          source,
+          source_url,
+          subject,
+          summary,
+          tags,
+          prelims,
+          mains,
+          monthly_selected,
+          yearly_selected,
+          published_at,
+          status
+          `
+        )
+        .eq(
+          'status',
+          'published'
+        )
+        .order(
+          'published_at',
+          {
+            ascending:
+              false
+          }
+        );
+
+    if (error) {
+      console.error(
+        'Unable to load current affairs:',
+        error
+      );
+
+      return;
+    }
+
+    const nextArticles:
+      CurrentAffair[] =
+        (
+          data ||
+          []
+        ).map(
+          item => ({
+            id:
+              item.id,
+
+            title:
+              item.title,
+
+            source:
+              item.source,
+
+            sourceUrl:
+              item.source_url,
+
+            subject:
+              item.subject,
+
+            summary:
+              item.summary,
+
+            tags:
+              item.tags ||
+              [],
+
+            prelims:
+              item.prelims,
+
+            mains:
+              item.mains,
+
+            monthlySelected:
+              item.monthly_selected ===
+              true,
+
+            yearlySelected:
+              item.yearly_selected ===
+              true,
+
+            publishedAt:
+              item.published_at
+                ? new Date(
+                    item.published_at
+                  )
+                    .toLocaleDateString(
+                      'en-IN',
+                      {
+                        day:
+                          '2-digit',
+
+                        month:
+                          'short',
+
+                        year:
+                          'numeric'
+                      }
+                    )
+                : '',
+
+            publishedAtIso:
+              item.published_at ||
+              null
+          })
+        );
+
+    setArticles(
+      nextArticles
+    );
+  }
 
 
   /*
@@ -839,7 +900,6 @@ export default function SecureApp() {
    */
 
   function openLearn(
-
     subject:
       string |
       null =
@@ -848,18 +908,14 @@ export default function SecureApp() {
     mode:
       LearnMode =
         'syllabus'
-
   ) {
-
     setLearnSubject(
       subject
     );
 
-
     setLearnMode(
       mode
     );
-
 
     setActive(
       'learn'
@@ -874,24 +930,21 @@ export default function SecureApp() {
    */
 
   function navigateMain(
-    next: NavKey
+    next:
+      NavKey
   ) {
-
     if (
       next ===
       'learn'
     ) {
-
       setLearnSubject(
         null
       );
-
 
       setLearnMode(
         'syllabus'
       );
     }
-
 
     setActive(
       next
@@ -906,11 +959,9 @@ export default function SecureApp() {
    */
 
   function openPrelimsPractice() {
-
     setPracticeMode(
       'prelims'
     );
-
 
     setActive(
       'practice'
@@ -925,20 +976,19 @@ export default function SecureApp() {
    */
 
   async function signOut() {
-
     if (supabase) {
-
-      await supabase.auth
+      await supabase
+        .auth
         .signOut();
     }
-
 
     setActive(
       'home'
     );
+
     setVisitorAccountOpen(
-  false
-);
+      false
+    );
   }
 
 
@@ -950,185 +1000,155 @@ export default function SecureApp() {
 
   useEffect(
     () => {
-
       const client =
         supabase;
 
-
       if (!client) {
-
         setAuthReady(
           true
         );
 
-
         return;
       }
 
-
       let mounted =
         true;
-
 
       async function loadAccount(
         nextSession:
           Session |
           null
       ) {
-
         if (!mounted) {
-
           return;
         }
-
-
-        /*
-         * Do not unmount the current page during
-         * ordinary Supabase token refresh.
-         */
 
         setSession(
           nextSession
         );
 
-
         if (!nextSession) {
-
           setProfile(
             null
           );
-
 
           setAuthReady(
             true
           );
 
-
           return;
         }
-
 
         const {
           data,
           error
         } =
-          await client!
+          await client
             .from(
               'profiles'
             )
-           .select(
-  `
-  display_name,
-  role,
-  learner_status,
-  access_plan
-  `
-)
+            .select(
+              `
+              display_name,
+              role,
+              learner_status,
+              access_plan
+              `
+            )
             .eq(
               'id',
-              nextSession.user.id
+              nextSession
+                .user
+                .id
             )
             .maybeSingle();
 
-
         if (!mounted) {
-
           return;
         }
 
-
         if (error) {
-
           console.error(
             'Unable to load profile:',
             error
           );
         }
 
-
         setProfile({
+          displayName:
+            typeof data
+              ?.display_name ===
+              'string' &&
+            data
+              .display_name
+              .trim()
+              ? data
+                  .display_name
+                  .trim()
+              : getFallbackName(
+                  nextSession
+                ),
 
-  displayName:
+          role:
+            normalizeRole(
+              data?.role
+            ),
 
-    typeof data?.display_name ===
-      'string' &&
-    data.display_name.trim()
+          learnerStatus:
+            normalizeLearnerStatus(
+              data
+                ?.learner_status
+            ),
 
-      ? data.display_name.trim()
-
-      : getFallbackName(
-          nextSession
-        ),
-
-  role:
-
-    normalizeRole(
-      data?.role
-    ),
-
-  learnerStatus:
-
-    normalizeLearnerStatus(
-      data?.learner_status
-    ),
-
-  accessPlan:
-
-    normalizeAccessPlan(
-      data?.access_plan
-    )
-
-});
-
+          accessPlan:
+            normalizeAccessPlan(
+              data
+                ?.access_plan
+            )
+        });
 
         setAuthReady(
           true
         );
       }
 
-
-      void client.auth
+      void client
+        .auth
         .getSession()
         .then(
           ({
             data
           }) =>
-
             loadAccount(
               data.session
             )
         );
 
-
       const {
         data:
           authListener
       } =
-        client.auth
+        client
+          .auth
           .onAuthStateChange(
             (
               _event,
               nextSession
             ) => {
-
               void loadAccount(
                 nextSession
               );
             }
           );
 
-
       return () => {
-
         mounted =
           false;
-
 
         authListener
           .subscription
           .unsubscribe();
       };
-
     },
     []
   );
@@ -1142,48 +1162,39 @@ export default function SecureApp() {
 
   useEffect(
     () => {
-
       const client =
         supabase;
 
-
       const userId =
         session?.user.id;
-
 
       if (
         !client ||
         !userId
       ) {
-
         setTasksState(
           loadTasksForDay(
             taskDay
           )
         );
 
-
         return;
       }
-
 
       let cancelled =
         false;
 
-
       async function loadDailyTasksFromCloud() {
-
         const localTasks =
           loadTasksForDay(
             taskDay
           );
 
-
         const {
           data,
           error
         } =
-          await client!
+          await client
             .from(
               'daily_task_progress'
             )
@@ -1199,105 +1210,72 @@ export default function SecureApp() {
               taskDay
             );
 
-
         if (cancelled) {
-
           return;
         }
 
-
-        /*
-         * Cloud unavailable.
-         */
-
         if (error) {
-
           console.error(
             'Unable to load cloud daily tasks:',
             error
           );
 
-
           setTasksState(
             localTasks
           );
 
-
           return;
         }
-
-
-        /*
-         * Existing cloud state.
-         */
 
         if (
           data &&
           data.length >
             0
         ) {
-
           const cloudTasks =
             defaultTasks.map(
               defaultTask => {
-
                 const cloudTask =
                   data.find(
                     item =>
-                      item.task_id ===
+                      item
+                        .task_id ===
                       defaultTask.id
                   );
 
-
                 return {
-
                   ...defaultTask,
 
                   done:
                     cloudTask?.done ===
                     true
-
                 };
               }
             );
-
 
           setTasksState(
             cloudTasks
           );
 
-
           localStorage.setItem(
-
             getTaskStorageKey(
               taskDay
             ),
-
             JSON.stringify(
               cloudTasks
             )
-
           );
-
 
           return;
         }
-
-
-        /*
-         * No cloud rows yet.
-         * Keep local state and seed cloud.
-         */
 
         setTasksState(
           localTasks
         );
 
-
         const rows =
           localTasks.map(
             task => ({
-
               user_id:
                 userId,
 
@@ -1313,16 +1291,14 @@ export default function SecureApp() {
               updated_at:
                 new Date()
                   .toISOString()
-
             })
           );
-
 
         const {
           error:
             seedError
         } =
-          await client!
+          await client
             .from(
               'daily_task_progress'
             )
@@ -1334,9 +1310,7 @@ export default function SecureApp() {
               }
             );
 
-
         if (seedError) {
-
           console.error(
             'Unable to create cloud daily tasks:',
             seedError
@@ -1344,16 +1318,12 @@ export default function SecureApp() {
         }
       }
 
-
       void loadDailyTasksFromCloud();
 
-
       return () => {
-
         cancelled =
           true;
       };
-
     },
     [
       session?.user.id,
@@ -1370,24 +1340,19 @@ export default function SecureApp() {
 
   useEffect(
     () => {
-
       const timer =
         window.setInterval(
           () => {
-
             const currentDay =
               getLocalDateKey();
-
 
             if (
               currentDay !==
               taskDay
             ) {
-
               setTaskDay(
                 currentDay
               );
-
 
               setTasksState(
                 loadTasksForDay(
@@ -1395,17 +1360,14 @@ export default function SecureApp() {
                 )
               );
             }
-
           },
           60_000
         );
-
 
       return () =>
         window.clearInterval(
           timer
         );
-
     },
     [
       taskDay
@@ -1413,7 +1375,40 @@ export default function SecureApp() {
   );
 
 
-  LOAD CURRENT AFFAIRS
+  /*
+   * =========================================
+   * INITIAL CURRENT AFFAIRS LOAD
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+      void loadCurrentAffairs();
+    },
+    []
+  );
+
+
+  /*
+   * =========================================
+   * REFRESH CURRENT AFFAIRS WHEN OPENED
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+      if (
+        active ===
+        'current'
+      ) {
+        void loadCurrentAffairs();
+      }
+    },
+    [
+      active
+    ]
+  );
+
 
   /*
    * =========================================
@@ -1423,17 +1418,13 @@ export default function SecureApp() {
 
   useEffect(
     () => {
-
       window.scrollTo({
-
         top:
           0,
 
         behavior:
           'smooth'
-
       });
-
     },
     [
       active
@@ -1448,188 +1439,146 @@ export default function SecureApp() {
    */
 
   const isEditor =
-
     profile?.role ===
       'editor' ||
-
     profile?.role ===
       'admin';
 
-  /*
- * =========================================
- * VISITOR / AUTH ACCESS GATE
- * =========================================
- */
-
-if (
-  !authReady
-) {
-
-  return (
-
-    <IonApp>
-
-      <LoadingCard
-        text="Checking your account…"
-      />
-
-    </IonApp>
-
-  );
-}
-
-
-/*
- * Signed-out users can only access:
- * - public syllabus
- * - latest 10 years Prelims PYQs
- * - latest 10 years Mains PYQs
- * - account sign in / registration
- *
- * Normal app navigation is not rendered.
- */
-
-if (
-  !session
-) {
-
-  return (
-
-    <IonApp>
-
-      {
-        visitorAccountOpen
-
-          ? (
-
-            <AccountPage
-
-              intent="study"
-
-              onBack={() =>
-                setVisitorAccountOpen(
-                  false
-                )
-              }
-
-            />
-
-          )
-
-          : (
-
-            <VisitorPreviewPage
-
-              onOpenAccount={() =>
-                setVisitorAccountOpen(
-                  true
-                )
-              }
-
-            />
-
-          )
-      }
-
-    </IonApp>
-
-  );
-}
-
-
-/*
- * Session exists but profile is still loading.
- */
-
-if (
-  !profile
-) {
-
-  return (
-
-    <IonApp>
-
-      <LoadingCard
-        text="Loading your study account…"
-      />
-
-    </IonApp>
-
-  );
-}
 
   /*
- * =========================================
- * FULL STUDY ACCESS
- * =========================================
- */
+   * =========================================
+   * VISITOR / AUTH ACCESS GATE
+   * =========================================
+   */
 
-const hasFullStudyAccess =
+  if (
+    !authReady
+  ) {
+    return (
+      <IonApp>
+        <LoadingCard
+          text="Checking your account…"
+        />
+      </IonApp>
+    );
+  }
 
-  isEditor ||
 
-  (
-    profile.learnerStatus ===
-      'serious' &&
+  /*
+   * =========================================
+   * SIGNED OUT
+   * =========================================
+   */
 
+  if (
+    !session
+  ) {
+    return (
+      <IonApp>
+        {
+          visitorAccountOpen
+            ? (
+              <AccountPage
+                intent="study"
+
+                onBack={() =>
+                  setVisitorAccountOpen(
+                    false
+                  )
+                }
+              />
+            )
+            : (
+              <VisitorPreviewPage
+                onOpenAccount={() =>
+                  setVisitorAccountOpen(
+                    true
+                  )
+                }
+              />
+            )
+        }
+      </IonApp>
+    );
+  }
+
+
+  /*
+   * =========================================
+   * PROFILE LOADING
+   * =========================================
+   */
+
+  if (
+    !profile
+  ) {
+    return (
+      <IonApp>
+        <LoadingCard
+          text="Loading your study account…"
+        />
+      </IonApp>
+    );
+  }
+
+
+  /*
+   * =========================================
+   * FULL STUDY ACCESS
+   * =========================================
+   */
+
+  const hasFullStudyAccess =
+    isEditor ||
     (
-      profile.accessPlan ===
-        'free_full' ||
+      profile
+        .learnerStatus ===
+        'serious' &&
+      (
+        profile
+          .accessPlan ===
+          'free_full' ||
 
-      profile.accessPlan ===
-        'scholarship' ||
+        profile
+          .accessPlan ===
+          'scholarship' ||
 
-      profile.accessPlan ===
-        'paid_full'
-    )
-  );
+        profile
+          .accessPlan ===
+          'paid_full'
+      )
+    );
 
 
-/*
- * =========================================
- * BASIC REGISTERED STUDENT
- * =========================================
- *
- * Signed in, but Serious Learner activation
- * has not been completed yet.
- */
+  /*
+   * =========================================
+   * BASIC REGISTERED STUDENT
+   * =========================================
+   */
 
-if (
-  !hasFullStudyAccess
-) {
+  if (
+    !hasFullStudyAccess
+  ) {
+    return (
+      <IonApp>
+        <SeriousLearnerActivationPage
+          displayName={
+            profile.displayName
+          }
 
-  return (
+          onActivated={() => {
+            window.location.reload();
+          }}
 
-    <IonApp>
+          onSignOut={
+            signOut
+          }
+        />
+      </IonApp>
+    );
+  }
 
-      <SeriousLearnerActivationPage
 
-        displayName={
-          profile.displayName
-        }
-
-        onActivated={() => {
-
-          /*
-           * Reload account state after the secure
-           * Supabase RPC changes learner_status
-           * and access_plan.
-           */
-
-          window.location.reload();
-
-        }}
-
-        onSignOut={
-          signOut
-        }
-
-      />
-
-    </IonApp>
-
-  );
-}
   /*
    * =========================================
    * HOME
@@ -1637,9 +1586,7 @@ if (
    */
 
   let content = (
-
     <HomePage
-
       tasks={
         tasks
       }
@@ -1661,7 +1608,6 @@ if (
           'current'
         )
       }
-
     />
   );
 
@@ -1676,11 +1622,8 @@ if (
     active ===
     'learn'
   ) {
-
     content = (
-
       <LearnHubPage
-
         initialSubject={
           learnSubject
         }
@@ -1688,7 +1631,6 @@ if (
         initialMode={
           learnMode
         }
-
       />
     );
   }
@@ -1697,13 +1639,6 @@ if (
   /*
    * =========================================
    * PRACTICE
-   *
-   * Android/mobile fix:
-   * - all 3 tabs remain inside screen
-   * - equal-width columns
-   * - long titles wrap
-   * - no horizontal overflow
-   * - extra top safe spacing
    * =========================================
    */
 
@@ -1711,20 +1646,14 @@ if (
     active ===
     'practice'
   ) {
-
     content = (
-
       <>
-
         <div
           className="page-wrap"
         >
-
           <div
             className="filter-row"
-
             style={{
-
               paddingTop:
                 'max(env(safe-area-inset-top, 0px), 32px)',
 
@@ -1751,26 +1680,17 @@ if (
 
               margin:
                 '0 auto'
-
             }}
           >
-
-            {/* PRELIMS MCQ */}
-
             <button
               type="button"
-
               className={
                 practiceMode ===
                   'prelims'
-
                   ? 'filter active'
-
                   : 'filter'
               }
-
               style={{
-
                 width:
                   '100%',
 
@@ -1806,9 +1726,7 @@ if (
 
                 overflowWrap:
                   'anywhere'
-
               }}
-
               onClick={() =>
                 setPracticeMode(
                   'prelims'
@@ -1819,22 +1737,15 @@ if (
             </button>
 
 
-            {/* PRELIMS TEST SERIES */}
-
             <button
               type="button"
-
               className={
                 practiceMode ===
                   'tests'
-
                   ? 'filter active'
-
                   : 'filter'
               }
-
               style={{
-
                 width:
                   '100%',
 
@@ -1870,9 +1781,7 @@ if (
 
                 overflowWrap:
                   'anywhere'
-
               }}
-
               onClick={() =>
                 setPracticeMode(
                   'tests'
@@ -1883,22 +1792,15 @@ if (
             </button>
 
 
-            {/* MAINS ANSWER WRITING */}
-
             <button
               type="button"
-
               className={
                 practiceMode ===
                   'mains'
-
                   ? 'filter active'
-
                   : 'filter'
               }
-
               style={{
-
                 width:
                   '100%',
 
@@ -1934,9 +1836,7 @@ if (
 
                 overflowWrap:
                   'anywhere'
-
               }}
-
               onClick={() =>
                 setPracticeMode(
                   'mains'
@@ -1945,44 +1845,29 @@ if (
             >
               Mains Answer Writing
             </button>
-
           </div>
-
         </div>
 
-
-        {/* PRACTICE CONTENT */}
 
         {
           practiceMode ===
             'prelims'
-
             ? (
-
               <PracticePage />
-
             )
-
             : practiceMode ===
               'tests'
-
             ? (
-
               <div
                 className="page-wrap"
               >
                 <PrelimsTestSeries />
               </div>
-
             )
-
             : (
-
               <MainsPracticePage />
-
             )
         }
-
       </>
     );
   }
@@ -1998,15 +1883,11 @@ if (
     active ===
     'current'
   ) {
-
     content = (
-
       <CurrentPage
-
         items={
           articles
         }
-
       />
     );
   }
@@ -2022,25 +1903,20 @@ if (
     active ===
     'profile'
   ) {
-
-    if (!authReady) {
-
+    if (
+      !authReady
+    ) {
       content = (
-
         <LoadingCard
           text="Loading your account…"
         />
       );
-
     } else if (
       !session ||
       !profile
     ) {
-
       content = (
-
         <AccountPage
-
           intent="study"
 
           onBack={() =>
@@ -2048,18 +1924,12 @@ if (
               'home'
             )
           }
-
         />
       );
-
     } else {
-
       content = (
-
         <>
-
           <AccountStatusCard
-
             session={
               session
             }
@@ -2071,12 +1941,9 @@ if (
             onSignOut={() => {
               void signOut();
             }}
-
           />
 
-
           <ProfilePage
-
             onAdmin={() =>
               setActive(
                 'admin'
@@ -2086,9 +1953,7 @@ if (
             onOpenPractice={
               openPrelimsPractice
             }
-
           />
-
         </>
       );
     }
@@ -2105,24 +1970,19 @@ if (
     active ===
     'admin'
   ) {
-
-    if (!authReady) {
-
+    if (
+      !authReady
+    ) {
       content = (
-
         <LoadingCard
           text="Checking editor access…"
         />
       );
-
     } else if (
       !session
     ) {
-
       content = (
-
         <AccountPage
-
           intent="admin"
 
           onBack={() =>
@@ -2130,47 +1990,34 @@ if (
               'home'
             )
           }
-
         />
       );
-
     } else if (
       !isEditor
     ) {
-
       content = (
-
         <AccessDenied
-
           onBack={() =>
             setActive(
               'profile'
             )
           }
-
         />
       );
-
     } else {
-
       content = (
-
         <AdminPage
-
           onPublish={
             item => {
-
               publish(
                 item
               );
-
 
               setActive(
                 'current'
               );
             }
           }
-
         />
       );
     }
@@ -2184,11 +2031,8 @@ if (
    */
 
   return (
-
     <IonApp>
-
       <Shell
-
         active={
           active
         }
@@ -2196,13 +2040,9 @@ if (
         onNavigate={
           navigateMain
         }
-
       >
-
         {content}
-
       </Shell>
-
     </IonApp>
   );
 }
