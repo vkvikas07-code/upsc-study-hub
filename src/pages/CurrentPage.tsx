@@ -464,6 +464,12 @@ export function CurrentPage({
   ] =
     useState('all');
 
+    const [
+    sourceFilter,
+    setSourceFilter
+  ] =
+    useState('all');
+  
   const [
     selected,
     setSelected
@@ -511,6 +517,27 @@ export function CurrentPage({
         a.localeCompare(b)
     );
 
+    const availableSources =
+    Array.from(
+      new Set(
+        items
+          .map(
+            item =>
+              item.source
+                .trim()
+          )
+          .filter(Boolean)
+      )
+    ).sort(
+      (
+        a,
+        b
+      ) =>
+        a.localeCompare(
+          b
+        )
+    );
+  
 
   const filteredItems =
     items.filter(
@@ -522,6 +549,18 @@ export function CurrentPage({
           return false;
         }
 
+                if (
+          viewMode !==
+            'newspaper' &&
+          sourceFilter !==
+            'all' &&
+          item.source
+            .trim() !==
+            sourceFilter
+        ) {
+          return false;
+        }
+        
         if (
           filter === 'mains' &&
           !item.mains
@@ -2002,6 +2041,55 @@ export function CurrentPage({
             />
           </label>
 
+                    {viewMode !==
+            'newspaper' && (
+            <label
+              style={{
+                display:
+                  'grid',
+                gap:
+                  '7px'
+              }}
+            >
+              Source
+
+              <select
+                value={
+                  sourceFilter
+                }
+                onChange={
+                  event =>
+                    setSourceFilter(
+                      event
+                        .target
+                        .value
+                    )
+                }
+              >
+                <option
+                  value="all"
+                >
+                  All Sources
+                </option>
+
+                {availableSources.map(
+                  source => (
+                    <option
+                      key={
+                        source
+                      }
+                      value={
+                        source
+                      }
+                    >
+                      {source}
+                    </option>
+                  )
+                )}
+              </select>
+            </label>
+          )}
+          
           <label
             style={{
               display:
@@ -2052,14 +2140,19 @@ export function CurrentPage({
             type="button"
             className="secondary-btn"
             onClick={() => {
-              setSearchText(
-                ''
-              );
+  setSearchText(
+    ''
+  );
 
-              setSubjectFilter(
-                'all'
-              );
-            }}
+  setSubjectFilter(
+    'all'
+  );
+
+  setSourceFilter(
+    'all'
+  );
+}}
+            
           >
             Clear
           </button>
