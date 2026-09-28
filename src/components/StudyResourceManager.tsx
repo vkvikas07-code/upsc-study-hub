@@ -3,15 +3,15 @@ import {
   useMemo,
   useState
 } from 'react';
-
 import type {
   FormEvent
 } from 'react';
-
 import {
   supabase
 } from '../lib/supabase';
-
+import {
+  PdfUploadField
+} from './PdfUploadField';
 
 type ResourceType =
   | 'standard_book'
@@ -22,18 +22,15 @@ type ResourceType =
   | 'pyq_resource'
   | 'syllabus_resource';
 
-
 type ExamStage =
   | 'prelims'
   | 'mains'
   | 'both';
 
-
 type ResourceStatus =
   | 'draft'
   | 'published'
   | 'archived';
-
 
 type Language =
   | 'English'
@@ -41,65 +38,36 @@ type Language =
   | 'Bilingual'
   | 'Other';
 
-
-type ResourceRow = {
-  id: string;
-  title: string;
-  description: string | null;
-
-  resource_type:
-    ResourceType;
-
-  exam_stage:
-    ExamStage;
-
-  paper: string | null;
-  subject: string;
-
-  author: string | null;
-  publisher: string | null;
-  source_name: string | null;
-
-  external_url: string | null;
-  file_path: string | null;
-
-  language:
-    Language;
-
-  edition_year:
-    number |
-    null;
-
-  month_year:
-    string |
-    null;
-
-  is_free:
-    boolean;
-
-  status:
-    ResourceStatus;
-
-  sort_order:
-    number;
-
-  created_at:
-    string;
-
-  updated_at:
-    string;
-};
-
-
 type StatusFilter =
   | 'all'
   | ResourceStatus;
-
 
 type TypeFilter =
   | 'all'
   | ResourceType;
 
+type ResourceRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  resource_type: ResourceType;
+  exam_stage: ExamStage;
+  paper: string | null;
+  subject: string;
+  author: string | null;
+  publisher: string | null;
+  source_name: string | null;
+  external_url: string | null;
+  file_path: string | null;
+  language: Language;
+  edition_year: number | null;
+  month_year: string | null;
+  is_free: boolean;
+  status: ResourceStatus;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
 
 const RESOURCE_SELECT = `
   id,
@@ -124,20 +92,12 @@ const RESOURCE_SELECT = `
   updated_at
 `;
 
-
-/*
- * RESOURCE TYPE LABEL
- */
+const MAX_RESOURCE_PDF_MB = 25;
 
 function resourceTypeLabel(
-  type:
-    ResourceType
+  type: ResourceType
 ) {
-
-  switch (
-    type
-  ) {
-
+  switch (type) {
     case 'standard_book':
       return 'Standard Book';
 
@@ -161,20 +121,10 @@ function resourceTypeLabel(
   }
 }
 
-
-/*
- * EXAM STAGE LABEL
- */
-
 function stageLabel(
-  stage:
-    ExamStage
+  stage: ExamStage
 ) {
-
-  switch (
-    stage
-  ) {
-
+  switch (stage) {
     case 'prelims':
       return 'Prelims';
 
@@ -186,92 +136,52 @@ function stageLabel(
   }
 }
 
-
-/*
- * FORMAT DATE
- */
-
 function formatDate(
-  value:
-    string |
-    null
+  value: string | null
 ) {
-
   if (!value) {
-
     return '—';
   }
 
-
   const date =
-    new Date(
-      value
-    );
-
+    new Date(value);
 
   if (
     Number.isNaN(
       date.getTime()
     )
   ) {
-
     return '—';
   }
 
-
-  return date
-    .toLocaleDateString(
-      'en-IN',
-      {
-        day:
-          '2-digit',
-
-        month:
-          'short',
-
-        year:
-          'numeric'
-      }
-    );
+  return date.toLocaleDateString(
+    'en-IN',
+    {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }
+  );
 }
 
-
-/*
- * ADMIN RESOURCE MANAGER
- */
-
 export function StudyResourceManager() {
-
-  /*
-   * RESOURCE DATA
-   */
-
   const [
     resources,
     setResources
   ] =
-    useState<
-      ResourceRow[]
-    >([]);
-
+    useState<ResourceRow[]>([]);
 
   const [
     loading,
     setLoading
   ] =
-    useState(
-      true
-    );
-
+    useState(true);
 
   const [
     saving,
     setSaving
   ] =
-    useState(
-      false
-    );
-
+    useState(false);
 
   const [
     message,
@@ -279,26 +189,13 @@ export function StudyResourceManager() {
   ] =
     useState('');
 
-
-  /*
-   * EDIT STATE
-   */
-
   const [
     editingId,
     setEditingId
   ] =
-    useState<
-      string |
-      null
-    >(
+    useState<string | null>(
       null
     );
-
-
-  /*
-   * FORM
-   */
 
   const [
     title,
@@ -306,13 +203,11 @@ export function StudyResourceManager() {
   ] =
     useState('');
 
-
   const [
     description,
     setDescription
   ] =
     useState('');
-
 
   const [
     resourceType,
@@ -322,7 +217,6 @@ export function StudyResourceManager() {
       'standard_book'
     );
 
-
   const [
     examStage,
     setExamStage
@@ -331,13 +225,11 @@ export function StudyResourceManager() {
       'both'
     );
 
-
   const [
     paper,
     setPaper
   ] =
     useState('');
-
 
   const [
     subject,
@@ -347,13 +239,11 @@ export function StudyResourceManager() {
       'General'
     );
 
-
   const [
     author,
     setAuthor
   ] =
     useState('');
-
 
   const [
     publisher,
@@ -361,13 +251,11 @@ export function StudyResourceManager() {
   ] =
     useState('');
 
-
   const [
     sourceName,
     setSourceName
   ] =
     useState('');
-
 
   const [
     externalUrl,
@@ -375,13 +263,19 @@ export function StudyResourceManager() {
   ] =
     useState('');
 
-
   const [
     filePath,
     setFilePath
   ] =
     useState('');
 
+  const [
+    pdfFile,
+    setPdfFile
+  ] =
+    useState<File | null>(
+      null
+    );
 
   const [
     language,
@@ -391,13 +285,11 @@ export function StudyResourceManager() {
       'English'
     );
 
-
   const [
     editionYear,
     setEditionYear
   ] =
     useState('');
-
 
   const [
     monthYear,
@@ -405,15 +297,11 @@ export function StudyResourceManager() {
   ] =
     useState('');
 
-
   const [
     isFree,
     setIsFree
   ] =
-    useState(
-      true
-    );
-
+    useState(true);
 
   const [
     status,
@@ -423,26 +311,17 @@ export function StudyResourceManager() {
       'draft'
     );
 
-
   const [
     sortOrder,
     setSortOrder
   ] =
-    useState(
-      '0'
-    );
-
-
-  /*
-   * LIST FILTERS
-   */
+    useState('0');
 
   const [
     search,
     setSearch
   ] =
     useState('');
-
 
   const [
     statusFilter,
@@ -452,7 +331,6 @@ export function StudyResourceManager() {
       'all'
     );
 
-
   const [
     typeFilter,
     setTypeFilter
@@ -461,36 +339,22 @@ export function StudyResourceManager() {
       'all'
     );
 
-
-  /*
-   * LOAD ALL RESOURCES
-   *
-   * Editors/admins can see
-   * drafts, published and archived.
-   */
-
   async function loadResources() {
-
     if (!supabase) {
-
       setMessage(
         'Supabase is not configured.'
       );
-
 
       setLoading(
         false
       );
 
-
       return;
     }
-
 
     setLoading(
       true
     );
-
 
     const {
       data,
@@ -518,222 +382,190 @@ export function StudyResourceManager() {
           }
         );
 
-
-    if (
-      error
-    ) {
-
+    if (error) {
       console.error(
         'Unable to load study resources:',
         error
       );
 
-
       setMessage(
         error.message
       );
-
 
       setResources(
         []
       );
 
-
       setLoading(
         false
       );
 
-
       return;
     }
-
 
     setResources(
       (
         data ||
         []
-      ) as
-        ResourceRow[]
+      ) as ResourceRow[]
     );
-
 
     setLoading(
       false
     );
   }
 
-
-  /*
-   * INITIAL LOAD
-   */
-
   useEffect(
     () => {
-
       void loadResources();
-
     },
     []
   );
 
-
-  /*
-   * RESET FORM
-   */
-
   function resetForm() {
-
     setEditingId(
       null
     );
 
+    setTitle(
+      ''
+    );
 
-    setTitle('');
-
-
-    setDescription('');
-
+    setDescription(
+      ''
+    );
 
     setResourceType(
       'standard_book'
     );
 
-
     setExamStage(
       'both'
     );
 
-
-    setPaper('');
-
+    setPaper(
+      ''
+    );
 
     setSubject(
       'General'
     );
 
+    setAuthor(
+      ''
+    );
 
-    setAuthor('');
+    setPublisher(
+      ''
+    );
 
+    setSourceName(
+      ''
+    );
 
-    setPublisher('');
+    setExternalUrl(
+      ''
+    );
 
+    setFilePath(
+      ''
+    );
 
-    setSourceName('');
-
-
-    setExternalUrl('');
-
-
-    setFilePath('');
-
+    setPdfFile(
+      null
+    );
 
     setLanguage(
       'English'
     );
 
+    setEditionYear(
+      ''
+    );
 
-    setEditionYear('');
-
-
-    setMonthYear('');
-
+    setMonthYear(
+      ''
+    );
 
     setIsFree(
       true
     );
 
-
     setStatus(
       'draft'
     );
-
 
     setSortOrder(
       '0'
     );
   }
 
-
-  /*
-   * START EDITING
-   */
-
   function editResource(
     resource:
       ResourceRow
   ) {
-
     setEditingId(
       resource.id
     );
 
-
     setTitle(
       resource.title
     );
-
 
     setDescription(
       resource.description ||
       ''
     );
 
-
     setResourceType(
       resource.resource_type
     );
 
-
     setExamStage(
       resource.exam_stage
     );
-
 
     setPaper(
       resource.paper ||
       ''
     );
 
-
     setSubject(
       resource.subject
     );
-
 
     setAuthor(
       resource.author ||
       ''
     );
 
-
     setPublisher(
       resource.publisher ||
       ''
     );
-
 
     setSourceName(
       resource.source_name ||
       ''
     );
 
-
     setExternalUrl(
       resource.external_url ||
       ''
     );
-
 
     setFilePath(
       resource.file_path ||
       ''
     );
 
+    setPdfFile(
+      null
+    );
 
     setLanguage(
       resource.language
     );
-
 
     setEditionYear(
       resource.edition_year !==
@@ -743,7 +575,6 @@ export function StudyResourceManager() {
           )
         : ''
     );
-
 
     setMonthYear(
       resource.month_year
@@ -755,16 +586,13 @@ export function StudyResourceManager() {
         : ''
     );
 
-
     setIsFree(
       resource.is_free
     );
 
-
     setStatus(
       resource.status
     );
-
 
     setSortOrder(
       String(
@@ -772,11 +600,9 @@ export function StudyResourceManager() {
       )
     );
 
-
     setMessage(
       `Editing: ${resource.title}`
     );
-
 
     window.scrollTo({
       top:
@@ -787,21 +613,96 @@ export function StudyResourceManager() {
     });
   }
 
+  async function uploadResourcePdf(
+    resourceId:
+      string
+  ): Promise<
+    string |
+    null
+  > {
+    if (!supabase) {
+      throw new Error(
+        'Supabase is not configured.'
+      );
+    }
 
-  /*
-   * SAVE RESOURCE
-   */
+    if (!pdfFile) {
+      return (
+        filePath.trim() ||
+        null
+      );
+    }
+
+    const lowerName =
+      pdfFile.name
+        .toLowerCase();
+
+    const validPdf =
+      pdfFile.type ===
+        'application/pdf' ||
+      lowerName.endsWith(
+        '.pdf'
+      );
+
+    if (!validPdf) {
+      throw new Error(
+        'Only PDF files are allowed.'
+      );
+    }
+
+    const maxBytes =
+      MAX_RESOURCE_PDF_MB *
+      1024 *
+      1024;
+
+    if (
+      pdfFile.size >
+      maxBytes
+    ) {
+      throw new Error(
+        `PDF must be ${MAX_RESOURCE_PDF_MB} MB or smaller.`
+      );
+    }
+
+    const storagePath =
+      `${resourceId}/resource.pdf`;
+
+    const {
+      error
+    } =
+      await supabase
+        .storage
+        .from(
+          'study-resource-pdfs'
+        )
+        .upload(
+          storagePath,
+          pdfFile,
+          {
+            upsert:
+              true,
+
+            contentType:
+              'application/pdf'
+          }
+        );
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    return storagePath;
+  }
 
   async function saveResource(
     event:
       FormEvent
   ) {
-
     event.preventDefault();
 
-
     if (!supabase) {
-
       setMessage(
         'Supabase is not configured.'
       );
@@ -809,15 +710,9 @@ export function StudyResourceManager() {
       return;
     }
 
-
-    /*
-     * REQUIRED FIELDS
-     */
-
     if (
       !title.trim()
     ) {
-
       setMessage(
         'Resource title is required.'
       );
@@ -825,11 +720,9 @@ export function StudyResourceManager() {
       return;
     }
 
-
     if (
       !subject.trim()
     ) {
-
       setMessage(
         'Subject is required.'
       );
@@ -837,26 +730,18 @@ export function StudyResourceManager() {
       return;
     }
 
-
-    /*
-     * VALIDATE EDITION YEAR
-     */
-
     let parsedEditionYear:
       number |
       null =
         null;
 
-
     if (
       editionYear.trim()
     ) {
-
       parsedEditionYear =
         Number(
           editionYear
         );
-
 
       if (
         !Number.isInteger(
@@ -867,7 +752,6 @@ export function StudyResourceManager() {
         parsedEditionYear >
           2100
       ) {
-
         setMessage(
           'Edition year must be between 1900 and 2100.'
         );
@@ -876,34 +760,22 @@ export function StudyResourceManager() {
       }
     }
 
-
-    /*
-     * VALIDATE SORT ORDER
-     */
-
     const parsedSortOrder =
       Number(
         sortOrder
       );
-
 
     if (
       !Number.isInteger(
         parsedSortOrder
       )
     ) {
-
       setMessage(
         'Sort order must be a whole number.'
       );
 
       return;
     }
-
-
-    /*
-     * CURRENT USER
-     */
 
     const {
       data: {
@@ -914,9 +786,7 @@ export function StudyResourceManager() {
         .auth
         .getUser();
 
-
     if (!user) {
-
       setMessage(
         'Your session expired. Please sign in again.'
       );
@@ -924,25 +794,19 @@ export function StudyResourceManager() {
       return;
     }
 
-
     setSaving(
       true
     );
 
-
     setMessage(
-      editingId
+      pdfFile
+        ? 'Uploading PDF and saving resource...'
+        : editingId
         ? 'Updating resource...'
         : 'Creating resource...'
     );
 
-
-    /*
-     * DATABASE PAYLOAD
-     */
-
-    const payload = {
-
+    const basePayload = {
       title:
         title.trim(),
 
@@ -979,10 +843,6 @@ export function StudyResourceManager() {
         externalUrl.trim() ||
         null,
 
-      file_path:
-        filePath.trim() ||
-        null,
-
       language,
 
       edition_year:
@@ -996,152 +856,208 @@ export function StudyResourceManager() {
       is_free:
         isFree,
 
-      status,
-
       sort_order:
         parsedSortOrder
     };
 
-
-    /*
-     * UPDATE EXISTING
-     */
-
-    if (
-      editingId
-    ) {
-
-      const {
-        error
-      } =
-        await supabase
-          .from(
-            'study_resources'
-          )
-          .update(
-            payload
-          )
-          .eq(
-            'id',
+    try {
+      if (
+        editingId
+      ) {
+        const finalFilePath =
+          await uploadResourcePdf(
             editingId
           );
 
-
-      if (
-        error
-      ) {
-
-        console.error(
-          'Unable to update study resource:',
+        const {
           error
-        );
+        } =
+          await supabase
+            .from(
+              'study_resources'
+            )
+            .update({
+              ...basePayload,
 
+              file_path:
+                finalFilePath,
+
+              status
+            })
+            .eq(
+              'id',
+              editingId
+            );
+
+        if (error) {
+          throw new Error(
+            error.message
+          );
+        }
 
         setMessage(
-          error.message
+          'Resource updated successfully.'
         );
+      } else {
+        const {
+          data,
+          error
+        } =
+          await supabase
+            .from(
+              'study_resources'
+            )
+            .insert({
+              ...basePayload,
 
+              file_path:
+                null,
 
-        setSaving(
-          false
+              status:
+                pdfFile
+                  ? 'draft'
+                  : status,
+
+              created_by:
+                user.id
+            })
+            .select(
+              'id'
+            )
+            .single();
+
+        if (
+          error ||
+          !data
+        ) {
+          throw new Error(
+            error?.message ||
+            'Unable to create study resource.'
+          );
+        }
+
+        const resourceId =
+          String(
+            data.id
+          );
+
+        if (
+          pdfFile
+        ) {
+          let uploadedPath:
+            string |
+            null =
+              null;
+
+          try {
+            uploadedPath =
+              await uploadResourcePdf(
+                resourceId
+              );
+
+            const {
+              error:
+                updateError
+            } =
+              await supabase
+                .from(
+                  'study_resources'
+                )
+                .update({
+                  file_path:
+                    uploadedPath,
+
+                  status
+                })
+                .eq(
+                  'id',
+                  resourceId
+                );
+
+            if (
+              updateError
+            ) {
+              throw new Error(
+                updateError.message
+              );
+            }
+          } catch (
+            uploadError
+          ) {
+            if (
+              uploadedPath
+            ) {
+              await supabase
+                .storage
+                .from(
+                  'study-resource-pdfs'
+                )
+                .remove([
+                  uploadedPath
+                ]);
+            }
+
+            await supabase
+              .from(
+                'study_resources'
+              )
+              .delete()
+              .eq(
+                'id',
+                resourceId
+              );
+
+            throw uploadError;
+          }
+        }
+
+        setMessage(
+          status ===
+            'published'
+            ? 'Resource created and published.'
+            : 'Resource created successfully.'
         );
-
-
-        return;
       }
 
+      resetForm();
 
-      setMessage(
-        'Resource updated successfully.'
+      await loadResources();
+
+    } catch (
+      saveError
+    ) {
+      console.error(
+        'Unable to save study resource:',
+        saveError
       );
 
-    } else {
-
-      /*
-       * CREATE NEW
-       */
-
-      const {
-        error
-      } =
-        await supabase
-          .from(
-            'study_resources'
-          )
-          .insert({
-            ...payload,
-
-            created_by:
-              user.id
-          });
-
-
-      if (
-        error
-      ) {
-
-        console.error(
-          'Unable to create study resource:',
-          error
-        );
-
-
-        setMessage(
-          error.message
-        );
-
-
-        setSaving(
-          false
-        );
-
-
-        return;
-      }
-
-
       setMessage(
-        status ===
-          'published'
-          ? 'Resource created and published.'
-          : 'Resource created successfully.'
+        saveError instanceof Error
+          ? saveError.message
+          : 'Unable to save study resource.'
+      );
+
+    } finally {
+      setSaving(
+        false
       );
     }
-
-
-    setSaving(
-      false
-    );
-
-
-    resetForm();
-
-
-    await loadResources();
   }
-
-
-  /*
-   * CHANGE STATUS
-   */
 
   async function changeStatus(
     resource:
       ResourceRow,
+
     nextStatus:
       ResourceStatus
   ) {
-
     if (!supabase) {
-
       return;
     }
-
 
     setMessage(
       `Updating ${resource.title}...`
     );
-
 
     const {
       error
@@ -1159,25 +1075,18 @@ export function StudyResourceManager() {
           resource.id
         );
 
-
-    if (
-      error
-    ) {
-
+    if (error) {
       console.error(
         'Unable to change resource status:',
         error
       );
 
-
       setMessage(
         error.message
       );
 
-
       return;
     }
-
 
     setMessage(
       nextStatus ===
@@ -1189,37 +1098,25 @@ export function StudyResourceManager() {
         : 'Resource moved to draft.'
     );
 
-
     await loadResources();
   }
-
-
-  /*
-   * DELETE RESOURCE
-   */
 
   async function deleteResource(
     resource:
       ResourceRow
   ) {
-
     if (!supabase) {
-
       return;
     }
-
 
     const confirmed =
       window.confirm(
         `Delete "${resource.title}" permanently?`
       );
 
-
     if (!confirmed) {
-
       return;
     }
-
 
     const {
       error
@@ -1234,77 +1131,77 @@ export function StudyResourceManager() {
           resource.id
         );
 
-
-    if (
-      error
-    ) {
-
+    if (error) {
       console.error(
         'Unable to delete study resource:',
         error
       );
 
-
       setMessage(
         error.message
       );
 
-
       return;
     }
 
+    if (
+      resource.file_path
+    ) {
+      const {
+        error:
+          storageError
+      } =
+        await supabase
+          .storage
+          .from(
+            'study-resource-pdfs'
+          )
+          .remove([
+            resource.file_path
+          ]);
 
-    /*
-     * IF DELETING CURRENTLY
-     * EDITED RESOURCE,
-     * CLEAR THE FORM.
-     */
+      if (
+        storageError
+      ) {
+        console.error(
+          'Unable to delete resource PDF:',
+          storageError
+        );
+      }
+    }
 
     if (
       editingId ===
       resource.id
     ) {
-
       resetForm();
     }
-
 
     setMessage(
       'Resource deleted successfully.'
     );
 
-
     await loadResources();
   }
-
-
-  /*
-   * FILTER RESOURCE LIST
-   */
 
   const visibleResources =
     useMemo(
       () => {
-
         const query =
           search
             .trim()
             .toLowerCase();
 
-
         return resources.filter(
           resource => {
-
             if (
               statusFilter !==
                 'all' &&
               resource.status !==
                 statusFilter
             ) {
-
               return false;
             }
-
 
             if (
               typeFilter !==
@@ -1312,38 +1209,32 @@ export function StudyResourceManager() {
               resource.resource_type !==
                 typeFilter
             ) {
-
               return false;
             }
 
-
             if (!query) {
-
               return true;
             }
 
-
-            const searchable =
-              [
-                resource.title,
-                resource.description ||
-                  '',
-                resource.subject,
-                resource.paper ||
-                  '',
-                resource.author ||
-                  '',
-                resource.publisher ||
-                  '',
-                resource.source_name ||
-                  '',
-                resource.language
-              ]
-                .join(
-                  ' '
-                )
-                .toLowerCase();
-
+            const searchable = [
+              resource.title,
+              resource.description ||
+                '',
+              resource.subject,
+              resource.paper ||
+                '',
+              resource.author ||
+                '',
+              resource.publisher ||
+                '',
+              resource.source_name ||
+                '',
+              resource.language
+            ]
+              .join(
+                ' '
+              )
+              .toLowerCase();
 
             return searchable
               .includes(
@@ -1351,7 +1242,6 @@ export function StudyResourceManager() {
               );
           }
         );
-
       },
       [
         resources,
@@ -1360,11 +1250,6 @@ export function StudyResourceManager() {
         typeFilter
       ]
     );
-
-
-  /*
-   * ADMIN METRICS
-   */
 
   const publishedCount =
     useMemo(
@@ -1379,7 +1264,6 @@ export function StudyResourceManager() {
       ]
     );
 
-
   const draftCount =
     useMemo(
       () =>
@@ -1392,7 +1276,6 @@ export function StudyResourceManager() {
         resources
       ]
     );
-
 
   const archivedCount =
     useMemo(
@@ -1407,30 +1290,20 @@ export function StudyResourceManager() {
       ]
     );
 
-
   return (
-
     <div>
-
-      {/* ==================================================
-          HEADER
-      ================================================== */}
-
       <section
         className="panel"
       >
-
         <span
           className="eyebrow"
         >
           ADMIN • STUDY RESOURCES
         </span>
 
-
         <h2>
           Resource Manager
         </h2>
-
 
         <p>
           Create and manage standard books,
@@ -1439,7 +1312,6 @@ export function StudyResourceManager() {
           and syllabus resources.
         </p>
 
-
         <div
           className="metrics-grid"
           style={{
@@ -1447,83 +1319,72 @@ export function StudyResourceManager() {
               '16px'
           }}
         >
-
           <article
             className="metric-card"
           >
             <div>
-
               <span>
                 Total
               </span>
 
-
               <strong>
-                {resources.length}
+                {
+                  resources.length
+                }
               </strong>
-
             </div>
           </article>
-
 
           <article
             className="metric-card"
           >
             <div>
-
               <span>
                 Published
               </span>
 
-
               <strong>
-                {publishedCount}
+                {
+                  publishedCount
+                }
               </strong>
-
             </div>
           </article>
-
 
           <article
             className="metric-card"
           >
             <div>
-
               <span>
                 Drafts
               </span>
 
-
               <strong>
-                {draftCount}
+                {
+                  draftCount
+                }
               </strong>
-
             </div>
           </article>
-
 
           <article
             className="metric-card"
           >
             <div>
-
               <span>
                 Archived
               </span>
 
-
               <strong>
-                {archivedCount}
+                {
+                  archivedCount
+                }
               </strong>
-
             </div>
           </article>
-
         </div>
 
-
         {message && (
-
           <div
             className="callout"
             style={{
@@ -1533,15 +1394,8 @@ export function StudyResourceManager() {
           >
             {message}
           </div>
-
         )}
-
       </section>
-
-
-      {/* ==================================================
-          CREATE / EDIT FORM
-      ================================================== */}
 
       <section
         className="panel"
@@ -1550,13 +1404,10 @@ export function StudyResourceManager() {
             '18px'
         }}
       >
-
         <div
           className="panel-head"
         >
-
           <div>
-
             <span
               className="eyebrow"
             >
@@ -1567,7 +1418,6 @@ export function StudyResourceManager() {
               }
             </span>
 
-
             <h3>
               {
                 editingId
@@ -1575,18 +1425,13 @@ export function StudyResourceManager() {
                   : 'Add Study Resource'
               }
             </h3>
-
           </div>
 
-
           {editingId && (
-
             <button
               type="button"
               className="text-btn"
-
               onClick={() => {
-
                 resetForm();
 
                 setMessage(
@@ -1596,18 +1441,14 @@ export function StudyResourceManager() {
             >
               Cancel Edit
             </button>
-
           )}
-
         </div>
-
 
         <form
           onSubmit={
             saveResource
           }
         >
-
           <div
             style={{
               display:
@@ -1623,20 +1464,14 @@ export function StudyResourceManager() {
                 '14px'
             }}
           >
-
-            {/* TITLE */}
-
             <label>
-
               Title *
 
               <input
                 type="text"
-
                 value={
                   title
                 }
-
                 onChange={
                   event =>
                     setTitle(
@@ -1645,129 +1480,115 @@ export function StudyResourceManager() {
                         .value
                     )
                 }
-
                 placeholder="Example: Indian Polity"
                 required
               />
-
             </label>
 
-
-            {/* RESOURCE TYPE */}
-
             <label>
-
               Resource Type *
 
               <select
                 value={
                   resourceType
                 }
-
                 onChange={
                   event =>
                     setResourceType(
                       event
                         .target
-                        .value as
-                          ResourceType
+                        .value as ResourceType
                     )
                 }
               >
-
-                <option value="standard_book">
+                <option
+                  value="standard_book"
+                >
                   Standard Book
                 </option>
 
-
-                <option value="official_source">
+                <option
+                  value="official_source"
+                >
                   Official Source
                 </option>
 
-
-                <option value="monthly_current_affairs">
+                <option
+                  value="monthly_current_affairs"
+                >
                   Monthly Current Affairs
                 </option>
 
-
-                <option value="notes">
+                <option
+                  value="notes"
+                >
                   Notes
                 </option>
 
-
-                <option value="report">
+                <option
+                  value="report"
+                >
                   Report
                 </option>
 
-
-                <option value="pyq_resource">
+                <option
+                  value="pyq_resource"
+                >
                   PYQ Resource
                 </option>
 
-
-                <option value="syllabus_resource">
+                <option
+                  value="syllabus_resource"
+                >
                   Syllabus Resource
                 </option>
-
               </select>
-
             </label>
 
-
-            {/* EXAM STAGE */}
-
             <label>
-
               Exam Stage *
 
               <select
                 value={
                   examStage
                 }
-
                 onChange={
                   event =>
                     setExamStage(
                       event
                         .target
-                        .value as
-                          ExamStage
+                        .value as ExamStage
                     )
                 }
               >
-
-                <option value="both">
+                <option
+                  value="both"
+                >
                   Prelims + Mains
                 </option>
 
-
-                <option value="prelims">
+                <option
+                  value="prelims"
+                >
                   Prelims
                 </option>
 
-
-                <option value="mains">
+                <option
+                  value="mains"
+                >
                   Mains
                 </option>
-
               </select>
-
             </label>
 
-
-            {/* SUBJECT */}
-
             <label>
-
               Subject *
 
               <input
                 type="text"
-
                 value={
                   subject
                 }
-
                 onChange={
                   event =>
                     setSubject(
@@ -1776,27 +1597,19 @@ export function StudyResourceManager() {
                         .value
                     )
                 }
-
                 placeholder="Polity & Governance"
                 required
               />
-
             </label>
 
-
-            {/* PAPER */}
-
             <label>
-
               Paper
 
               <input
                 type="text"
-
                 value={
                   paper
                 }
-
                 onChange={
                   event =>
                     setPaper(
@@ -1805,72 +1618,60 @@ export function StudyResourceManager() {
                         .value
                     )
                 }
-
                 placeholder="GS Paper I / GS II / Essay"
               />
-
             </label>
 
-
-            {/* LANGUAGE */}
-
             <label>
-
               Language
 
               <select
                 value={
                   language
                 }
-
                 onChange={
                   event =>
                     setLanguage(
                       event
                         .target
-                        .value as
-                          Language
+                        .value as Language
                     )
                 }
               >
-
-                <option value="English">
+                <option
+                  value="English"
+                >
                   English
                 </option>
 
-
-                <option value="Hindi">
+                <option
+                  value="Hindi"
+                >
                   Hindi
                 </option>
 
-
-                <option value="Bilingual">
+                <option
+                  value="Bilingual"
+                >
                   Bilingual
                 </option>
 
-
-                <option value="Other">
+                <option
+                  value="Other"
+                >
                   Other
                 </option>
-
               </select>
-
             </label>
 
-
-            {/* AUTHOR */}
-
             <label>
-
               Author
 
               <input
                 type="text"
-
                 value={
                   author
                 }
-
                 onChange={
                   event =>
                     setAuthor(
@@ -1879,26 +1680,18 @@ export function StudyResourceManager() {
                         .value
                     )
                 }
-
                 placeholder="Author name"
               />
-
             </label>
 
-
-            {/* PUBLISHER */}
-
             <label>
-
               Publisher
 
               <input
                 type="text"
-
                 value={
                   publisher
                 }
-
                 onChange={
                   event =>
                     setPublisher(
@@ -1907,26 +1700,18 @@ export function StudyResourceManager() {
                         .value
                     )
                 }
-
                 placeholder="Publisher"
               />
-
             </label>
 
-
-            {/* SOURCE */}
-
             <label>
-
               Source Name
 
               <input
                 type="text"
-
                 value={
                   sourceName
                 }
-
                 onChange={
                   event =>
                     setSourceName(
@@ -1935,29 +1720,20 @@ export function StudyResourceManager() {
                         .value
                     )
                 }
-
                 placeholder="UPSC / PIB / NCERT"
               />
-
             </label>
 
-
-            {/* EDITION */}
-
             <label>
-
               Edition Year
 
               <input
                 type="number"
-
                 min="1900"
                 max="2100"
-
                 value={
                   editionYear
                 }
-
                 onChange={
                   event =>
                     setEditionYear(
@@ -1966,26 +1742,18 @@ export function StudyResourceManager() {
                         .value
                     )
                 }
-
                 placeholder="2026"
               />
-
             </label>
 
-
-            {/* MONTH YEAR */}
-
             <label>
-
               Month / Year
 
               <input
                 type="month"
-
                 value={
                   monthYear
                 }
-
                 onChange={
                   event =>
                     setMonthYear(
@@ -1995,23 +1763,16 @@ export function StudyResourceManager() {
                     )
                 }
               />
-
             </label>
 
-
-            {/* SORT ORDER */}
-
             <label>
-
               Sort Order
 
               <input
                 type="number"
-
                 value={
                   sortOrder
                 }
-
                 onChange={
                   event =>
                     setSortOrder(
@@ -2021,54 +1782,44 @@ export function StudyResourceManager() {
                     )
                 }
               />
-
             </label>
 
-
-            {/* STATUS */}
-
             <label>
-
               Status
 
               <select
                 value={
                   status
                 }
-
                 onChange={
                   event =>
                     setStatus(
                       event
                         .target
-                        .value as
-                          ResourceStatus
+                        .value as ResourceStatus
                     )
                 }
               >
-
-                <option value="draft">
+                <option
+                  value="draft"
+                >
                   Draft
                 </option>
 
-
-                <option value="published">
+                <option
+                  value="published"
+                >
                   Published
                 </option>
 
-
-                <option value="archived">
+                <option
+                  value="archived"
+                >
                   Archived
                 </option>
-
               </select>
-
             </label>
-
           </div>
-
-
-          {/* DESCRIPTION */}
 
           <label
             style={{
@@ -2079,14 +1830,12 @@ export function StudyResourceManager() {
                 '14px'
             }}
           >
-
             Description
 
             <textarea
               value={
                 description
               }
-
               onChange={
                 event =>
                   setDescription(
@@ -2095,18 +1844,12 @@ export function StudyResourceManager() {
                       .value
                   )
               }
-
               placeholder="Explain why this resource is useful for UPSC preparation."
-
               rows={
                 4
               }
             />
-
           </label>
-
-
-          {/* EXTERNAL URL */}
 
           <label
             style={{
@@ -2117,16 +1860,13 @@ export function StudyResourceManager() {
                 '14px'
             }}
           >
-
             External URL
 
             <input
               type="url"
-
               value={
                 externalUrl
               }
-
               onChange={
                 event =>
                   setExternalUrl(
@@ -2135,50 +1875,55 @@ export function StudyResourceManager() {
                       .value
                   )
               }
-
               placeholder="https://..."
             />
-
           </label>
 
-
-          {/* FILE PATH */}
-
-          <label
+          <div
             style={{
-              display:
-                'block',
-
               marginTop:
                 '14px'
             }}
           >
+            <label
+              style={{
+                display:
+                  'block',
 
-            File Path
+                marginBottom:
+                  '8px'
+              }}
+            >
+              Resource PDF
+            </label>
 
-            <input
-              type="text"
-
-              value={
-                filePath
+            <PdfUploadField
+              file={
+                pdfFile
               }
-
               onChange={
-                event =>
-                  setFilePath(
-                    event
-                      .target
-                      .value
-                  )
+                setPdfFile
               }
-
-              placeholder="Optional storage path for future file support"
+              disabled={
+                saving
+              }
+              maxSizeMB={
+                MAX_RESOURCE_PDF_MB
+              }
             />
 
-          </label>
-
-
-          {/* FREE RESOURCE */}
+            {filePath && (
+              <div
+                className="callout"
+                style={{
+                  marginTop:
+                    '8px'
+                }}
+              >
+                Existing PDF attached. Choose another PDF above only if you want to replace it.
+              </div>
+            )}
+          </div>
 
           <label
             style={{
@@ -2195,14 +1940,11 @@ export function StudyResourceManager() {
                 '16px'
             }}
           >
-
             <input
               type="checkbox"
-
               checked={
                 isFree
               }
-
               onChange={
                 event =>
                   setIsFree(
@@ -2213,13 +1955,8 @@ export function StudyResourceManager() {
               }
             />
 
-
             Free resource
-
           </label>
-
-
-          {/* SAVE BUTTON */}
 
           <div
             style={{
@@ -2236,16 +1973,13 @@ export function StudyResourceManager() {
                 '18px'
             }}
           >
-
             <button
               type="submit"
               className="primary-btn"
-
               disabled={
                 saving
               }
             >
-
               {
                 saving
                   ? 'Saving...'
@@ -2253,35 +1987,23 @@ export function StudyResourceManager() {
                   ? 'Update Resource'
                   : 'Create Resource'
               }
-
             </button>
-
 
             <button
               type="button"
               className="secondary-btn"
-
               onClick={
                 resetForm
               }
-
               disabled={
                 saving
               }
             >
               Clear Form
             </button>
-
           </div>
-
         </form>
-
       </section>
-
-
-      {/* ==================================================
-          RESOURCE LIST FILTERS
-      ================================================== */}
 
       <section
         className="panel"
@@ -2290,40 +2012,31 @@ export function StudyResourceManager() {
             '18px'
         }}
       >
-
         <div
           className="panel-head"
         >
-
           <div>
-
             <span
               className="eyebrow"
             >
               RESOURCE LIBRARY
             </span>
 
-
             <h3>
               Manage Existing Resources
             </h3>
-
           </div>
-
 
           <button
             type="button"
             className="secondary-btn"
-
             onClick={() =>
               void loadResources()
             }
           >
             Refresh
           </button>
-
         </div>
-
 
         <div
           style={{
@@ -2340,20 +2053,14 @@ export function StudyResourceManager() {
               '14px'
           }}
         >
-
-          {/* SEARCH */}
-
           <label>
-
             Search
 
             <input
               type="search"
-
               value={
                 search
               }
-
               onChange={
                 event =>
                   setSearch(
@@ -2362,132 +2069,119 @@ export function StudyResourceManager() {
                       .value
                   )
               }
-
               placeholder="Search resources..."
             />
-
           </label>
 
-
-          {/* STATUS FILTER */}
-
           <label>
-
             Status
 
             <select
               value={
                 statusFilter
               }
-
               onChange={
                 event =>
                   setStatusFilter(
                     event
                       .target
-                      .value as
-                        StatusFilter
+                      .value as StatusFilter
                   )
               }
             >
-
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Status
               </option>
 
-
-              <option value="draft">
+              <option
+                value="draft"
+              >
                 Draft
               </option>
 
-
-              <option value="published">
+              <option
+                value="published"
+              >
                 Published
               </option>
 
-
-              <option value="archived">
+              <option
+                value="archived"
+              >
                 Archived
               </option>
-
             </select>
-
           </label>
 
-
-          {/* TYPE FILTER */}
-
           <label>
-
             Resource Type
 
             <select
               value={
                 typeFilter
               }
-
               onChange={
                 event =>
                   setTypeFilter(
                     event
                       .target
-                      .value as
-                        TypeFilter
+                      .value as TypeFilter
                   )
               }
             >
-
-              <option value="all">
+              <option
+                value="all"
+              >
                 All Types
               </option>
 
-
-              <option value="standard_book">
+              <option
+                value="standard_book"
+              >
                 Standard Books
               </option>
 
-
-              <option value="official_source">
+              <option
+                value="official_source"
+              >
                 Official Sources
               </option>
 
-
-              <option value="monthly_current_affairs">
+              <option
+                value="monthly_current_affairs"
+              >
                 Monthly Current Affairs
               </option>
 
-
-              <option value="notes">
+              <option
+                value="notes"
+              >
                 Notes
               </option>
 
-
-              <option value="report">
+              <option
+                value="report"
+              >
                 Reports
               </option>
 
-
-              <option value="pyq_resource">
+              <option
+                value="pyq_resource"
+              >
                 PYQ Resources
               </option>
 
-
-              <option value="syllabus_resource">
+              <option
+                value="syllabus_resource"
+              >
                 Syllabus Resources
               </option>
-
             </select>
-
           </label>
-
         </div>
-
       </section>
-
-
-      {/* ==================================================
-          RESOURCE LIST
-      ================================================== */}
 
       <section
         style={{
@@ -2501,55 +2195,39 @@ export function StudyResourceManager() {
             '18px'
         }}
       >
-
         {loading && (
-
           <article
             className="panel"
           >
             Loading study resources...
           </article>
-
         )}
-
 
         {!loading &&
           visibleResources.length ===
             0 && (
-
           <article
             className="panel"
           >
-
             <h3>
               No resources found
             </h3>
 
-
             <p>
-              Create a new resource or
-              change the current filters.
+              Create a new resource or change the current filters.
             </p>
-
           </article>
-
         )}
-
 
         {!loading &&
           visibleResources.map(
             resource => (
-
               <article
                 className="panel"
-
                 key={
                   resource.id
                 }
               >
-
-                {/* TAGS */}
-
                 <div
                   style={{
                     display:
@@ -2562,30 +2240,25 @@ export function StudyResourceManager() {
                       'wrap'
                   }}
                 >
-
                   <span
                     className="tag"
                   >
                     {
                       resourceTypeLabel(
-                        resource
-                          .resource_type
+                        resource.resource_type
                       )
                     }
                   </span>
-
 
                   <span
                     className="tag"
                   >
                     {
                       stageLabel(
-                        resource
-                          .exam_stage
+                        resource.exam_stage
                       )
                     }
                   </span>
-
 
                   <span
                     className="tag"
@@ -2595,7 +2268,6 @@ export function StudyResourceManager() {
                     }
                   </span>
 
-
                   <span
                     className="tag"
                   >
@@ -2604,21 +2276,22 @@ export function StudyResourceManager() {
                     }
                   </span>
 
-
                   {resource.is_free && (
-
                     <span
                       className="tag"
                     >
                       Free
                     </span>
-
                   )}
 
+                  {resource.file_path && (
+                    <span
+                      className="tag"
+                    >
+                      PDF attached
+                    </span>
+                  )}
                 </div>
-
-
-                {/* TITLE */}
 
                 <h3
                   style={{
@@ -2626,24 +2299,18 @@ export function StudyResourceManager() {
                       '12px'
                   }}
                 >
-                  {resource.title}
+                  {
+                    resource.title
+                  }
                 </h3>
 
-
-                {/* DESCRIPTION */}
-
                 {resource.description && (
-
                   <p>
                     {
                       resource.description
                     }
                   </p>
-
                 )}
-
-
-                {/* META */}
 
                 <div
                   style={{
@@ -2660,13 +2327,10 @@ export function StudyResourceManager() {
                       '14px'
                   }}
                 >
-
                   <div>
-
                     <small>
                       Subject
                     </small>
-
 
                     <div>
                       <strong>
@@ -2675,41 +2339,29 @@ export function StudyResourceManager() {
                         }
                       </strong>
                     </div>
-
                   </div>
 
-
                   {resource.source_name && (
-
                     <div>
-
                       <small>
                         Source
                       </small>
 
-
                       <div>
                         <strong>
                           {
-                            resource
-                              .source_name
+                            resource.source_name
                           }
                         </strong>
                       </div>
-
                     </div>
-
                   )}
 
-
                   {resource.paper && (
-
                     <div>
-
                       <small>
                         Paper
                       </small>
-
 
                       <div>
                         <strong>
@@ -2718,58 +2370,41 @@ export function StudyResourceManager() {
                           }
                         </strong>
                       </div>
-
                     </div>
-
                   )}
 
-
                   <div>
-
                     <small>
                       Sort Order
                     </small>
 
-
                     <div>
                       <strong>
                         {
-                          resource
-                            .sort_order
+                          resource.sort_order
                         }
                       </strong>
                     </div>
-
                   </div>
 
-
                   <div>
-
                     <small>
                       Updated
                     </small>
-
 
                     <div>
                       <strong>
                         {
                           formatDate(
-                            resource
-                              .updated_at
+                            resource.updated_at
                           )
                         }
                       </strong>
                     </div>
-
                   </div>
-
                 </div>
 
-
-                {/* URL */}
-
                 {resource.external_url && (
-
                   <div
                     className="callout"
                     style={{
@@ -2780,25 +2415,17 @@ export function StudyResourceManager() {
                         'anywhere'
                     }}
                   >
-
                     <strong>
                       External URL
                     </strong>
 
-
                     <p>
                       {
-                        resource
-                          .external_url
+                        resource.external_url
                       }
                     </p>
-
                   </div>
-
                 )}
-
-
-                {/* ACTIONS */}
 
                 <div
                   style={{
@@ -2815,11 +2442,9 @@ export function StudyResourceManager() {
                       '16px'
                   }}
                 >
-
                   <button
                     type="button"
                     className="secondary-btn"
-
                     onClick={() =>
                       editResource(
                         resource
@@ -2829,14 +2454,11 @@ export function StudyResourceManager() {
                     Edit
                   </button>
 
-
                   {resource.status !==
                     'published' && (
-
                     <button
                       type="button"
                       className="primary-btn"
-
                       onClick={() =>
                         void changeStatus(
                           resource,
@@ -2846,17 +2468,13 @@ export function StudyResourceManager() {
                     >
                       Publish
                     </button>
-
                   )}
-
 
                   {resource.status ===
                     'published' && (
-
                     <button
                       type="button"
                       className="secondary-btn"
-
                       onClick={() =>
                         void changeStatus(
                           resource,
@@ -2866,17 +2484,13 @@ export function StudyResourceManager() {
                     >
                       Unpublish
                     </button>
-
                   )}
-
 
                   {resource.status !==
                     'archived' && (
-
                     <button
                       type="button"
                       className="secondary-btn"
-
                       onClick={() =>
                         void changeStatus(
                           resource,
@@ -2886,14 +2500,11 @@ export function StudyResourceManager() {
                     >
                       Archive
                     </button>
-
                   )}
-
 
                   <button
                     type="button"
                     className="secondary-btn"
-
                     onClick={() =>
                       void deleteResource(
                         resource
@@ -2902,17 +2513,11 @@ export function StudyResourceManager() {
                   >
                     Delete
                   </button>
-
                 </div>
-
               </article>
-
             )
           )}
-
       </section>
-
     </div>
-
   );
 }
