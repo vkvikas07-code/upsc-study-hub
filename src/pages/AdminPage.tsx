@@ -45,6 +45,10 @@ type AdminArticle = {
   prelims: boolean;
   mains: boolean;
   status: ArticleStatus;
+
+  monthly_selected: boolean;
+  yearly_selected: boolean;
+
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -68,6 +72,8 @@ const ARTICLE_SELECT = `
   prelims,
   mains,
   status,
+  monthly_selected,
+  yearly_selected,
   published_at,
   created_at,
   updated_at
@@ -1255,6 +1261,135 @@ export function AdminPage({
     );
   }
 
+  async function changeCuration(
+  article: AdminArticle,
+  level: 'monthly' | 'yearly',
+  selected: boolean
+) {
+  if (!supabase) {
+    return;
+  }
+
+  if (
+    level === 'yearly' &&
+    selected &&
+    !article.monthly_selected
+  ) {
+    setMessage(
+      'First select this Current Affair for Monthly CA.'
+    );
+
+    return;
+  }
+
+  setMessage(
+    level === 'monthly'
+      ? selected
+        ? 'Adding to Monthly Current Affairs...'
+        : 'Removing from Monthly Current Affairs...'
+      : selected
+      ? 'Adding to Yearly Current Affairs...'
+      : 'Removing from Yearly Current Affairs...'
+  );
+
+  const updatePayload:
+    Record<string, boolean | string> = {
+      updated_at:
+        new Date().toISOString()
+    };
+
+  if (
+    level === 'monthly'
+  ) {
+    updatePayload.monthly_selected =
+      selected;
+
+    /*
+     * If an article is removed from Monthly,
+     * it must automatically be removed
+     * from Yearly too.
+     */
+    if (!selected) {
+      updatePayload.yearly_selected =
+        false;
+    }
+  }
+
+  if (
+    level === 'yearly'
+  ) {
+    updatePayload.yearly_selected =
+      selected;
+  }
+
+  const {
+    data,
+    error
+  } =
+    await supabase
+      .from(
+        'current_affairs'
+      )
+      .update(
+        updatePayload
+      )
+      .eq(
+        'id',
+        article.id
+      )
+      .select(
+        ARTICLE_SELECT
+      )
+      .single();
+
+  if (
+    error ||
+    !data
+  ) {
+    console.error(
+      'Current Affairs curation failed:',
+      error
+    );
+
+    setMessage(
+      error?.message ||
+      'Unable to update Current Affairs selection.'
+    );
+
+    return;
+  }
+
+  const updated =
+    data as AdminArticle;
+
+  setArticles(
+    current =>
+      current.map(
+        item =>
+          item.id ===
+            updated.id
+            ? updated
+            : item
+      )
+  );
+
+  if (
+    level === 'monthly'
+  ) {
+    setMessage(
+      selected
+        ? 'Selected for Monthly Current Affairs.'
+        : 'Removed from Monthly Current Affairs.'
+    );
+  } else {
+    setMessage(
+      selected
+        ? 'Selected for Yearly Current Affairs.'
+        : 'Removed from Yearly Current Affairs.'
+    );
+  }
+}
+  
   async function deleteArticle(
     article: AdminArticle
   ) {
@@ -2352,6 +2487,64 @@ export function AdminPage({
                           {article.status}
                         </strong>
                       </p>
+                      <div
+  style={{
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+    marginTop: '10px'
+  }}
+>
+  <span
+    style={{
+      padding: '5px 9px',
+      borderRadius: '999px',
+      fontSize: '12px',
+      fontWeight: 700,
+      background:
+        'rgba(59,130,246,0.15)',
+      border:
+        '1px solid rgba(59,130,246,0.35)'
+    }}
+  >
+    DAILY
+  </span>
+
+  {article.monthly_selected && (
+    <span
+      style={{
+        padding: '5px 9px',
+        borderRadius: '999px',
+        fontSize: '12px',
+        fontWeight: 700,
+        background:
+          'rgba(16,185,129,0.15)',
+        border:
+          '1px solid rgba(16,185,129,0.35)'
+      }}
+    >
+      MONTHLY SELECTED
+    </span>
+  )}
+
+  {article.yearly_selected && (
+    <span
+      style={{
+        padding: '5px 9px',
+        borderRadius: '999px',
+        fontSize: '12px',
+        fontWeight: 700,
+        background:
+          'rgba(245,158,11,0.15)',
+        border:
+          '1px solid rgba(245,158,11,0.35)'
+      }}
+    >
+      YEARLY SELECTED
+    </span>
+  )}
+</div>
+                      
                     </div>
 
                     <div
@@ -2381,6 +2574,57 @@ export function AdminPage({
                         Edit
                       </button>
 
+                      {article.status ===
+  'published' && (
+  <>
+    <button
+      type="button"
+      className="secondary-btn"
+      onClick={() =>
+        void changeCuration(
+          article,
+          'monthly',
+          !article.monthly_selected
+        )
+      }
+    >
+      {
+        article.monthly_selected
+          ? 'Remove from Monthly'
+          : 'Select for Monthly'
+      }
+    </button>
+
+    <button
+      type="button"
+      className="secondary-btn"
+      disabled={
+        !article.monthly_selected
+      }
+      title={
+        !article.monthly_selected
+          ? 'Select for Monthly CA first'
+          : article.yearly_selected
+          ? 'Remove from Yearly Current Affairs'
+          : 'Select for Yearly Current Affairs'
+      }
+      onClick={() =>
+        void changeCuration(
+          article,
+          'yearly',
+          !article.yearly_selected
+        )
+      }
+    >
+      {
+        article.yearly_selected
+          ? 'Remove from Yearly'
+          : 'Select for Yearly'
+      }
+    </button>
+  </>
+)}
+                      
                       {article.status !==
                         'published' && (
                         <button
