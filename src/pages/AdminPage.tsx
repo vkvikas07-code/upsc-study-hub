@@ -73,6 +73,11 @@ type MainsWorkspace =
   | 'practice';
 
 
+type CurationLevel =
+  | 'monthly'
+  | 'yearly';
+
+
 type AdminArticle = {
   id: string;
 
@@ -215,7 +220,9 @@ function currentAffairDateToIso(
   ] =
     value
       .split('-')
-      .map(Number);
+      .map(
+        Number
+      );
 
   return new Date(
     year,
@@ -229,14 +236,17 @@ function currentAffairDateToIso(
 
 
 function formatDate(
-  value: string | null
+  value:
+    string | null
 ) {
   if (!value) {
     return '—';
   }
 
   const date =
-    new Date(value);
+    new Date(
+      value
+    );
 
   if (
     Number.isNaN(
@@ -281,7 +291,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * ADMIN NAVIGATION
+   * NAVIGATION
    * =========================================
    */
 
@@ -329,7 +339,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * ARTICLES
+   * ARTICLE DATA
    * =========================================
    */
 
@@ -351,24 +361,6 @@ export function AdminPage({
     );
 
 
-  /*
-   * =========================================
-   * EDITOR FORM
-   * =========================================
-   */
-
-  const [
-    editingId,
-    setEditingId
-  ] =
-    useState<
-      string |
-      null
-    >(
-      null
-    );
-
-
   const [
     saving,
     setSaving
@@ -384,6 +376,24 @@ export function AdminPage({
   ] =
     useState(
       ''
+    );
+
+
+  /*
+   * =========================================
+   * EDITOR FORM
+   * =========================================
+   */
+
+  const [
+    editingId,
+    setEditingId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
     );
 
 
@@ -600,7 +610,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * CONVERT DB ARTICLE TO STUDENT ARTICLE
+   * CONVERT FOR STUDENT CURRENT AFFAIRS
    * =========================================
    */
 
@@ -640,10 +650,12 @@ export function AdminPage({
         article.mains,
 
       monthlySelected:
-        article.monthly_selected,
+        article
+          .monthly_selected,
 
       yearlySelected:
-        article.yearly_selected,
+        article
+          .yearly_selected,
 
       publishedAt:
         article.published_at
@@ -667,14 +679,15 @@ export function AdminPage({
           : 'Today',
 
       publishedAtIso:
-        article.published_at
+        article
+          .published_at
     };
   }
 
 
   /*
    * =========================================
-   * LOAD ARTICLES
+   * LOAD CURRENT AFFAIRS
    * =========================================
    */
 
@@ -742,7 +755,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * VERIFY ADMIN / EDITOR ACCESS
+   * ACCESS CHECK
    * =========================================
    */
 
@@ -916,7 +929,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * EDIT EXISTING ARTICLE
+   * EDIT ARTICLE
    * =========================================
    */
 
@@ -937,7 +950,8 @@ export function AdminPage({
     );
 
     setSourceUrl(
-      article.source_url ||
+      article
+        .source_url ||
       ''
     );
 
@@ -959,32 +973,38 @@ export function AdminPage({
     );
 
     setBackground(
-      article.background ||
+      article
+        .background ||
       ''
     );
 
     setKeyFacts(
-      article.key_facts ||
+      article
+        .key_facts ||
       ''
     );
 
     setPrelimsPoints(
-      article.prelims_points ||
+      article
+        .prelims_points ||
       ''
     );
 
     setMainsRelevance(
-      article.mains_relevance ||
+      article
+        .mains_relevance ||
       ''
     );
 
     setIssues(
-      article.issues ||
+      article
+        .issues ||
       ''
     );
 
     setWayForward(
-      article.way_forward ||
+      article
+        .way_forward ||
       ''
     );
 
@@ -1029,7 +1049,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * ARTICLE BODY
+   * BUILD BODY
    * =========================================
    */
 
@@ -1143,7 +1163,9 @@ export function AdminPage({
 
     const tags =
       tagsText
-        .split(',')
+        .split(
+          ','
+        )
         .map(
           tag =>
             tag.trim()
@@ -1468,6 +1490,15 @@ export function AdminPage({
         )
     );
 
+    setSelectedArticleIds(
+      current =>
+        current.filter(
+          id =>
+            id !==
+            updated.id
+        )
+    );
+
     if (
       updated.status ===
       'published'
@@ -1496,8 +1527,7 @@ export function AdminPage({
       AdminArticle,
 
     level:
-      | 'monthly'
-      | 'yearly',
+      CurationLevel,
 
     selected:
       boolean
@@ -1528,7 +1558,35 @@ export function AdminPage({
         .monthly_selected
     ) {
       setMessage(
-        'First select this Current Affair for Monthly CA.'
+        'First select this Current Affair for Monthly Current Affairs.'
+      );
+
+      return;
+    }
+
+    if (
+      level ===
+        'monthly' &&
+      selected &&
+      article
+        .monthly_selected
+    ) {
+      setMessage(
+        'This article is already selected for Monthly Current Affairs.'
+      );
+
+      return;
+    }
+
+    if (
+      level ===
+        'yearly' &&
+      selected &&
+      article
+        .yearly_selected
+    ) {
+      setMessage(
+        'This article is already selected for Yearly Current Affairs.'
       );
 
       return;
@@ -1594,7 +1652,7 @@ export function AdminPage({
 
       setMessage(
         error?.message ||
-        'Unable to update curation.'
+        'Unable to update Current Affairs curation.'
       );
 
       return;
@@ -1615,22 +1673,37 @@ export function AdminPage({
         )
     );
 
-    setMessage(
-      level ===
-        'monthly'
-        ? selected
-          ? 'Selected for Monthly Current Affairs.'
-          : 'Removed from Monthly Current Affairs.'
-        : selected
-        ? 'Selected for Yearly Current Affairs.'
-        : 'Removed from Yearly Current Affairs.'
+    setSelectedArticleIds(
+      current =>
+        current.filter(
+          id =>
+            id !==
+            updated.id
+        )
     );
+
+    if (
+      level ===
+      'monthly'
+    ) {
+      setMessage(
+        selected
+          ? 'Article successfully selected for Monthly Current Affairs.'
+          : 'Article removed from Monthly Current Affairs. Yearly selection was also removed if applicable.'
+      );
+    } else {
+      setMessage(
+        selected
+          ? 'Article successfully selected for Yearly Current Affairs.'
+          : 'Article removed from Yearly Current Affairs.'
+      );
+    }
   }
 
 
   /*
    * =========================================
-   * ARTICLE CHECKBOX
+   * TOGGLE CHECKBOX
    * =========================================
    */
 
@@ -1664,8 +1737,7 @@ export function AdminPage({
 
   async function bulkChangeCuration(
     level:
-      | 'monthly'
-      | 'yearly',
+      CurationLevel,
 
     selected:
       boolean
@@ -1673,10 +1745,13 @@ export function AdminPage({
     const client =
       supabase;
 
+    if (!client) {
+      return;
+    }
+
     if (
-      !client ||
       selectedArticleIds.length ===
-        0
+      0
     ) {
       setMessage(
         'Select at least one Current Affair first.'
@@ -1688,27 +1763,99 @@ export function AdminPage({
     const selectedArticles =
       articles.filter(
         article =>
-          selectedArticleIds.includes(
-            article.id
-          )
+          selectedArticleIds
+            .includes(
+              article.id
+            )
+      );
+
+    const eligibleArticles =
+      selectedArticles.filter(
+        article => {
+          if (
+            article.status !==
+            'published'
+          ) {
+            return false;
+          }
+
+          if (
+            level ===
+              'monthly' &&
+            selected
+          ) {
+            return (
+              !article
+                .monthly_selected
+            );
+          }
+
+          if (
+            level ===
+              'monthly' &&
+            !selected
+          ) {
+            return (
+              article
+                .monthly_selected
+            );
+          }
+
+          if (
+            level ===
+              'yearly' &&
+            selected
+          ) {
+            return (
+              article
+                .monthly_selected &&
+              !article
+                .yearly_selected
+            );
+          }
+
+          if (
+            level ===
+              'yearly' &&
+            !selected
+          ) {
+            return (
+              article
+                .yearly_selected
+            );
+          }
+
+          return false;
+        }
       );
 
     if (
-      level ===
-        'yearly' &&
-      selected &&
-      selectedArticles.some(
-        article =>
-          !article
-            .monthly_selected
-      )
+      eligibleArticles.length ===
+      0
     ) {
+      setSelectedArticleIds(
+        []
+      );
+
       setMessage(
-        'Yearly selection is allowed only for articles already selected for Monthly Current Affairs.'
+        level ===
+          'monthly'
+          ? selected
+            ? 'No pending Daily articles were eligible for Monthly selection.'
+            : 'None of the selected articles are currently in Monthly Current Affairs.'
+          : selected
+          ? 'No eligible Monthly articles were pending Yearly selection.'
+          : 'None of the selected articles are currently in Yearly Current Affairs.'
       );
 
       return;
     }
+
+    const eligibleIds =
+      eligibleArticles.map(
+        article =>
+          article.id
+      );
 
     const updatePayload:
       Record<
@@ -1752,7 +1899,7 @@ export function AdminPage({
         )
         .in(
           'id',
-          selectedArticleIds
+          eligibleIds
         )
         .select(
           ARTICLE_SELECT
@@ -1801,22 +1948,49 @@ export function AdminPage({
       []
     );
 
-    setMessage(
+    const count =
+      updatedItems.length;
+
+    if (
       level ===
         'monthly'
-        ? selected
-          ? 'Selected articles added to Monthly Current Affairs.'
-          : 'Selected articles removed from Monthly Current Affairs.'
-        : selected
-        ? 'Selected articles added to Yearly Current Affairs.'
-        : 'Selected articles removed from Yearly Current Affairs.'
+    ) {
+      setMessage(
+        selected
+          ? `${count} ${
+              count === 1
+                ? 'article'
+                : 'articles'
+            } selected for Monthly Current Affairs.`
+          : `${count} ${
+              count === 1
+                ? 'article'
+                : 'articles'
+            } removed from Monthly Current Affairs.`
+      );
+
+      return;
+    }
+
+    setMessage(
+      selected
+        ? `${count} ${
+            count === 1
+              ? 'article'
+              : 'articles'
+          } selected for Yearly Current Affairs.`
+        : `${count} ${
+            count === 1
+              ? 'article'
+              : 'articles'
+          } removed from Yearly Current Affairs.`
     );
   }
 
 
   /*
    * =========================================
-   * DELETE ARTICLE
+   * DELETE
    * =========================================
    */
 
@@ -1915,12 +2089,11 @@ export function AdminPage({
   const monthlyArticles =
     useMemo(
       () =>
-        publishedArticles
-          .filter(
-            article =>
-              article
-                .monthly_selected
-          ),
+        publishedArticles.filter(
+          article =>
+            article
+              .monthly_selected
+        ),
       [
         publishedArticles
       ]
@@ -1930,12 +2103,11 @@ export function AdminPage({
   const yearlyArticles =
     useMemo(
       () =>
-        monthlyArticles
-          .filter(
-            article =>
-              article
-                .yearly_selected
-          ),
+        monthlyArticles.filter(
+          article =>
+            article
+              .yearly_selected
+        ),
       [
         monthlyArticles
       ]
@@ -1944,7 +2116,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * SELECTED MONTH STATISTICS
+   * MONTH STATISTICS
    * =========================================
    */
 
@@ -1993,12 +2165,11 @@ export function AdminPage({
   const currentMonthMonthly =
     useMemo(
       () =>
-        currentMonthPublished
-          .filter(
-            article =>
-              article
-                .monthly_selected
-          ),
+        currentMonthPublished.filter(
+          article =>
+            article
+              .monthly_selected
+        ),
       [
         currentMonthPublished
       ]
@@ -2012,7 +2183,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * SELECTED YEAR STATISTICS
+   * YEAR STATISTICS
    * =========================================
    */
 
@@ -2055,12 +2226,11 @@ export function AdminPage({
   const currentYearMonthly =
     useMemo(
       () =>
-        currentYearPublished
-          .filter(
-            article =>
-              article
-                .monthly_selected
-          ),
+        currentYearPublished.filter(
+          article =>
+            article
+              .monthly_selected
+        ),
       [
         currentYearPublished
       ]
@@ -2070,12 +2240,11 @@ export function AdminPage({
   const currentYearYearly =
     useMemo(
       () =>
-        currentYearMonthly
-          .filter(
-            article =>
-              article
-                .yearly_selected
-          ),
+        currentYearMonthly.filter(
+          article =>
+            article
+              .yearly_selected
+        ),
       [
         currentYearMonthly
       ]
@@ -2089,7 +2258,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * CURATION FILTER
+   * FILTER CURATION ARTICLES
    * =========================================
    */
 
@@ -2253,7 +2422,49 @@ export function AdminPage({
 
   /*
    * =========================================
-   * SUPABASE NOT CONFIGURED
+   * PENDING VISIBLE ARTICLES
+   * =========================================
+   */
+
+  const pendingVisibleArticles =
+    useMemo(
+      () => {
+        if (
+          curationView ===
+          'daily'
+        ) {
+          return curationArticles.filter(
+            article =>
+              !article
+                .monthly_selected
+          );
+        }
+
+        if (
+          curationView ===
+          'monthly'
+        ) {
+          return curationArticles.filter(
+            article =>
+              article
+                .monthly_selected &&
+              !article
+                .yearly_selected
+          );
+        }
+
+        return [];
+      },
+      [
+        curationArticles,
+        curationView
+      ]
+    );
+
+
+  /*
+   * =========================================
+   * ACCESS UI
    * =========================================
    */
 
@@ -2281,12 +2492,6 @@ export function AdminPage({
   }
 
 
-  /*
-   * =========================================
-   * ACCESS LOADING
-   * =========================================
-   */
-
   if (
     checkingAccess
   ) {
@@ -2310,12 +2515,6 @@ export function AdminPage({
     );
   }
 
-
-  /*
-   * =========================================
-   * ACCESS DENIED
-   * =========================================
-   */
 
   if (
     !hasAccess
@@ -2347,7 +2546,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * ADMIN UI
+   * PAGE
    * =========================================
    */
 
@@ -2362,12 +2561,11 @@ export function AdminPage({
       />
 
 
-      {/* ======================================
-          ADMIN MAIN TABS
-          ====================================== */}
+      {/* MAIN ADMIN TABS */}
 
       <section
         className="panel"
+
         style={{
           marginBottom:
             '18px',
@@ -2463,19 +2661,17 @@ export function AdminPage({
       </section>
 
 
-      {/* ======================================
-          CURRENT AFFAIRS
-          ====================================== */}
+      {/* CURRENT AFFAIRS */}
 
       {adminTab ===
         'current' && (
         <>
 
-          {/* EDITOR */}
-
           <section
             className="admin-grid"
           >
+
+            {/* EDITOR FORM */}
 
             <form
               className="panel admin-form"
@@ -2818,7 +3014,6 @@ export function AdminPage({
               >
 
                 <label>
-
                   <input
                     type="checkbox"
 
@@ -2837,12 +3032,10 @@ export function AdminPage({
                   />
 
                   Prelims
-
                 </label>
 
 
                 <label>
-
                   <input
                     type="checkbox"
 
@@ -2861,7 +3054,6 @@ export function AdminPage({
                   />
 
                   Mains
-
                 </label>
 
               </div>
@@ -2885,7 +3077,6 @@ export function AdminPage({
                       )
                   }
                 >
-
                   <option
                     value="draft"
                   >
@@ -2903,7 +3094,6 @@ export function AdminPage({
                   >
                     Archived
                   </option>
-
                 </select>
               </label>
 
@@ -2971,7 +3161,7 @@ export function AdminPage({
             </form>
 
 
-            {/* SUMMARY */}
+            {/* WORKFLOW SUMMARY */}
 
             <aside
               className="panel admin-side"
@@ -2990,9 +3180,7 @@ export function AdminPage({
 
 
               <p>
-                Publish Daily Current Affairs first.
-                Select important Daily items for Monthly revision.
-                Then select the most important Monthly items for Yearly revision.
+                Publish useful Current Affairs daily. Select only important Daily items for Monthly revision, then select only the highest-priority Monthly items for Yearly revision.
               </p>
 
 
@@ -3055,9 +3243,7 @@ export function AdminPage({
           </section>
 
 
-          {/* ======================================
-              CURATION MANAGER
-              ====================================== */}
+          {/* CURATION */}
 
           <section
             className="panel"
@@ -3088,18 +3274,15 @@ export function AdminPage({
             >
 
               <div>
-
                 <span
                   className="eyebrow"
                 >
                   CURRENT AFFAIRS CURATION
                 </span>
 
-
                 <h2>
                   Manage Daily, Monthly and Yearly CA
                 </h2>
-
               </div>
 
 
@@ -3108,9 +3291,13 @@ export function AdminPage({
 
                 className="secondary-btn"
 
-                onClick={() =>
-                  void loadArticles()
-                }
+                onClick={() => {
+                  setSelectedArticleIds(
+                    []
+                  );
+
+                  void loadArticles();
+                }}
               >
                 Refresh
               </button>
@@ -3118,7 +3305,7 @@ export function AdminPage({
             </div>
 
 
-            {/* CURATION TABS */}
+            {/* CURATION VIEWS */}
 
             <div
               style={{
@@ -3149,6 +3336,10 @@ export function AdminPage({
                 onClick={() => {
                   setCurationView(
                     'all'
+                  );
+
+                  setCurationPendingOnly(
+                    false
                   );
 
                   setSelectedArticleIds(
@@ -3229,6 +3420,10 @@ export function AdminPage({
                     'yearly'
                   );
 
+                  setCurationPendingOnly(
+                    false
+                  );
+
                   setSelectedArticleIds(
                     []
                   );
@@ -3266,7 +3461,6 @@ export function AdminPage({
               {curationView ===
                 'daily' && (
                 <label>
-
                   Month
 
                   <input
@@ -3277,15 +3471,19 @@ export function AdminPage({
                     }
 
                     onChange={
-                      event =>
+                      event => {
                         setCurationMonth(
                           event
                             .target
                             .value
-                        )
+                        );
+
+                        setSelectedArticleIds(
+                          []
+                        );
+                      }
                     }
                   />
-
                 </label>
               )}
 
@@ -3295,7 +3493,6 @@ export function AdminPage({
                 curationView ===
                   'yearly') && (
                 <label>
-
                   Year
 
                   <input
@@ -3310,15 +3507,19 @@ export function AdminPage({
                     }
 
                     onChange={
-                      event =>
+                      event => {
                         setCurationYear(
                           event
                             .target
                             .value
-                        )
+                        );
+
+                        setSelectedArticleIds(
+                          []
+                        );
+                      }
                     }
                   />
-
                 </label>
               )}
 
@@ -3351,12 +3552,17 @@ export function AdminPage({
                     }
 
                     onChange={
-                      event =>
+                      event => {
                         setCurationPendingOnly(
                           event
                             .target
                             .checked
-                        )
+                        );
+
+                        setSelectedArticleIds(
+                          []
+                        );
+                      }
                     }
                   />
 
@@ -3367,7 +3573,6 @@ export function AdminPage({
 
 
               <label>
-
                 Search
 
                 <input
@@ -3378,25 +3583,27 @@ export function AdminPage({
                   }
 
                   onChange={
-                    event =>
+                    event => {
                       setCurationSearch(
                         event
                           .target
                           .value
-                      )
+                      );
+
+                      setSelectedArticleIds(
+                        []
+                      );
+                    }
                   }
 
                   placeholder="Search title, subject, source..."
                 />
-
               </label>
 
             </div>
 
 
-            {/* ======================================
-                PERIOD STATISTICS
-                ====================================== */}
+            {/* PERIOD STATISTICS */}
 
             {curationView ===
               'daily' && (
@@ -3549,7 +3756,7 @@ export function AdminPage({
             )}
 
 
-            {/* BULK SELECTION */}
+            {/* BULK ACTIONS */}
 
             {(
               curationView ===
@@ -3595,6 +3802,34 @@ export function AdminPage({
                   }}
                 >
 
+                  {(curationView ===
+                      'daily' ||
+                    curationView ===
+                      'monthly') && (
+                    <button
+                      type="button"
+
+                      className="secondary-btn"
+
+                      disabled={
+                        pendingVisibleArticles.length ===
+                        0
+                      }
+
+                      onClick={() =>
+                        setSelectedArticleIds(
+                          pendingVisibleArticles.map(
+                            article =>
+                              article.id
+                          )
+                        )
+                      }
+                    >
+                      Select all pending visible
+                    </button>
+                  )}
+
+
                   <button
                     type="button"
 
@@ -3607,15 +3842,9 @@ export function AdminPage({
 
                     onClick={() =>
                       setSelectedArticleIds(
-                        Array.from(
-                          new Set([
-                            ...selectedArticleIds,
-
-                            ...curationArticles.map(
-                              article =>
-                                article.id
-                            )
-                          ])
+                        curationArticles.map(
+                          article =>
+                            article.id
                         )
                       )
                     }
@@ -3663,7 +3892,7 @@ export function AdminPage({
                         )
                       }
                     >
-                      Add selected to Monthly
+                      Add eligible to Monthly
                     </button>
                   )}
 
@@ -3689,7 +3918,7 @@ export function AdminPage({
                           )
                         }
                       >
-                        Add selected to Yearly
+                        Add eligible to Yearly
                       </button>
 
 
@@ -3746,16 +3975,12 @@ export function AdminPage({
             )}
 
 
-            {/* LOADING */}
-
             {loadingArticles && (
               <p>
                 Loading Current Affairs...
               </p>
             )}
 
-
-            {/* EMPTY */}
 
             {!loadingArticles &&
               curationArticles.length ===
@@ -3773,7 +3998,7 @@ export function AdminPage({
               )}
 
 
-            {/* ARTICLE LIST */}
+            {/* ARTICLE CARDS */}
 
             <div
               style={{
@@ -3789,348 +4014,384 @@ export function AdminPage({
             >
 
               {curationArticles.map(
-                article => (
-                  <article
-                    key={
-                      article.id
-                    }
+                article => {
 
-                    style={{
-                      border:
-                        '1px solid rgba(255,255,255,0.10)',
+                  const pendingMonthly =
+                    article.status ===
+                      'published' &&
+                    !article
+                      .monthly_selected;
 
-                      borderRadius:
-                        '14px',
 
-                      padding:
-                        '16px'
-                    }}
-                  >
+                  const pendingYearly =
+                    article
+                      .monthly_selected &&
+                    !article
+                      .yearly_selected;
 
-                    {curationView !==
-                      'all' && (
-                      <label
+
+                  return (
+                    <article
+                      key={
+                        article.id
+                      }
+
+                      style={{
+                        border:
+                          '1px solid rgba(255,255,255,0.10)',
+
+                        borderRadius:
+                          '14px',
+
+                        padding:
+                          '16px'
+                      }}
+                    >
+
+                      {curationView !==
+                        'all' && (
+                        <label
+                          style={{
+                            display:
+                              'flex',
+
+                            alignItems:
+                              'center',
+
+                            gap:
+                              '8px',
+
+                            marginBottom:
+                              '10px'
+                          }}
+                        >
+
+                          <input
+                            type="checkbox"
+
+                            checked={
+                              selectedArticleIds
+                                .includes(
+                                  article.id
+                                )
+                            }
+
+                            onChange={() =>
+                              toggleArticleSelection(
+                                article.id
+                              )
+                            }
+                          />
+
+                          Select
+
+                        </label>
+                      )}
+
+
+                      <span
+                        className="eyebrow"
+                      >
+                        {
+                          article.subject
+                        }
+                      </span>
+
+
+                      <h3>
+                        {
+                          article.title
+                        }
+                      </h3>
+
+
+                      <p>
+                        {
+                          article.summary
+                        }
+                      </p>
+
+
+                      <p>
+                        <strong>
+                          Source:
+                        </strong>
+
+                        {' '}
+
+                        {
+                          article.source
+                        }
+
+                        {' · '}
+
+                        <strong>
+                          Date:
+                        </strong>
+
+                        {' '}
+
+                        {
+                          formatDate(
+                            article
+                              .published_at
+                          )
+                        }
+
+                        {' · '}
+
+                        <strong>
+                          Status:
+                        </strong>
+
+                        {' '}
+
+                        {
+                          article.status
+                        }
+                      </p>
+
+
+                      {/* STATUS BADGES */}
+
+                      <div
                         style={{
                           display:
                             'flex',
 
-                          alignItems:
-                            'center',
+                          gap:
+                            '8px',
+
+                          flexWrap:
+                            'wrap',
+
+                          marginBottom:
+                            '12px'
+                        }}
+                      >
+
+                        {article.status ===
+                          'published' && (
+                          <span
+                            className="tag"
+                          >
+                            DAILY
+                          </span>
+                        )}
+
+
+                        {article
+                          .monthly_selected && (
+                          <span
+                            className="tag"
+                          >
+                            MONTHLY SELECTED
+                          </span>
+                        )}
+
+
+                        {article
+                          .yearly_selected && (
+                          <span
+                            className="tag"
+                          >
+                            YEARLY SELECTED
+                          </span>
+                        )}
+
+
+                        {curationView ===
+                          'daily' &&
+                          pendingMonthly && (
+                          <span
+                            className="eyebrow"
+                          >
+                            PENDING MONTHLY
+                          </span>
+                        )}
+
+
+                        {curationView ===
+                          'monthly' &&
+                          pendingYearly && (
+                          <span
+                            className="eyebrow"
+                          >
+                            PENDING YEARLY
+                          </span>
+                        )}
+
+                      </div>
+
+
+                      {/* ACTIONS */}
+
+                      <div
+                        style={{
+                          display:
+                            'flex',
 
                           gap:
                             '8px',
 
-                          marginBottom:
-                            '10px'
+                          flexWrap:
+                            'wrap'
                         }}
                       >
 
-                        <input
-                          type="checkbox"
+                        <button
+                          type="button"
 
-                          checked={
-                            selectedArticleIds.includes(
-                              article.id
+                          className="secondary-btn"
+
+                          onClick={() =>
+                            startEdit(
+                              article
                             )
                           }
-
-                          onChange={() =>
-                            toggleArticleSelection(
-                              article.id
-                            )
-                          }
-                        />
-
-                        Select
-
-                      </label>
-                    )}
-
-
-                    <span
-                      className="eyebrow"
-                    >
-                      {
-                        article.subject
-                      }
-                    </span>
-
-
-                    <h3>
-                      {
-                        article.title
-                      }
-                    </h3>
-
-
-                    <p>
-                      {
-                        article.summary
-                      }
-                    </p>
-
-
-                    <p>
-
-                      <strong>
-                        Source:
-                      </strong>
-
-                      {' '}
-
-                      {
-                        article.source
-                      }
-
-                      {' · '}
-
-
-                      <strong>
-                        Date:
-                      </strong>
-
-                      {' '}
-
-                      {
-                        formatDate(
-                          article
-                            .published_at
-                        )
-                      }
-
-                      {' · '}
-
-
-                      <strong>
-                        Status:
-                      </strong>
-
-                      {' '}
-
-                      {
-                        article.status
-                      }
-
-                    </p>
-
-
-                    {/* BADGES */}
-
-                    <div
-                      style={{
-                        display:
-                          'flex',
-
-                        gap:
-                          '8px',
-
-                        flexWrap:
-                          'wrap',
-
-                        marginBottom:
-                          '12px'
-                      }}
-                    >
-
-                      {article.status ===
-                        'published' && (
-                        <span
-                          className="eyebrow"
                         >
-                          DAILY
-                        </span>
-                      )}
+                          Edit
+                        </button>
 
 
-                      {article
-                        .monthly_selected && (
-                        <span
-                          className="eyebrow"
-                        >
-                          MONTHLY
-                        </span>
-                      )}
+                        {article.status ===
+                          'published' && (
+                          <>
+
+                            <button
+                              type="button"
+
+                              className="secondary-btn"
+
+                              onClick={() =>
+                                void changeCuration(
+                                  article,
+
+                                  'monthly',
+
+                                  !article
+                                    .monthly_selected
+                                )
+                              }
+                            >
+                              {
+                                article
+                                  .monthly_selected
+                                  ? 'Remove from Monthly'
+                                  : 'Select for Monthly'
+                              }
+                            </button>
 
 
-                      {article
-                        .yearly_selected && (
-                        <span
-                          className="eyebrow"
-                        >
-                          YEARLY
-                        </span>
-                      )}
+                            <button
+                              type="button"
 
-                    </div>
+                              className="secondary-btn"
 
-
-                    {/* ACTIONS */}
-
-                    <div
-                      style={{
-                        display:
-                          'flex',
-
-                        gap:
-                          '8px',
-
-                        flexWrap:
-                          'wrap'
-                      }}
-                    >
-
-                      <button
-                        type="button"
-
-                        className="secondary-btn"
-
-                        onClick={() =>
-                          startEdit(
-                            article
-                          )
-                        }
-                      >
-                        Edit
-                      </button>
-
-
-                      {article.status ===
-                        'published' && (
-                        <>
-
-                          <button
-                            type="button"
-
-                            className="secondary-btn"
-
-                            onClick={() =>
-                              void changeCuration(
-                                article,
-
-                                'monthly',
-
+                              disabled={
                                 !article
                                   .monthly_selected
-                              )
-                            }
-                          >
-                            {
-                              article
-                                .monthly_selected
-                                ? 'Remove from Monthly'
-                                : 'Select for Monthly'
-                            }
-                          </button>
+                              }
+
+                              onClick={() =>
+                                void changeCuration(
+                                  article,
+
+                                  'yearly',
+
+                                  !article
+                                    .yearly_selected
+                                )
+                              }
+                            >
+                              {
+                                article
+                                  .yearly_selected
+                                  ? 'Remove from Yearly'
+                                  : 'Select for Yearly'
+                              }
+                            </button>
+
+                          </>
+                        )}
 
 
+                        {article.status !==
+                          'published' && (
                           <button
                             type="button"
 
                             className="secondary-btn"
 
-                            disabled={
-                              !article
-                                .monthly_selected
-                            }
-
                             onClick={() =>
-                              void changeCuration(
+                              void changeStatus(
                                 article,
-
-                                'yearly',
-
-                                !article
-                                  .yearly_selected
+                                'published'
                               )
                             }
                           >
-                            {
-                              article
-                                .yearly_selected
-                                ? 'Remove from Yearly'
-                                : 'Select for Yearly'
-                            }
+                            Publish
                           </button>
-
-                        </>
-                      )}
+                        )}
 
 
-                      {article.status !==
-                        'published' && (
+                        {article.status !==
+                          'draft' && (
+                          <button
+                            type="button"
+
+                            className="secondary-btn"
+
+                            onClick={() =>
+                              void changeStatus(
+                                article,
+                                'draft'
+                              )
+                            }
+                          >
+                            Move to draft
+                          </button>
+                        )}
+
+
+                        {article.status !==
+                          'archived' && (
+                          <button
+                            type="button"
+
+                            className="secondary-btn"
+
+                            onClick={() =>
+                              void changeStatus(
+                                article,
+                                'archived'
+                              )
+                            }
+                          >
+                            Archive
+                          </button>
+                        )}
+
+
                         <button
                           type="button"
 
                           className="secondary-btn"
 
                           onClick={() =>
-                            void changeStatus(
-                              article,
-                              'published'
+                            void deleteArticle(
+                              article
                             )
                           }
                         >
-                          Publish
+                          Delete
                         </button>
-                      )}
 
+                      </div>
 
-                      {article.status !==
-                        'draft' && (
-                        <button
-                          type="button"
-
-                          className="secondary-btn"
-
-                          onClick={() =>
-                            void changeStatus(
-                              article,
-                              'draft'
-                            )
-                          }
-                        >
-                          Move to draft
-                        </button>
-                      )}
-
-
-                      {article.status !==
-                        'archived' && (
-                        <button
-                          type="button"
-
-                          className="secondary-btn"
-
-                          onClick={() =>
-                            void changeStatus(
-                              article,
-                              'archived'
-                            )
-                          }
-                        >
-                          Archive
-                        </button>
-                      )}
-
-
-                      <button
-                        type="button"
-
-                        className="secondary-btn"
-
-                        onClick={() =>
-                          void deleteArticle(
-                            article
-                          )
-                        }
-                      >
-                        Delete
-                      </button>
-
-                    </div>
-
-                  </article>
-                )
+                    </article>
+                  );
+                }
               )}
 
             </div>
@@ -4141,9 +4402,7 @@ export function AdminPage({
       )}
 
 
-      {/* ======================================
-          STUDY MATERIAL
-          ====================================== */}
+      {/* STUDY MATERIAL */}
 
       {adminTab ===
         'resources' && (
@@ -4151,9 +4410,7 @@ export function AdminPage({
       )}
 
 
-      {/* ======================================
-          PRELIMS MCQ
-          ====================================== */}
+      {/* PRELIMS MCQ */}
 
       {adminTab ===
         'mcq' && (
@@ -4161,9 +4418,7 @@ export function AdminPage({
       )}
 
 
-      {/* ======================================
-          TEST SERIES
-          ====================================== */}
+      {/* TEST SERIES */}
 
       {adminTab ===
         'tests' && (
@@ -4171,9 +4426,7 @@ export function AdminPage({
       )}
 
 
-      {/* ======================================
-          MAINS
-          ====================================== */}
+      {/* MAINS */}
 
       {adminTab ===
         'mains' && (
@@ -4258,9 +4511,7 @@ export function AdminPage({
       )}
 
 
-      {/* ======================================
-          EVALUATION
-          ====================================== */}
+      {/* EVALUATION */}
 
       {adminTab ===
         'evaluation' && (
