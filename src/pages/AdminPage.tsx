@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react';
 
@@ -165,6 +166,55 @@ const ARTICLE_SELECT = `
 `;
 
 
+const LAST_SOURCE_KEY =
+  'upsc_admin_last_ca_source';
+
+
+const LAST_SUBJECT_KEY =
+  'upsc_admin_last_ca_subject';
+
+
+/*
+ * =========================================
+ * LOCAL STORAGE
+ * =========================================
+ */
+
+function getStoredValue(
+  key: string,
+  fallback: string
+) {
+  try {
+    const value =
+      localStorage.getItem(
+        key
+      );
+
+    return (
+      value?.trim() ||
+      fallback
+    );
+  } catch {
+    return fallback;
+  }
+}
+
+
+function saveStoredValue(
+  key: string,
+  value: string
+) {
+  try {
+    localStorage.setItem(
+      key,
+      value
+    );
+  } catch {
+    // Local storage is optional.
+  }
+}
+
+
 /*
  * =========================================
  * DATE HELPERS
@@ -273,6 +323,19 @@ function formatDate(
 }
 
 
+function normalizeTitle(
+  value: string
+) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(
+      /\s+/g,
+      ' '
+    );
+}
+
+
 /*
  * =========================================
  * ADMIN PAGE
@@ -288,6 +351,12 @@ export function AdminPage({
         CurrentAffair
     ) => void;
 }) {
+
+  const titleInputRef =
+    useRef<HTMLInputElement>(
+      null
+    );
+
 
   /*
    * =========================================
@@ -411,7 +480,11 @@ export function AdminPage({
     setSource
   ] =
     useState(
-      'PIB'
+      () =>
+        getStoredValue(
+          LAST_SOURCE_KEY,
+          'PIB'
+        )
     );
 
 
@@ -438,7 +511,11 @@ export function AdminPage({
     setSubject
   ] =
     useState(
-      'Polity & Governance'
+      () =>
+        getStoredValue(
+          LAST_SUBJECT_KEY,
+          'Polity & Governance'
+        )
     );
 
 
@@ -610,7 +687,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * CONVERT FOR STUDENT CURRENT AFFAIRS
+   * STUDENT ARTICLE CONVERTER
    * =========================================
    */
 
@@ -687,7 +764,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * LOAD CURRENT AFFAIRS
+   * LOAD ARTICLES
    * =========================================
    */
 
@@ -852,7 +929,25 @@ export function AdminPage({
 
   /*
    * =========================================
-   * RESET FORM
+   * TITLE FOCUS
+   * =========================================
+   */
+
+  function focusTitle() {
+    window
+      .requestAnimationFrame(
+        () => {
+          titleInputRef
+            .current
+            ?.focus();
+        }
+      );
+  }
+
+
+  /*
+   * =========================================
+   * FULL RESET
    * =========================================
    */
 
@@ -866,7 +961,10 @@ export function AdminPage({
     );
 
     setSource(
-      'PIB'
+      getStoredValue(
+        LAST_SOURCE_KEY,
+        'PIB'
+      )
     );
 
     setSourceUrl(
@@ -878,7 +976,10 @@ export function AdminPage({
     );
 
     setSubject(
-      'Polity & Governance'
+      getStoredValue(
+        LAST_SUBJECT_KEY,
+        'Polity & Governance'
+      )
     );
 
     setSummary(
@@ -924,6 +1025,121 @@ export function AdminPage({
     setStatus(
       'draft'
     );
+
+    focusTitle();
+  }
+
+
+  /*
+   * =========================================
+   * RAPID ENTRY RESET
+   * =========================================
+   */
+
+  function prepareNextArticle() {
+    const keepSource =
+      source.trim() ||
+      'PIB';
+
+    const keepSubject =
+      subject.trim() ||
+      'Polity & Governance';
+
+    const keepDate =
+      articleDate ||
+      getLocalDateValue();
+
+    const keepTags =
+      tagsText;
+
+    const keepPrelims =
+      prelims;
+
+    const keepMains =
+      mains;
+
+    const keepStatus =
+      status;
+
+    saveStoredValue(
+      LAST_SOURCE_KEY,
+      keepSource
+    );
+
+    saveStoredValue(
+      LAST_SUBJECT_KEY,
+      keepSubject
+    );
+
+    setEditingId(
+      null
+    );
+
+    setTitle(
+      ''
+    );
+
+    setSource(
+      keepSource
+    );
+
+    setSourceUrl(
+      ''
+    );
+
+    setArticleDate(
+      keepDate
+    );
+
+    setSubject(
+      keepSubject
+    );
+
+    setSummary(
+      ''
+    );
+
+    setBackground(
+      ''
+    );
+
+    setKeyFacts(
+      ''
+    );
+
+    setPrelimsPoints(
+      ''
+    );
+
+    setMainsRelevance(
+      ''
+    );
+
+    setIssues(
+      ''
+    );
+
+    setWayForward(
+      ''
+    );
+
+    setTagsText(
+      keepTags
+    );
+
+    setPrelims(
+      keepPrelims
+    );
+
+    setMains(
+      keepMains
+    );
+
+    setStatus(
+      keepStatus
+    );
+
+    focusTitle();
   }
 
 
@@ -1044,12 +1260,14 @@ export function AdminPage({
         behavior:
           'smooth'
       });
+
+    focusTitle();
   }
 
 
   /*
    * =========================================
-   * BUILD BODY
+   * BUILD ARTICLE BODY
    * =========================================
    */
 
@@ -1092,16 +1310,45 @@ export function AdminPage({
 
   /*
    * =========================================
-   * SAVE ARTICLE
+   * DUPLICATE CHECK
    * =========================================
    */
 
-  async function saveArticle(
-    event:
-      FormEvent
-  ) {
-    event.preventDefault();
+  function findDuplicateArticle() {
+    const normalized =
+      normalizeTitle(
+        title
+      );
 
+    if (!normalized) {
+      return null;
+    }
+
+    return (
+      articles.find(
+        article =>
+          article.id !==
+            editingId &&
+          normalizeTitle(
+            article.title
+          ) ===
+            normalized
+      ) ||
+      null
+    );
+  }
+
+
+  /*
+   * =========================================
+   * SAVE CORE
+   * =========================================
+   */
+
+  async function persistArticle(
+    addNext:
+      boolean
+  ) {
     const client =
       supabase;
 
@@ -1130,6 +1377,24 @@ export function AdminPage({
       return;
     }
 
+    const duplicate =
+      findDuplicateArticle();
+
+    if (duplicate) {
+      const proceed =
+        window.confirm(
+          `Possible duplicate found:\n\n"${duplicate.title}"\n\nDo you still want to save this article?`
+        );
+
+      if (!proceed) {
+        setMessage(
+          'Save cancelled because a possible duplicate article already exists.'
+        );
+
+        return;
+      }
+    }
+
     setSaving(
       true
     );
@@ -1137,7 +1402,20 @@ export function AdminPage({
     setMessage(
       editingId
         ? 'Updating article...'
+        : status ===
+          'published'
+        ? 'Publishing article...'
         : 'Saving article...'
+    );
+
+    saveStoredValue(
+      LAST_SOURCE_KEY,
+      source.trim()
+    );
+
+    saveStoredValue(
+      LAST_SUBJECT_KEY,
+      subject.trim()
     );
 
     const {
@@ -1237,6 +1515,13 @@ export function AdminPage({
           .toISOString()
     };
 
+
+    /*
+     * =========================================
+     * UPDATE
+     * =========================================
+     */
+
     if (editingId) {
       const {
         data,
@@ -1305,18 +1590,33 @@ export function AdminPage({
         );
       }
 
-      resetForm();
-
       setSaving(
         false
       );
 
-      setMessage(
-        'Article updated successfully.'
-      );
+      if (addNext) {
+        prepareNextArticle();
+
+        setMessage(
+          'Article updated. Ready for the next Current Affair.'
+        );
+      } else {
+        resetForm();
+
+        setMessage(
+          'Article updated successfully.'
+        );
+      }
 
       return;
     }
+
+
+    /*
+     * =========================================
+     * INSERT
+     * =========================================
+     */
 
     const {
       data,
@@ -1380,11 +1680,24 @@ export function AdminPage({
       );
     }
 
-    resetForm();
-
     setSaving(
       false
     );
+
+    if (addNext) {
+      prepareNextArticle();
+
+      setMessage(
+        created.status ===
+          'published'
+          ? 'Published successfully. Ready to add the next Current Affair.'
+          : 'Draft saved successfully. Ready to add the next Current Affair.'
+      );
+
+      return;
+    }
+
+    resetForm();
 
     setMessage(
       created.status ===
@@ -1397,7 +1710,25 @@ export function AdminPage({
 
   /*
    * =========================================
-   * CHANGE STATUS
+   * FORM SUBMIT
+   * =========================================
+   */
+
+  function saveArticle(
+    event:
+      FormEvent
+  ) {
+    event.preventDefault();
+
+    void persistArticle(
+      false
+    );
+  }
+
+
+  /*
+   * =========================================
+   * STATUS CHANGE
    * =========================================
    */
 
@@ -1703,7 +2034,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * TOGGLE CHECKBOX
+   * CHECKBOX SELECTION
    * =========================================
    */
 
@@ -1772,6 +2103,7 @@ export function AdminPage({
     const eligibleArticles =
       selectedArticles.filter(
         article => {
+
           if (
             article.status !==
             'published'
@@ -1953,7 +2285,7 @@ export function AdminPage({
 
     if (
       level ===
-        'monthly'
+      'monthly'
     ) {
       setMessage(
         selected
@@ -2116,6 +2448,45 @@ export function AdminPage({
 
   /*
    * =========================================
+   * LIVE DUPLICATE WARNING
+   * =========================================
+   */
+
+  const duplicateArticle =
+    useMemo(
+      () => {
+        const normalized =
+          normalizeTitle(
+            title
+          );
+
+        if (!normalized) {
+          return null;
+        }
+
+        return (
+          articles.find(
+            article =>
+              article.id !==
+                editingId &&
+              normalizeTitle(
+                article.title
+              ) ===
+                normalized
+          ) ||
+          null
+        );
+      },
+      [
+        articles,
+        title,
+        editingId
+      ]
+    );
+
+
+  /*
+   * =========================================
    * MONTH STATISTICS
    * =========================================
    */
@@ -2258,7 +2629,7 @@ export function AdminPage({
 
   /*
    * =========================================
-   * FILTER CURATION ARTICLES
+   * CURATION FILTER
    * =========================================
    */
 
@@ -2422,13 +2793,14 @@ export function AdminPage({
 
   /*
    * =========================================
-   * PENDING VISIBLE ARTICLES
+   * PENDING VISIBLE
    * =========================================
    */
 
   const pendingVisibleArticles =
     useMemo(
       () => {
+
         if (
           curationView ===
           'daily'
@@ -2561,7 +2933,9 @@ export function AdminPage({
       />
 
 
-      {/* MAIN ADMIN TABS */}
+      {/* ======================================
+          ADMIN TABS
+          ====================================== */}
 
       <section
         className="panel"
@@ -2661,7 +3035,9 @@ export function AdminPage({
       </section>
 
 
-      {/* CURRENT AFFAIRS */}
+      {/* ======================================
+          CURRENT AFFAIRS
+          ====================================== */}
 
       {adminTab ===
         'current' && (
@@ -2671,7 +3047,7 @@ export function AdminPage({
             className="admin-grid"
           >
 
-            {/* EDITOR FORM */}
+            {/* EDITOR */}
 
             <form
               className="panel admin-form"
@@ -2692,15 +3068,44 @@ export function AdminPage({
                 {
                   editingId
                     ? 'Edit Current Affair'
-                    : 'Add Current Affair'
+                    : 'Add Daily Current Affair'
                 }
               </h2>
+
+
+              {!editingId && (
+                <div
+                  className="callout"
+
+                  style={{
+                    marginBottom:
+                      '14px'
+                  }}
+                >
+                  <strong>
+                    Rapid Entry Mode
+                  </strong>
+
+                  <p
+                    style={{
+                      marginBottom:
+                        0
+                    }}
+                  >
+                    Use “Save & Add Next” to keep the same date, source, subject, tags and exam-stage settings while clearing the article content.
+                  </p>
+                </div>
+              )}
 
 
               <label>
                 Title
 
                 <input
+                  ref={
+                    titleInputRef
+                  }
+
                   value={
                     title
                   }
@@ -2721,6 +3126,33 @@ export function AdminPage({
               </label>
 
 
+              {duplicateArticle && (
+                <div
+                  className="callout"
+
+                  style={{
+                    marginBottom:
+                      '12px'
+                  }}
+                >
+                  <strong>
+                    Possible duplicate
+                  </strong>
+
+                  <p
+                    style={{
+                      marginBottom:
+                        0
+                    }}
+                  >
+                    An article with this title already exists:
+                    {' '}
+                    “{duplicateArticle.title}”
+                  </p>
+                </div>
+              )}
+
+
               <label>
                 Source
 
@@ -2730,12 +3162,25 @@ export function AdminPage({
                   }
 
                   onChange={
-                    event =>
-                      setSource(
+                    event => {
+                      const value =
                         event
                           .target
-                          .value
-                      )
+                          .value;
+
+                      setSource(
+                        value
+                      );
+
+                      if (
+                        value.trim()
+                      ) {
+                        saveStoredValue(
+                          LAST_SOURCE_KEY,
+                          value.trim()
+                        );
+                      }
+                    }
                   }
 
                   placeholder="PIB / The Hindu / PRS / RBI"
@@ -2802,12 +3247,25 @@ export function AdminPage({
                   }
 
                   onChange={
-                    event =>
-                      setSubject(
+                    event => {
+                      const value =
                         event
                           .target
-                          .value
-                      )
+                          .value;
+
+                      setSubject(
+                        value
+                      );
+
+                      if (
+                        value.trim()
+                      ) {
+                        saveStoredValue(
+                          LAST_SUBJECT_KEY,
+                          value.trim()
+                        );
+                      }
+                    }
                   }
 
                   placeholder="Polity & Governance"
@@ -3077,6 +3535,7 @@ export function AdminPage({
                       )
                   }
                 >
+
                   <option
                     value="draft"
                   >
@@ -3094,6 +3553,7 @@ export function AdminPage({
                   >
                     Archived
                   </option>
+
                 </select>
               </label>
 
@@ -3123,14 +3583,49 @@ export function AdminPage({
                   {
                     saving
                       ? 'Saving...'
+
                       : editingId
-                      ? 'Save changes'
+                      ? 'Save Changes'
+
                       : status ===
                         'published'
-                      ? 'Publish to students'
-                      : 'Save draft'
+                      ? 'Publish Article'
+
+                      : status ===
+                        'archived'
+                      ? 'Save as Archived'
+
+                      : 'Save Draft'
                   }
                 </button>
+
+
+                {!editingId && (
+                  <button
+                    type="button"
+
+                    className="secondary-btn"
+
+                    disabled={
+                      saving
+                    }
+
+                    onClick={() =>
+                      void persistArticle(
+                        true
+                      )
+                    }
+                  >
+                    {
+                      saving
+                        ? 'Saving...'
+                        : status ===
+                          'published'
+                        ? 'Publish & Add Next'
+                        : 'Save & Add Next'
+                    }
+                  </button>
+                )}
 
 
                 {editingId && (
@@ -3142,8 +3637,12 @@ export function AdminPage({
                     onClick={
                       resetForm
                     }
+
+                    disabled={
+                      saving
+                    }
                   >
-                    Cancel edit
+                    Cancel Edit
                   </button>
                 )}
 
@@ -3180,7 +3679,7 @@ export function AdminPage({
 
 
               <p>
-                Publish useful Current Affairs daily. Select only important Daily items for Monthly revision, then select only the highest-priority Monthly items for Yearly revision.
+                Publish useful Current Affairs daily. Select only important Daily items for Monthly revision, then choose only the highest-priority Monthly items for Yearly revision.
               </p>
 
 
@@ -3243,7 +3742,9 @@ export function AdminPage({
           </section>
 
 
-          {/* CURATION */}
+          {/* ======================================
+              CURATION MANAGER
+              ====================================== */}
 
           <section
             className="panel"
@@ -3305,7 +3806,7 @@ export function AdminPage({
             </div>
 
 
-            {/* CURATION VIEWS */}
+            {/* CURATION TABS */}
 
             <div
               style={{
@@ -3543,7 +4044,6 @@ export function AdminPage({
                       '42px'
                   }}
                 >
-
                   <input
                     type="checkbox"
 
@@ -3567,7 +4067,6 @@ export function AdminPage({
                   />
 
                   Unselected only
-
                 </label>
               )}
 
@@ -4152,8 +4651,6 @@ export function AdminPage({
                       </p>
 
 
-                      {/* STATUS BADGES */}
-
                       <div
                         style={{
                           display:
@@ -4223,8 +4720,6 @@ export function AdminPage({
 
                       </div>
 
-
-                      {/* ACTIONS */}
 
                       <div
                         style={{
@@ -4402,7 +4897,9 @@ export function AdminPage({
       )}
 
 
-      {/* STUDY MATERIAL */}
+      {/* ======================================
+          STUDY MATERIAL
+          ====================================== */}
 
       {adminTab ===
         'resources' && (
@@ -4410,7 +4907,9 @@ export function AdminPage({
       )}
 
 
-      {/* PRELIMS MCQ */}
+      {/* ======================================
+          PRELIMS MCQ
+          ====================================== */}
 
       {adminTab ===
         'mcq' && (
@@ -4418,7 +4917,9 @@ export function AdminPage({
       )}
 
 
-      {/* TEST SERIES */}
+      {/* ======================================
+          TEST SERIES
+          ====================================== */}
 
       {adminTab ===
         'tests' && (
@@ -4426,7 +4927,9 @@ export function AdminPage({
       )}
 
 
-      {/* MAINS */}
+      {/* ======================================
+          MAINS
+          ====================================== */}
 
       {adminTab ===
         'mains' && (
@@ -4511,7 +5014,9 @@ export function AdminPage({
       )}
 
 
-      {/* EVALUATION */}
+      {/* ======================================
+          EVALUATION
+          ====================================== */}
 
       {adminTab ===
         'evaluation' && (
