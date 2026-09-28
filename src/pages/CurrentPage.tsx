@@ -1,22 +1,10 @@
-import {
-  useState
-} from 'react';
+import { useState } from 'react';
 
-import type {
-  CurrentAffair
-} from '../types';
+import type { CurrentAffair } from '../types';
 
-import {
-  TopBar
-} from '../components/TopBar';
-
-import {
-  QuickNoteComposer
-} from '../components/QuickNoteComposer';
-
-import {
-  supabase
-} from '../lib/supabase';
+import { TopBar } from '../components/TopBar';
+import { QuickNoteComposer } from '../components/QuickNoteComposer';
+import { supabase } from '../lib/supabase';
 
 
 type FilterKey =
@@ -25,19 +13,16 @@ type FilterKey =
   | 'mains'
   | 'pib';
 
-
 type CurrentView =
   | 'daily'
   | 'monthly'
   | 'yearly'
   | 'newspaper';
 
-
 type NewspaperKey =
   | 'all'
   | 'the_hindu'
   | 'indian_express';
-
 
 type NoteExamStage =
   | 'general'
@@ -45,40 +30,23 @@ type NoteExamStage =
   | 'mains'
   | 'both';
 
-
 type DetailedArticle =
   CurrentAffair & {
-    body:
-      string | null;
-
-    source_url:
-      string | null;
-
-    background:
-      string | null;
-
-    key_facts:
-      string | null;
-
-    prelims_points:
-      string | null;
-
-    mains_relevance:
-      string | null;
-
-    issues:
-      string | null;
-
-    way_forward:
-      string | null;
+    body: string | null;
+    source_url: string | null;
+    background: string | null;
+    key_facts: string | null;
+    prelims_points: string | null;
+    mains_relevance: string | null;
+    issues: string | null;
+    way_forward: string | null;
   };
 
 
 function parsePublishedDate(
   value: string
 ): Date | null {
-  const clean =
-    value.trim();
+  const clean = value.trim();
 
   if (!clean) {
     return null;
@@ -113,18 +81,14 @@ function parsePublishedDate(
       );
 
     date.setDate(
-      date.getDate() -
-      1
+      date.getDate() - 1
     );
 
     return date;
   }
 
   const monthMap:
-    Record<
-      string,
-      number
-    > = {
+    Record<string, number> = {
       jan: 0,
       feb: 1,
       mar: 2,
@@ -207,8 +171,7 @@ function getDayKey(
 
   const month =
     String(
-      date.getMonth() +
-      1
+      date.getMonth() + 1
     ).padStart(
       2,
       '0'
@@ -222,9 +185,7 @@ function getDayKey(
       '0'
     );
 
-  return (
-    `${year}-${month}-${day}`
-  );
+  return `${year}-${month}-${day}`;
 }
 
 
@@ -245,16 +206,13 @@ function getMonthKey(
 
   const month =
     String(
-      date.getMonth() +
-      1
+      date.getMonth() + 1
     ).padStart(
       2,
       '0'
     );
 
-  return (
-    `${year}-${month}`
-  );
+  return `${year}-${month}`;
 }
 
 
@@ -296,8 +254,7 @@ function getTodayDayKey():
 
   const month =
     String(
-      now.getMonth() +
-      1
+      now.getMonth() + 1
     ).padStart(
       2,
       '0'
@@ -311,10 +268,9 @@ function getTodayDayKey():
       '0'
     );
 
-  return (
-    `${year}-${month}-${day}`
-  );
+  return `${year}-${month}-${day}`;
 }
+
 
 function formatArchiveDay(
   value: string
@@ -337,10 +293,8 @@ function formatArchiveDay(
     {
       day:
         '2-digit',
-
       month:
         'long',
-
       year:
         'numeric'
     }
@@ -368,12 +322,12 @@ function formatArchiveMonth(
     {
       month:
         'long',
-
       year:
         'numeric'
     }
   );
 }
+
 
 function getNewspaperKey(
   source: string
@@ -452,7 +406,6 @@ function AnalysisSection({
       style={{
         padding:
           '20px',
-
         marginTop:
           '16px'
       }}
@@ -467,13 +420,10 @@ function AnalysisSection({
         style={{
           whiteSpace:
             'pre-wrap',
-
           color:
             '#cbd5e1',
-
           lineHeight:
             1.8,
-
           marginTop:
             '12px'
         }}
@@ -611,7 +561,7 @@ export function CurrentPage({
       item => {
         if (
           filter ===
-          'prelims' &&
+            'prelims' &&
           !item.prelims
         ) {
           return false;
@@ -619,7 +569,7 @@ export function CurrentPage({
 
         if (
           filter ===
-          'mains' &&
+            'mains' &&
           !item.mains
         ) {
           return false;
@@ -627,7 +577,7 @@ export function CurrentPage({
 
         if (
           filter ===
-          'pib' &&
+            'pib' &&
           !item.source
             .toLowerCase()
             .includes(
@@ -652,136 +602,6 @@ export function CurrentPage({
             .trim()
             .toLowerCase();
 
-        function renderArticleCard(
-  item: CurrentAffair
-) {
-  return (
-    <article
-      className="article-card"
-      key={
-        item.id
-      }
-    >
-      <div
-        className="article-meta"
-      >
-        <span>
-          {item.subject}
-        </span>
-
-        <time>
-          {item.publishedAt}
-        </time>
-      </div>
-
-      <h2>
-        {item.title}
-      </h2>
-
-      <p>
-        {item.summary}
-      </p>
-
-      <div
-        className="tag-row"
-      >
-        {item.prelims && (
-          <span
-            className="tag"
-          >
-            Prelims
-          </span>
-        )}
-
-        {item.mains && (
-          <span
-            className="tag"
-          >
-            Mains
-          </span>
-        )}
-
-        {item.tags.map(
-          tag => (
-            <span
-              className="tag"
-              key={
-                tag
-              }
-            >
-              {tag}
-            </span>
-          )
-        )}
-      </div>
-
-      <div
-        className="article-foot"
-      >
-        <small>
-          Source:
-          {' '}
-          {item.source}
-        </small>
-
-        <div
-          style={{
-            display:
-              'flex',
-
-            gap:
-              '10px',
-
-            alignItems:
-              'center',
-
-            flexWrap:
-              'wrap'
-          }}
-        >
-          {item.sourceUrl && (
-            <a
-              href={
-                item.sourceUrl
-              }
-              target="_blank"
-              rel="noreferrer"
-              className="text-btn"
-              style={{
-                textDecoration:
-                  'none'
-              }}
-            >
-              Original source ↗
-            </a>
-          )}
-
-          <button
-            className="text-btn"
-            type="button"
-            disabled={
-              loadingId ===
-              item.id
-            }
-            onClick={() =>
-              void openAnalysis(
-                item
-              )
-            }
-          >
-            {
-              loadingId ===
-                item.id
-                ? 'Loading...'
-                : 'Read analysis'
-            }
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-        
         if (
           search
         ) {
@@ -1036,117 +856,6 @@ export function CurrentPage({
           );
         }
 
-        const monthlyGroups =
-  Array.from(
-    new Set(
-      visibleItems
-        .map(
-          item =>
-            getDayKey(
-              getArticleDateValue(
-                item
-              )
-            )
-        )
-        .filter(
-          (
-            value
-          ):
-            value is string =>
-              Boolean(
-                value
-              )
-        )
-    )
-  )
-    .sort(
-      (
-        a,
-        b
-      ) =>
-        b.localeCompare(
-          a
-        )
-    )
-    .map(
-      day => ({
-        key:
-          day,
-
-        title:
-          formatArchiveDay(
-            day
-          ),
-
-        items:
-          visibleItems.filter(
-            item =>
-              getDayKey(
-                getArticleDateValue(
-                  item
-                )
-              ) ===
-              day
-          )
-      })
-    );
-
-
-const yearlyGroups =
-  Array.from(
-    new Set(
-      visibleItems
-        .map(
-          item =>
-            getMonthKey(
-              getArticleDateValue(
-                item
-              )
-            )
-        )
-        .filter(
-          (
-            value
-          ):
-            value is string =>
-              Boolean(
-                value
-              )
-        )
-    )
-  )
-    .sort(
-      (
-        a,
-        b
-      ) =>
-        b.localeCompare(
-          a
-        )
-    )
-    .map(
-      month => ({
-        key:
-          month,
-
-        title:
-          formatArchiveMonth(
-            month
-          ),
-
-        items:
-          visibleItems.filter(
-            item =>
-              getMonthKey(
-                getArticleDateValue(
-                  item
-                )
-              ) ===
-              month
-          )
-      })
-    );
-        
         const sourceKey =
           getNewspaperKey(
             item.source
@@ -1184,6 +893,118 @@ const yearlyGroups =
     );
 
 
+  const monthlyGroups =
+    Array.from(
+      new Set(
+        visibleItems
+          .map(
+            item =>
+              getDayKey(
+                getArticleDateValue(
+                  item
+                )
+              )
+          )
+          .filter(
+            (
+              value
+            ):
+              value is string =>
+                Boolean(
+                  value
+                )
+          )
+      )
+    )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          b.localeCompare(
+            a
+          )
+      )
+      .map(
+        day => ({
+          key:
+            day,
+
+          title:
+            formatArchiveDay(
+              day
+            ),
+
+          items:
+            visibleItems.filter(
+              item =>
+                getDayKey(
+                  getArticleDateValue(
+                    item
+                  )
+                ) ===
+                day
+            )
+        })
+      );
+
+
+  const yearlyGroups =
+    Array.from(
+      new Set(
+        visibleItems
+          .map(
+            item =>
+              getMonthKey(
+                getArticleDateValue(
+                  item
+                )
+              )
+          )
+          .filter(
+            (
+              value
+            ):
+              value is string =>
+                Boolean(
+                  value
+                )
+          )
+      )
+    )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          b.localeCompare(
+            a
+          )
+      )
+      .map(
+        month => ({
+          key:
+            month,
+
+          title:
+            formatArchiveMonth(
+              month
+            ),
+
+          items:
+            visibleItems.filter(
+              item =>
+                getMonthKey(
+                  getArticleDateValue(
+                    item
+                  )
+                ) ===
+                month
+            )
+        })
+      );
+
+
   async function openAnalysis(
     item: CurrentAffair
   ) {
@@ -1198,33 +1019,24 @@ const yearlyGroups =
     ) {
       setSelected({
         ...item,
-
         sourceUrl:
           item.sourceUrl ||
           null,
-
         body:
           item.summary,
-
         source_url:
           item.sourceUrl ||
           null,
-
         background:
           null,
-
         key_facts:
           null,
-
         prelims_points:
           null,
-
         mains_relevance:
           null,
-
         issues:
           null,
-
         way_forward:
           null
       });
@@ -1235,7 +1047,6 @@ const yearlyGroups =
 
       return;
     }
-
 
     const {
       data,
@@ -1276,7 +1087,6 @@ const yearlyGroups =
         )
         .single();
 
-
     if (
       loadError ||
       !data
@@ -1297,7 +1107,6 @@ const yearlyGroups =
 
       return;
     }
-
 
     setSelected({
       id:
@@ -1362,10 +1171,8 @@ const yearlyGroups =
                 {
                   day:
                     '2-digit',
-
                   month:
                     'short',
-
                   year:
                     'numeric'
                 }
@@ -1377,22 +1184,147 @@ const yearlyGroups =
         null
     });
 
-
     setLoadingId(
       null
     );
-
 
     const mainArea =
       document.querySelector(
         '.main-area'
       );
 
-
     mainArea?.scrollTo({
       top:
         0
     });
+  }
+
+
+  function renderArticleCard(
+    item: CurrentAffair
+  ) {
+    return (
+      <article
+        className="article-card"
+        key={
+          item.id
+        }
+      >
+        <div
+          className="article-meta"
+        >
+          <span>
+            {item.subject}
+          </span>
+
+          <time>
+            {item.publishedAt}
+          </time>
+        </div>
+
+        <h2>
+          {item.title}
+        </h2>
+
+        <p>
+          {item.summary}
+        </p>
+
+        <div
+          className="tag-row"
+        >
+          {item.prelims && (
+            <span
+              className="tag"
+            >
+              Prelims
+            </span>
+          )}
+
+          {item.mains && (
+            <span
+              className="tag"
+            >
+              Mains
+            </span>
+          )}
+
+          {item.tags.map(
+            tag => (
+              <span
+                className="tag"
+                key={
+                  tag
+                }
+              >
+                {tag}
+              </span>
+            )
+          )}
+        </div>
+
+        <div
+          className="article-foot"
+        >
+          <small>
+            Source:
+            {' '}
+            {item.source}
+          </small>
+
+          <div
+            style={{
+              display:
+                'flex',
+              gap:
+                '10px',
+              alignItems:
+                'center',
+              flexWrap:
+                'wrap'
+            }}
+          >
+            {item.sourceUrl && (
+              <a
+                href={
+                  item.sourceUrl
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="text-btn"
+                style={{
+                  textDecoration:
+                    'none'
+                }}
+              >
+                Original source ↗
+              </a>
+            )}
+
+            <button
+              className="text-btn"
+              type="button"
+              disabled={
+                loadingId ===
+                item.id
+              }
+              onClick={() =>
+                void openAnalysis(
+                  item
+                )
+              }
+            >
+              {
+                loadingId ===
+                  item.id
+                  ? 'Loading...'
+                  : 'Read analysis'
+              }
+            </button>
+          </div>
+        </div>
+      </article>
+    );
   }
 
 
@@ -1409,12 +1341,10 @@ const yearlyGroups =
         selected.way_forward
       );
 
-
     const noteExamStage =
       getNoteExamStage(
         selected
       );
-
 
     return (
       <div
@@ -1424,7 +1354,6 @@ const yearlyGroups =
           title="Current Affairs Analysis"
           subtitle="UPSC-focused, revision-ready understanding"
         />
-
 
         <button
           type="button"
@@ -1442,16 +1371,13 @@ const yearlyGroups =
           ← Back to Current Affairs
         </button>
 
-
         <article
           className="panel"
           style={{
             maxWidth:
               '940px',
-
             margin:
               '0 auto 18px',
-
             padding:
               '24px'
           }}
@@ -1468,19 +1394,16 @@ const yearlyGroups =
             </time>
           </div>
 
-
           <h1
             style={{
               margin:
                 '12px 0 8px',
-
               lineHeight:
                 1.25
             }}
           >
             {selected.title}
           </h1>
-
 
           <div
             className="tag-row"
@@ -1497,7 +1420,6 @@ const yearlyGroups =
               </span>
             )}
 
-
             {selected.mains && (
               <span
                 className="tag"
@@ -1505,7 +1427,6 @@ const yearlyGroups =
                 Mains
               </span>
             )}
-
 
             {selected.tags.map(
               tag => (
@@ -1522,12 +1443,10 @@ const yearlyGroups =
           </div>
         </article>
 
-
         <div
           style={{
             maxWidth:
               '940px',
-
             margin:
               '0 auto 32px'
           }}
@@ -1536,13 +1455,10 @@ const yearlyGroups =
             style={{
               padding:
                 '20px',
-
               borderRadius:
                 '16px',
-
               background:
                 'rgba(20,184,166,.09)',
-
               border:
                 '1px solid rgba(20,184,166,.24)'
             }}
@@ -1557,10 +1473,8 @@ const yearlyGroups =
               style={{
                 color:
                   '#e2e8f0',
-
                 lineHeight:
                   1.75,
-
                 marginBottom:
                   0
               }}
@@ -1569,19 +1483,15 @@ const yearlyGroups =
             </p>
           </section>
 
-
           <section
             className="panel"
             style={{
               marginTop:
                 '16px',
-
               padding:
                 '20px',
-
               border:
                 '1px solid rgba(45,212,191,.22)',
-
               background:
                 'linear-gradient(135deg, rgba(20,184,166,.07), rgba(59,130,246,.035))'
             }}
@@ -1592,7 +1502,6 @@ const yearlyGroups =
               PERSONAL NOTES
             </span>
 
-
             <h3
               style={{
                 margin:
@@ -1602,19 +1511,16 @@ const yearlyGroups =
               Keep your own revision point
             </h3>
 
-
             <p
               style={{
                 margin:
                   '0 0 14px',
-
                 color:
                   '#94a3b8'
               }}
             >
               Add your own observation, fact, example or answer-writing point without leaving this article.
             </p>
-
 
             <QuickNoteComposer
               buttonLabel="+ Add Note"
@@ -1646,20 +1552,17 @@ const yearlyGroups =
             />
           </section>
 
-
           <AnalysisSection
             title="BACKGROUND"
           >
             {selected.background}
           </AnalysisSection>
 
-
           <AnalysisSection
             title="KEY FACTS"
           >
             {selected.key_facts}
           </AnalysisSection>
-
 
           {selected.prelims && (
             <AnalysisSection
@@ -1669,7 +1572,6 @@ const yearlyGroups =
             </AnalysisSection>
           )}
 
-
           {selected.mains && (
             <AnalysisSection
               title="MAINS RELEVANCE"
@@ -1678,20 +1580,17 @@ const yearlyGroups =
             </AnalysisSection>
           )}
 
-
           <AnalysisSection
             title="ISSUES / CHALLENGES"
           >
             {selected.issues}
           </AnalysisSection>
 
-
           <AnalysisSection
             title="WAY FORWARD"
           >
             {selected.way_forward}
           </AnalysisSection>
-
 
           {!hasStructuredAnalysis &&
             selected.body?.trim() && (
@@ -1702,13 +1601,11 @@ const yearlyGroups =
               </AnalysisSection>
             )}
 
-
           <section
             className="panel"
             style={{
               marginTop:
                 '16px',
-
               padding:
                 '20px'
             }}
@@ -1719,12 +1616,10 @@ const yearlyGroups =
               SOURCE
             </span>
 
-
             <p
               style={{
                 color:
                   '#cbd5e1',
-
                 marginBottom:
                   selected.source_url
                     ? '14px'
@@ -1733,7 +1628,6 @@ const yearlyGroups =
             >
               {selected.source}
             </p>
-
 
             {selected.source_url && (
               <a
@@ -1746,7 +1640,6 @@ const yearlyGroups =
                 style={{
                   display:
                     'inline-block',
-
                   textDecoration:
                     'none'
                 }}
@@ -1770,13 +1663,11 @@ const yearlyGroups =
         subtitle="Daily news, revision archives and newspaper reading"
       />
 
-
       <section
         className="panel"
         style={{
           marginBottom:
             '18px',
-
           padding:
             '14px'
         }}
@@ -1787,18 +1678,14 @@ const yearlyGroups =
           CURRENT AFFAIRS HUB
         </span>
 
-
         <div
           style={{
             display:
               'grid',
-
             gridTemplateColumns:
               'repeat(auto-fit,minmax(150px,1fr))',
-
             gap:
               '8px',
-
             marginTop:
               '12px'
           }}
@@ -1820,7 +1707,6 @@ const yearlyGroups =
             Daily
           </button>
 
-
           <button
             type="button"
             className={
@@ -1838,7 +1724,6 @@ const yearlyGroups =
             Monthly
           </button>
 
-
           <button
             type="button"
             className={
@@ -1855,7 +1740,6 @@ const yearlyGroups =
           >
             Yearly
           </button>
-
 
           <button
             type="button"
@@ -1884,17 +1768,14 @@ const yearlyGroups =
           </button>
         </div>
 
-
         {viewMode ===
           'daily' && (
           <label
             style={{
               display:
                 'grid',
-
               gap:
                 '7px',
-
               marginTop:
                 '16px'
             }}
@@ -1918,17 +1799,14 @@ const yearlyGroups =
           </label>
         )}
 
-
         {viewMode ===
           'monthly' && (
           <label
             style={{
               display:
                 'grid',
-
               gap:
                 '7px',
-
               marginTop:
                 '16px'
             }}
@@ -1952,17 +1830,14 @@ const yearlyGroups =
           </label>
         )}
 
-
         {viewMode ===
           'yearly' && (
           <label
             style={{
               display:
                 'grid',
-
               gap:
                 '7px',
-
               marginTop:
                 '16px'
             }}
@@ -1989,7 +1864,6 @@ const yearlyGroups =
           </label>
         )}
 
-
         {viewMode ===
           'newspaper' && (
           <>
@@ -1997,7 +1871,6 @@ const yearlyGroups =
               style={{
                 marginTop:
                   '16px',
-
                 color:
                   '#94a3b8'
               }}
@@ -2005,18 +1878,14 @@ const yearlyGroups =
               UPSC-focused newspaper reading with special emphasis on The Hindu and The Indian Express.
             </p>
 
-
             <label
               style={{
                 display:
                   'grid',
-
                 gap:
                   '7px',
-
                 marginTop:
                   '14px',
-
                 marginBottom:
                   '14px'
               }}
@@ -2039,7 +1908,6 @@ const yearlyGroups =
               />
             </label>
 
-
             <div
               className="filter-row"
             >
@@ -2060,7 +1928,6 @@ const yearlyGroups =
                 All Newspapers
               </button>
 
-
               <button
                 type="button"
                 className={
@@ -2077,7 +1944,6 @@ const yearlyGroups =
               >
                 The Hindu
               </button>
-
 
               <button
                 type="button"
@@ -2100,13 +1966,11 @@ const yearlyGroups =
         )}
       </section>
 
-
       <section
         className="panel"
         style={{
           marginBottom:
             '18px',
-
           padding:
             '14px'
         }}
@@ -2117,21 +1981,16 @@ const yearlyGroups =
           FIND CURRENT AFFAIRS
         </span>
 
-
         <div
           style={{
             display:
               'grid',
-
             gridTemplateColumns:
               'repeat(auto-fit,minmax(220px,1fr))',
-
             gap:
               '10px',
-
             marginTop:
               '12px',
-
             alignItems:
               'end'
           }}
@@ -2140,7 +1999,6 @@ const yearlyGroups =
             style={{
               display:
                 'grid',
-
               gap:
                 '7px'
             }}
@@ -2164,12 +2022,10 @@ const yearlyGroups =
             />
           </label>
 
-
           <label
             style={{
               display:
                 'grid',
-
               gap:
                 '7px'
             }}
@@ -2195,7 +2051,6 @@ const yearlyGroups =
                 All Subjects
               </option>
 
-
               {availableSubjects.map(
                 subject => (
                   <option
@@ -2212,7 +2067,6 @@ const yearlyGroups =
               )}
             </select>
           </label>
-
 
           <button
             type="button"
@@ -2231,7 +2085,6 @@ const yearlyGroups =
           </button>
         </div>
       </section>
-
 
       <div
         className="filter-row"
@@ -2255,7 +2108,6 @@ const yearlyGroups =
           All
         </button>
 
-
         <button
           type="button"
           className={
@@ -2275,7 +2127,6 @@ const yearlyGroups =
           Prelims
         </button>
 
-
         <button
           type="button"
           className={
@@ -2294,7 +2145,6 @@ const yearlyGroups =
         >
           Mains
         </button>
-
 
         <button
           type="button"
@@ -2316,14 +2166,12 @@ const yearlyGroups =
         </button>
       </div>
 
-
       {error && (
         <div
           className="panel"
           style={{
             marginBottom:
               '14px',
-
             color:
               '#fca5a5'
           }}
@@ -2332,166 +2180,158 @@ const yearlyGroups =
         </div>
       )}
 
-
-     <section
-  className="article-list"
->
-  {viewMode ===
-    'monthly' &&
-    monthlyGroups.map(
-      group => (
-        <section
-          key={
-            group.key
-          }
-          style={{
-            display:
-              'grid',
-
-            gap:
-              '14px',
-
-            marginBottom:
-              '24px'
-          }}
-        >
-          <div
-            className="panel"
-            style={{
-              padding:
-                '16px'
-            }}
-          >
-            <span
-              className="eyebrow"
-            >
-              DATE
-            </span>
-
-            <h2
-              style={{
-                margin:
-                  '6px 0'
-              }}
-            >
-              {group.title}
-            </h2>
-
-            <small>
-              {group.items.length}
-              {' '}
-              {
-                group.items.length ===
-                  1
-                  ? 'article'
-                  : 'articles'
-              }
-            </small>
-          </div>
-
-          {group.items.map(
-            item =>
-              renderArticleCard(
-                item
-              )
-          )}
-        </section>
-      )
-    )}
-
-
-  {viewMode ===
-    'yearly' &&
-    yearlyGroups.map(
-      group => (
-        <section
-          key={
-            group.key
-          }
-          style={{
-            display:
-              'grid',
-
-            gap:
-              '14px',
-
-            marginBottom:
-              '26px'
-          }}
-        >
-          <div
-            className="panel"
-            style={{
-              padding:
-                '16px'
-            }}
-          >
-            <span
-              className="eyebrow"
-            >
-              MONTH
-            </span>
-
-            <h2
-              style={{
-                margin:
-                  '6px 0'
-              }}
-            >
-              {group.title}
-            </h2>
-
-            <small>
-              {group.items.length}
-              {' '}
-              {
-                group.items.length ===
-                  1
-                  ? 'article'
-                  : 'articles'
-              }
-            </small>
-          </div>
-
-          {group.items.map(
-            item =>
-              renderArticleCard(
-                item
-              )
-          )}
-        </section>
-      )
-    )}
-
-
-  {(viewMode ===
-      'daily' ||
-    viewMode ===
-      'newspaper') &&
-    visibleItems.map(
-      item =>
-        renderArticleCard(
-          item
-        )
-    )}
-
-
-  {visibleItems.length ===
-    0 && (
-    <div
-      className="panel"
-    >
-      <p
-        style={{
-          margin:
-            0
-        }}
+      <section
+        className="article-list"
       >
-        No Current Affairs match this view or filter yet.
-      </p>
-    </div>
-  )}
-</section>
+        {viewMode ===
+          'monthly' &&
+          monthlyGroups.map(
+            group => (
+              <section
+                key={
+                  group.key
+                }
+                style={{
+                  display:
+                    'grid',
+                  gap:
+                    '14px',
+                  marginBottom:
+                    '24px'
+                }}
+              >
+                <div
+                  className="panel"
+                  style={{
+                    padding:
+                      '16px'
+                  }}
+                >
+                  <span
+                    className="eyebrow"
+                  >
+                    DATE
+                  </span>
+
+                  <h2
+                    style={{
+                      margin:
+                        '6px 0'
+                    }}
+                  >
+                    {group.title}
+                  </h2>
+
+                  <small>
+                    {group.items.length}
+                    {' '}
+                    {
+                      group.items.length ===
+                        1
+                        ? 'article'
+                        : 'articles'
+                    }
+                  </small>
+                </div>
+
+                {group.items.map(
+                  item =>
+                    renderArticleCard(
+                      item
+                    )
+                )}
+              </section>
+            )
+          )}
+
+        {viewMode ===
+          'yearly' &&
+          yearlyGroups.map(
+            group => (
+              <section
+                key={
+                  group.key
+                }
+                style={{
+                  display:
+                    'grid',
+                  gap:
+                    '14px',
+                  marginBottom:
+                    '26px'
+                }}
+              >
+                <div
+                  className="panel"
+                  style={{
+                    padding:
+                      '16px'
+                  }}
+                >
+                  <span
+                    className="eyebrow"
+                  >
+                    MONTH
+                  </span>
+
+                  <h2
+                    style={{
+                      margin:
+                        '6px 0'
+                    }}
+                  >
+                    {group.title}
+                  </h2>
+
+                  <small>
+                    {group.items.length}
+                    {' '}
+                    {
+                      group.items.length ===
+                        1
+                        ? 'article'
+                        : 'articles'
+                    }
+                  </small>
+                </div>
+
+                {group.items.map(
+                  item =>
+                    renderArticleCard(
+                      item
+                    )
+                )}
+              </section>
+            )
+          )}
+
+        {(viewMode ===
+            'daily' ||
+          viewMode ===
+            'newspaper') &&
+          visibleItems.map(
+            item =>
+              renderArticleCard(
+                item
+              )
+          )}
+
+        {visibleItems.length ===
+          0 && (
+          <div
+            className="panel"
+          >
+            <p
+              style={{
+                margin:
+                  0
+              }}
+            >
+              No Current Affairs match this view or filter yet.
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
