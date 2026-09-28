@@ -240,14 +240,20 @@ function getMonthKey(
     return null;
   }
 
-  return (
-    `${date.getFullYear()}-${String(
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
       date.getMonth() +
       1
     ).padStart(
       2,
       '0'
-    )}`
+    );
+
+  return (
+    `${year}-${month}`
   );
 }
 
@@ -279,7 +285,9 @@ function getArticleDateValue(
   );
 }
 
-function getTodayDayKey(): string {
+
+function getTodayDayKey():
+  string {
   const now =
     new Date();
 
@@ -288,7 +296,8 @@ function getTodayDayKey(): string {
 
   const month =
     String(
-      now.getMonth() + 1
+      now.getMonth() +
+      1
     ).padStart(
       2,
       '0'
@@ -302,65 +311,8 @@ function getTodayDayKey(): string {
       '0'
     );
 
-  return `${year}-${month}-${day}`;
-}
-
-function formatDayKey(
-  value: string
-): string {
-  const [
-    year,
-    month,
-    day
-  ] =
-    value
-      .split('-')
-      .map(Number);
-
-  return new Date(
-    year,
-    month - 1,
-    day
-  ).toLocaleDateString(
-    'en-IN',
-    {
-      day:
-        '2-digit',
-
-      month:
-        'long',
-
-      year:
-        'numeric'
-    }
-  );
-}
-
-
-function formatMonthKey(
-  value: string
-): string {
-  const [
-    year,
-    month
-  ] =
-    value
-      .split('-')
-      .map(Number);
-
-  return new Date(
-    year,
-    month - 1,
-    1
-  ).toLocaleDateString(
-    'en-IN',
-    {
-      month:
-        'long',
-
-      year:
-        'numeric'
-    }
+  return (
+    `${year}-${month}-${day}`
   );
 }
 
@@ -736,46 +688,55 @@ export function CurrentPage({
     );
 
 
-  const activeDay =
-  selectedDay ||
-  availableDays[0] ||
-  getTodayDayKey();
+  const todayDay =
+    getTodayDayKey();
 
-const activeMonth =
-  selectedMonth ||
-  availableMonths[0] ||
-  getTodayDayKey()
-    .slice(
+
+  const activeDay =
+    selectedDay ||
+    availableDays[0] ||
+    todayDay;
+
+
+  const activeMonth =
+    selectedMonth ||
+    availableMonths[0] ||
+    todayDay.slice(
       0,
       7
     );
 
-const activeYear =
-  selectedYear ||
-  availableYears[0] ||
-  String(
-    new Date()
-      .getFullYear()
-  );
 
-const activeNewspaperDay =
-  selectedNewspaperDay ||
-  availableNewspaperDays[0] ||
-  getTodayDayKey();
+  const activeYear =
+    selectedYear ||
+    availableYears[0] ||
+    String(
+      new Date()
+        .getFullYear()
+    );
+
+
+  const activeNewspaperDay =
+    selectedNewspaperDay ||
+    availableNewspaperDays[0] ||
+    todayDay;
 
 
   const visibleItems =
     filteredItems.filter(
       item => {
+        const articleDate =
+          getArticleDateValue(
+            item
+          );
+
         if (
           viewMode ===
           'daily'
         ) {
           return (
             getDayKey(
-              getArticleDateValue(
-                item
-              )
+              articleDate
             ) ===
             activeDay
           );
@@ -787,9 +748,7 @@ const activeNewspaperDay =
         ) {
           return (
             getMonthKey(
-              getArticleDateValue(
-                item
-              )
+              articleDate
             ) ===
             activeMonth
           );
@@ -801,9 +760,7 @@ const activeNewspaperDay =
         ) {
           return (
             getYearKey(
-              getArticleDateValue(
-                item
-              )
+              articleDate
             ) ===
             activeYear
           );
@@ -816,9 +773,7 @@ const activeNewspaperDay =
 
         const articleDay =
           getDayKey(
-            getArticleDateValue(
-              item
-            )
+            articleDate
           );
 
         if (
@@ -900,6 +855,7 @@ const activeNewspaperDay =
       return;
     }
 
+
     const {
       data,
       error:
@@ -939,6 +895,7 @@ const activeNewspaperDay =
         )
         .single();
 
+
     if (
       loadError ||
       !data
@@ -959,6 +916,7 @@ const activeNewspaperDay =
 
       return;
     }
+
 
     setSelected({
       id:
@@ -1038,14 +996,17 @@ const activeNewspaperDay =
         null
     });
 
+
     setLoadingId(
       null
     );
+
 
     const mainArea =
       document.querySelector(
         '.main-area'
       );
+
 
     mainArea?.scrollTo({
       top:
@@ -1067,10 +1028,12 @@ const activeNewspaperDay =
         selected.way_forward
       );
 
+
     const noteExamStage =
       getNoteExamStage(
         selected
       );
+
 
     return (
       <div
@@ -1080,6 +1043,7 @@ const activeNewspaperDay =
           title="Current Affairs Analysis"
           subtitle="UPSC-focused, revision-ready understanding"
         />
+
 
         <button
           type="button"
@@ -1096,6 +1060,7 @@ const activeNewspaperDay =
         >
           ← Back to Current Affairs
         </button>
+
 
         <article
           className="panel"
@@ -1122,6 +1087,7 @@ const activeNewspaperDay =
             </time>
           </div>
 
+
           <h1
             style={{
               margin:
@@ -1133,6 +1099,7 @@ const activeNewspaperDay =
           >
             {selected.title}
           </h1>
+
 
           <div
             className="tag-row"
@@ -1149,6 +1116,7 @@ const activeNewspaperDay =
               </span>
             )}
 
+
             {selected.mains && (
               <span
                 className="tag"
@@ -1156,6 +1124,7 @@ const activeNewspaperDay =
                 Mains
               </span>
             )}
+
 
             {selected.tags.map(
               tag => (
@@ -1171,6 +1140,7 @@ const activeNewspaperDay =
             )}
           </div>
         </article>
+
 
         <div
           style={{
@@ -1218,6 +1188,7 @@ const activeNewspaperDay =
             </p>
           </section>
 
+
           <section
             className="panel"
             style={{
@@ -1240,6 +1211,7 @@ const activeNewspaperDay =
               PERSONAL NOTES
             </span>
 
+
             <h3
               style={{
                 margin:
@@ -1248,6 +1220,7 @@ const activeNewspaperDay =
             >
               Keep your own revision point
             </h3>
+
 
             <p
               style={{
@@ -1260,6 +1233,7 @@ const activeNewspaperDay =
             >
               Add your own observation, fact, example or answer-writing point without leaving this article.
             </p>
+
 
             <QuickNoteComposer
               buttonLabel="+ Add Note"
@@ -1291,17 +1265,20 @@ const activeNewspaperDay =
             />
           </section>
 
+
           <AnalysisSection
             title="BACKGROUND"
           >
             {selected.background}
           </AnalysisSection>
 
+
           <AnalysisSection
             title="KEY FACTS"
           >
             {selected.key_facts}
           </AnalysisSection>
+
 
           {selected.prelims && (
             <AnalysisSection
@@ -1311,6 +1288,7 @@ const activeNewspaperDay =
             </AnalysisSection>
           )}
 
+
           {selected.mains && (
             <AnalysisSection
               title="MAINS RELEVANCE"
@@ -1319,17 +1297,20 @@ const activeNewspaperDay =
             </AnalysisSection>
           )}
 
+
           <AnalysisSection
             title="ISSUES / CHALLENGES"
           >
             {selected.issues}
           </AnalysisSection>
 
+
           <AnalysisSection
             title="WAY FORWARD"
           >
             {selected.way_forward}
           </AnalysisSection>
+
 
           {!hasStructuredAnalysis &&
             selected.body?.trim() && (
@@ -1339,6 +1320,7 @@ const activeNewspaperDay =
                 {selected.body}
               </AnalysisSection>
             )}
+
 
           <section
             className="panel"
@@ -1356,6 +1338,7 @@ const activeNewspaperDay =
               SOURCE
             </span>
 
+
             <p
               style={{
                 color:
@@ -1369,6 +1352,7 @@ const activeNewspaperDay =
             >
               {selected.source}
             </p>
+
 
             {selected.source_url && (
               <a
@@ -1405,6 +1389,7 @@ const activeNewspaperDay =
         subtitle="Daily news, revision archives and newspaper reading"
       />
 
+
       <section
         className="panel"
         style={{
@@ -1420,6 +1405,7 @@ const activeNewspaperDay =
         >
           CURRENT AFFAIRS HUB
         </span>
+
 
         <div
           style={{
@@ -1453,6 +1439,7 @@ const activeNewspaperDay =
             Daily
           </button>
 
+
           <button
             type="button"
             className={
@@ -1470,6 +1457,7 @@ const activeNewspaperDay =
             Monthly
           </button>
 
+
           <button
             type="button"
             className={
@@ -1486,6 +1474,7 @@ const activeNewspaperDay =
           >
             Yearly
           </button>
+
 
           <button
             type="button"
@@ -1514,108 +1503,40 @@ const activeNewspaperDay =
           </button>
         </div>
 
-      {viewMode ===
- {viewMode ===
-  'daily' && (
-  <label
-    style={{
-      display:
-        'grid',
 
-      gap:
-        '7px',
+        {viewMode ===
+          'daily' && (
+          <label
+            style={{
+              display:
+                'grid',
 
-      marginTop:
-        '16px'
-    }}
-  >
-    Select Date
+              gap:
+                '7px',
 
-    <input
-      type="date"
-      value={
-        activeDay
-      }
-      onChange={
-        event =>
-          setSelectedDay(
-            event
-              .target
-              .value
-          )
-      }
-    />
-  </label>
-)}
+              marginTop:
+                '16px'
+            }}
+          >
+            Select Date
 
-{viewMode ===
-  'monthly' && (
-  <label
-    style={{
-      display:
-        'grid',
+            <input
+              type="date"
+              value={
+                activeDay
+              }
+              onChange={
+                event =>
+                  setSelectedDay(
+                    event
+                      .target
+                      .value
+                  )
+              }
+            />
+          </label>
+        )}
 
-      gap:
-        '7px',
-
-      marginTop:
-        '16px'
-    }}
-  >
-    Select Month
-
-    <input
-      type="month"
-      value={
-        activeMonth
-      }
-      onChange={
-        event =>
-          setSelectedMonth(
-            event
-              .target
-              .value
-          )
-      }
-    />
-  </label>
-)}
-
-{viewMode ===
-  'yearly' && (
-  <label
-    style={{
-      display:
-        'grid',
-
-      gap:
-        '7px',
-
-      marginTop:
-        '16px'
-    }}
-  >
-    Select Year
-
-    <input
-      type="number"
-      min="2000"
-      max="2100"
-      step="1"
-      value={
-        activeYear
-      }
-      onChange={
-        event =>
-          setSelectedYear(
-            event
-              .target
-              .value
-          )
-      }
-    />
-  </label>
-)}
 
         {viewMode ===
           'monthly' && (
@@ -1633,7 +1554,8 @@ const activeNewspaperDay =
           >
             Select Month
 
-            <select
+            <input
+              type="month"
               value={
                 activeMonth
               }
@@ -1645,26 +1567,10 @@ const activeNewspaperDay =
                       .value
                   )
               }
-            >
-              {availableMonths.map(
-                value => (
-                  <option
-                    key={
-                      value
-                    }
-                    value={
-                      value
-                    }
-                  >
-                    {formatMonthKey(
-                      value
-                    )}
-                  </option>
-                )
-              )}
-            </select>
+            />
           </label>
         )}
+
 
         {viewMode ===
           'yearly' && (
@@ -1682,7 +1588,11 @@ const activeNewspaperDay =
           >
             Select Year
 
-            <select
+            <input
+              type="number"
+              min="2000"
+              max="2100"
+              step="1"
               value={
                 activeYear
               }
@@ -1694,24 +1604,10 @@ const activeNewspaperDay =
                       .value
                   )
               }
-            >
-              {availableYears.map(
-                value => (
-                  <option
-                    key={
-                      value
-                    }
-                    value={
-                      value
-                    }
-                  >
-                    {value}
-                  </option>
-                )
-              )}
-            </select>
+            />
           </label>
         )}
+
 
         {viewMode ===
           'newspaper' && (
@@ -1727,6 +1623,7 @@ const activeNewspaperDay =
             >
               UPSC-focused newspaper reading with special emphasis on The Hindu and The Indian Express.
             </p>
+
 
             <label
               style={{
@@ -1745,21 +1642,22 @@ const activeNewspaperDay =
             >
               Newspaper Date
 
-            <input
-  type="date"
-  value={
-    activeNewspaperDay
-  }
-  onChange={
-    event =>
-      setSelectedNewspaperDay(
-        event
-          .target
-          .value
-      )
-  }
-/>
+              <input
+                type="date"
+                value={
+                  activeNewspaperDay
+                }
+                onChange={
+                  event =>
+                    setSelectedNewspaperDay(
+                      event
+                        .target
+                        .value
+                    )
+                }
+              />
             </label>
+
 
             <div
               className="filter-row"
@@ -1781,6 +1679,7 @@ const activeNewspaperDay =
                 All Newspapers
               </button>
 
+
               <button
                 type="button"
                 className={
@@ -1797,6 +1696,7 @@ const activeNewspaperDay =
               >
                 The Hindu
               </button>
+
 
               <button
                 type="button"
@@ -1818,6 +1718,7 @@ const activeNewspaperDay =
           </>
         )}
       </section>
+
 
       <div
         className="filter-row"
@@ -1841,6 +1742,7 @@ const activeNewspaperDay =
           All
         </button>
 
+
         <button
           type="button"
           className={
@@ -1860,6 +1762,7 @@ const activeNewspaperDay =
           Prelims
         </button>
 
+
         <button
           type="button"
           className={
@@ -1878,6 +1781,7 @@ const activeNewspaperDay =
         >
           Mains
         </button>
+
 
         <button
           type="button"
@@ -1899,6 +1803,7 @@ const activeNewspaperDay =
         </button>
       </div>
 
+
       {error && (
         <div
           className="panel"
@@ -1913,6 +1818,7 @@ const activeNewspaperDay =
           {error}
         </div>
       )}
+
 
       <section
         className="article-list"
@@ -1937,13 +1843,16 @@ const activeNewspaperDay =
                 </time>
               </div>
 
+
               <h2>
                 {item.title}
               </h2>
 
+
               <p>
                 {item.summary}
               </p>
+
 
               <div
                 className="tag-row"
@@ -1956,6 +1865,7 @@ const activeNewspaperDay =
                   </span>
                 )}
 
+
                 {item.mains && (
                   <span
                     className="tag"
@@ -1963,6 +1873,7 @@ const activeNewspaperDay =
                     Mains
                   </span>
                 )}
+
 
                 {item.tags.map(
                   tag => (
@@ -1978,6 +1889,7 @@ const activeNewspaperDay =
                 )}
               </div>
 
+
               <div
                 className="article-foot"
               >
@@ -1986,6 +1898,7 @@ const activeNewspaperDay =
                   {' '}
                   {item.source}
                 </small>
+
 
                 <div
                   style={{
@@ -2019,6 +1932,7 @@ const activeNewspaperDay =
                     </a>
                   )}
 
+
                   <button
                     className="text-btn"
                     type="button"
@@ -2044,6 +1958,7 @@ const activeNewspaperDay =
             </article>
           )
         )}
+
 
         {visibleItems.length ===
           0 && (
