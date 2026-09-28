@@ -481,6 +481,18 @@ export function CurrentPage({
     useState('');
 
   const [
+    searchText,
+    setSearchText
+  ] =
+    useState('');
+
+  const [
+    subjectFilter,
+    setSubjectFilter
+  ] =
+    useState('all');
+
+  const [
     selected,
     setSelected
   ] =
@@ -509,32 +521,102 @@ export function CurrentPage({
     useState('');
 
 
+  const availableSubjects =
+    Array.from(
+      new Set(
+        items
+          .map(
+            item =>
+              item.subject
+                .trim()
+          )
+          .filter(
+            value =>
+              Boolean(
+                value
+              )
+          )
+      )
+    ).sort(
+      (
+        a,
+        b
+      ) =>
+        a.localeCompare(
+          b
+        )
+    );
+
+
   const filteredItems =
     items.filter(
       item => {
         if (
           filter ===
-          'prelims'
+          'prelims' &&
+          !item.prelims
         ) {
-          return item.prelims;
+          return false;
         }
 
         if (
           filter ===
-          'mains'
+          'mains' &&
+          !item.mains
         ) {
-          return item.mains;
+          return false;
         }
 
         if (
           filter ===
-          'pib'
-        ) {
-          return item.source
+          'pib' &&
+          !item.source
             .toLowerCase()
             .includes(
               'pib'
-            );
+            )
+        ) {
+          return false;
+        }
+
+        if (
+          subjectFilter !==
+            'all' &&
+          item.subject
+            .trim() !==
+            subjectFilter
+        ) {
+          return false;
+        }
+
+        const search =
+          searchText
+            .trim()
+            .toLowerCase();
+
+        if (
+          search
+        ) {
+          const searchable =
+            [
+              item.title,
+              item.summary,
+              item.subject,
+              item.source,
+              ...item.tags
+            ]
+              .join(
+                ' '
+              )
+              .toLowerCase();
+
+          if (
+            !searchable.includes(
+              search
+            )
+          ) {
+            return false;
+          }
         }
 
         return true;
@@ -1717,6 +1799,138 @@ export function CurrentPage({
             </div>
           </>
         )}
+      </section>
+
+
+      <section
+        className="panel"
+        style={{
+          marginBottom:
+            '18px',
+
+          padding:
+            '14px'
+        }}
+      >
+        <span
+          className="eyebrow"
+        >
+          FIND CURRENT AFFAIRS
+        </span>
+
+
+        <div
+          style={{
+            display:
+              'grid',
+
+            gridTemplateColumns:
+              'repeat(auto-fit,minmax(220px,1fr))',
+
+            gap:
+              '10px',
+
+            marginTop:
+              '12px',
+
+            alignItems:
+              'end'
+          }}
+        >
+          <label
+            style={{
+              display:
+                'grid',
+
+              gap:
+                '7px'
+            }}
+          >
+            Search
+
+            <input
+              type="search"
+              value={
+                searchText
+              }
+              onChange={
+                event =>
+                  setSearchText(
+                    event
+                      .target
+                      .value
+                  )
+              }
+              placeholder="Search headline, summary, subject, tag or source..."
+            />
+          </label>
+
+
+          <label
+            style={{
+              display:
+                'grid',
+
+              gap:
+                '7px'
+            }}
+          >
+            Subject
+
+            <select
+              value={
+                subjectFilter
+              }
+              onChange={
+                event =>
+                  setSubjectFilter(
+                    event
+                      .target
+                      .value
+                  )
+              }
+            >
+              <option
+                value="all"
+              >
+                All Subjects
+              </option>
+
+
+              {availableSubjects.map(
+                subject => (
+                  <option
+                    key={
+                      subject
+                    }
+                    value={
+                      subject
+                    }
+                  >
+                    {subject}
+                  </option>
+                )
+              )}
+            </select>
+          </label>
+
+
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={() => {
+              setSearchText(
+                ''
+              );
+
+              setSubjectFilter(
+                'all'
+              );
+            }}
+          >
+            Clear
+          </button>
+        </div>
       </section>
 
 
