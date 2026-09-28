@@ -1,10 +1,22 @@
-import { useState } from 'react';
+import {
+  useState
+} from 'react';
 
-import type { CurrentAffair } from '../types';
+import type {
+  CurrentAffair
+} from '../types';
 
-import { TopBar } from '../components/TopBar';
-import { QuickNoteComposer } from '../components/QuickNoteComposer';
-import { supabase } from '../lib/supabase';
+import {
+  TopBar
+} from '../components/TopBar';
+
+import {
+  QuickNoteComposer
+} from '../components/QuickNoteComposer';
+
+import {
+  supabase
+} from '../lib/supabase';
 
 
 type FilterKey =
@@ -13,22 +25,26 @@ type FilterKey =
   | 'mains'
   | 'pib';
 
+
 type CurrentView =
   | 'daily'
   | 'monthly'
   | 'yearly'
   | 'newspaper';
 
+
 type NewspaperKey =
   | 'all'
   | 'the_hindu'
   | 'indian_express';
+
 
 type NoteExamStage =
   | 'general'
   | 'prelims'
   | 'mains'
   | 'both';
+
 
 type DetailedArticle =
   CurrentAffair & {
@@ -43,10 +59,19 @@ type DetailedArticle =
   };
 
 
+/*
+ * =========================================
+ * DATE HELPERS
+ * =========================================
+ */
+
 function parsePublishedDate(
   value: string
-): Date | null {
-  const clean = value.trim();
+):
+  Date | null {
+
+  const clean =
+    value.trim();
 
   if (!clean) {
     return null;
@@ -58,7 +83,10 @@ function parsePublishedDate(
   const today =
     new Date();
 
-  if (lower === 'today') {
+  if (
+    lower ===
+    'today'
+  ) {
     return new Date(
       today.getFullYear(),
       today.getMonth(),
@@ -66,7 +94,10 @@ function parsePublishedDate(
     );
   }
 
-  if (lower === 'yesterday') {
+  if (
+    lower ===
+    'yesterday'
+  ) {
     const date =
       new Date(
         today.getFullYear(),
@@ -75,14 +106,18 @@ function parsePublishedDate(
       );
 
     date.setDate(
-      date.getDate() - 1
+      date.getDate() -
+      1
     );
 
     return date;
   }
 
   const monthMap:
-    Record<string, number> = {
+    Record<
+      string,
+      number
+    > = {
       jan: 0,
       feb: 1,
       mar: 2,
@@ -110,7 +145,8 @@ function parsePublishedDate(
 
     const month =
       monthMap[
-        match[2].toLowerCase()
+        match[2]
+          .toLowerCase()
       ];
 
     const year =
@@ -118,7 +154,10 @@ function parsePublishedDate(
         match[3]
       );
 
-    if (month !== undefined) {
+    if (
+      month !==
+      undefined
+    ) {
       return new Date(
         year,
         month,
@@ -128,7 +167,9 @@ function parsePublishedDate(
   }
 
   const parsed =
-    new Date(clean);
+    new Date(
+      clean
+    );
 
   if (
     Number.isNaN(
@@ -144,9 +185,13 @@ function parsePublishedDate(
 
 function getDayKey(
   value: string
-): string | null {
+):
+  string | null {
+
   const date =
-    parsePublishedDate(value);
+    parsePublishedDate(
+      value
+    );
 
   if (!date) {
     return null;
@@ -157,7 +202,8 @@ function getDayKey(
 
   const month =
     String(
-      date.getMonth() + 1
+      date.getMonth() +
+      1
     ).padStart(
       2,
       '0'
@@ -177,9 +223,13 @@ function getDayKey(
 
 function getMonthKey(
   value: string
-): string | null {
+):
+  string | null {
+
   const date =
-    parsePublishedDate(value);
+    parsePublishedDate(
+      value
+    );
 
   if (!date) {
     return null;
@@ -190,7 +240,8 @@ function getMonthKey(
 
   const month =
     String(
-      date.getMonth() + 1
+      date.getMonth() +
+      1
     ).padStart(
       2,
       '0'
@@ -202,9 +253,13 @@ function getMonthKey(
 
 function getYearKey(
   value: string
-): string | null {
+):
+  string | null {
+
   const date =
-    parsePublishedDate(value);
+    parsePublishedDate(
+      value
+    );
 
   if (!date) {
     return null;
@@ -217,17 +272,23 @@ function getYearKey(
 
 
 function getArticleDateValue(
-  item: CurrentAffair
-): string {
+  item:
+    CurrentAffair
+):
+  string {
+
   return (
-    item.publishedAtIso ||
-    item.publishedAt
+    item
+      .publishedAtIso ||
+    item
+      .publishedAt
   );
 }
 
 
 function getTodayDayKey():
   string {
+
   const now =
     new Date();
 
@@ -236,7 +297,8 @@ function getTodayDayKey():
 
   const month =
     String(
-      now.getMonth() + 1
+      now.getMonth() +
+      1
     ).padStart(
       2,
       '0'
@@ -256,7 +318,9 @@ function getTodayDayKey():
 
 function formatArchiveDay(
   value: string
-): string {
+):
+  string {
+
   const [
     year,
     month,
@@ -264,7 +328,9 @@ function formatArchiveDay(
   ] =
     value
       .split('-')
-      .map(Number);
+      .map(
+        Number
+      );
 
   return new Date(
     year,
@@ -273,9 +339,14 @@ function formatArchiveDay(
   ).toLocaleDateString(
     'en-IN',
     {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
+      day:
+        '2-digit',
+
+      month:
+        'long',
+
+      year:
+        'numeric'
     }
   );
 }
@@ -283,14 +354,18 @@ function formatArchiveDay(
 
 function formatArchiveMonth(
   value: string
-): string {
+):
+  string {
+
   const [
     year,
     month
   ] =
     value
       .split('-')
-      .map(Number);
+      .map(
+        Number
+      );
 
   return new Date(
     year,
@@ -299,18 +374,29 @@ function formatArchiveMonth(
   ).toLocaleDateString(
     'en-IN',
     {
-      month: 'long',
-      year: 'numeric'
+      month:
+        'long',
+
+      year:
+        'numeric'
     }
   );
 }
 
 
+/*
+ * =========================================
+ * NEWSPAPER HELPERS
+ * =========================================
+ */
+
 function getNewspaperKey(
-  source: string
+  source:
+    string
 ):
   | NewspaperKey
   | 'other' {
+
   const clean =
     source
       .trim()
@@ -320,7 +406,8 @@ function getNewspaperKey(
     clean.includes(
       'the hindu'
     ) ||
-    clean === 'hindu'
+    clean ===
+      'hindu'
   ) {
     return 'the_hindu';
   }
@@ -337,9 +424,18 @@ function getNewspaperKey(
 }
 
 
+/*
+ * =========================================
+ * NOTE TYPE
+ * =========================================
+ */
+
 function getNoteExamStage(
-  item: DetailedArticle
-): NoteExamStage {
+  item:
+    DetailedArticle
+):
+  NoteExamStage {
+
   if (
     item.prelims &&
     item.mains
@@ -347,11 +443,15 @@ function getNoteExamStage(
     return 'both';
   }
 
-  if (item.prelims) {
+  if (
+    item.prelims
+  ) {
     return 'prelims';
   }
 
-  if (item.mains) {
+  if (
+    item.mains
+  ) {
     return 'mains';
   }
 
@@ -359,15 +459,24 @@ function getNoteExamStage(
 }
 
 
+/*
+ * =========================================
+ * ANALYSIS SECTION
+ * =========================================
+ */
+
 function AnalysisSection({
   title,
   children
 }: {
   title: string;
-  children: string | null;
+  children:
+    string | null;
 }) {
+
   if (
-    !children?.trim()
+    !children
+      ?.trim()
   ) {
     return null;
   }
@@ -375,35 +484,62 @@ function AnalysisSection({
   return (
     <section
       className="panel"
+
       style={{
-        padding: '20px',
-        marginTop: '16px'
+        padding:
+          '20px',
+
+        marginTop:
+          '16px'
       }}
     >
-      <span className="eyebrow">
+
+      <span
+        className="eyebrow"
+      >
         {title}
       </span>
 
       <div
         style={{
-          whiteSpace: 'pre-wrap',
-          color: '#cbd5e1',
-          lineHeight: 1.8,
-          marginTop: '12px'
+          whiteSpace:
+            'pre-wrap',
+
+          color:
+            '#cbd5e1',
+
+          lineHeight:
+            1.8,
+
+          marginTop:
+            '12px'
         }}
       >
         {children}
       </div>
+
     </section>
   );
 }
 
 
+/*
+ * =========================================
+ * CURRENT AFFAIRS PAGE
+ * =========================================
+ */
+
 export function CurrentPage({
   items
 }: {
-  items: CurrentAffair[];
+  items:
+    CurrentAffair[];
 }) {
+
+  /*
+   * MAIN FILTER
+   */
+
   const [
     filter,
     setFilter
@@ -411,6 +547,11 @@ export function CurrentPage({
     useState<FilterKey>(
       'all'
     );
+
+
+  /*
+   * VIEW
+   */
 
   const [
     viewMode,
@@ -420,23 +561,41 @@ export function CurrentPage({
       'daily'
     );
 
+
+  /*
+   * ARCHIVE DATE
+   */
+
   const [
     selectedDay,
     setSelectedDay
   ] =
-    useState('');
+    useState(
+      ''
+    );
+
 
   const [
     selectedMonth,
     setSelectedMonth
   ] =
-    useState('');
+    useState(
+      ''
+    );
+
 
   const [
     selectedYear,
     setSelectedYear
   ] =
-    useState('');
+    useState(
+      ''
+    );
+
+
+  /*
+   * NEWSPAPER
+   */
 
   const [
     newspaperFilter,
@@ -446,30 +605,51 @@ export function CurrentPage({
       'all'
     );
 
+
   const [
     selectedNewspaperDay,
     setSelectedNewspaperDay
   ] =
-    useState('');
+    useState(
+      ''
+    );
+
+
+  /*
+   * SEARCH
+   */
 
   const [
     searchText,
     setSearchText
   ] =
-    useState('');
+    useState(
+      ''
+    );
+
 
   const [
     subjectFilter,
     setSubjectFilter
   ] =
-    useState('all');
+    useState(
+      'all'
+    );
 
-    const [
+
+  const [
     sourceFilter,
     setSourceFilter
   ] =
-    useState('all');
-  
+    useState(
+      'all'
+    );
+
+
+  /*
+   * ARTICLE DETAILS
+   */
+
   const [
     selected,
     setSelected
@@ -480,6 +660,7 @@ export function CurrentPage({
     >(
       null
     );
+
 
   const [
     loadingId,
@@ -492,12 +673,21 @@ export function CurrentPage({
       null
     );
 
+
   const [
     error,
     setError
   ] =
-    useState('');
+    useState(
+      ''
+    );
 
+
+  /*
+   * =========================================
+   * FILTER OPTIONS
+   * =========================================
+   */
 
   const availableSubjects =
     Array.from(
@@ -505,51 +695,91 @@ export function CurrentPage({
         items
           .map(
             item =>
-              item.subject.trim()
+              item
+                .subject
+                .trim()
           )
-          .filter(Boolean)
+          .filter(
+            Boolean
+          )
       )
-    ).sort(
-      (
-        a,
-        b
-      ) =>
-        a.localeCompare(b)
-    );
+    )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          a.localeCompare(
+            b
+          )
+      );
 
-    const availableSources =
+
+  const availableSources =
     Array.from(
       new Set(
         items
           .map(
             item =>
-              item.source
+              item
+                .source
                 .trim()
           )
-          .filter(Boolean)
+          .filter(
+            Boolean
+          )
       )
-    ).sort(
-      (
-        a,
-        b
-      ) =>
-        a.localeCompare(
+    )
+      .sort(
+        (
+          a,
           b
-        )
-    );
-  
+        ) =>
+          a.localeCompare(
+            b
+          )
+      );
+
+
+  /*
+   * =========================================
+   * BASE FILTER
+   * =========================================
+   */
 
   const filteredItems =
     items.filter(
       item => {
+
         if (
-          filter === 'prelims' &&
+          filter ===
+            'prelims' &&
           !item.prelims
         ) {
           return false;
         }
 
-                if (
+        if (
+          filter ===
+            'mains' &&
+          !item.mains
+        ) {
+          return false;
+        }
+
+        if (
+          filter ===
+            'pib' &&
+          !item.source
+            .toLowerCase()
+            .includes(
+              'pib'
+            )
+        ) {
+          return false;
+        }
+
+        if (
           viewMode !==
             'newspaper' &&
           sourceFilter !==
@@ -560,26 +790,12 @@ export function CurrentPage({
         ) {
           return false;
         }
-        
-        if (
-          filter === 'mains' &&
-          !item.mains
-        ) {
-          return false;
-        }
 
         if (
-          filter === 'pib' &&
-          !item.source
-            .toLowerCase()
-            .includes('pib')
-        ) {
-          return false;
-        }
-
-        if (
-          subjectFilter !== 'all' &&
-          item.subject.trim() !==
+          subjectFilter !==
+            'all' &&
+          item.subject
+            .trim() !==
             subjectFilter
         ) {
           return false;
@@ -599,13 +815,16 @@ export function CurrentPage({
               item.source,
               ...item.tags
             ]
-              .join(' ')
+              .join(
+                ' '
+              )
               .toLowerCase();
 
           if (
-            !searchable.includes(
-              search
-            )
+            !searchable
+              .includes(
+                search
+              )
           ) {
             return false;
           }
@@ -615,6 +834,12 @@ export function CurrentPage({
       }
     );
 
+
+  /*
+   * =========================================
+   * AVAILABLE DAILY DATES
+   * =========================================
+   */
 
   const availableDays =
     Array.from(
@@ -633,28 +858,41 @@ export function CurrentPage({
               value
             ):
               value is string =>
-              Boolean(value)
+              Boolean(
+                value
+              )
           )
       )
-    ).sort(
-      (
-        a,
-        b
-      ) =>
-        b.localeCompare(a)
-    );
+    )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          b.localeCompare(
+            a
+          )
+      );
 
+
+  /*
+   * =========================================
+   * AVAILABLE MONTHS
+   * ONLY MONTHLY SELECTED ARTICLES
+   * =========================================
+   */
 
   const availableMonths =
     Array.from(
       new Set(
-       items
-  .filter(
-    item =>
-      item.monthlySelected ===
-      true
-  )
-  .map(
+        items
+          .filter(
+            item =>
+              item
+                .monthlySelected ===
+              true
+          )
+          .map(
             item =>
               getMonthKey(
                 getArticleDateValue(
@@ -667,51 +905,78 @@ export function CurrentPage({
               value
             ):
               value is string =>
-              Boolean(value)
+              Boolean(
+                value
+              )
           )
       )
-    ).sort(
-      (
-        a,
-        b
-      ) =>
-        b.localeCompare(a)
-    );
+    )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          b.localeCompare(
+            a
+          )
+      );
 
+
+  /*
+   * =========================================
+   * AVAILABLE YEARS
+   * ONLY YEARLY SELECTED ARTICLES
+   * =========================================
+   */
 
   const availableYears =
-  Array.from(
-    new Set(
-      items
-        .filter(
-          item =>
-            item.yearlySelected ===
-            true
-        )
-        .map(
-          item =>
-            getYearKey(
-              getArticleDateValue(
-                item
+    Array.from(
+      new Set(
+        items
+          .filter(
+            item =>
+              item
+                .yearlySelected ===
+              true
+          )
+          .map(
+            item =>
+              getYearKey(
+                getArticleDateValue(
+                  item
+                )
               )
-            )
-        )
-        .filter(
-          (
-            value
-          ):
-            value is string =>
-            Boolean(value)
-        )
+          )
+          .filter(
+            (
+              value
+            ):
+              value is string =>
+              Boolean(
+                value
+              )
+          )
+      )
     )
-  ).sort(
-    (
-      a,
-      b
-    ) =>
-      Number(b) -
-      Number(a)
-  );
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          Number(
+            b
+          ) -
+          Number(
+            a
+          )
+      );
+
+
+  /*
+   * =========================================
+   * NEWSPAPER DATES
+   * =========================================
+   */
 
   const availableNewspaperDays =
     Array.from(
@@ -725,8 +990,10 @@ export function CurrentPage({
                 );
 
               return (
-                source === 'the_hindu' ||
-                source === 'indian_express'
+                source ===
+                  'the_hindu' ||
+                source ===
+                  'indian_express'
               );
             }
           )
@@ -743,17 +1010,28 @@ export function CurrentPage({
               value
             ):
               value is string =>
-              Boolean(value)
+              Boolean(
+                value
+              )
           )
       )
-    ).sort(
-      (
-        a,
-        b
-      ) =>
-        b.localeCompare(a)
-    );
+    )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          b.localeCompare(
+            a
+          )
+      );
 
+
+  /*
+   * =========================================
+   * ACTIVE PERIOD
+   * =========================================
+   */
 
   const todayDay =
     getTodayDayKey();
@@ -789,47 +1067,62 @@ export function CurrentPage({
     todayDay;
 
 
+  /*
+   * =========================================
+   * VISIBLE ARTICLES
+   * =========================================
+   */
+
   const visibleItems =
     filteredItems.filter(
       item => {
+
         const articleDate =
           getArticleDateValue(
             item
           );
 
         if (
-          viewMode === 'daily'
+          viewMode ===
+            'daily'
         ) {
           return (
             getDayKey(
               articleDate
-            ) === activeDay
+            ) ===
+            activeDay
           );
         }
 
         if (
-  viewMode === 'monthly'
-) {
-  return (
-    item.monthlySelected ===
-      true &&
-    getMonthKey(
-      articleDate
-    ) === activeMonth
-  );
-}
+          viewMode ===
+            'monthly'
+        ) {
+          return (
+            item
+              .monthlySelected ===
+              true &&
+            getMonthKey(
+              articleDate
+            ) ===
+              activeMonth
+          );
+        }
 
-       if (
-  viewMode === 'yearly'
-) {
-  return (
-    item.yearlySelected ===
-      true &&
-    getYearKey(
-      articleDate
-    ) === activeYear
-  );
-}
+        if (
+          viewMode ===
+            'yearly'
+        ) {
+          return (
+            item
+              .yearlySelected ===
+              true &&
+            getYearKey(
+              articleDate
+            ) ===
+              activeYear
+          );
+        }
 
         const articleDay =
           getDayKey(
@@ -850,11 +1143,13 @@ export function CurrentPage({
 
         if (
           newspaperFilter ===
-          'all'
+            'all'
         ) {
           return (
-            source === 'the_hindu' ||
-            source === 'indian_express'
+            source ===
+              'the_hindu' ||
+            source ===
+              'indian_express'
           );
         }
 
@@ -865,6 +1160,12 @@ export function CurrentPage({
       }
     );
 
+
+  /*
+   * =========================================
+   * MONTHLY GROUPS
+   * =========================================
+   */
 
   const monthlyGroups =
     Array.from(
@@ -883,7 +1184,9 @@ export function CurrentPage({
               value
             ):
               value is string =>
-              Boolean(value)
+              Boolean(
+                value
+              )
           )
       )
     )
@@ -892,11 +1195,14 @@ export function CurrentPage({
           a,
           b
         ) =>
-          b.localeCompare(a)
+          b.localeCompare(
+            a
+          )
       )
       .map(
         day => ({
-          key: day,
+          key:
+            day,
 
           title:
             formatArchiveDay(
@@ -904,17 +1210,25 @@ export function CurrentPage({
             ),
 
           items:
-            visibleItems.filter(
-              item =>
-                getDayKey(
-                  getArticleDateValue(
-                    item
-                  )
-                ) === day
-            )
+            visibleItems
+              .filter(
+                item =>
+                  getDayKey(
+                    getArticleDateValue(
+                      item
+                    )
+                  ) ===
+                  day
+              )
         })
       );
 
+
+  /*
+   * =========================================
+   * YEARLY GROUPS
+   * =========================================
+   */
 
   const yearlyGroups =
     Array.from(
@@ -933,7 +1247,9 @@ export function CurrentPage({
               value
             ):
               value is string =>
-              Boolean(value)
+              Boolean(
+                value
+              )
           )
       )
     )
@@ -942,11 +1258,14 @@ export function CurrentPage({
           a,
           b
         ) =>
-          b.localeCompare(a)
+          b.localeCompare(
+            a
+          )
       )
       .map(
         month => ({
-          key: month,
+          key:
+            month,
 
           title:
             formatArchiveMonth(
@@ -954,67 +1273,34 @@ export function CurrentPage({
             ),
 
           items:
-            visibleItems.filter(
-              item =>
-                getMonthKey(
-                  getArticleDateValue(
-                    item
-                  )
-                ) === month
-            )
+            visibleItems
+              .filter(
+                item =>
+                  getMonthKey(
+                    getArticleDateValue(
+                      item
+                    )
+                  ) ===
+                  month
+              )
         })
       );
 
 
-  const snapshotTotal =
-    visibleItems.length;
+  /*
+   * =========================================
+   * NEWSPAPER GROUPS
+   * =========================================
+   */
 
-
-  const snapshotPrelims =
-    visibleItems.filter(
-      item =>
-        item.prelims
-    ).length;
-
-
-  const snapshotMains =
-    visibleItems.filter(
-      item =>
-        item.mains
-    ).length;
-
-
-  const snapshotPib =
-    visibleItems.filter(
-      item =>
-        item.source
-          .toLowerCase()
-          .includes('pib')
-    ).length;
-
-
-  const snapshotNewspaper =
-    visibleItems.filter(
-      item => {
-        const source =
-          getNewspaperKey(
-            item.source
-          );
-
-        return (
-          source === 'the_hindu' ||
-          source === 'indian_express'
-        );
-      }
-    ).length;
-
-    const newspaperSubjectGroups =
+  const newspaperSubjectGroups =
     Array.from(
       new Set(
         visibleItems
           .map(
             item =>
-              item.subject
+              item
+                .subject
                 .trim() ||
               'Other'
           )
@@ -1030,36 +1316,204 @@ export function CurrentPage({
           )
       )
       .map(
-        subject => ({
+        groupSubject => ({
           key:
-            subject,
+            groupSubject,
 
           title:
-            subject,
+            groupSubject,
 
           items:
-            visibleItems.filter(
-              item =>
-                (
-                  item.subject
-                    .trim() ||
-                  'Other'
-                ) ===
-                subject
-            )
+            visibleItems
+              .filter(
+                item =>
+                  (
+                    item
+                      .subject
+                      .trim() ||
+                    'Other'
+                  ) ===
+                  groupSubject
+              )
         })
       );
 
+
+  /*
+   * =========================================
+   * SNAPSHOT
+   * =========================================
+   */
+
+  const snapshotTotal =
+    visibleItems.length;
+
+
+  const snapshotPrelims =
+    visibleItems
+      .filter(
+        item =>
+          item.prelims
+      )
+      .length;
+
+
+  const snapshotMains =
+    visibleItems
+      .filter(
+        item =>
+          item.mains
+      )
+      .length;
+
+
+  const snapshotPib =
+    visibleItems
+      .filter(
+        item =>
+          item.source
+            .toLowerCase()
+            .includes(
+              'pib'
+            )
+      )
+      .length;
+
+
+  const snapshotNewspaper =
+    visibleItems
+      .filter(
+        item => {
+          const source =
+            getNewspaperKey(
+              item.source
+            );
+
+          return (
+            source ===
+              'the_hindu' ||
+            source ===
+              'indian_express'
+          );
+        }
+      )
+      .length;
+
+
+  /*
+   * =========================================
+   * ARCHIVE TITLE
+   * =========================================
+   */
+
+  const archiveTitle =
+    viewMode ===
+      'daily'
+      ? 'Daily Current Affairs'
+
+      : viewMode ===
+        'monthly'
+      ? 'Monthly Current Affairs'
+
+      : viewMode ===
+        'yearly'
+      ? 'Yearly Current Affairs'
+
+      : 'Newspaper Reading';
+
+
+  const archivePeriod =
+    viewMode ===
+      'daily'
+      ? formatArchiveDay(
+          activeDay
+        )
+
+      : viewMode ===
+        'monthly'
+      ? formatArchiveMonth(
+          activeMonth
+        )
+
+      : viewMode ===
+        'yearly'
+      ? activeYear
+
+      : formatArchiveDay(
+          activeNewspaperDay
+        );
+
+
+  /*
+   * =========================================
+   * EMPTY MESSAGE
+   * =========================================
+   */
+
+  function getEmptyMessage() {
+
+    if (
+      viewMode ===
+      'daily'
+    ) {
+      return (
+        `No Daily Current Affairs are available for ${formatArchiveDay(
+          activeDay
+        )}.`
+      );
+    }
+
+    if (
+      viewMode ===
+      'monthly'
+    ) {
+      return (
+        `No Monthly Current Affairs have been selected for ${formatArchiveMonth(
+          activeMonth
+        )}.`
+      );
+    }
+
+    if (
+      viewMode ===
+      'yearly'
+    ) {
+      return (
+        `No Yearly Current Affairs have been selected for ${activeYear}.`
+      );
+    }
+
+    return (
+      `No newspaper notes are available for ${formatArchiveDay(
+        activeNewspaperDay
+      )}.`
+    );
+  }
+
+
+  /*
+   * =========================================
+   * OPEN FULL ANALYSIS
+   * =========================================
+   */
+
   async function openAnalysis(
-    item: CurrentAffair
+    item:
+      CurrentAffair
   ) {
-    setError('');
+    setError(
+      ''
+    );
 
     setLoadingId(
       item.id
     );
 
-    if (!supabase) {
+    const client =
+      supabase;
+
+    if (!client) {
+
       setSelected({
         ...item,
 
@@ -1074,12 +1528,23 @@ export function CurrentPage({
           item.sourceUrl ||
           null,
 
-        background: null,
-        key_facts: null,
-        prelims_points: null,
-        mains_relevance: null,
-        issues: null,
-        way_forward: null
+        background:
+          null,
+
+        key_facts:
+          null,
+
+        prelims_points:
+          null,
+
+        mains_relevance:
+          null,
+
+        issues:
+          null,
+
+        way_forward:
+          null
       });
 
       setLoadingId(
@@ -1091,13 +1556,15 @@ export function CurrentPage({
 
     const {
       data,
-      error: loadError
+      error:
+        loadError
     } =
-      await supabase
+      await client
         .from(
           'current_affairs'
         )
-        .select(`
+        .select(
+          `
           id,
           title,
           source,
@@ -1112,13 +1579,14 @@ export function CurrentPage({
           issues,
           way_forward,
           tags,
-         prelims,
-mains,
-monthly_selected,
-yearly_selected,
-published_at,
-status
-        `)
+          prelims,
+          mains,
+          monthly_selected,
+          yearly_selected,
+          published_at,
+          status
+          `
+        )
         .eq(
           'id',
           item.id
@@ -1139,7 +1607,8 @@ status
       );
 
       setError(
-        loadError?.message ||
+        loadError
+          ?.message ||
         'Unable to load this analysis.'
       );
 
@@ -1204,25 +1673,30 @@ status
         data.mains,
 
       monthlySelected:
-  data.monthly_selected ===
-  true,
+        data
+          .monthly_selected ===
+        true,
 
-yearlySelected:
-  data.yearly_selected ===
-  true,
+      yearlySelected:
+        data
+          .yearly_selected ===
+        true,
 
       publishedAt:
         data.published_at
           ? new Date(
-              data.published_at
+              data
+                .published_at
             )
               .toLocaleDateString(
                 'en-IN',
                 {
                   day:
                     '2-digit',
+
                   month:
                     'short',
+
                   year:
                     'numeric'
                 }
@@ -1238,50 +1712,69 @@ yearlySelected:
       null
     );
 
-    const mainArea =
-      document.querySelector(
+    document
+      .querySelector(
         '.main-area'
-      );
-
-    mainArea?.scrollTo({
-      top: 0
-    });
+      )
+      ?.scrollTo({
+        top:
+          0
+      });
   }
 
 
+  /*
+   * =========================================
+   * ARTICLE CARD
+   * =========================================
+   */
+
   function renderArticleCard(
-    item: CurrentAffair
+    item:
+      CurrentAffair
   ) {
+
     return (
       <article
         className="article-card"
+
         key={
           item.id
         }
       >
+
         <div
           className="article-meta"
         >
+
           <span>
             {item.subject}
           </span>
 
           <time>
-            {item.publishedAt}
+            {
+              item
+                .publishedAt
+            }
           </time>
+
         </div>
+
 
         <h2>
           {item.title}
         </h2>
 
+
         <p>
           {item.summary}
         </p>
 
+
         <div
           className="tag-row"
         >
+
           {item.prelims && (
             <span
               className="tag"
@@ -1289,6 +1782,7 @@ yearlySelected:
               Prelims
             </span>
           )}
+
 
           {item.mains && (
             <span
@@ -1298,10 +1792,32 @@ yearlySelected:
             </span>
           )}
 
+
+          {viewMode ===
+            'monthly' && (
+            <span
+              className="tag"
+            >
+              Monthly Selected
+            </span>
+          )}
+
+
+          {viewMode ===
+            'yearly' && (
+            <span
+              className="tag"
+            >
+              Yearly Selected
+            </span>
+          )}
+
+
           {item.tags.map(
             tag => (
               <span
                 className="tag"
+
                 key={
                   tag
                 }
@@ -1310,32 +1826,51 @@ yearlySelected:
               </span>
             )
           )}
+
         </div>
+
 
         <div
           className="article-foot"
         >
+
           <small>
-            Source:{' '}
-            {item.source}
+            Source:
+            {' '}
+            {
+              item.source
+            }
           </small>
+
 
           <div
             style={{
-              display: 'flex',
-              gap: '10px',
-              alignItems: 'center',
-              flexWrap: 'wrap'
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              alignItems:
+                'center',
+
+              flexWrap:
+                'wrap'
             }}
           >
+
             {item.sourceUrl && (
               <a
                 href={
                   item.sourceUrl
                 }
+
                 target="_blank"
+
                 rel="noreferrer"
+
                 className="text-btn"
+
                 style={{
                   textDecoration:
                     'none'
@@ -1345,13 +1880,17 @@ yearlySelected:
               </a>
             )}
 
+
             <button
               type="button"
+
               className="text-btn"
+
               disabled={
                 loadingId ===
                 item.id
               }
+
               onClick={() =>
                 void openAnalysis(
                   item
@@ -1365,14 +1904,24 @@ yearlySelected:
                   : 'Read analysis'
               }
             </button>
+
           </div>
+
         </div>
+
       </article>
     );
   }
 
 
+  /*
+   * =========================================
+   * FULL ARTICLE VIEW
+   * =========================================
+   */
+
   if (selected) {
+
     const hasStructuredAnalysis =
       Boolean(
         selected.background ||
@@ -1383,28 +1932,35 @@ yearlySelected:
         selected.way_forward
       );
 
+
     const noteExamStage =
       getNoteExamStage(
         selected
       );
 
+
     return (
       <div
         className="page-wrap"
       >
+
         <TopBar
           title="Current Affairs Analysis"
           subtitle="UPSC-focused, revision-ready understanding"
         />
 
+
         <button
           type="button"
+
           className="secondary-btn"
+
           onClick={() =>
             setSelected(
               null
             )
           }
+
           style={{
             marginBottom:
               '18px'
@@ -1413,33 +1969,48 @@ yearlySelected:
           ← Back to Current Affairs
         </button>
 
+
         <article
           className="panel"
+
           style={{
             maxWidth:
               '940px',
+
             margin:
               '0 auto 18px',
+
             padding:
               '24px'
           }}
         >
+
           <div
             className="article-meta"
           >
+
             <span>
-              {selected.subject}
+              {
+                selected
+                  .subject
+              }
             </span>
 
             <time>
-              {selected.publishedAt}
+              {
+                selected
+                  .publishedAt
+              }
             </time>
+
           </div>
+
 
           <h1
             style={{
               margin:
                 '12px 0 8px',
+
               lineHeight:
                 1.25
             }}
@@ -1447,13 +2018,16 @@ yearlySelected:
             {selected.title}
           </h1>
 
+
           <div
             className="tag-row"
+
             style={{
               marginTop:
                 '15px'
             }}
           >
+
             {selected.prelims && (
               <span
                 className="tag"
@@ -1461,6 +2035,7 @@ yearlySelected:
                 Prelims
               </span>
             )}
+
 
             {selected.mains && (
               <span
@@ -1470,10 +2045,32 @@ yearlySelected:
               </span>
             )}
 
+
+            {selected
+              .monthlySelected && (
+              <span
+                className="tag"
+              >
+                Monthly CA
+              </span>
+            )}
+
+
+            {selected
+              .yearlySelected && (
+              <span
+                className="tag"
+              >
+                Yearly CA
+              </span>
+            )}
+
+
             {selected.tags.map(
               tag => (
                 <span
                   className="tag"
+
                   key={
                     tag
                   }
@@ -1482,67 +2079,91 @@ yearlySelected:
                 </span>
               )
             )}
+
           </div>
+
         </article>
+
 
         <div
           style={{
             maxWidth:
               '940px',
+
             margin:
               '0 auto 32px'
           }}
         >
+
+          {/* QUICK REVISION */}
+
           <section
             style={{
               padding:
                 '20px',
+
               borderRadius:
                 '16px',
+
               background:
                 'rgba(20,184,166,.09)',
+
               border:
                 '1px solid rgba(20,184,166,.24)'
             }}
           >
+
             <span
               className="eyebrow"
             >
               QUICK REVISION
             </span>
 
+
             <p
               style={{
                 color:
                   '#e2e8f0',
+
                 lineHeight:
                   1.75,
+
                 marginBottom:
                   0
               }}
             >
               {selected.summary}
             </p>
+
           </section>
+
+
+          {/* PERSONAL NOTES */}
 
           <section
             className="panel"
+
             style={{
               marginTop:
                 '16px',
+
               padding:
                 '20px',
+
               border:
                 '1px solid rgba(45,212,191,.22)',
+
               background:
                 'linear-gradient(135deg, rgba(20,184,166,.07), rgba(59,130,246,.035))'
             }}
           >
+
             <span
               className="eyebrow"
             >
               PERSONAL NOTES
             </span>
+
 
             <h3
               style={{
@@ -1553,10 +2174,12 @@ yearlySelected:
               Keep your own revision point
             </h3>
 
+
             <p
               style={{
                 margin:
                   '0 0 14px',
+
                 color:
                   '#94a3b8'
               }}
@@ -1564,35 +2187,48 @@ yearlySelected:
               Add your own observation, fact, example or answer-writing point without leaving this article.
             </p>
 
+
             <QuickNoteComposer
               buttonLabel="+ Add Note"
+
               defaultTitle={
                 selected.title
               }
+
               defaultSubject={
                 selected.subject
               }
+
               defaultTopic={
                 selected.title
               }
+
               defaultContent={
                 selected.summary
               }
+
               defaultTags={
                 selected.tags
               }
+
               examStage={
                 noteExamStage
               }
+
               noteType="current_affairs"
+
               currentAffairId={
                 selected.id
               }
+
               sourceUrl={
-                selected.source_url
+                selected
+                  .source_url
               }
             />
+
           </section>
+
 
           <AnalysisSection
             title="BACKGROUND"
@@ -1600,27 +2236,37 @@ yearlySelected:
             {selected.background}
           </AnalysisSection>
 
+
           <AnalysisSection
             title="KEY FACTS"
           >
             {selected.key_facts}
           </AnalysisSection>
 
+
           {selected.prelims && (
             <AnalysisSection
               title="PRELIMS POINTS"
             >
-              {selected.prelims_points}
+              {
+                selected
+                  .prelims_points
+              }
             </AnalysisSection>
           )}
+
 
           {selected.mains && (
             <AnalysisSection
               title="MAINS RELEVANCE"
             >
-              {selected.mains_relevance}
+              {
+                selected
+                  .mains_relevance
+              }
             </AnalysisSection>
           )}
+
 
           <AnalysisSection
             title="ISSUES / CHALLENGES"
@@ -1628,14 +2274,21 @@ yearlySelected:
             {selected.issues}
           </AnalysisSection>
 
+
           <AnalysisSection
             title="WAY FORWARD"
           >
-            {selected.way_forward}
+            {
+              selected
+                .way_forward
+            }
           </AnalysisSection>
 
+
           {!hasStructuredAnalysis &&
-            selected.body?.trim() && (
+            selected
+              .body
+              ?.trim() && (
               <AnalysisSection
                 title="DETAILED ANALYSIS"
               >
@@ -1643,27 +2296,36 @@ yearlySelected:
               </AnalysisSection>
             )}
 
+
+          {/* SOURCE */}
+
           <section
             className="panel"
+
             style={{
               marginTop:
                 '16px',
+
               padding:
                 '20px'
             }}
           >
+
             <span
               className="eyebrow"
             >
               SOURCE
             </span>
 
+
             <p
               style={{
                 color:
                   '#cbd5e1',
+
                 marginBottom:
-                  selected.source_url
+                  selected
+                    .source_url
                     ? '14px'
                     : 0
               }}
@@ -1671,17 +2333,24 @@ yearlySelected:
               {selected.source}
             </p>
 
+
             {selected.source_url && (
               <a
                 href={
-                  selected.source_url
+                  selected
+                    .source_url
                 }
+
                 target="_blank"
+
                 rel="noreferrer"
+
                 className="primary-btn"
+
                 style={{
                   display:
                     'inline-block',
+
                   textDecoration:
                     'none'
                 }}
@@ -1689,57 +2358,82 @@ yearlySelected:
                 Open original source ↗
               </a>
             )}
+
           </section>
+
         </div>
+
       </div>
     );
   }
 
 
+  /*
+   * =========================================
+   * MAIN CURRENT AFFAIRS SCREEN
+   * =========================================
+   */
+
   return (
     <div
       className="page-wrap"
     >
+
       <TopBar
         title="Current Affairs"
-        subtitle="Daily news, revision archives and newspaper reading"
+        subtitle="Daily news, curated Monthly and Yearly revision, and newspaper reading"
       />
+
+
+      {/* ======================================
+          MAIN VIEW SELECTOR
+          ====================================== */}
 
       <section
         className="panel"
+
         style={{
           marginBottom:
             '18px',
+
           padding:
             '14px'
         }}
       >
+
         <span
           className="eyebrow"
         >
           CURRENT AFFAIRS HUB
         </span>
 
+
         <div
           style={{
             display:
               'grid',
+
             gridTemplateColumns:
               'repeat(auto-fit,minmax(150px,1fr))',
+
             gap:
               '8px',
+
             marginTop:
               '12px'
           }}
         >
+
           <button
             type="button"
+
             className={
               viewMode ===
                 'daily'
                 ? 'filter active'
                 : 'filter'
             }
+
             onClick={() =>
               setViewMode(
                 'daily'
@@ -1749,14 +2443,17 @@ yearlySelected:
             Daily
           </button>
 
+
           <button
             type="button"
+
             className={
               viewMode ===
                 'monthly'
                 ? 'filter active'
                 : 'filter'
             }
+
             onClick={() =>
               setViewMode(
                 'monthly'
@@ -1766,14 +2463,17 @@ yearlySelected:
             Monthly
           </button>
 
+
           <button
             type="button"
+
             className={
               viewMode ===
                 'yearly'
                 ? 'filter active'
                 : 'filter'
             }
+
             onClick={() =>
               setViewMode(
                 'yearly'
@@ -1783,31 +2483,41 @@ yearlySelected:
             Yearly
           </button>
 
+
           <button
             type="button"
+
             className={
               viewMode ===
                 'newspaper'
                 ? 'filter active'
                 : 'filter'
             }
+
             onClick={() => {
+
               setViewMode(
                 'newspaper'
               );
 
               if (
-                filter === 'pib'
+                filter ===
+                'pib'
               ) {
                 setFilter(
                   'all'
                 );
               }
+
             }}
           >
             Newspaper Reading
           </button>
+
         </div>
+
+
+        {/* DAILY DATE */}
 
         {viewMode ===
           'daily' && (
@@ -1815,8 +2525,10 @@ yearlySelected:
             style={{
               display:
                 'grid',
+
               gap:
                 '7px',
+
               marginTop:
                 '16px'
             }}
@@ -1825,9 +2537,11 @@ yearlySelected:
 
             <input
               type="date"
+
               value={
                 activeDay
               }
+
               onChange={
                 event =>
                   setSelectedDay(
@@ -1837,8 +2551,12 @@ yearlySelected:
                   )
               }
             />
+
           </label>
         )}
+
+
+        {/* MONTH */}
 
         {viewMode ===
           'monthly' && (
@@ -1846,8 +2564,10 @@ yearlySelected:
             style={{
               display:
                 'grid',
+
               gap:
                 '7px',
+
               marginTop:
                 '16px'
             }}
@@ -1856,9 +2576,11 @@ yearlySelected:
 
             <input
               type="month"
+
               value={
                 activeMonth
               }
+
               onChange={
                 event =>
                   setSelectedMonth(
@@ -1868,8 +2590,12 @@ yearlySelected:
                   )
               }
             />
+
           </label>
         )}
+
+
+        {/* YEAR */}
 
         {viewMode ===
           'yearly' && (
@@ -1877,8 +2603,10 @@ yearlySelected:
             style={{
               display:
                 'grid',
+
               gap:
                 '7px',
+
               marginTop:
                 '16px'
             }}
@@ -1887,12 +2615,17 @@ yearlySelected:
 
             <input
               type="number"
+
               min="2000"
+
               max="2100"
+
               step="1"
+
               value={
                 activeYear
               }
+
               onChange={
                 event =>
                   setSelectedYear(
@@ -1902,16 +2635,22 @@ yearlySelected:
                   )
               }
             />
+
           </label>
         )}
+
+
+        {/* NEWSPAPER */}
 
         {viewMode ===
           'newspaper' && (
           <>
+
             <p
               style={{
                 marginTop:
                   '16px',
+
                 color:
                   '#94a3b8'
               }}
@@ -1919,14 +2658,18 @@ yearlySelected:
               UPSC-focused newspaper reading with special emphasis on The Hindu and The Indian Express.
             </p>
 
+
             <label
               style={{
                 display:
                   'grid',
+
                 gap:
                   '7px',
+
                 marginTop:
                   '14px',
+
                 marginBottom:
                   '14px'
               }}
@@ -1935,9 +2678,11 @@ yearlySelected:
 
               <input
                 type="date"
+
                 value={
                   activeNewspaperDay
                 }
+
                 onChange={
                   event =>
                     setSelectedNewspaperDay(
@@ -1947,19 +2692,24 @@ yearlySelected:
                     )
                 }
               />
+
             </label>
+
 
             <div
               className="filter-row"
             >
+
               <button
                 type="button"
+
                 className={
                   newspaperFilter ===
                     'all'
                     ? 'filter active'
                     : 'filter'
                 }
+
                 onClick={() =>
                   setNewspaperFilter(
                     'all'
@@ -1969,14 +2719,17 @@ yearlySelected:
                 All Newspapers
               </button>
 
+
               <button
                 type="button"
+
                 className={
                   newspaperFilter ===
                     'the_hindu'
                     ? 'filter active'
                     : 'filter'
                 }
+
                 onClick={() =>
                   setNewspaperFilter(
                     'the_hindu'
@@ -1986,14 +2739,17 @@ yearlySelected:
                 The Hindu
               </button>
 
+
               <button
                 type="button"
+
                 className={
                   newspaperFilter ===
                     'indian_express'
                     ? 'filter active'
                     : 'filter'
                 }
+
                 onClick={() =>
                   setNewspaperFilter(
                     'indian_express'
@@ -2002,45 +2758,179 @@ yearlySelected:
               >
                 Indian Express
               </button>
+
             </div>
+
           </>
         )}
+
       </section>
 
 
+      {/* ======================================
+          NEW ARCHIVE SUMMARY
+          ====================================== */}
+
       <section
         className="panel"
+
         style={{
           marginBottom:
             '18px',
+
+          padding:
+            '18px',
+
+          border:
+            viewMode ===
+              'monthly' ||
+            viewMode ===
+              'yearly'
+              ? '1px solid rgba(45,212,191,.28)'
+              : undefined,
+
+          background:
+            viewMode ===
+              'monthly' ||
+            viewMode ===
+              'yearly'
+              ? 'linear-gradient(135deg, rgba(20,184,166,.08), rgba(59,130,246,.035))'
+              : undefined
+        }}
+      >
+
+        <span
+          className="eyebrow"
+        >
+          {
+            viewMode ===
+              'monthly'
+              ? 'CURATED MONTHLY REVISION'
+
+              : viewMode ===
+                'yearly'
+              ? 'CURATED YEARLY REVISION'
+
+              : viewMode ===
+                'daily'
+              ? 'DAILY CURRENT AFFAIRS'
+
+              : 'NEWSPAPER NOTES'
+          }
+        </span>
+
+
+        <h2
+          style={{
+            margin:
+              '7px 0 4px'
+          }}
+        >
+          {archiveTitle}
+        </h2>
+
+
+        <h3
+          style={{
+            margin:
+              '0 0 8px',
+
+            color:
+              '#cbd5e1'
+          }}
+        >
+          {archivePeriod}
+        </h3>
+
+
+        <p
+          style={{
+            margin:
+              0,
+
+            color:
+              '#94a3b8'
+          }}
+        >
+          {
+            snapshotTotal
+          }
+          {' '}
+          {
+            snapshotTotal ===
+              1
+              ? 'article'
+              : 'articles'
+          }
+
+          {viewMode ===
+            'monthly' &&
+            ' selected from Daily Current Affairs for focused monthly revision.'}
+
+          {viewMode ===
+            'yearly' &&
+            ' selected from Monthly Current Affairs for high-priority yearly revision.'}
+
+          {viewMode ===
+            'daily' &&
+            ' available for this date.'}
+
+          {viewMode ===
+            'newspaper' &&
+            ' available for newspaper reading.'}
+
+        </p>
+
+      </section>
+
+
+      {/* ======================================
+          SEARCH / SUBJECT / SOURCE
+          ====================================== */}
+
+      <section
+        className="panel"
+
+        style={{
+          marginBottom:
+            '18px',
+
           padding:
             '14px'
         }}
       >
+
         <span
           className="eyebrow"
         >
           FIND CURRENT AFFAIRS
         </span>
 
+
         <div
           style={{
             display:
               'grid',
+
             gridTemplateColumns:
               'repeat(auto-fit,minmax(220px,1fr))',
+
             gap:
               '10px',
+
             marginTop:
               '12px',
+
             alignItems:
               'end'
           }}
         >
+
           <label
             style={{
               display:
                 'grid',
+
               gap:
                 '7px'
             }}
@@ -2049,9 +2939,11 @@ yearlySelected:
 
             <input
               type="search"
+
               value={
                 searchText
               }
+
               onChange={
                 event =>
                   setSearchText(
@@ -2060,16 +2952,20 @@ yearlySelected:
                       .value
                   )
               }
+
               placeholder="Search headline, summary, subject, tag or source..."
             />
+
           </label>
 
-                    {viewMode !==
+
+          {viewMode !==
             'newspaper' && (
             <label
               style={{
                 display:
                   'grid',
+
                 gap:
                   '7px'
               }}
@@ -2080,6 +2976,7 @@ yearlySelected:
                 value={
                   sourceFilter
                 }
+
                 onChange={
                   event =>
                     setSourceFilter(
@@ -2089,34 +2986,41 @@ yearlySelected:
                     )
                 }
               >
+
                 <option
                   value="all"
                 >
                   All Sources
                 </option>
 
+
                 {availableSources.map(
-                  source => (
+                  sourceItem => (
                     <option
                       key={
-                        source
+                        sourceItem
                       }
+
                       value={
-                        source
+                        sourceItem
                       }
                     >
-                      {source}
+                      {sourceItem}
                     </option>
                   )
                 )}
+
               </select>
+
             </label>
           )}
-          
+
+
           <label
             style={{
               display:
                 'grid',
+
               gap:
                 '7px'
             }}
@@ -2127,6 +3031,7 @@ yearlySelected:
               value={
                 subjectFilter
               }
+
               onChange={
                 event =>
                   setSubjectFilter(
@@ -2136,65 +3041,86 @@ yearlySelected:
                   )
               }
             >
+
               <option
                 value="all"
               >
                 All Subjects
               </option>
 
+
               {availableSubjects.map(
-                subject => (
+                subjectItem => (
                   <option
                     key={
-                      subject
+                      subjectItem
                     }
+
                     value={
-                      subject
+                      subjectItem
                     }
                   >
-                    {subject}
+                    {subjectItem}
                   </option>
                 )
               )}
+
             </select>
+
           </label>
+
 
           <button
             type="button"
+
             className="secondary-btn"
+
             onClick={() => {
-  setSearchText(
-    ''
-  );
 
-  setSubjectFilter(
-    'all'
-  );
+              setSearchText(
+                ''
+              );
 
-  setSourceFilter(
-    'all'
-  );
-}}
-            
+              setSubjectFilter(
+                'all'
+              );
+
+              setSourceFilter(
+                'all'
+              );
+
+              setFilter(
+                'all'
+              );
+
+            }}
           >
-            Clear
+            Clear Filters
           </button>
+
         </div>
+
       </section>
 
+
+      {/* ======================================
+          EXAM FILTERS
+          ====================================== */}
 
       <div
         className="filter-row"
       >
+
         <button
           type="button"
+
           className={
-            `filter ${
-              filter === 'all'
-                ? 'active'
-                : ''
-            }`
+            filter ===
+              'all'
+              ? 'filter active'
+              : 'filter'
           }
+
           onClick={() =>
             setFilter(
               'all'
@@ -2204,15 +3130,17 @@ yearlySelected:
           All
         </button>
 
+
         <button
           type="button"
+
           className={
-            `filter ${
-              filter === 'prelims'
-                ? 'active'
-                : ''
-            }`
+            filter ===
+              'prelims'
+              ? 'filter active'
+              : 'filter'
           }
+
           onClick={() =>
             setFilter(
               'prelims'
@@ -2222,15 +3150,17 @@ yearlySelected:
           Prelims
         </button>
 
+
         <button
           type="button"
+
           className={
-            `filter ${
-              filter === 'mains'
-                ? 'active'
-                : ''
-            }`
+            filter ===
+              'mains'
+              ? 'filter active'
+              : 'filter'
           }
+
           onClick={() =>
             setFilter(
               'mains'
@@ -2240,57 +3170,77 @@ yearlySelected:
           Mains
         </button>
 
-        <button
-          type="button"
-          className={
-            `filter ${
-              filter === 'pib'
-                ? 'active'
-                : ''
-            }`
-          }
-          onClick={() =>
-            setFilter(
-              'pib'
-            )
-          }
-        >
-          PIB
-        </button>
+
+        {viewMode !==
+          'newspaper' && (
+          <button
+            type="button"
+
+            className={
+              filter ===
+                'pib'
+                ? 'filter active'
+                : 'filter'
+            }
+
+            onClick={() =>
+              setFilter(
+                'pib'
+              )
+            }
+          >
+            PIB
+          </button>
+        )}
+
       </div>
 
 
+      {/* ======================================
+          SNAPSHOT
+          ====================================== */}
+
       <section
         className="panel"
+
         style={{
           marginTop:
             '18px',
+
           marginBottom:
             '18px',
+
           padding:
             '16px'
         }}
       >
+
         <span
           className="eyebrow"
         >
           CURRENT AFFAIRS SNAPSHOT
         </span>
 
+
         <div
           style={{
             display:
               'grid',
+
             gridTemplateColumns:
               'repeat(auto-fit,minmax(150px,1fr))',
+
             gap:
               '12px',
+
             marginTop:
               '14px'
           }}
         >
+
           <div
             className="panel"
+
             style={{
               padding:
                 '16px'
@@ -2305,8 +3255,10 @@ yearlySelected:
             </h2>
           </div>
 
+
           <div
             className="panel"
+
             style={{
               padding:
                 '16px'
@@ -2321,8 +3273,10 @@ yearlySelected:
             </h2>
           </div>
 
+
           <div
             className="panel"
+
             style={{
               padding:
                 '16px'
@@ -2337,8 +3291,10 @@ yearlySelected:
             </h2>
           </div>
 
+
           <div
             className="panel"
+
             style={{
               padding:
                 '16px'
@@ -2353,8 +3309,10 @@ yearlySelected:
             </h2>
           </div>
 
+
           <div
             className="panel"
+
             style={{
               padding:
                 '16px'
@@ -2368,16 +3326,22 @@ yearlySelected:
               {snapshotNewspaper}
             </h2>
           </div>
+
         </div>
+
       </section>
 
+
+      {/* ERROR */}
 
       {error && (
         <div
           className="panel"
+
           style={{
             marginBottom:
               '14px',
+
             color:
               '#fca5a5'
           }}
@@ -2387,9 +3351,16 @@ yearlySelected:
       )}
 
 
+      {/* ======================================
+          ARTICLE LIST
+          ====================================== */}
+
       <section
         className="article-list"
       >
+
+        {/* MONTHLY */}
+
         {viewMode ===
           'monthly' &&
           monthlyGroups.map(
@@ -2398,27 +3369,34 @@ yearlySelected:
                 key={
                   group.key
                 }
+
                 style={{
                   display:
                     'grid',
+
                   gap:
                     '14px',
+
                   marginBottom:
                     '24px'
                 }}
               >
+
                 <div
                   className="panel"
+
                   style={{
                     padding:
                       '16px'
                   }}
                 >
+
                   <span
                     className="eyebrow"
                   >
                     DATE
                   </span>
+
 
                   <h2
                     style={{
@@ -2429,17 +3407,26 @@ yearlySelected:
                     {group.title}
                   </h2>
 
+
                   <small>
-                    {group.items.length}
+                    {
+                      group
+                        .items
+                        .length
+                    }
                     {' '}
                     {
-                      group.items.length ===
+                      group
+                        .items
+                        .length ===
                         1
-                        ? 'article'
-                        : 'articles'
+                        ? 'selected article'
+                        : 'selected articles'
                     }
                   </small>
+
                 </div>
+
 
                 {group.items.map(
                   item =>
@@ -2447,10 +3434,13 @@ yearlySelected:
                       item
                     )
                 )}
+
               </section>
             )
           )}
 
+
+        {/* YEARLY */}
 
         {viewMode ===
           'yearly' &&
@@ -2460,27 +3450,34 @@ yearlySelected:
                 key={
                   group.key
                 }
+
                 style={{
                   display:
                     'grid',
+
                   gap:
                     '14px',
+
                   marginBottom:
                     '26px'
                 }}
               >
+
                 <div
                   className="panel"
+
                   style={{
                     padding:
                       '16px'
                   }}
                 >
+
                   <span
                     className="eyebrow"
                   >
                     MONTH
                   </span>
+
 
                   <h2
                     style={{
@@ -2491,17 +3488,26 @@ yearlySelected:
                     {group.title}
                   </h2>
 
+
                   <small>
-                    {group.items.length}
+                    {
+                      group
+                        .items
+                        .length
+                    }
                     {' '}
                     {
-                      group.items.length ===
+                      group
+                        .items
+                        .length ===
                         1
-                        ? 'article'
-                        : 'articles'
+                        ? 'selected article'
+                        : 'selected articles'
                     }
                   </small>
+
                 </div>
+
 
                 {group.items.map(
                   item =>
@@ -2509,12 +3515,15 @@ yearlySelected:
                       item
                     )
                 )}
+
               </section>
             )
           )}
 
 
-                {viewMode ===
+        {/* DAILY */}
+
+        {viewMode ===
           'daily' &&
           visibleItems.map(
             item =>
@@ -2524,6 +3533,8 @@ yearlySelected:
           )}
 
 
+        {/* NEWSPAPER */}
+
         {viewMode ===
           'newspaper' &&
           newspaperSubjectGroups.map(
@@ -2532,6 +3543,7 @@ yearlySelected:
                 key={
                   group.key
                 }
+
                 style={{
                   display:
                     'grid',
@@ -2543,18 +3555,22 @@ yearlySelected:
                     '24px'
                 }}
               >
+
                 <div
                   className="panel"
+
                   style={{
                     padding:
                       '16px'
                   }}
                 >
+
                   <span
                     className="eyebrow"
                   >
                     SUBJECT
                   </span>
+
 
                   <h2
                     style={{
@@ -2565,17 +3581,26 @@ yearlySelected:
                     {group.title}
                   </h2>
 
+
                   <small>
-                    {group.items.length}
+                    {
+                      group
+                        .items
+                        .length
+                    }
                     {' '}
                     {
-                      group.items.length ===
+                      group
+                        .items
+                        .length ===
                         1
                         ? 'article'
                         : 'articles'
                     }
                   </small>
+
                 </div>
+
 
                 {group.items.map(
                   item =>
@@ -2583,26 +3608,76 @@ yearlySelected:
                       item
                     )
                 )}
+
               </section>
             )
           )}
 
 
+        {/* EMPTY STATE */}
+
         {visibleItems.length ===
           0 && (
           <div
             className="panel"
+
+            style={{
+              padding:
+                '22px',
+
+              textAlign:
+                'center'
+            }}
           >
-            <p
+
+            <span
+              className="eyebrow"
+            >
+              NOTHING FOUND
+            </span>
+
+
+            <h3
               style={{
-                margin: 0
+                margin:
+                  '8px 0'
               }}
             >
-              No Current Affairs match this view or filter yet.
+              {
+                viewMode ===
+                  'monthly'
+                  ? 'No Monthly Current Affairs'
+
+                  : viewMode ===
+                    'yearly'
+                  ? 'No Yearly Current Affairs'
+
+                  : viewMode ===
+                    'daily'
+                  ? 'No Daily Current Affairs'
+
+                  : 'No Newspaper Notes'
+              }
+            </h3>
+
+
+            <p
+              style={{
+                margin:
+                  0,
+
+                color:
+                  '#94a3b8'
+              }}
+            >
+              {getEmptyMessage()}
             </p>
+
           </div>
         )}
+
       </section>
+
     </div>
   );
 }
