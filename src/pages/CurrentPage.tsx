@@ -1048,6 +1048,48 @@ export function CurrentPage({
       return;
     }
 
+  const snapshotTotal =
+    visibleItems.length;
+
+  const snapshotPrelims =
+    visibleItems.filter(
+      item =>
+        item.prelims
+    ).length;
+
+  const snapshotMains =
+    visibleItems.filter(
+      item =>
+        item.mains
+    ).length;
+
+  const snapshotPib =
+    visibleItems.filter(
+      item =>
+        item.source
+          .toLowerCase()
+          .includes(
+            'pib'
+          )
+    ).length;
+
+  const snapshotNewspaper =
+    visibleItems.filter(
+      item => {
+        const source =
+          getNewspaperKey(
+            item.source
+          );
+
+        return (
+          source ===
+            'the_hindu' ||
+          source ===
+            'indian_express'
+        );
+      }
+    ).length;
+    
     const {
       data,
       error:
@@ -2166,6 +2208,146 @@ export function CurrentPage({
         </button>
       </div>
 
+            <section
+        className="panel"
+        style={{
+          marginTop:
+            '18px',
+
+          marginBottom:
+            '18px',
+
+          padding:
+            '16px'
+        }}
+      >
+        <span
+          className="eyebrow"
+        >
+          CURRENT AFFAIRS SNAPSHOT
+        </span>
+
+        <div
+          style={{
+            display:
+              'grid',
+
+            gridTemplateColumns:
+              'repeat(auto-fit,minmax(150px,1fr))',
+
+            gap:
+              '12px',
+
+            marginTop:
+              '14px'
+          }}
+        >
+          <div
+            className="panel"
+            style={{
+              padding:
+                '16px'
+            }}
+          >
+            <small>
+              Articles
+            </small>
+
+            <h2
+              style={{
+                margin:
+                  '6px 0 0'
+              }}
+            >
+              {snapshotTotal}
+            </h2>
+          </div>
+
+          <div
+            className="panel"
+            style={{
+              padding:
+                '16px'
+            }}
+          >
+            <small>
+              Prelims
+            </small>
+
+            <h2
+              style={{
+                margin:
+                  '6px 0 0'
+              }}
+            >
+              {snapshotPrelims}
+            </h2>
+          </div>
+
+          <div
+            className="panel"
+            style={{
+              padding:
+                '16px'
+            }}
+          >
+            <small>
+              Mains
+            </small>
+
+            <h2
+              style={{
+                margin:
+                  '6px 0 0'
+              }}
+            >
+              {snapshotMains}
+            </h2>
+          </div>
+
+          <div
+            className="panel"
+            style={{
+              padding:
+                '16px'
+            }}
+          >
+            <small>
+              PIB
+            </small>
+
+            <h2
+              style={{
+                margin:
+                  '6px 0 0'
+              }}
+            >
+              {snapshotPib}
+            </h2>
+          </div>
+
+          <div
+            className="panel"
+            style={{
+              padding:
+                '16px'
+            }}
+          >
+            <small>
+              Newspapers
+            </small>
+
+            <h2
+              style={{
+                margin:
+                  '6px 0 0'
+              }}
+            >
+              {snapshotNewspaper}
+            </h2>
+          </div>
+        </div>
+      </section>
       {error && (
         <div
           className="panel"
