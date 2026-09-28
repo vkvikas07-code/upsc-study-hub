@@ -27,6 +27,11 @@ type StageFilter =
   | 'prelims'
   | 'mains';
 
+type SortMode =
+  | 'recommended'
+  | 'newest'
+  | 'az';
+
 type ResourceRow = {
   id: string;
   title: string;
@@ -212,10 +217,6 @@ export function StudyResources({
   initialSubject = null
 }: StudyResourcesProps) {
 
-  /* =====================================
-     MAIN DATA
-  ===================================== */
-
   const [
     resources,
     setResources
@@ -233,10 +234,6 @@ export function StudyResources({
     setError
   ] =
     useState('');
-
-  /* =====================================
-     FILTER STATES
-  ===================================== */
 
   const [
     search,
@@ -284,20 +281,19 @@ export function StudyResources({
   ] =
     useState('all');
 
-  /*
-   * Secondary filters remain collapsed
-   * for a cleaner beginner experience.
-   */
+  const [
+    sortMode,
+    setSortMode
+  ] =
+    useState<SortMode>(
+      'recommended'
+    );
 
   const [
     advancedFiltersOpen,
     setAdvancedFiltersOpen
   ] =
     useState(false);
-
-  /* =====================================
-     UPDATE INITIAL FILTERS
-  ===================================== */
 
   useEffect(
     () => {
@@ -321,10 +317,6 @@ export function StudyResources({
       initialSubject
     ]
   );
-
-  /* =====================================
-     LOAD RESOURCES
-  ===================================== */
 
   async function loadResources() {
 
@@ -530,10 +522,6 @@ export function StudyResources({
     []
   );
 
-  /* =====================================
-     SUBJECT OPTIONS
-  ===================================== */
-
   const subjects =
     useMemo(
       () =>
@@ -565,10 +553,6 @@ export function StudyResources({
         resources
       ]
     );
-
-  /* =====================================
-     LANGUAGE OPTIONS
-  ===================================== */
 
   const languages =
     useMemo(
@@ -602,10 +586,6 @@ export function StudyResources({
       ]
     );
 
-  /* =====================================
-     FILTERED RESOURCE LIST
-  ===================================== */
-
   const visibleResources =
     useMemo(
       () => {
@@ -618,10 +598,6 @@ export function StudyResources({
         return resources.filter(
           resource => {
 
-            /*
-             * Exam stage
-             */
-
             if (
               stageFilter ===
                 'prelims' &&
@@ -643,10 +619,6 @@ export function StudyResources({
             ) {
               return false;
             }
-
-            /*
-             * Resource type
-             */
 
             if (
               typeFilter !==
@@ -657,10 +629,6 @@ export function StudyResources({
               return false;
             }
 
-            /*
-             * Subject
-             */
-
             if (
               subjectFilter !==
                 'all' &&
@@ -669,10 +637,6 @@ export function StudyResources({
             ) {
               return false;
             }
-
-            /*
-             * Language
-             */
 
             if (
               languageFilter !==
@@ -683,10 +647,6 @@ export function StudyResources({
               return false;
             }
 
-            /*
-             * Free resource
-             */
-
             if (
               accessFilter ===
                 'free' &&
@@ -695,19 +655,11 @@ export function StudyResources({
               return false;
             }
 
-            /*
-             * No text search
-             */
-
             if (
               !query
             ) {
               return true;
             }
-
-            /*
-             * Text search
-             */
 
             const searchable =
               [
@@ -758,9 +710,55 @@ export function StudyResources({
       ]
     );
 
-  /* =====================================
-     RESOURCE COUNTS
-  ===================================== */
+  const sortedResources =
+    useMemo(
+      () => {
+        const next =
+          [
+            ...visibleResources
+          ];
+
+        if (
+          sortMode ===
+          'newest'
+        ) {
+          return next.sort(
+            (
+              first,
+              second
+            ) =>
+              new Date(
+                second.created_at
+              ).getTime() -
+              new Date(
+                first.created_at
+              ).getTime()
+          );
+        }
+
+        if (
+          sortMode ===
+          'az'
+        ) {
+          return next.sort(
+            (
+              first,
+              second
+            ) =>
+              first.title
+                .localeCompare(
+                  second.title
+                )
+          );
+        }
+
+        return next;
+      },
+      [
+        visibleResources,
+        sortMode
+      ]
+    );
 
   const officialCount =
     useMemo(
@@ -787,10 +785,6 @@ export function StudyResources({
       ]
     );
 
-  /* =====================================
-     OPEN EXTERNAL RESOURCE
-  ===================================== */
-
   function openResource(
     resource:
       ResourceRow
@@ -813,10 +807,6 @@ export function StudyResources({
       'noopener,noreferrer'
     );
   }
-
-  /* =====================================
-     CLEAR FILTERS
-  ===================================== */
 
   function clearFilters() {
 
@@ -842,15 +832,15 @@ export function StudyResources({
     setAccessFilter(
       'all'
     );
+
+    setSortMode(
+      'recommended'
+    );
   }
 
   return (
 
     <div>
-
-      {/* =====================================
-          RESOURCE HEADER
-      ===================================== */}
 
       <section
         className="panel"
@@ -872,8 +862,6 @@ export function StudyResources({
           affairs, notes, reports and PYQ
           resources in one place.
         </p>
-
-        {/* RESOURCE METRICS */}
 
         <div
           className="metrics-grid"
@@ -903,7 +891,6 @@ export function StudyResources({
             </div>
           </article>
 
-
           <article
             className="metric-card"
           >
@@ -923,7 +910,6 @@ export function StudyResources({
 
             </div>
           </article>
-
 
           <article
             className="metric-card"
@@ -947,8 +933,6 @@ export function StudyResources({
 
         </div>
 
-        {/* REFRESH */}
-
         <button
           type="button"
           className="secondary-btn"
@@ -964,8 +948,6 @@ export function StudyResources({
         >
           Refresh Resources
         </button>
-
-        {/* ERROR */}
 
         {error && (
 
@@ -984,7 +966,7 @@ export function StudyResources({
 
       </section>
 
-            <section
+      <section
         className="panel"
         style={{
           marginTop:
@@ -1154,10 +1136,6 @@ export function StudyResources({
         </div>
       </section>
 
-      {/* =====================================
-          FILTER RESOURCE PANEL
-      ===================================== */}
-
       <section
         className="panel"
 
@@ -1185,7 +1163,6 @@ export function StudyResources({
 
           </div>
 
-
           <button
             type="button"
             className="text-btn"
@@ -1198,11 +1175,6 @@ export function StudyResources({
           </button>
 
         </div>
-
-
-        {/* =====================================
-            PRIMARY FILTERS
-        ===================================== */}
 
         <div
           style={{
@@ -1219,8 +1191,6 @@ export function StudyResources({
               '12px'
           }}
         >
-
-          {/* SEARCH */}
 
           <label>
 
@@ -1244,9 +1214,6 @@ export function StudyResources({
             />
 
           </label>
-
-
-          {/* EXAM STAGE */}
 
           <label>
 
@@ -1288,12 +1255,48 @@ export function StudyResources({
 
           </label>
 
+          <label>
+
+            Sort
+
+            <select
+              value={
+                sortMode
+              }
+
+              onChange={
+                event =>
+                  setSortMode(
+                    event.target
+                      .value as
+                      SortMode
+                  )
+              }
+            >
+
+              <option
+                value="recommended"
+              >
+                Recommended
+              </option>
+
+              <option
+                value="newest"
+              >
+                Newest First
+              </option>
+
+              <option
+                value="az"
+              >
+                A–Z
+              </option>
+
+            </select>
+
+          </label>
+
         </div>
-
-
-        {/* =====================================
-            MORE FILTER BUTTON
-        ===================================== */}
 
         <button
           type="button"
@@ -1332,11 +1335,6 @@ export function StudyResources({
 
         </button>
 
-
-        {/* =====================================
-            ADVANCED FILTERS
-        ===================================== */}
-
         {advancedFiltersOpen && (
 
           <div
@@ -1354,8 +1352,6 @@ export function StudyResources({
                 '10px'
             }}
           >
-
-            {/* RESOURCE TYPE */}
 
             <label>
 
@@ -1428,9 +1424,6 @@ export function StudyResources({
 
             </label>
 
-
-            {/* SUBJECT */}
-
             <label>
 
               Subject
@@ -1475,9 +1468,6 @@ export function StudyResources({
               </select>
 
             </label>
-
-
-            {/* LANGUAGE */}
 
             <label>
 
@@ -1524,9 +1514,6 @@ export function StudyResources({
 
             </label>
 
-
-            {/* ACCESS */}
-
             <label>
 
               Access
@@ -1566,11 +1553,6 @@ export function StudyResources({
 
       </section>
 
-
-      {/* =====================================
-          RESOURCE RESULTS
-      ===================================== */}
-
       <section
         style={{
           display:
@@ -1584,8 +1566,6 @@ export function StudyResources({
         }}
       >
 
-        {/* LOADING */}
-
         {loading && (
 
           <article
@@ -1596,11 +1576,8 @@ export function StudyResources({
 
         )}
 
-
-        {/* EMPTY */}
-
         {!loading &&
-          visibleResources.length ===
+          sortedResources.length ===
             0 && (
 
           <article
@@ -1620,11 +1597,8 @@ export function StudyResources({
 
         )}
 
-
-        {/* RESOURCE CARDS */}
-
         {!loading &&
-          visibleResources.map(
+          sortedResources.map(
             resource => {
 
               const safeUrl =
@@ -1652,8 +1626,6 @@ export function StudyResources({
                   }
                 >
 
-                  {/* TAGS */}
-
                   <div
                     style={{
                       display:
@@ -1677,7 +1649,6 @@ export function StudyResources({
                       }
                     </span>
 
-
                     <span
                       className="tag"
                     >
@@ -1688,7 +1659,6 @@ export function StudyResources({
                       }
                     </span>
 
-
                     <span
                       className="tag"
                     >
@@ -1697,7 +1667,6 @@ export function StudyResources({
                       }
                     </span>
 
-
                     <span
                       className="tag"
                     >
@@ -1705,7 +1674,6 @@ export function StudyResources({
                         resource.language
                       }
                     </span>
-
 
                     {resource.is_free && (
 
@@ -1719,9 +1687,6 @@ export function StudyResources({
 
                   </div>
 
-
-                  {/* RESOURCE TITLE */}
-
                   <h3
                     style={{
                       marginTop:
@@ -1730,9 +1695,6 @@ export function StudyResources({
                   >
                     {resource.title}
                   </h3>
-
-
-                  {/* DESCRIPTION */}
 
                   {resource.description && (
 
@@ -1743,9 +1705,6 @@ export function StudyResources({
                     </p>
 
                   )}
-
-
-                  {/* RESOURCE DETAILS */}
 
                   <div
                     style={{
@@ -1762,8 +1721,6 @@ export function StudyResources({
                         '14px'
                     }}
                   >
-
-                    {/* SOURCE */}
 
                     {primarySource && (
 
@@ -1782,9 +1739,6 @@ export function StudyResources({
                       </div>
 
                     )}
-
-
-                    {/* PAPER */}
 
                     {resource.paper && (
 
@@ -1805,9 +1759,6 @@ export function StudyResources({
                       </div>
 
                     )}
-
-
-                    {/* EDITION */}
 
                     {resource.edition_year !==
                       null && (
@@ -1830,9 +1781,6 @@ export function StudyResources({
 
                     )}
 
-
-                    {/* MONTH */}
-
                     {monthYear && (
 
                       <div>
@@ -1852,9 +1800,6 @@ export function StudyResources({
                     )}
 
                   </div>
-
-
-                  {/* RESOURCE ACTION */}
 
                   <div
                     style={{
@@ -1900,7 +1845,6 @@ export function StudyResources({
                       </span>
 
                     )}
-
 
                     {!resource.is_free && (
 
