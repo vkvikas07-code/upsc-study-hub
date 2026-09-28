@@ -10,8 +10,12 @@ export type CurrentAffair = {
   tags: string[];
   publishedAt: string;
   publishedAtIso?: string | null;
+
   prelims: boolean;
   mains: boolean;
+
+  monthlySelected?: boolean;
+  yearlySelected?: boolean;
 };
 
 export type DailyTask = {
