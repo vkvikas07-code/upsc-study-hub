@@ -9,12 +9,23 @@ import { MainsEvaluationManager } from '../components/MainsEvaluationManager';
 import { AdminWorkspaceStats } from '../components/AdminWorkspaceStats';
 import { PendingEvaluationBadge } from '../components/PendingEvaluationBadge';
 import { MainsPyqManager } from '../components/MainsPyqManager';
+import { ResourceAdminHub } from '../components/ResourceAdminHub';
 import type { CurrentAffair } from '../types';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 type ArticleStatus = 'draft' | 'published' | 'archived';
-type AdminTab = 'current' | 'mcq' | 'tests' | 'mains' | 'evaluation';
-type MainsWorkspace = 'pyq' | 'practice';
+
+type AdminTab =
+  | 'current'
+  | 'resources'
+  | 'mcq'
+  | 'tests'
+  | 'mains'
+  | 'evaluation';
+
+type MainsWorkspace =
+  | 'pyq'
+  | 'practice';
 
 type AdminArticle = {
   id: string;
@@ -62,22 +73,55 @@ const ARTICLE_SELECT = `
   updated_at
 `;
 
-function getLocalDateValue(value?: string | null) {
-  const date = value ? new Date(value) : new Date();
+function getLocalDateValue(
+  value?: string | null
+) {
+  const date =
+    value
+      ? new Date(value)
+      : new Date();
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return '';
   }
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
+      date.getMonth() + 1
+    ).padStart(
+      2,
+      '0'
+    );
+
+  const day =
+    String(
+      date.getDate()
+    ).padStart(
+      2,
+      '0'
+    );
 
   return `${year}-${month}-${day}`;
 }
 
-function currentAffairDateToIso(value: string) {
-  const [year, month, day] = value.split('-').map(Number);
+function currentAffairDateToIso(
+  value: string
+) {
+  const [
+    year,
+    month,
+    day
+  ] =
+    value
+      .split('-')
+      .map(Number);
 
   return new Date(
     year,
@@ -92,100 +136,269 @@ function currentAffairDateToIso(value: string) {
 export function AdminPage({
   onPublish
 }: {
-  onPublish: (item: CurrentAffair) => void;
+  onPublish:
+    (
+      item: CurrentAffair
+    ) => void;
 }) {
-  const [adminTab, setAdminTab] = useState<AdminTab>('current');
+  const [
+    adminTab,
+    setAdminTab
+  ] =
+    useState<AdminTab>(
+      'current'
+    );
 
-  const [mainsWorkspace, setMainsWorkspace] =
-    useState<MainsWorkspace>('pyq');
+  const [
+    mainsWorkspace,
+    setMainsWorkspace
+  ] =
+    useState<MainsWorkspace>(
+      'pyq'
+    );
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [
+    email,
+    setEmail
+  ] =
+    useState('');
 
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [
+    password,
+    setPassword
+  ] =
+    useState('');
 
-  const [articles, setArticles] =
-    useState<AdminArticle[]>([]);
-
-  const [loadingArticles, setLoadingArticles] =
+  const [
+    isAdmin,
+    setIsAdmin
+  ] =
     useState(false);
 
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  const [
+    checkingAuth,
+    setCheckingAuth
+  ] =
+    useState(true);
 
-  const [editingId, setEditingId] =
-    useState<string | null>(null);
+  const [
+    articles,
+    setArticles
+  ] =
+    useState<
+      AdminArticle[]
+    >([]);
 
-  const [title, setTitle] = useState('');
-  const [source, setSource] = useState('PIB');
-  const [sourceUrl, setSourceUrl] = useState('');
+  const [
+    loadingArticles,
+    setLoadingArticles
+  ] =
+    useState(false);
 
-  const [articleDate, setArticleDate] =
-    useState(getLocalDateValue());
+  const [
+    saving,
+    setSaving
+  ] =
+    useState(false);
 
-  const [subject, setSubject] =
-    useState('Polity & Governance');
+  const [
+    message,
+    setMessage
+  ] =
+    useState('');
 
-  const [summary, setSummary] = useState('');
-  const [background, setBackground] = useState('');
-  const [keyFacts, setKeyFacts] = useState('');
-  const [prelimsPoints, setPrelimsPoints] = useState('');
-  const [mainsRelevance, setMainsRelevance] = useState('');
-  const [issues, setIssues] = useState('');
-  const [wayForward, setWayForward] = useState('');
+  const [
+    editingId,
+    setEditingId
+  ] =
+    useState<
+      string |
+      null
+    >(null);
 
-  const [tagsText, setTagsText] =
-    useState('Prelims, Mains');
+  const [
+    title,
+    setTitle
+  ] =
+    useState('');
 
-  const [prelims, setPrelims] = useState(true);
-  const [mains, setMains] = useState(true);
+  const [
+    source,
+    setSource
+  ] =
+    useState(
+      'PIB'
+    );
 
-  const [status, setStatus] =
-    useState<ArticleStatus>('draft');
+  const [
+    sourceUrl,
+    setSourceUrl
+  ] =
+    useState('');
 
-  function switchAdminTab(tab: AdminTab) {
-    setAdminTab(tab);
+  const [
+    articleDate,
+    setArticleDate
+  ] =
+    useState(
+      getLocalDateValue()
+    );
 
-    window.requestAnimationFrame(() => {
-      const mainArea =
-        document.querySelector('.main-area');
+  const [
+    subject,
+    setSubject
+  ] =
+    useState(
+      'Polity & Governance'
+    );
 
-      mainArea?.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
+  const [
+    summary,
+    setSummary
+  ] =
+    useState('');
+
+  const [
+    background,
+    setBackground
+  ] =
+    useState('');
+
+  const [
+    keyFacts,
+    setKeyFacts
+  ] =
+    useState('');
+
+  const [
+    prelimsPoints,
+    setPrelimsPoints
+  ] =
+    useState('');
+
+  const [
+    mainsRelevance,
+    setMainsRelevance
+  ] =
+    useState('');
+
+  const [
+    issues,
+    setIssues
+  ] =
+    useState('');
+
+  const [
+    wayForward,
+    setWayForward
+  ] =
+    useState('');
+
+  const [
+    tagsText,
+    setTagsText
+  ] =
+    useState(
+      'Prelims, Mains'
+    );
+
+  const [
+    prelims,
+    setPrelims
+  ] =
+    useState(true);
+
+  const [
+    mains,
+    setMains
+  ] =
+    useState(true);
+
+  const [
+    status,
+    setStatus
+  ] =
+    useState<ArticleStatus>(
+      'draft'
+    );
+
+  function switchAdminTab(
+    tab: AdminTab
+  ) {
+    setAdminTab(
+      tab
+    );
+
+    window.requestAnimationFrame(
+      () => {
+        const mainArea =
+          document
+            .querySelector(
+              '.main-area'
+            );
+
+        mainArea?.scrollTo({
+          top: 0,
+          behavior:
+            'smooth'
+        });
+      }
+    );
   }
 
-  async function verifyAdmin(userId: string) {
+  async function verifyAdmin(
+    userId: string
+  ) {
     if (!supabase) {
-      setIsAdmin(false);
+      setIsAdmin(
+        false
+      );
+
       return false;
     }
 
-    const { data, error } =
+    const {
+      data,
+      error
+    } =
       await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
+        .from(
+          'profiles'
+        )
+        .select(
+          'role'
+        )
+        .eq(
+          'id',
+          userId
+        )
         .single();
 
-    if (error || !data) {
+    if (
+      error ||
+      !data
+    ) {
       console.error(
         'Unable to verify admin:',
         error
       );
 
-      setIsAdmin(false);
+      setIsAdmin(
+        false
+      );
+
       return false;
     }
 
     const allowed =
-      data.role === 'admin' ||
-      data.role === 'editor';
+      data.role ===
+        'admin' ||
+      data.role ===
+        'editor';
 
-    setIsAdmin(allowed);
+    setIsAdmin(
+      allowed
+    );
 
     return allowed;
   }
@@ -195,16 +408,26 @@ export function AdminPage({
       return;
     }
 
-    setLoadingArticles(true);
+    setLoadingArticles(
+      true
+    );
 
-    const { data, error } =
+    const {
+      data,
+      error
+    } =
       await supabase
-        .from('current_affairs')
-        .select(ARTICLE_SELECT)
+        .from(
+          'current_affairs'
+        )
+        .select(
+          ARTICLE_SELECT
+        )
         .order(
           'created_at',
           {
-            ascending: false
+            ascending:
+              false
           }
         );
 
@@ -214,24 +437,37 @@ export function AdminPage({
         error
       );
 
-      setMessage(error.message);
-      setLoadingArticles(false);
+      setMessage(
+        error.message
+      );
+
+      setLoadingArticles(
+        false
+      );
 
       return;
     }
 
     setArticles(
-      (data || []) as AdminArticle[]
+      (
+        data ||
+        []
+      ) as AdminArticle[]
     );
 
-    setLoadingArticles(false);
+    setLoadingArticles(
+      false
+    );
   }
 
   useEffect(
     () => {
       async function checkSession() {
         if (!supabase) {
-          setCheckingAuth(false);
+          setCheckingAuth(
+            false
+          );
+
           return;
         }
 
@@ -244,9 +480,17 @@ export function AdminPage({
             .auth
             .getSession();
 
-        if (!session?.user) {
-          setIsAdmin(false);
-          setCheckingAuth(false);
+        if (
+          !session?.user
+        ) {
+          setIsAdmin(
+            false
+          );
+
+          setCheckingAuth(
+            false
+          );
+
           return;
         }
 
@@ -259,7 +503,9 @@ export function AdminPage({
           await loadArticles();
         }
 
-        setCheckingAuth(false);
+        setCheckingAuth(
+          false
+        );
       }
 
       void checkSession();
@@ -337,7 +583,9 @@ export function AdminPage({
       return;
     }
 
-    setPassword('');
+    setPassword(
+      ''
+    );
 
     setMessage(
       'Admin login successful.'
@@ -355,9 +603,17 @@ export function AdminPage({
       .auth
       .signOut();
 
-    setIsAdmin(false);
-    setArticles([]);
-    setPassword('');
+    setIsAdmin(
+      false
+    );
+
+    setArticles(
+      []
+    );
+
+    setPassword(
+      ''
+    );
 
     setMessage(
       'Logged out.'
@@ -365,14 +621,21 @@ export function AdminPage({
   }
 
   function resetForm() {
-    setEditingId(null);
-    setTitle('');
+    setEditingId(
+      null
+    );
+
+    setTitle(
+      ''
+    );
 
     setSource(
       'PIB'
     );
 
-    setSourceUrl('');
+    setSourceUrl(
+      ''
+    );
 
     setArticleDate(
       getLocalDateValue()
@@ -382,20 +645,45 @@ export function AdminPage({
       'Polity & Governance'
     );
 
-    setSummary('');
-    setBackground('');
-    setKeyFacts('');
-    setPrelimsPoints('');
-    setMainsRelevance('');
-    setIssues('');
-    setWayForward('');
+    setSummary(
+      ''
+    );
+
+    setBackground(
+      ''
+    );
+
+    setKeyFacts(
+      ''
+    );
+
+    setPrelimsPoints(
+      ''
+    );
+
+    setMainsRelevance(
+      ''
+    );
+
+    setIssues(
+      ''
+    );
+
+    setWayForward(
+      ''
+    );
 
     setTagsText(
       'Prelims, Mains'
     );
 
-    setPrelims(true);
-    setMains(true);
+    setPrelims(
+      true
+    );
+
+    setMains(
+      true
+    );
 
     setStatus(
       'draft'
@@ -1025,7 +1313,9 @@ export function AdminPage({
     );
   }
 
-  if (!isSupabaseConfigured) {
+  if (
+    !isSupabaseConfigured
+  ) {
     return (
       <div
         className="page-wrap"
@@ -1046,7 +1336,9 @@ export function AdminPage({
     );
   }
 
-  if (checkingAuth) {
+  if (
+    checkingAuth
+  ) {
     return (
       <div
         className="page-wrap"
@@ -1179,7 +1471,7 @@ export function AdminPage({
         </div>
 
         <p>
-          Manage Current Affairs, Prelims MCQs, Prelims Test Series, Mains questions and student evaluations from separate workspaces.
+          Manage Current Affairs, Study Material, Prelims MCQs, Prelims Test Series, Mains questions and student evaluations from separate workspaces.
         </p>
 
         <div
@@ -1275,6 +1567,23 @@ export function AdminPage({
             }
           >
             Current Affairs
+          </button>
+
+          <button
+            type="button"
+            className={
+              adminTab ===
+                'resources'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() =>
+              switchAdminTab(
+                'resources'
+              )
+            }
+          >
+            Study Material
           </button>
 
           <button
@@ -2138,6 +2447,18 @@ export function AdminPage({
             )}
           </div>
         </section>
+      </div>
+
+      <div
+        style={{
+          display:
+            adminTab ===
+              'resources'
+              ? 'block'
+              : 'none'
+        }}
+      >
+        <ResourceAdminHub />
       </div>
 
       <div
