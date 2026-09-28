@@ -32,6 +32,10 @@ import type {
   MainsWorkspaceQuestion
 } from '../MainsAnswerWorkspace';
 
+import {
+  MyMainsEvaluations
+} from '../components/MyMainsEvaluations';
+
 
 type QuestionType =
   | 'practice'
@@ -52,7 +56,8 @@ type QuestionTypeFilter =
 
 type WorkspaceView =
   | 'practice'
-  | 'pyq';
+  | 'pyq'
+  | 'evaluations';
 
 
 type MainsQuestion =
@@ -194,8 +199,8 @@ function WorkspaceTabs({
           display:
             'grid',
 
-          gridTemplateColumns:
-            'repeat(2, minmax(0, 1fr))',
+  gridTemplateColumns:
+  'repeat(3, minmax(0, 1fr))',
 
           gap:
             '8px'
@@ -1004,11 +1009,62 @@ export function MainsPracticePage() {
 
 
   /*
+
+  /*
+ * =====================================
+ * MY EVALUATIONS
+ * =====================================
+ */
+
+if (
+  workspaceView ===
+  'evaluations'
+) {
+  return (
+    <div
+      className="page-wrap mains-practice-page"
+    >
+      <TopBar
+        title="Mains Practice"
+        subtitle="Your submitted answers, scores and evaluator feedback"
+      />
+
+      <WorkspaceTabs
+        active={
+          workspaceView
+        }
+        onChange={
+          setWorkspaceView
+        }
+      />
+
+      <MyMainsEvaluations />
+    </div>
+  );
+}
+  
    * =====================================
    * PREVIOUS YEAR PAPERS
    * =====================================
    */
 
+  <button
+  type="button"
+  className={
+    active ===
+      'evaluations'
+      ? 'filter active'
+      : 'filter'
+  }
+  onClick={() =>
+    onChange(
+      'evaluations'
+    )
+  }
+>
+  My Evaluations
+</button>
+  
   if (
     workspaceView ===
     'pyq'
