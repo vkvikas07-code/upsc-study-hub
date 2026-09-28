@@ -279,6 +279,31 @@ function getArticleDateValue(
   );
 }
 
+function getTodayDayKey(): string {
+  const now =
+    new Date();
+
+  const year =
+    now.getFullYear();
+
+  const month =
+    String(
+      now.getMonth() + 1
+    ).padStart(
+      2,
+      '0'
+    );
+
+  const day =
+    String(
+      now.getDate()
+    ).padStart(
+      2,
+      '0'
+    );
+
+  return `${year}-${month}-${day}`;
+}
 
 function formatDayKey(
   value: string
@@ -712,9 +737,9 @@ export function CurrentPage({
 
 
   const activeDay =
-    selectedDay ||
-    availableDays[0] ||
-    '';
+  selectedDay ||
+  availableDays[0] ||
+  getTodayDayKey();
 
   const activeMonth =
     selectedMonth ||
@@ -727,9 +752,9 @@ export function CurrentPage({
     '';
 
   const activeNewspaperDay =
-    selectedNewspaperDay ||
-    availableNewspaperDays[0] ||
-    '';
+  selectedNewspaperDay ||
+  availableNewspaperDays[0] ||
+  getTodayDayKey();
 
 
   const visibleItems =
@@ -1482,54 +1507,54 @@ export function CurrentPage({
           </button>
         </div>
 
-        {viewMode ===
-          'daily' && (
-          <label
-            style={{
-              display:
-                'grid',
+      {viewMode ===
+  'daily' && (
+  <label
+    style={{
+      display:
+        'grid',
 
-              gap:
-                '7px',
+      gap:
+        '7px',
 
-              marginTop:
-                '16px'
-            }}
+      marginTop:
+        '16px'
+    }}
+  >
+    Select Date
+
+    <select
+      value={
+        activeDay
+      }
+      onChange={
+        event =>
+          setSelectedDay(
+            event
+              .target
+              .value
+          )
+      }
+    >
+      {availableDays.map(
+        value => (
+          <option
+            key={
+              value
+            }
+            value={
+              value
+            }
           >
-            Select Date
-
-            <select
-              value={
-                activeDay
-              }
-              onChange={
-                event =>
-                  setSelectedDay(
-                    event
-                      .target
-                      .value
-                  )
-              }
-            >
-              {availableDays.map(
-                value => (
-                  <option
-                    key={
-                      value
-                    }
-                    value={
-                      value
-                    }
-                  >
-                    {formatDayKey(
-                      value
-                    )}
-                  </option>
-                )
-              )}
-            </select>
-          </label>
-        )}
+            {formatDayKey(
+              value
+            )}
+          </option>
+        )
+      )}
+    </select>
+  </label>
+)}
 
         {viewMode ===
           'monthly' && (
@@ -1659,36 +1684,20 @@ export function CurrentPage({
             >
               Newspaper Date
 
-              <select
-                value={
-                  activeNewspaperDay
-                }
-                onChange={
-                  event =>
-                    setSelectedNewspaperDay(
-                      event
-                        .target
-                        .value
-                    )
-                }
-              >
-                {availableNewspaperDays.map(
-                  value => (
-                    <option
-                      key={
-                        value
-                      }
-                      value={
-                        value
-                      }
-                    >
-                      {formatDayKey(
-                        value
-                      )}
-                    </option>
-                  )
-                )}
-              </select>
+            <input
+  type="date"
+  value={
+    activeNewspaperDay
+  }
+  onChange={
+    event =>
+      setSelectedNewspaperDay(
+        event
+          .target
+          .value
+      )
+  }
+/>
             </label>
 
             <div
