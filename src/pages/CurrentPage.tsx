@@ -648,8 +648,13 @@ export function CurrentPage({
   const availableMonths =
     Array.from(
       new Set(
-        items
-          .map(
+       items
+  .filter(
+    item =>
+      item.monthlySelected ===
+      true
+  )
+  .map(
             item =>
               getMonthKey(
                 getArticleDateValue(
@@ -675,34 +680,38 @@ export function CurrentPage({
 
 
   const availableYears =
-    Array.from(
-      new Set(
-        items
-          .map(
-            item =>
-              getYearKey(
-                getArticleDateValue(
-                  item
-                )
+  Array.from(
+    new Set(
+      items
+        .filter(
+          item =>
+            item.yearlySelected ===
+            true
+        )
+        .map(
+          item =>
+            getYearKey(
+              getArticleDateValue(
+                item
               )
-          )
-          .filter(
-            (
-              value
-            ):
-              value is string =>
-              Boolean(value)
-          )
-      )
-    ).sort(
-      (
-        a,
-        b
-      ) =>
-        Number(b) -
-        Number(a)
-    );
-
+            )
+        )
+        .filter(
+          (
+            value
+          ):
+            value is string =>
+            Boolean(value)
+        )
+    )
+  ).sort(
+    (
+      a,
+      b
+    ) =>
+      Number(b) -
+      Number(a)
+  );
 
   const availableNewspaperDays =
     Array.from(
@@ -799,24 +808,28 @@ export function CurrentPage({
         }
 
         if (
-          viewMode === 'monthly'
-        ) {
-          return (
-            getMonthKey(
-              articleDate
-            ) === activeMonth
-          );
-        }
+  viewMode === 'monthly'
+) {
+  return (
+    item.monthlySelected ===
+      true &&
+    getMonthKey(
+      articleDate
+    ) === activeMonth
+  );
+}
 
-        if (
-          viewMode === 'yearly'
-        ) {
-          return (
-            getYearKey(
-              articleDate
-            ) === activeYear
-          );
-        }
+       if (
+  viewMode === 'yearly'
+) {
+  return (
+    item.yearlySelected ===
+      true &&
+    getYearKey(
+      articleDate
+    ) === activeYear
+  );
+}
 
         const articleDay =
           getDayKey(
@@ -1099,10 +1112,12 @@ export function CurrentPage({
           issues,
           way_forward,
           tags,
-          prelims,
-          mains,
-          published_at,
-          status
+         prelims,
+mains,
+monthly_selected,
+yearly_selected,
+published_at,
+status
         `)
         .eq(
           'id',
@@ -1187,6 +1202,14 @@ export function CurrentPage({
 
       mains:
         data.mains,
+
+      monthlySelected:
+  data.monthly_selected ===
+  true,
+
+yearlySelected:
+  data.yearly_selected ===
+  true,
 
       publishedAt:
         data.published_at
