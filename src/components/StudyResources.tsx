@@ -808,6 +808,55 @@ export function StudyResources({
     );
   }
 
+  async function openResourcePdf(
+    resource:
+      ResourceRow
+  ) {
+    if (
+      !supabase ||
+      !resource.file_path
+    ) {
+      return;
+    }
+
+    setError(
+      ''
+    );
+
+    const {
+      data,
+      error:
+        pdfError
+    } =
+      await supabase
+        .storage
+        .from(
+          'study-resource-pdfs'
+        )
+        .createSignedUrl(
+          resource.file_path,
+          300
+        );
+
+    if (
+      pdfError ||
+      !data
+    ) {
+      setError(
+        pdfError?.message ||
+        'Unable to open PDF.'
+      );
+
+      return;
+    }
+
+    window.open(
+      data.signedUrl,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  }
+
   function clearFilters() {
 
     setSearch('');
@@ -1820,7 +1869,7 @@ export function StudyResources({
                     }}
                   >
 
-                    {safeUrl ? (
+                    {safeUrl && (
 
                       <button
                         type="button"
@@ -1836,7 +1885,28 @@ export function StudyResources({
                         Open Resource
                       </button>
 
-                    ) : (
+                    )}
+
+                    {resource.file_path && (
+
+                      <button
+                        type="button"
+
+                        className="secondary-btn"
+
+                        onClick={() =>
+                          void openResourcePdf(
+                            resource
+                          )
+                        }
+                      >
+                        Open PDF
+                      </button>
+
+                    )}
+
+                    {!safeUrl &&
+                      !resource.file_path && (
 
                       <span
                         className="tag"
