@@ -199,7 +199,11 @@ function loadTasksForDay(
         stored
       );
 
-    if (!Array.isArray(parsed)) {
+    if (
+      !Array.isArray(
+        parsed
+      )
+    ) {
       return defaultTasks.map(
         task => ({
           ...task
@@ -303,7 +307,9 @@ function getFallbackName(
   }
 
   const email =
-    session.user.email ||
+    session
+      .user
+      .email ||
     '';
 
   const prefix =
@@ -404,7 +410,10 @@ function AccountStatusCard({
                 '4px'
             }}
           >
-            {profile.displayName}
+            {
+              profile
+                .displayName
+            }
           </h3>
 
           <p
@@ -413,9 +422,18 @@ function AccountStatusCard({
                 0
             }}
           >
-            {session.user.email || 'Account'}
+            {
+              session
+                .user
+                .email ||
+              'Account'
+            }
+
             {' · '}
-            {profile.role}
+
+            {
+              profile.role
+            }
           </p>
         </div>
 
@@ -499,7 +517,9 @@ function AccessDenied({
 export default function SecureApp() {
 
   /*
+   * =========================================
    * MAIN NAVIGATION
+   * =========================================
    */
 
   const [
@@ -512,7 +532,9 @@ export default function SecureApp() {
 
 
   /*
+   * =========================================
    * LEARN
+   * =========================================
    */
 
   const [
@@ -536,7 +558,9 @@ export default function SecureApp() {
 
 
   /*
+   * =========================================
    * PRACTICE
+   * =========================================
    */
 
   const [
@@ -549,7 +573,9 @@ export default function SecureApp() {
 
 
   /*
+   * =========================================
    * DAILY TASK DATE
+   * =========================================
    */
 
   const [
@@ -562,7 +588,9 @@ export default function SecureApp() {
 
 
   /*
+   * =========================================
    * DAILY TASKS
+   * =========================================
    */
 
   const [
@@ -580,7 +608,9 @@ export default function SecureApp() {
 
 
   /*
+   * =========================================
    * CURRENT AFFAIRS
+   * =========================================
    */
 
   const [
@@ -598,7 +628,9 @@ export default function SecureApp() {
 
 
   /*
+   * =========================================
    * ACCOUNT
+   * =========================================
    */
 
   const [
@@ -667,7 +699,9 @@ export default function SecureApp() {
       supabase;
 
     const userId =
-      session?.user.id;
+      session
+        ?.user
+        .id;
 
     if (
       !client ||
@@ -768,7 +802,10 @@ export default function SecureApp() {
    */
 
   async function loadCurrentAffairs() {
-    if (!supabase) {
+    const client =
+      supabase;
+
+    if (!client) {
       return;
     }
 
@@ -776,7 +813,7 @@ export default function SecureApp() {
       data,
       error
     } =
-      await supabase
+      await client
         .from(
           'current_affairs'
         )
@@ -1011,6 +1048,9 @@ export default function SecureApp() {
         return;
       }
 
+      const safeClient =
+        client;
+
       let mounted =
         true;
 
@@ -1043,7 +1083,7 @@ export default function SecureApp() {
           data,
           error
         } =
-          await client
+          await safeClient
             .from(
               'profiles'
             )
@@ -1112,7 +1152,7 @@ export default function SecureApp() {
         );
       }
 
-      void client
+      void safeClient
         .auth
         .getSession()
         .then(
@@ -1128,7 +1168,7 @@ export default function SecureApp() {
         data:
           authListener
       } =
-        client
+        safeClient
           .auth
           .onAuthStateChange(
             (
@@ -1166,7 +1206,9 @@ export default function SecureApp() {
         supabase;
 
       const userId =
-        session?.user.id;
+        session
+          ?.user
+          .id;
 
       if (
         !client ||
@@ -1181,6 +1223,12 @@ export default function SecureApp() {
         return;
       }
 
+      const safeClient =
+        client;
+
+      const safeUserId =
+        userId;
+
       let cancelled =
         false;
 
@@ -1194,7 +1242,7 @@ export default function SecureApp() {
           data,
           error
         } =
-          await client
+          await safeClient
             .from(
               'daily_task_progress'
             )
@@ -1203,7 +1251,7 @@ export default function SecureApp() {
             )
             .eq(
               'user_id',
-              userId
+              safeUserId
             )
             .eq(
               'task_date',
@@ -1247,7 +1295,8 @@ export default function SecureApp() {
                   ...defaultTask,
 
                   done:
-                    cloudTask?.done ===
+                    cloudTask
+                      ?.done ===
                     true
                 };
               }
@@ -1277,7 +1326,7 @@ export default function SecureApp() {
           localTasks.map(
             task => ({
               user_id:
-                userId,
+                safeUserId,
 
               task_date:
                 taskDay,
@@ -1298,7 +1347,7 @@ export default function SecureApp() {
           error:
             seedError
         } =
-          await client
+          await safeClient
             .from(
               'daily_task_progress'
             )
@@ -1326,7 +1375,9 @@ export default function SecureApp() {
       };
     },
     [
-      session?.user.id,
+      session
+        ?.user
+        .id,
       taskDay
     ]
   );
@@ -1439,9 +1490,11 @@ export default function SecureApp() {
    */
 
   const isEditor =
-    profile?.role ===
+    profile
+      ?.role ===
       'editor' ||
-    profile?.role ===
+    profile
+      ?.role ===
       'admin';
 
 
@@ -1563,11 +1616,14 @@ export default function SecureApp() {
       <IonApp>
         <SeriousLearnerActivationPage
           displayName={
-            profile.displayName
+            profile
+              .displayName
           }
 
           onActivated={() => {
-            window.location.reload();
+            window
+              .location
+              .reload();
           }}
 
           onSignOut={
