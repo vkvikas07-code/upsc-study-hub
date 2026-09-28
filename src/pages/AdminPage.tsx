@@ -1,426 +1,552 @@
 import {
   useEffect,
-  useMemo,
   useState
 } from 'react';
 
-import type {
-  FormEvent
-} from 'react';
-
 import {
-  TopBar
-} from '../components/TopBar';
-
-import {
-  PrelimsAdminWorkspace
-} from '../components/PrelimsAdminWorkspace';
-
-import {
-  PrelimsTestManager
-} from '../components/PrelimsTestManager';
-
-import {
-  MainsQuestionManager
-} from '../components/MainsQuestionManager';
-
-import {
-  MainsEvaluationManager
-} from '../components/MainsEvaluationManager';
-
-import {
-  AdminWorkspaceStats
-} from '../components/AdminWorkspaceStats';
-
-import {
-  PendingEvaluationBadge
-} from '../components/PendingEvaluationBadge';
-
-import {
-  MainsPyqManager
-} from '../components/MainsPyqManager';
-
-import {
-  ResourceAdminHub
-} from '../components/ResourceAdminHub';
+  IonApp
+} from '@ionic/react';
 
 import type {
-  CurrentAffair
-} from '../types';
+  Session
+} from '@supabase/supabase-js';
 
 import {
-  isSupabaseConfigured,
+  Shell
+} from './components/Shell';
+
+import {
+  PrelimsTestSeries
+} from './components/PrelimsTestSeries';
+
+import {
+  HomePage
+} from './pages/HomePage';
+
+import {
+  LearnHubPage
+} from './pages/LearnHubPage';
+
+import type {
+  LearnMode
+} from './pages/LearnHubPage';
+
+import {
+  PracticePage
+} from './pages/PracticePage';
+
+import {
+  MainsPracticePage
+} from './pages/MainsPracticePage';
+
+import {
+  CurrentPage
+} from './pages/CurrentPage';
+
+import {
+  ProfilePage
+} from './pages/ProfilePage';
+
+import {
+  AdminPage
+} from './pages/AdminPage';
+
+import {
+  AccountPage
+} from './pages/AccountPage';
+
+import {
+  VisitorPreviewPage
+} from './pages/VisitorPreviewPage';
+
+import {
+  SeriousLearnerActivationPage
+} from './pages/SeriousLearnerActivationPage';
+
+import {
+  initialCurrentAffairs
+} from './data/mock';
+
+import {
   supabase
-} from '../lib/supabase';
+} from './lib/supabase';
+
+import type {
+  CurrentAffair,
+  DailyTask,
+  NavKey
+} from './types';
 
 
-type ArticleStatus =
-  | 'draft'
-  | 'published'
-  | 'archived';
-
-
-type CurationView =
-  | 'all'
-  | 'daily'
-  | 'monthly'
-  | 'yearly';
-
-
-type AdminTab =
-  | 'current'
-  | 'resources'
-  | 'mcq'
+type PracticeMode =
+  | 'prelims'
   | 'tests'
-  | 'mains'
-  | 'evaluation';
+  | 'mains';
 
 
-type MainsWorkspace =
-  | 'pyq'
-  | 'practice';
+type UserRole =
+  | 'student'
+  | 'editor'
+  | 'admin';
 
 
-type AdminArticle = {
-  id: string;
+type LearnerStatus =
+  | 'basic'
+  | 'serious';
 
-  title: string;
 
-  source: string;
+type AccessPlan =
+  | 'preview'
+  | 'free_full'
+  | 'paid_full'
+  | 'scholarship';
 
-  source_url:
-    string | null;
 
-  subject: string;
-
-  summary: string;
-
-  body:
-    string | null;
-
-  background:
-    string | null;
-
-  key_facts:
-    string | null;
-
-  prelims_points:
-    string | null;
-
-  mains_relevance:
-    string | null;
-
-  issues:
-    string | null;
-
-  way_forward:
-    string | null;
-
-  tags: string[];
-
-  prelims: boolean;
-
-  mains: boolean;
-
-  status:
-    ArticleStatus;
-
-  monthly_selected:
-    boolean;
-
-  yearly_selected:
-    boolean;
-
-  published_at:
-    string | null;
-
-  created_at:
-    string;
-
-  updated_at:
-    string;
+type UserProfile = {
+  displayName: string;
+  role: UserRole;
+  learnerStatus: LearnerStatus;
+  accessPlan: AccessPlan;
 };
 
 
-const ARTICLE_SELECT = `
-  id,
-  title,
-  source,
-  source_url,
-  subject,
-  summary,
-  body,
-  background,
-  key_facts,
-  prelims_points,
-  mains_relevance,
-  issues,
-  way_forward,
-  tags,
-  prelims,
-  mains,
-  status,
-  monthly_selected,
-  yearly_selected,
-  published_at,
-  created_at,
-  updated_at
-`;
+const defaultTasks:
+  DailyTask[] = [
+    {
+      id: 'ca',
+      label:
+        'Read today’s current affairs brief',
+      done: false
+    },
+    {
+      id: 'mcq',
+      label:
+        'Attempt at least 10 MCQs',
+      done: false
+    },
+    {
+      id: 'rev',
+      label:
+        'Revise one saved topic',
+      done: false
+    }
+  ];
 
 
-function getLocalDateValue(
-  value?: string | null
-) {
+/*
+ * =========================================
+ * LOCAL DATE
+ * =========================================
+ */
 
-  const date =
-    value
-      ? new Date(
-          value
-        )
-      : new Date();
-
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return '';
-  }
-
+function getLocalDateKey() {
+  const now =
+    new Date();
 
   const year =
-    date.getFullYear();
-
+    now.getFullYear();
 
   const month =
     String(
-      date.getMonth() +
-      1
+      now.getMonth() + 1
     ).padStart(
       2,
       '0'
     );
-
 
   const day =
     String(
-      date.getDate()
+      now.getDate()
     ).padStart(
       2,
       '0'
     );
 
+  return `${year}-${month}-${day}`;
+}
+
+
+/*
+ * =========================================
+ * DAILY TASK STORAGE
+ * =========================================
+ */
+
+function getTaskStorageKey(
+  day: string
+) {
+  return `upsc_tasks_${day}`;
+}
+
+
+function loadTasksForDay(
+  day: string
+): DailyTask[] {
+  try {
+    const stored =
+      localStorage.getItem(
+        getTaskStorageKey(
+          day
+        )
+      );
+
+    if (!stored) {
+      return defaultTasks.map(
+        task => ({
+          ...task
+        })
+      );
+    }
+
+    const parsed =
+      JSON.parse(
+        stored
+      );
+
+    if (
+      !Array.isArray(
+        parsed
+      )
+    ) {
+      return defaultTasks.map(
+        task => ({
+          ...task
+        })
+      );
+    }
+
+    return defaultTasks.map(
+      defaultTask => {
+        const storedTask =
+          parsed.find(
+            item =>
+              item &&
+              item.id ===
+                defaultTask.id
+          );
+
+        return {
+          ...defaultTask,
+
+          done:
+            storedTask?.done ===
+            true
+        };
+      }
+    );
+  } catch {
+    return defaultTasks.map(
+      task => ({
+        ...task
+      })
+    );
+  }
+}
+
+
+/*
+ * =========================================
+ * ACCOUNT HELPERS
+ * =========================================
+ */
+
+function normalizeRole(
+  value: unknown
+): UserRole {
+  if (
+    value === 'admin' ||
+    value === 'editor'
+  ) {
+    return value;
+  }
+
+  return 'student';
+}
+
+
+function normalizeLearnerStatus(
+  value: unknown
+): LearnerStatus {
+  if (
+    value ===
+    'serious'
+  ) {
+    return 'serious';
+  }
+
+  return 'basic';
+}
+
+
+function normalizeAccessPlan(
+  value: unknown
+): AccessPlan {
+  if (
+    value ===
+      'free_full' ||
+    value ===
+      'paid_full' ||
+    value ===
+      'scholarship'
+  ) {
+    return value;
+  }
+
+  return 'preview';
+}
+
+
+function getFallbackName(
+  session: Session
+) {
+  const metadataName =
+    session
+      .user
+      .user_metadata
+      ?.display_name;
+
+  if (
+    typeof metadataName ===
+      'string' &&
+    metadataName.trim()
+  ) {
+    return metadataName.trim();
+  }
+
+  const email =
+    session
+      .user
+      .email ||
+    '';
+
+  const prefix =
+    email.split(
+      '@'
+    )[0];
 
   return (
-    `${year}-${month}-${day}`
+    prefix ||
+    'Aspirant'
   );
 }
 
 
-function currentAffairDateToIso(
-  value: string
-) {
+/*
+ * =========================================
+ * LOADING CARD
+ * =========================================
+ */
 
-  const [
-    year,
-    month,
-    day
-  ] =
-    value
-      .split(
-        '-'
-      )
-      .map(
-        Number
-      );
-
-
-  return new Date(
-    year,
-    month - 1,
-    day,
-    12,
-    0,
-    0
-  ).toISOString();
+function LoadingCard({
+  text
+}: {
+  text: string;
+}) {
+  return (
+    <div
+      className="page-wrap"
+    >
+      <section
+        className="panel"
+        style={{
+          marginTop:
+            '20px'
+        }}
+      >
+        <h2>
+          {text}
+        </h2>
+      </section>
+    </div>
+  );
 }
 
 
-export function AdminPage({
-  onPublish
+/*
+ * =========================================
+ * ACCOUNT STATUS
+ * =========================================
+ */
+
+function AccountStatusCard({
+  session,
+  profile,
+  onSignOut
 }: {
-  onPublish:
-    (
-      item:
-        CurrentAffair
-    ) => void;
+  session: Session;
+  profile: UserProfile;
+  onSignOut: () => void;
 }) {
+  return (
+    <div
+      className="page-wrap"
+      style={{
+        paddingBottom:
+          0
+      }}
+    >
+      <section
+        className="panel"
+        style={{
+          display:
+            'flex',
+
+          justifyContent:
+            'space-between',
+
+          alignItems:
+            'center',
+
+          gap:
+            '12px',
+
+          flexWrap:
+            'wrap'
+        }}
+      >
+        <div>
+          <span
+            className="eyebrow"
+          >
+            SIGNED IN
+          </span>
+
+          <h3
+            style={{
+              marginBottom:
+                '4px'
+            }}
+          >
+            {
+              profile
+                .displayName
+            }
+          </h3>
+
+          <p
+            style={{
+              margin:
+                0
+            }}
+          >
+            {
+              session
+                .user
+                .email ||
+              'Account'
+            }
+
+            {' · '}
+
+            {
+              profile.role
+            }
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={
+            onSignOut
+          }
+        >
+          Sign Out
+        </button>
+      </section>
+    </div>
+  );
+}
+
+
+/*
+ * =========================================
+ * ACCESS DENIED
+ * =========================================
+ */
+
+function AccessDenied({
+  onBack
+}: {
+  onBack: () => void;
+}) {
+  return (
+    <div
+      className="page-wrap"
+    >
+      <section
+        className="panel"
+        style={{
+          maxWidth:
+            '680px',
+
+          margin:
+            '20px auto 0'
+        }}
+      >
+        <span
+          className="eyebrow"
+        >
+          PROTECTED AREA
+        </span>
+
+        <h2>
+          Editor access required
+        </h2>
+
+        <p>
+          Your account is signed in as a student.
+          Admin Studio is available only to approved
+          editor or admin accounts.
+        </p>
+
+        <button
+          type="button"
+          className="primary-btn"
+          onClick={
+            onBack
+          }
+        >
+          Return to My Study
+        </button>
+      </section>
+    </div>
+  );
+}
+
+
+/*
+ * =========================================
+ * APPLICATION
+ * =========================================
+ */
+
+export default function SecureApp() {
+
+  /*
+   * =========================================
+   * MAIN NAVIGATION
+   * =========================================
+   */
 
   const [
-    adminTab,
-    setAdminTab
+    active,
+    setActive
   ] =
-    useState<
-      AdminTab
-    >(
-      'current'
+    useState<NavKey>(
+      'home'
     );
 
 
-  const [
-    mainsWorkspace,
-    setMainsWorkspace
-  ] =
-    useState<
-      MainsWorkspace
-    >(
-      'pyq'
-    );
-
+  /*
+   * =========================================
+   * LEARN
+   * =========================================
+   */
 
   const [
-    email,
-    setEmail
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    password,
-    setPassword
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    isAdmin,
-    setIsAdmin
-  ] =
-    useState(
-      false
-    );
-
-
-  const [
-    checkingAuth,
-    setCheckingAuth
-  ] =
-    useState(
-      true
-    );
-
-
-  const [
-    articles,
-    setArticles
-  ] =
-    useState<
-      AdminArticle[]
-    >(
-      []
-    );
-
-
-  const [
-    loadingArticles,
-    setLoadingArticles
-  ] =
-    useState(
-      false
-    );
-
-
-  const [
-    curationView,
-    setCurationView
-  ] =
-    useState<
-      CurationView
-    >(
-      'all'
-    );
-
-
-  const [
-    curationSearch,
-    setCurationSearch
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    curationMonth,
-    setCurationMonth
-  ] =
-    useState(
-      getLocalDateValue()
-        .slice(
-          0,
-          7
-        )
-    );
-
-
-  const [
-    curationYear,
-    setCurationYear
-  ] =
-    useState(
-      String(
-        new Date()
-          .getFullYear()
-      )
-    );
-
-
-  const [
-    curationPendingOnly,
-    setCurationPendingOnly
-  ] =
-    useState(
-      false
-    );
-
-
-  const [
-    selectedArticleIds,
-    setSelectedArticleIds
-  ] =
-    useState<
-      string[]
-    >(
-      []
-    );
-
-
-  const [
-    saving,
-    setSaving
-  ] =
-    useState(
-      false
-    );
-
-
-  const [
-    message,
-    setMessage
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    editingId,
-    setEditingId
+    learnSubject,
+    setLearnSubject
   ] =
     useState<
       string |
@@ -429,4115 +555,1586 @@ export function AdminPage({
       null
     );
 
-
   const [
-    title,
-    setTitle
+    learnMode,
+    setLearnMode
   ] =
-    useState(
-      ''
+    useState<LearnMode>(
+      'syllabus'
     );
 
 
+  /*
+   * =========================================
+   * PRACTICE
+   * =========================================
+   */
+
   const [
-    source,
-    setSource
+    practiceMode,
+    setPracticeMode
   ] =
-    useState(
-      'PIB'
+    useState<PracticeMode>(
+      'prelims'
     );
 
 
+  /*
+   * =========================================
+   * DAILY TASK DATE
+   * =========================================
+   */
+
   const [
-    sourceUrl,
-    setSourceUrl
+    taskDay,
+    setTaskDay
   ] =
     useState(
-      ''
+      getLocalDateKey
     );
 
 
-  const [
-    articleDate,
-    setArticleDate
-  ] =
-    useState(
-      getLocalDateValue()
-    );
-
+  /*
+   * =========================================
+   * DAILY TASKS
+   * =========================================
+   */
 
   const [
-    subject,
-    setSubject
-  ] =
-    useState(
-      'Polity & Governance'
-    );
-
-
-  const [
-    summary,
-    setSummary
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    background,
-    setBackground
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    keyFacts,
-    setKeyFacts
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    prelimsPoints,
-    setPrelimsPoints
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    mainsRelevance,
-    setMainsRelevance
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    issues,
-    setIssues
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    wayForward,
-    setWayForward
-  ] =
-    useState(
-      ''
-    );
-
-
-  const [
-    tagsText,
-    setTagsText
-  ] =
-    useState(
-      'Prelims, Mains'
-    );
-
-
-  const [
-    prelims,
-    setPrelims
-  ] =
-    useState(
-      true
-    );
-
-
-  const [
-    mains,
-    setMains
-  ] =
-    useState(
-      true
-    );
-
-
-  const [
-    status,
-    setStatus
+    tasks,
+    setTasksState
   ] =
     useState<
-      ArticleStatus
+      DailyTask[]
     >(
-      'draft'
+      () =>
+        loadTasksForDay(
+          getLocalDateKey()
+        )
     );
 
-  function switchAdminTab(
-    tab:
-      AdminTab
+
+  /*
+   * =========================================
+   * CURRENT AFFAIRS
+   * =========================================
+   */
+
+  const [
+    articles,
+    setArticles
+  ] =
+    useState<
+      CurrentAffair[]
+    >(
+      () =>
+        supabase
+          ? []
+          : initialCurrentAffairs
+    );
+
+
+  /*
+   * =========================================
+   * ACCOUNT
+   * =========================================
+   */
+
+  const [
+    session,
+    setSession
+  ] =
+    useState<
+      Session |
+      null
+    >(
+      null
+    );
+
+  const [
+    profile,
+    setProfile
+  ] =
+    useState<
+      UserProfile |
+      null
+    >(
+      null
+    );
+
+  const [
+    authReady,
+    setAuthReady
+  ] =
+    useState(
+      !supabase
+    );
+
+  const [
+    visitorAccountOpen,
+    setVisitorAccountOpen
+  ] =
+    useState(
+      false
+    );
+
+
+  /*
+   * =========================================
+   * DAILY TASK SAVE
+   * =========================================
+   */
+
+  function setTasks(
+    next:
+      DailyTask[]
   ) {
-
-    setAdminTab(
-      tab
+    setTasksState(
+      next
     );
 
+    localStorage.setItem(
+      getTaskStorageKey(
+        taskDay
+      ),
+      JSON.stringify(
+        next
+      )
+    );
 
-    window
-      .requestAnimationFrame(
-        () => {
+    const client =
+      supabase;
 
-          const mainArea =
-            document
-              .querySelector(
-                '.main-area'
-              );
+    const userId =
+      session
+        ?.user
+        .id;
 
+    if (
+      !client ||
+      !userId
+    ) {
+      return;
+    }
 
-          mainArea
-            ?.scrollTo({
-              top: 0,
+    const rows =
+      next.map(
+        task => ({
+          user_id:
+            userId,
 
-              behavior:
-                'smooth'
-            });
+          task_date:
+            taskDay,
+
+          task_id:
+            task.id,
+
+          done:
+            task.done,
+
+          updated_at:
+            new Date()
+              .toISOString()
+        })
+      );
+
+    void client
+      .from(
+        'daily_task_progress'
+      )
+      .upsert(
+        rows,
+        {
+          onConflict:
+            'user_id,task_date,task_id'
+        }
+      )
+      .then(
+        ({
+          error
+        }) => {
+          if (error) {
+            console.error(
+              'Unable to sync daily tasks:',
+              error
+            );
+          }
         }
       );
   }
 
 
-  async function verifyAdmin(
-    userId:
-      string
+  /*
+   * =========================================
+   * CURRENT AFFAIR LOCAL UPDATE
+   *
+   * Important:
+   * Editing/publishing an existing article now
+   * replaces it instead of creating a duplicate.
+   * =========================================
+   */
+
+  function publish(
+    item:
+      CurrentAffair
   ) {
+    setArticles(
+      current => {
+        const exists =
+          current.some(
+            article =>
+              article.id ===
+              item.id
+          );
 
-    if (!supabase) {
+        if (exists) {
+          return current.map(
+            article =>
+              article.id ===
+                item.id
+                ? item
+                : article
+          );
+        }
 
-      setIsAdmin(
-        false
-      );
-
-      return false;
-    }
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from(
-          'profiles'
-        )
-        .select(
-          'role'
-        )
-        .eq(
-          'id',
-          userId
-        )
-        .single();
-
-
-    if (
-      error ||
-      !data
-    ) {
-
-      console.error(
-        'Unable to verify admin:',
-        error
-      );
-
-
-      setIsAdmin(
-        false
-      );
-
-
-      return false;
-    }
-
-
-    const allowed =
-      data.role ===
-        'admin' ||
-      data.role ===
-        'editor';
-
-
-    setIsAdmin(
-      allowed
+        return [
+          item,
+          ...current
+        ];
+      }
     );
-
-
-    return allowed;
   }
 
 
-  async function loadArticles() {
+  /*
+   * =========================================
+   * LOAD CURRENT AFFAIRS
+   *
+   * This function is reusable.
+   *
+   * When a user leaves Admin and opens
+   * Current Affairs, data is fetched again
+   * from Supabase so Monthly / Yearly
+   * curation is immediately current.
+   * =========================================
+   */
 
-    if (!supabase) {
+  async function loadCurrentAffairs() {
+    const client =
+      supabase;
+
+    if (!client) {
       return;
     }
-
-
-    setLoadingArticles(
-      true
-    );
-
 
     const {
       data,
       error
     } =
-      await supabase
+      await client
         .from(
           'current_affairs'
         )
         .select(
-          ARTICLE_SELECT
+          `
+          id,
+          title,
+          source,
+          source_url,
+          subject,
+          summary,
+          tags,
+          prelims,
+          mains,
+          monthly_selected,
+          yearly_selected,
+          published_at,
+          status
+          `
+        )
+        .eq(
+          'status',
+          'published'
         )
         .order(
-          'created_at',
+          'published_at',
           {
             ascending:
               false
           }
         );
 
-
     if (error) {
-
       console.error(
-        'Unable to load articles:',
+        'Unable to load current affairs:',
         error
       );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      setLoadingArticles(
-        false
-      );
-
 
       return;
     }
 
+    const nextArticles:
+      CurrentAffair[] =
+        (
+          data ||
+          []
+        ).map(
+          item => ({
+            id:
+              item.id,
+
+            title:
+              item.title,
+
+            source:
+              item.source,
+
+            sourceUrl:
+              item.source_url,
+
+            subject:
+              item.subject,
+
+            summary:
+              item.summary,
+
+            tags:
+              item.tags ||
+              [],
+
+            prelims:
+              item.prelims,
+
+            mains:
+              item.mains,
+
+            monthlySelected:
+              item.monthly_selected ===
+              true,
+
+            yearlySelected:
+              item.yearly_selected ===
+              true,
+
+            publishedAt:
+              item.published_at
+                ? new Date(
+                    item
+                      .published_at
+                  )
+                    .toLocaleDateString(
+                      'en-IN',
+                      {
+                        day:
+                          '2-digit',
+
+                        month:
+                          'short',
+
+                        year:
+                          'numeric'
+                      }
+                    )
+                : '',
+
+            publishedAtIso:
+              item.published_at ||
+              null
+          })
+        );
+
+    /*
+     * Important:
+     * Always update state, even when the
+     * result is empty.
+     *
+     * This correctly removes Draft,
+     * Archived or Deleted articles from
+     * the student screen.
+     */
 
     setArticles(
-      (
-        data ||
-        []
-      ) as
-        AdminArticle[]
+      nextArticles
+    );
+  }
+
+
+  /*
+   * =========================================
+   * OPEN LEARN
+   * =========================================
+   */
+
+  function openLearn(
+    subject:
+      string |
+      null =
+        null,
+
+    mode:
+      LearnMode =
+        'syllabus'
+  ) {
+    setLearnSubject(
+      subject
     );
 
+    setLearnMode(
+      mode
+    );
 
-    setLoadingArticles(
+    setActive(
+      'learn'
+    );
+  }
+
+
+  /*
+   * =========================================
+   * MAIN NAVIGATION
+   * =========================================
+   */
+
+  function navigateMain(
+    next:
+      NavKey
+  ) {
+    if (
+      next ===
+      'learn'
+    ) {
+      setLearnSubject(
+        null
+      );
+
+      setLearnMode(
+        'syllabus'
+      );
+    }
+
+    setActive(
+      next
+    );
+  }
+
+
+  /*
+   * =========================================
+   * OPEN PRELIMS
+   * =========================================
+   */
+
+  function openPrelimsPractice() {
+    setPracticeMode(
+      'prelims'
+    );
+
+    setActive(
+      'practice'
+    );
+  }
+
+
+  /*
+   * =========================================
+   * SIGN OUT
+   * =========================================
+   */
+
+  async function signOut() {
+    if (supabase) {
+      await supabase
+        .auth
+        .signOut();
+    }
+
+    setActive(
+      'home'
+    );
+
+    setVisitorAccountOpen(
       false
     );
   }
 
 
+  /*
+   * =========================================
+   * AUTHENTICATION
+   * =========================================
+   */
+
   useEffect(
     () => {
+      const client =
+        supabase;
 
-      async function checkSession() {
+      if (!client) {
+        setAuthReady(
+          true
+        );
 
-        if (!supabase) {
+        return;
+      }
 
-          setCheckingAuth(
-            false
+      let mounted =
+        true;
+
+      async function loadAccount(
+        nextSession:
+          Session |
+          null
+      ) {
+        if (!mounted) {
+          return;
+        }
+
+        setSession(
+          nextSession
+        );
+
+        if (!nextSession) {
+          setProfile(
+            null
+          );
+
+          setAuthReady(
+            true
           );
 
           return;
         }
-
 
         const {
-          data: {
-            session
-          }
+          data,
+          error
         } =
-          await supabase
-            .auth
-            .getSession();
+          await client
+            .from(
+              'profiles'
+            )
+            .select(
+              `
+              display_name,
+              role,
+              learner_status,
+              access_plan
+              `
+            )
+            .eq(
+              'id',
+              nextSession
+                .user
+                .id
+            )
+            .maybeSingle();
 
-
-        if (
-          !session?.user
-        ) {
-
-          setIsAdmin(
-            false
-          );
-
-
-          setCheckingAuth(
-            false
-          );
-
-
+        if (!mounted) {
           return;
         }
 
-
-        const allowed =
-          await verifyAdmin(
-            session
-              .user
-              .id
+        if (error) {
+          console.error(
+            'Unable to load profile:',
+            error
           );
-
-
-        if (allowed) {
-
-          await loadArticles();
         }
 
+        setProfile({
+          displayName:
+            typeof data
+              ?.display_name ===
+              'string' &&
+            data
+              .display_name
+              .trim()
+              ? data
+                  .display_name
+                  .trim()
+              : getFallbackName(
+                  nextSession
+                ),
 
-        setCheckingAuth(
-          false
+          role:
+            normalizeRole(
+              data?.role
+            ),
+
+          learnerStatus:
+            normalizeLearnerStatus(
+              data
+                ?.learner_status
+            ),
+
+          accessPlan:
+            normalizeAccessPlan(
+              data
+                ?.access_plan
+            )
+        });
+
+        setAuthReady(
+          true
         );
       }
 
+      void client
+        .auth
+        .getSession()
+        .then(
+          ({
+            data
+          }) =>
+            loadAccount(
+              data.session
+            )
+        );
 
-      void checkSession();
+      const {
+        data:
+          authListener
+      } =
+        client
+          .auth
+          .onAuthStateChange(
+            (
+              _event,
+              nextSession
+            ) => {
+              void loadAccount(
+                nextSession
+              );
+            }
+          );
 
+      return () => {
+        mounted =
+          false;
+
+        authListener
+          .subscription
+          .unsubscribe();
+      };
     },
     []
   );
 
 
-  async function login(
-    event:
-      FormEvent
-  ) {
-
-    event
-      .preventDefault();
-
-
-    if (!supabase) {
-
-      setMessage(
-        'Supabase is not configured.'
-      );
-
-      return;
-    }
-
-
-    if (
-      !email.trim() ||
-      !password
-    ) {
-
-      setMessage(
-        'Enter admin email and password.'
-      );
-
-      return;
-    }
-
-
-    setMessage(
-      'Signing in...'
-    );
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .auth
-        .signInWithPassword({
-          email:
-            email
-              .trim(),
-
-          password
-        });
-
-
-    if (
-      error ||
-      !data.user
-    ) {
-
-      setMessage(
-        error?.message ||
-        'Unable to sign in.'
-      );
-
-      return;
-    }
-
-
-    const allowed =
-      await verifyAdmin(
-        data
-          .user
-          .id
-      );
-
-
-    if (!allowed) {
-
-      await supabase
-        .auth
-        .signOut();
-
-
-      setMessage(
-        'This account does not have Admin or Editor permission.'
-      );
-
-
-      return;
-    }
-
-
-    setPassword(
-      ''
-    );
-
-
-    setMessage(
-      'Admin login successful.'
-    );
-
-
-    await loadArticles();
-  }
-
-
-  async function logout() {
-
-    if (!supabase) {
-      return;
-    }
-
-
-    await supabase
-      .auth
-      .signOut();
-
-
-    setIsAdmin(
-      false
-    );
-
-
-    setArticles(
-      []
-    );
-
-
-    setSelectedArticleIds(
-      []
-    );
-
-
-    setPassword(
-      ''
-    );
-
-
-    setMessage(
-      'Logged out.'
-    );
-  }
-
-
-  function resetForm() {
-
-    setEditingId(
-      null
-    );
-
-
-    setTitle(
-      ''
-    );
-
-
-    setSource(
-      'PIB'
-    );
-
-
-    setSourceUrl(
-      ''
-    );
-
-
-    setArticleDate(
-      getLocalDateValue()
-    );
-
-
-    setSubject(
-      'Polity & Governance'
-    );
-
-
-    setSummary(
-      ''
-    );
-
-
-    setBackground(
-      ''
-    );
-
-
-    setKeyFacts(
-      ''
-    );
-
-
-    setPrelimsPoints(
-      ''
-    );
-
-
-    setMainsRelevance(
-      ''
-    );
-
-
-    setIssues(
-      ''
-    );
-
-
-    setWayForward(
-      ''
-    );
-
-
-    setTagsText(
-      'Prelims, Mains'
-    );
-
-
-    setPrelims(
-      true
-    );
-
-
-    setMains(
-      true
-    );
-
-
-    setStatus(
-      'draft'
-    );
-  }
-
-
-  function startEdit(
-    article:
-      AdminArticle
-  ) {
-
-    setEditingId(
-      article.id
-    );
-
-
-    setTitle(
-      article.title
-    );
-
-
-    setSource(
-      article.source
-    );
-
-
-    setSourceUrl(
-      article.source_url ||
-      ''
-    );
-
-
-    setArticleDate(
-      getLocalDateValue(
-        article
-          .published_at ||
-        article
-          .created_at
-      )
-    );
-
-
-    setSubject(
-      article.subject
-    );
-
-
-    setSummary(
-      article.summary
-    );
-
-
-    setBackground(
-      article.background ||
-      ''
-    );
-
-
-    setKeyFacts(
-      article.key_facts ||
-      ''
-    );
-
-
-    setPrelimsPoints(
-      article.prelims_points ||
-      ''
-    );
-
-
-    setMainsRelevance(
-      article.mains_relevance ||
-      ''
-    );
-
-
-    setIssues(
-      article.issues ||
-      ''
-    );
-
-
-    setWayForward(
-      article.way_forward ||
-      ''
-    );
-
-
-    setTagsText(
-      (
-        article.tags ||
-        []
-      ).join(
-        ', '
-      )
-    );
-
-
-    setPrelims(
-      article.prelims
-    );
-
-
-    setMains(
-      article.mains
-    );
-
-
-    setStatus(
-      article.status
-    );
-
-
-    setMessage(
-      `Editing: ${article.title}`
-    );
-
-
-    switchAdminTab(
-      'current'
-    );
-  }
-
-
-  function createBody() {
-
-    const sections = [
-
-      background.trim()
-        ? `BACKGROUND\n${background.trim()}`
-        : '',
-
-
-      keyFacts.trim()
-        ? `KEY FACTS\n${keyFacts.trim()}`
-        : '',
-
-
-      prelimsPoints.trim()
-        ? `PRELIMS POINTS\n${prelimsPoints.trim()}`
-        : '',
-
-
-      mainsRelevance.trim()
-        ? `MAINS RELEVANCE\n${mainsRelevance.trim()}`
-        : '',
-
-
-      issues.trim()
-        ? `ISSUES / CHALLENGES\n${issues.trim()}`
-        : '',
-
-
-      wayForward.trim()
-        ? `WAY FORWARD\n${wayForward.trim()}`
-        : ''
-    ];
-
-
-    return sections
-      .filter(
-        Boolean
-      )
-      .join(
-        '\n\n'
-      );
-  }
-
-
-  function toCurrentAffair(
-    article:
-      AdminArticle
-  ):
-    CurrentAffair {
-
-    return {
-
-      id:
-        article.id,
-
-
-      title:
-        article.title,
-
-
-      source:
-        article.source,
-
-
-      sourceUrl:
-        article.source_url,
-
-
-      subject:
-        article.subject,
-
-
-      summary:
-        article.summary,
-
-
-      tags:
-        article.tags ||
-        [],
-
-
-      prelims:
-        article.prelims,
-
-
-      mains:
-        article.mains,
-
-
-      monthlySelected:
-        article.monthly_selected,
-
-
-      yearlySelected:
-        article.yearly_selected,
-
-
-      publishedAt:
-        article.published_at
-
-          ? new Date(
-              article.published_at
-            )
-              .toLocaleDateString(
-                'en-IN',
-                {
-                  day:
-                    '2-digit',
-
-                  month:
-                    'short',
-
-                  year:
-                    'numeric'
-                }
-              )
-
-          : 'Today',
-
-
-      publishedAtIso:
-        article.published_at
-    };
-  }
-
-  async function saveArticle(
-    event:
-      FormEvent
-  ) {
-
-    event
-      .preventDefault();
-
-
-    if (
-      !supabase ||
-      !isAdmin
-    ) {
-
-      setMessage(
-        'Admin login required.'
-      );
-
-      return;
-    }
-
-
-    if (
-      !title.trim() ||
-      !source.trim() ||
-      !articleDate ||
-      !subject.trim() ||
-      !summary.trim()
-    ) {
-
-      setMessage(
-        'Title, source, date, subject and quick summary are required.'
-      );
-
-      return;
-    }
-
-
-    setSaving(
-      true
-    );
-
-
-    setMessage(
-      editingId
-
-        ? 'Updating article...'
-
-        : 'Saving article...'
-    );
-
-
-    const {
-      data: {
-        user
-      }
-    } =
-      await supabase
-        .auth
-        .getUser();
-
-
-    if (!user) {
-
-      setSaving(
-        false
-      );
-
-
-      setIsAdmin(
-        false
-      );
-
-
-      setMessage(
-        'Session expired. Sign in again.'
-      );
-
-
-      return;
-    }
-
-
-    const tags =
-      tagsText
-        .split(
-          ','
-        )
-        .map(
-          tag =>
-            tag.trim()
-        )
-        .filter(
-          Boolean
-        );
-
-
-    const publishedAt =
-      currentAffairDateToIso(
-        articleDate
-      );
-
-
-    const payload = {
-
-      title:
-        title.trim(),
-
-
-      source:
-        source.trim(),
-
-
-      source_url:
-        sourceUrl.trim() ||
-        null,
-
-
-      subject:
-        subject.trim(),
-
-
-      summary:
-        summary.trim(),
-
-
-      body:
-        createBody() ||
-        null,
-
-
-      background:
-        background.trim() ||
-        null,
-
-
-      key_facts:
-        keyFacts.trim() ||
-        null,
-
-
-      prelims_points:
-        prelimsPoints.trim() ||
-        null,
-
-
-      mains_relevance:
-        mainsRelevance.trim() ||
-        null,
-
-
-      issues:
-        issues.trim() ||
-        null,
-
-
-      way_forward:
-        wayForward.trim() ||
-        null,
-
-
-      tags,
-
-      prelims,
-
-      mains,
-
-      status,
-
-
-      published_at:
-        publishedAt,
-
-
-      updated_at:
-        new Date()
-          .toISOString()
-    };
-
-
-    if (editingId) {
-
-      const {
-        data,
-        error
-      } =
-        await supabase
-          .from(
-            'current_affairs'
-          )
-          .update(
-            payload
-          )
-          .eq(
-            'id',
-            editingId
-          )
-          .select(
-            ARTICLE_SELECT
-          )
-          .single();
-
+  /*
+   * =========================================
+   * DAILY TASK CLOUD LOAD
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+      const client =
+        supabase;
+
+      const userId =
+        session
+          ?.user
+          .id;
 
       if (
-        error ||
-        !data
+        !client ||
+        !userId
       ) {
-
-        console.error(
-          'Update failed:',
-          error
+        setTasksState(
+          loadTasksForDay(
+            taskDay
+          )
         );
-
-
-        setSaving(
-          false
-        );
-
-
-        setMessage(
-          error?.message ||
-          'Unable to update article.'
-        );
-
 
         return;
       }
 
-
-      const updated =
-        data as
-          AdminArticle;
-
-
-      setArticles(
-        current =>
-          current.map(
-            article =>
-
-              article.id ===
-                updated.id
-
-                ? updated
-
-                : article
-          )
-      );
-
-
-      if (
-        updated.status ===
-        'published'
-      ) {
-
-        onPublish(
-          toCurrentAffair(
-            updated
-          )
-        );
-      }
-
-
-      resetForm();
-
-
-      setSaving(
-        false
-      );
-
-
-      setMessage(
-        'Article updated successfully.'
-      );
-
-
-      return;
-    }
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from(
-          'current_affairs'
-        )
-        .insert({
-
-          ...payload,
-
-
-          created_by:
-            user.id
-        })
-        .select(
-          ARTICLE_SELECT
-        )
-        .single();
-
-
-    if (
-      error ||
-      !data
-    ) {
-
-      console.error(
-        'Create failed:',
-        error
-      );
-
-
-      setSaving(
-        false
-      );
-
-
-      setMessage(
-        error?.message ||
-        'Unable to save article.'
-      );
-
-
-      return;
-    }
-
-
-    const created =
-      data as
-        AdminArticle;
-
-
-    setArticles(
-      current => [
-        created,
-        ...current
-      ]
-    );
-
-
-    if (
-      created.status ===
-      'published'
-    ) {
-
-      onPublish(
-        toCurrentAffair(
-          created
-        )
-      );
-    }
-
-
-    resetForm();
-
-
-    setSaving(
-      false
-    );
-
-
-    setMessage(
-
-      created.status ===
-        'published'
-
-        ? 'Published successfully.'
-
-        : 'Draft saved successfully.'
-    );
-  }
-
-
-  async function changeStatus(
-    article:
-      AdminArticle,
-
-    nextStatus:
-      ArticleStatus
-  ) {
-
-    if (!supabase) {
-      return;
-    }
-
-
-    const publishedAt =
-      article.published_at ||
-      new Date()
-        .toISOString();
-
-
-    const updatePayload = {
-
-      status:
-        nextStatus,
-
-
-      published_at:
-        publishedAt,
-
-
-      updated_at:
-        new Date()
-          .toISOString(),
-
-
-      ...(
-        nextStatus ===
-          'published'
-
-          ? {}
-
-          : {
-              monthly_selected:
-                false,
-
-              yearly_selected:
-                false
-            }
-      )
-    };
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from(
-          'current_affairs'
-        )
-        .update(
-          updatePayload
-        )
-        .eq(
-          'id',
-          article.id
-        )
-        .select(
-          ARTICLE_SELECT
-        )
-        .single();
-
-
-    if (
-      error ||
-      !data
-    ) {
-
-      setMessage(
-        error?.message ||
-        'Unable to change status.'
-      );
-
-
-      return;
-    }
-
-
-    const updated =
-      data as
-        AdminArticle;
-
-
-    setArticles(
-      current =>
-        current.map(
-          item =>
-
-            item.id ===
-              updated.id
-
-              ? updated
-
-              : item
-        )
-    );
-
-
-    if (
-      nextStatus ===
-      'published'
-    ) {
-
-      onPublish(
-        toCurrentAffair(
-          updated
-        )
-      );
-    }
-
-
-    setMessage(
-      `Status changed to ${nextStatus}.`
-    );
-  }
-
-
-  async function changeCuration(
-    article:
-      AdminArticle,
-
-    level:
-      | 'monthly'
-      | 'yearly',
-
-    selected:
-      boolean
-  ) {
-
-    if (!supabase) {
-      return;
-    }
-
-
-    if (
-      article.status !==
-      'published'
-    ) {
-
-      setMessage(
-        'Publish this article before adding it to Monthly or Yearly Current Affairs.'
-      );
-
-
-      return;
-    }
-
-
-    if (
-      level ===
-        'yearly' &&
-      selected &&
-      !article
-        .monthly_selected
-    ) {
-
-      setMessage(
-        'First select this Current Affair for Monthly CA.'
-      );
-
-
-      return;
-    }
-
-
-    setMessage(
-
-      level ===
-        'monthly'
-
-        ? selected
-          ? 'Adding to Monthly Current Affairs...'
-          : 'Removing from Monthly Current Affairs...'
-
-        : selected
-        ? 'Adding to Yearly Current Affairs...'
-        : 'Removing from Yearly Current Affairs...'
-    );
-
-
-    const updatePayload:
-      Record<
-        string,
-        boolean | string
-      > = {
-
-        updated_at:
-          new Date()
-            .toISOString()
-      };
-
-
-    if (
-      level ===
-      'monthly'
-    ) {
-
-      updatePayload
-        .monthly_selected =
-          selected;
-
-
-      if (!selected) {
-
-        updatePayload
-          .yearly_selected =
-            false;
-      }
-    }
-
-
-    if (
-      level ===
-      'yearly'
-    ) {
-
-      updatePayload
-        .yearly_selected =
-          selected;
-    }
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from(
-          'current_affairs'
-        )
-        .update(
-          updatePayload
-        )
-        .eq(
-          'id',
-          article.id
-        )
-        .select(
-          ARTICLE_SELECT
-        )
-        .single();
-
-
-    if (
-      error ||
-      !data
-    ) {
-
-      console.error(
-        'Current Affairs curation failed:',
-        error
-      );
-
-
-      setMessage(
-        error?.message ||
-        'Unable to update Current Affairs selection.'
-      );
-
-
-      return;
-    }
-
-
-    const updated =
-      data as
-        AdminArticle;
-
-
-    setArticles(
-      current =>
-        current.map(
-          item =>
-
-            item.id ===
-              updated.id
-
-              ? updated
-
-              : item
-        )
-    );
-
-
-    setMessage(
-
-      level ===
-        'monthly'
-
-        ? selected
-          ? 'Selected for Monthly Current Affairs.'
-          : 'Removed from Monthly Current Affairs.'
-
-        : selected
-        ? 'Selected for Yearly Current Affairs.'
-        : 'Removed from Yearly Current Affairs.'
-    );
-  }
-
-
-  function toggleArticleSelection(
-    articleId:
-      string
-  ) {
-
-    setSelectedArticleIds(
-      current =>
-
-        current.includes(
-          articleId
-        )
-
-          ? current.filter(
-              id =>
-                id !==
-                articleId
+      let cancelled =
+        false;
+
+      async function loadDailyTasksFromCloud() {
+        const localTasks =
+          loadTasksForDay(
+            taskDay
+          );
+
+        const {
+          data,
+          error
+        } =
+          await client
+            .from(
+              'daily_task_progress'
             )
-
-          : [
-              ...current,
-              articleId
-            ]
-    );
-  }
-
-
-  async function bulkChangeCuration(
-    level:
-      | 'monthly'
-      | 'yearly',
-
-    selected:
-      boolean
-  ) {
-
-    if (
-      !supabase ||
-      selectedArticleIds.length ===
-        0
-    ) {
-
-      setMessage(
-        'Select at least one Current Affair first.'
-      );
-
-      return;
-    }
-
-
-    const selectedArticles =
-      articles.filter(
-        article =>
-          selectedArticleIds.includes(
-            article.id
-          )
-      );
-
-
-    if (
-      level ===
-        'yearly' &&
-      selected &&
-      selectedArticles.some(
-        article =>
-          !article
-            .monthly_selected
-      )
-    ) {
-
-      setMessage(
-        'Yearly selection is allowed only for articles already selected for Monthly Current Affairs.'
-      );
-
-      return;
-    }
-
-
-    const updatePayload:
-      Record<
-        string,
-        boolean | string
-      > = {
-
-        updated_at:
-          new Date()
-            .toISOString()
-      };
-
-
-    if (
-      level ===
-      'monthly'
-    ) {
-
-      updatePayload
-        .monthly_selected =
-          selected;
-
-
-      if (!selected) {
-
-        updatePayload
-          .yearly_selected =
-            false;
-      }
-    }
-
-
-    if (
-      level ===
-      'yearly'
-    ) {
-
-      updatePayload
-        .yearly_selected =
-          selected;
-    }
-
-
-    setMessage(
-      'Updating selected Current Affairs...'
-    );
-
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from(
-          'current_affairs'
-        )
-        .update(
-          updatePayload
-        )
-        .in(
-          'id',
-          selectedArticleIds
-        )
-        .select(
-          ARTICLE_SELECT
-        );
-
-
-    if (error) {
-
-      console.error(
-        'Bulk Current Affairs curation failed:',
-        error
-      );
-
-
-      setMessage(
-        error.message
-      );
-
-
-      return;
-    }
-
-
-    const updatedItems =
-      (
-        data ||
-        []
-      ) as
-        AdminArticle[];
-
-
-    setArticles(
-      current =>
-        current.map(
-          article => {
-
-            const updated =
-              updatedItems.find(
-                item =>
-                  item.id ===
-                  article.id
-              );
-
-
-            return (
-              updated ||
-              article
+            .select(
+              'task_id, done'
+            )
+            .eq(
+              'user_id',
+              userId
+            )
+            .eq(
+              'task_date',
+              taskDay
             );
-          }
-        )
-    );
 
+        if (cancelled) {
+          return;
+        }
 
-    setSelectedArticleIds(
-      []
-    );
+        if (error) {
+          console.error(
+            'Unable to load cloud daily tasks:',
+            error
+          );
 
+          setTasksState(
+            localTasks
+          );
 
-    setMessage(
+          return;
+        }
 
-      level ===
-        'monthly'
-
-        ? selected
-          ? 'Selected articles added to Monthly Current Affairs.'
-          : 'Selected articles removed from Monthly Current Affairs.'
-
-        : selected
-        ? 'Selected articles added to Yearly Current Affairs.'
-        : 'Selected articles removed from Yearly Current Affairs.'
-    );
-  }
-
-  async function deleteArticle(
-    article:
-      AdminArticle
-  ) {
-
-    if (!supabase) {
-      return;
-    }
-
-
-    const confirmed =
-      window
-        .confirm(
-          `Delete "${article.title}" permanently?`
-        );
-
-
-    if (!confirmed) {
-      return;
-    }
-
-
-    const {
-      error
-    } =
-      await supabase
-        .from(
-          'current_affairs'
-        )
-        .delete()
-        .eq(
-          'id',
-          article.id
-        );
-
-
-    if (error) {
-
-      setMessage(
-        error.message
-      );
-
-
-      return;
-    }
-
-
-    setArticles(
-      current =>
-        current.filter(
-          item =>
-            item.id !==
-            article.id
-        )
-    );
-
-
-    setSelectedArticleIds(
-      current =>
-        current.filter(
-          id =>
-            id !==
-            article.id
-        )
-    );
-
-
-    if (
-      editingId ===
-      article.id
-    ) {
-
-      resetForm();
-    }
-
-
-    setMessage(
-      'Article deleted.'
-    );
-  }
-
-
-  const publishedArticles =
-    useMemo(
-      () =>
-
-        articles.filter(
-          article =>
-            article.status ===
-            'published'
-        ),
-
-      [
-        articles
-      ]
-    );
-
-
-  const monthlyArticles =
-    useMemo(
-      () =>
-
-        publishedArticles
-          .filter(
-            article =>
-              article
-                .monthly_selected
-          ),
-
-      [
-        publishedArticles
-      ]
-    );
-
-
-  const yearlyArticles =
-    useMemo(
-      () =>
-
-        monthlyArticles
-          .filter(
-            article =>
-              article
-                .yearly_selected
-          ),
-
-      [
-        monthlyArticles
-      ]
-    );
-
-
-  const curationArticles =
-    useMemo(
-      () =>
-
-        articles.filter(
-          article => {
-
-            if (
-              curationView ===
-                'daily' &&
-              article.status !==
-                'published'
-            ) {
-
-              return false;
-            }
-
-
-            if (
-              curationView ===
-                'monthly' &&
-              (
-                article.status !==
-                  'published' ||
-
-                !article
-                  .monthly_selected
-              )
-            ) {
-
-              return false;
-            }
-
-
-            if (
-              curationView ===
-                'yearly' &&
-              (
-                article.status !==
-                  'published' ||
-
-                !article
-                  .yearly_selected
-              )
-            ) {
-
-              return false;
-            }
-
-
-            const itemDate =
-              article
-                .published_at
-
-                ? new Date(
-                    article
-                      .published_at
-                  )
-
-                : new Date(
-                    article
-                      .created_at
+        if (
+          data &&
+          data.length >
+            0
+        ) {
+          const cloudTasks =
+            defaultTasks.map(
+              defaultTask => {
+                const cloudTask =
+                  data.find(
+                    item =>
+                      item
+                        .task_id ===
+                      defaultTask.id
                   );
 
+                return {
+                  ...defaultTask,
+
+                  done:
+                    cloudTask
+                      ?.done ===
+                    true
+                };
+              }
+            );
+
+          setTasksState(
+            cloudTasks
+          );
+
+          localStorage.setItem(
+            getTaskStorageKey(
+              taskDay
+            ),
+            JSON.stringify(
+              cloudTasks
+            )
+          );
+
+          return;
+        }
+
+        setTasksState(
+          localTasks
+        );
+
+        const rows =
+          localTasks.map(
+            task => ({
+              user_id:
+                userId,
+
+              task_date:
+                taskDay,
+
+              task_id:
+                task.id,
+
+              done:
+                task.done,
+
+              updated_at:
+                new Date()
+                  .toISOString()
+            })
+          );
+
+        const {
+          error:
+            seedError
+        } =
+          await client
+            .from(
+              'daily_task_progress'
+            )
+            .upsert(
+              rows,
+              {
+                onConflict:
+                  'user_id,task_date,task_id'
+              }
+            );
+
+        if (seedError) {
+          console.error(
+            'Unable to create cloud daily tasks:',
+            seedError
+          );
+        }
+      }
+
+      void loadDailyTasksFromCloud();
+
+      return () => {
+        cancelled =
+          true;
+      };
+    },
+    [
+      session
+        ?.user
+        .id,
+      taskDay
+    ]
+  );
+
+
+  /*
+   * =========================================
+   * DAILY DATE CHANGE
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+      const timer =
+        window.setInterval(
+          () => {
+            const currentDay =
+              getLocalDateKey();
 
             if (
-              Number.isNaN(
-                itemDate
-                  .getTime()
-              )
+              currentDay !==
+              taskDay
             ) {
-
-              return false;
-            }
-
-
-            const itemYear =
-              String(
-                itemDate
-                  .getFullYear()
+              setTaskDay(
+                currentDay
               );
 
-
-            const itemMonth =
-              `${itemYear}-${String(
-                itemDate
-                  .getMonth() +
-                1
-              ).padStart(
-                2,
-                '0'
-              )}`;
-
-
-            if (
-              curationView ===
-                'daily' &&
-
-              curationMonth &&
-
-              itemMonth !==
-                curationMonth
-            ) {
-
-              return false;
-            }
-
-
-            if (
-              (
-                curationView ===
-                  'monthly' ||
-
-                curationView ===
-                  'yearly'
-              ) &&
-
-              curationYear &&
-
-              itemYear !==
-                curationYear
-            ) {
-
-              return false;
-            }
-
-
-            if (
-              curationPendingOnly
-            ) {
-
-              if (
-                curationView ===
-                  'daily' &&
-
-                article
-                  .monthly_selected
-              ) {
-
-                return false;
-              }
-
-
-              if (
-                curationView ===
-                  'monthly' &&
-
-                article
-                  .yearly_selected
-              ) {
-
-                return false;
-              }
-            }
-
-
-            const search =
-              curationSearch
-                .trim()
-                .toLowerCase();
-
-
-            if (!search) {
-
-              return true;
-            }
-
-
-            const searchable =
-              [
-                article.title,
-
-                article.subject,
-
-                article.source,
-
-                article.summary,
-
-                ...(
-                  article.tags ||
-                  []
+              setTasksState(
+                loadTasksForDay(
+                  currentDay
                 )
-              ]
-                .join(
-                  ' '
-                )
-                .toLowerCase();
-
-
-            return searchable
-              .includes(
-                search
               );
+            }
+          },
+          60_000
+        );
+
+      return () =>
+        window.clearInterval(
+          timer
+        );
+    },
+    [
+      taskDay
+    ]
+  );
+
+
+  /*
+   * =========================================
+   * INITIAL CURRENT AFFAIRS LOAD
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+      void loadCurrentAffairs();
+    },
+    []
+  );
+
+
+  /*
+   * =========================================
+   * REFRESH CURRENT AFFAIRS WHEN OPENED
+   *
+   * THIS IS THE IMPORTANT NEW FIX.
+   *
+   * Example:
+   *
+   * Admin
+   *   ↓
+   * Select Daily → Monthly
+   *   ↓
+   * Select Monthly → Yearly
+   *   ↓
+   * Open Current Affairs
+   *   ↓
+   * Fresh Supabase data loads automatically
+   *
+   * No browser reload required.
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+      if (
+        active ===
+        'current'
+      ) {
+        void loadCurrentAffairs();
+      }
+    },
+    [
+      active
+    ]
+  );
+
+
+  /*
+   * =========================================
+   * SCROLL TO TOP
+   * =========================================
+   */
+
+  useEffect(
+    () => {
+      window.scrollTo({
+        top:
+          0,
+
+        behavior:
+          'smooth'
+      });
+    },
+    [
+      active
+    ]
+  );
+
+
+  /*
+   * =========================================
+   * EDITOR ACCESS
+   * =========================================
+   */
+
+  const isEditor =
+    profile
+      ?.role ===
+      'editor' ||
+    profile
+      ?.role ===
+      'admin';
+
+
+  /*
+   * =========================================
+   * AUTH ACCESS GATE
+   * =========================================
+   */
+
+  if (
+    !authReady
+  ) {
+    return (
+      <IonApp>
+        <LoadingCard
+          text="Checking your account…"
+        />
+      </IonApp>
+    );
+  }
+
+
+  /*
+   * =========================================
+   * SIGNED OUT VISITOR
+   * =========================================
+   */
+
+  if (
+    !session
+  ) {
+    return (
+      <IonApp>
+        {
+          visitorAccountOpen
+            ? (
+              <AccountPage
+                intent="study"
+                onBack={() =>
+                  setVisitorAccountOpen(
+                    false
+                  )
+                }
+              />
+            )
+            : (
+              <VisitorPreviewPage
+                onOpenAccount={() =>
+                  setVisitorAccountOpen(
+                    true
+                  )
+                }
+              />
+            )
+        }
+      </IonApp>
+    );
+  }
+
+
+  /*
+   * =========================================
+   * PROFILE LOADING
+   * =========================================
+   */
+
+  if (
+    !profile
+  ) {
+    return (
+      <IonApp>
+        <LoadingCard
+          text="Loading your study account…"
+        />
+      </IonApp>
+    );
+  }
+
+
+  /*
+   * =========================================
+   * FULL STUDY ACCESS
+   * =========================================
+   */
+
+  const hasFullStudyAccess =
+    isEditor ||
+    (
+      profile
+        .learnerStatus ===
+        'serious' &&
+      (
+        profile
+          .accessPlan ===
+          'free_full' ||
+
+        profile
+          .accessPlan ===
+          'scholarship' ||
+
+        profile
+          .accessPlan ===
+          'paid_full'
+      )
+    );
+
+
+  /*
+   * =========================================
+   * BASIC REGISTERED STUDENT
+   * =========================================
+   */
+
+  if (
+    !hasFullStudyAccess
+  ) {
+    return (
+      <IonApp>
+        <SeriousLearnerActivationPage
+          displayName={
+            profile
+              .displayName
           }
-        ),
 
-      [
-        articles,
-
-        curationView,
-
-        curationSearch,
-
-        curationMonth,
-
-        curationYear,
-
-        curationPendingOnly
-      ]
-    );
-
-  if (
-    !isSupabaseConfigured
-  ) {
-    return (
-      <div
-        className="page-wrap"
-      >
-        <TopBar
-          title="Admin Studio"
-          subtitle="Content management"
-        />
-
-        <section
-          className="panel"
-        >
-          <h2>
-            Supabase is not configured
-          </h2>
-        </section>
-      </div>
-    );
-  }
-
-  if (
-    checkingAuth
-  ) {
-    return (
-      <div
-        className="page-wrap"
-      >
-        <TopBar
-          title="Admin Studio"
-          subtitle="Checking secure access"
-        />
-
-        <section
-          className="panel"
-        >
-          <h2>
-            Checking admin session...
-          </h2>
-        </section>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div
-        className="page-wrap"
-      >
-        <TopBar
-          title="Admin Studio"
-          subtitle="Secure administrator access"
-        />
-
-        <section
-          className="admin-grid"
-        >
-          <form
-            className="panel admin-form"
-            onSubmit={
-              login
-            }
-          >
-            <span
-              className="eyebrow"
-            >
-              ADMIN LOGIN
-            </span>
-
-            <h2>
-              Sign in to manage content
-            </h2>
-
-            <label>
-              Email
-
-              <input
-                type="email"
-                value={
-                  email
-                }
-                onChange={
-                  event =>
-                    setEmail(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                autoComplete="email"
-              />
-            </label>
-
-            <label>
-              Password
-
-              <input
-                type="password"
-                value={
-                  password
-                }
-                onChange={
-                  event =>
-                    setPassword(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                autoComplete="current-password"
-              />
-            </label>
-
-            <button
-              type="submit"
-              className="primary-btn"
-            >
-              Sign in
-            </button>
-
-            {message && (
-              <p
-                className="form-message"
-              >
-                {message}
-              </p>
-            )}
-          </form>
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="page-wrap"
-    >
-      <TopBar
-        title="Admin Studio"
-        subtitle="Professional UPSC content publishing"
-      />
-
-      <section
-        className="admin-status"
-      >
-        <div>
-          <span
-            className="status-dot online"
-          />
-
-          <strong>
-            Secure Admin connected
-          </strong>
-        </div>
-
-        <p>
-          Manage Current Affairs, Study Material, Prelims MCQs, Prelims Test Series, Mains questions and student evaluations from separate workspaces.
-        </p>
-
-        <div
-          style={{
-            display:
-              'flex',
-            gap:
-              '10px',
-            flexWrap:
-              'wrap'
+          onActivated={() => {
+            window
+              .location
+              .reload();
           }}
-        >
-          <button
-            type="button"
-            onClick={() =>
-              void loadArticles()
-            }
-          >
-            Refresh
-          </button>
 
-          <button
-            type="button"
-            onClick={() =>
-              void logout()
-            }
-          >
-            Log out
-          </button>
-        </div>
-      </section>
+          onSignOut={
+            signOut
+          }
+        />
+      </IonApp>
+    );
+  }
 
-      <AdminWorkspaceStats
-        onNavigate={
-          switchAdminTab
+
+  /*
+   * =========================================
+   * HOME
+   * =========================================
+   */
+
+  let content = (
+    <HomePage
+      tasks={
+        tasks
+      }
+
+      setTasks={
+        setTasks
+      }
+
+      onGoPractice={
+        openPrelimsPractice
+      }
+
+      onGoLearn={
+        openLearn
+      }
+
+      onGoCurrent={() =>
+        setActive(
+          'current'
+        )
+      }
+    />
+  );
+
+
+  /*
+   * =========================================
+   * LEARN
+   * =========================================
+   */
+
+  if (
+    active ===
+    'learn'
+  ) {
+    content = (
+      <LearnHubPage
+        initialSubject={
+          learnSubject
+        }
+
+        initialMode={
+          learnMode
         }
       />
+    );
+  }
 
-      <section
-        className="panel"
-        style={{
-          marginTop:
-            '16px',
-          marginBottom:
-            '22px',
-          padding:
-            '14px',
-          position:
-            'sticky',
-          top:
-            '10px',
-          zIndex:
-            20,
-          background:
-            '#101a30',
-          boxShadow:
-            '0 10px 30px rgba(0,0,0,0.18)'
-        }}
-      >
+
+  /*
+   * =========================================
+   * PRACTICE
+   * =========================================
+   */
+
+  if (
+    active ===
+    'practice'
+  ) {
+    content = (
+      <>
         <div
-          style={{
-            display:
-              'flex',
-            gap:
-              '10px',
-            flexWrap:
-              'wrap'
-          }}
+          className="page-wrap"
         >
-          <button
-            type="button"
-            className={
-              adminTab ===
-                'current'
-                ? 'filter active'
-                : 'filter'
-            }
-            onClick={() =>
-              switchAdminTab(
-                'current'
-              )
-            }
-          >
-            Current Affairs
-          </button>
+          <div
+            className="filter-row"
+            style={{
+              paddingTop:
+                'max(env(safe-area-inset-top, 0px), 32px)',
 
-          <button
-            type="button"
-            className={
-              adminTab ===
-                'resources'
-                ? 'filter active'
-                : 'filter'
-            }
-            onClick={() =>
-              switchAdminTab(
-                'resources'
-              )
-            }
-          >
-            Study Material
-          </button>
+              paddingBottom:
+                0,
 
-          <button
-            type="button"
-            className={
-              adminTab ===
-                'mcq'
-                ? 'filter active'
-                : 'filter'
-            }
-            onClick={() =>
-              switchAdminTab(
-                'mcq'
-              )
-            }
-          >
-            Prelims MCQ
-          </button>
+              display:
+                'grid',
 
-          <button
-            type="button"
-            className={
-              adminTab ===
-                'tests'
-                ? 'filter active'
-                : 'filter'
-            }
-            onClick={() =>
-              switchAdminTab(
-                'tests'
-              )
-            }
-          >
-            Test Series
-          </button>
+              gridTemplateColumns:
+                'repeat(3, minmax(0, 1fr))',
 
-          <button
-            type="button"
-            className={
-              adminTab ===
-                'mains'
-                ? 'filter active'
-                : 'filter'
-            }
-            onClick={() =>
-              switchAdminTab(
-                'mains'
-              )
-            }
-          >
-            Mains
-          </button>
+              gap:
+                '8px',
 
-          <button
-            type="button"
-            className={
-              adminTab ===
-                'evaluation'
-                ? 'filter active'
-                : 'filter'
-            }
-            onClick={() =>
-              switchAdminTab(
-                'evaluation'
-              )
-            }
-          >
-            Evaluations
-            {' '}
-            <PendingEvaluationBadge />
-          </button>
-        </div>
-      </section>
+              overflow:
+                'visible',
 
-      <div
-        style={{
-          display:
-            adminTab ===
-              'current'
-              ? 'block'
-              : 'none'
-        }}
-      >
-        <section
-          className="admin-grid"
-        >
-          <form
-            className="panel admin-form"
-            onSubmit={
-              saveArticle
-            }
-          >
-            <span
-              className="eyebrow"
-            >
-              CURRENT AFFAIRS EDITOR
-            </span>
+              width:
+                '100%',
 
-            <h2>
-              {
-                editingId
-                  ? 'Edit Current Affair'
-                  : 'Add Current Affair'
+              maxWidth:
+                '720px',
+
+              margin:
+                '0 auto'
+            }}
+          >
+
+            <button
+              type="button"
+              className={
+                practiceMode ===
+                  'prelims'
+                  ? 'filter active'
+                  : 'filter'
               }
-            </h2>
-
-            <label>
-              Title
-
-              <input
-                value={
-                  title
-                }
-                onChange={
-                  event =>
-                    setTitle(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="Current Affair headline"
-                required
-              />
-            </label>
-
-            <div
               style={{
-                display:
-                  'grid',
-                gridTemplateColumns:
-                  'repeat(auto-fit, minmax(220px, 1fr))',
-                gap:
-                  '12px'
-              }}
-            >
-              <label>
-                Source
+                width:
+                  '100%',
 
-                <input
-                  value={
-                    source
-                  }
-                  onChange={
-                    event =>
-                      setSource(
-                        event
-                          .target
-                          .value
-                      )
-                  }
-                  list="current-affairs-source-list"
-                  placeholder="PIB"
-                  required
-                />
+                minWidth:
+                  0,
 
-                <datalist
-                  id="current-affairs-source-list"
-                >
-                  <option
-                    value="PIB"
-                  />
-                  <option
-                    value="The Hindu"
-                  />
-                  <option
-                    value="Indian Express"
-                  />
-                  <option
-                    value="PRS India"
-                  />
-                  <option
-                    value="RBI"
-                  />
-                  <option
-                    value="Supreme Court of India"
-                  />
-                  <option
-                    value="Government of India"
-                  />
-                  <option
-                    value="Ministry / Department"
-                  />
-                </datalist>
-              </label>
+                minHeight:
+                  '52px',
 
-              <label>
-                Subject
+                whiteSpace:
+                  'normal',
 
-                <input
-                  value={
-                    subject
-                  }
-                  onChange={
-                    event =>
-                      setSubject(
-                        event
-                          .target
-                          .value
-                      )
-                  }
-                  placeholder="Polity & Governance"
-                  required
-                />
-              </label>
-            </div>
+                textAlign:
+                  'center',
 
-            <label>
-              Current Affair Date
+                lineHeight:
+                  1.2,
 
-              <input
-                type="date"
-                value={
-                  articleDate
-                }
-                onChange={
-                  event =>
-                    setArticleDate(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                required
-              />
+                padding:
+                  '9px 5px',
 
-              <small>
-                This date is used for Daily, Monthly and Yearly Current Affairs archives.
-              </small>
-            </label>
+                fontSize:
+                  'clamp(0.68rem, 2.6vw, 0.8rem)',
 
-            <label>
-              Official Source URL
-
-              <input
-                type="url"
-                value={
-                  sourceUrl
-                }
-                onChange={
-                  event =>
-                    setSourceUrl(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="https://..."
-              />
-            </label>
-
-            <label>
-              Quick Revision Summary
-
-              <textarea
-                rows={
-                  4
-                }
-                value={
-                  summary
-                }
-                onChange={
-                  event =>
-                    setSummary(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="2–4 lines explaining why this matters for UPSC."
-                required
-              />
-            </label>
-
-            <label>
-              Background
-
-              <textarea
-                rows={
-                  5
-                }
-                value={
-                  background
-                }
-                onChange={
-                  event =>
-                    setBackground(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="Context and background of the issue."
-              />
-            </label>
-
-            <label>
-              Key Facts
-
-              <textarea
-                rows={
-                  5
-                }
-                value={
-                  keyFacts
-                }
-                onChange={
-                  event =>
-                    setKeyFacts(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="Important facts, institutions, numbers and provisions."
-              />
-            </label>
-
-            <label>
-              Prelims Points
-
-              <textarea
-                rows={
-                  5
-                }
-                value={
-                  prelimsPoints
-                }
-                onChange={
-                  event =>
-                    setPrelimsPoints(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="Facts, organisations, schemes and likely MCQ points."
-              />
-            </label>
-
-            <label>
-              Mains Relevance
-
-              <textarea
-                rows={
-                  5
-                }
-                value={
-                  mainsRelevance
-                }
-                onChange={
-                  event =>
-                    setMainsRelevance(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="GS paper, syllabus linkage and analytical dimensions."
-              />
-            </label>
-
-            <label>
-              Issues / Challenges
-
-              <textarea
-                rows={
-                  5
-                }
-                value={
-                  issues
-                }
-                onChange={
-                  event =>
-                    setIssues(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="Major concerns, gaps or limitations."
-              />
-            </label>
-
-            <label>
-              Way Forward
-
-              <textarea
-                rows={
-                  5
-                }
-                value={
-                  wayForward
-                }
-                onChange={
-                  event =>
-                    setWayForward(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="Balanced solutions, reforms and conclusion points."
-              />
-            </label>
-
-            <label>
-              Tags
-
-              <input
-                value={
-                  tagsText
-                }
-                onChange={
-                  event =>
-                    setTagsText(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="Environment, GS-III, Energy"
-              />
-
-              <small>
-                Separate tags using commas.
-              </small>
-            </label>
-
-            <div
-              className="checkbox-row"
-            >
-              <label>
-                <input
-                  type="checkbox"
-                  checked={
-                    prelims
-                  }
-                  onChange={
-                    event =>
-                      setPrelims(
-                        event
-                          .target
-                          .checked
-                      )
-                  }
-                />
-
-                Prelims
-              </label>
-
-              <label>
-                <input
-                  type="checkbox"
-                  checked={
-                    mains
-                  }
-                  onChange={
-                    event =>
-                      setMains(
-                        event
-                          .target
-                          .checked
-                      )
-                  }
-                />
-
-                Mains
-              </label>
-            </div>
-
-            <label>
-              Status
-
-              <select
-                value={
-                  status
-                }
-                onChange={
-                  event =>
-                    setStatus(
-                      event
-                        .target
-                        .value as ArticleStatus
-                    )
-                }
-              >
-                <option
-                  value="draft"
-                >
-                  Draft
-                </option>
-
-                <option
-                  value="published"
-                >
-                  Published
-                </option>
-
-                <option
-                  value="archived"
-                >
-                  Archived
-                </option>
-              </select>
-            </label>
-
-            <div
-              style={{
                 display:
                   'flex',
-                gap:
-                  '12px',
-                flexWrap:
-                  'wrap'
-              }}
-            >
-              <button
-                type="submit"
-                className="primary-btn"
-                disabled={
-                  saving
-                }
-              >
-                {
-                  saving
-                    ? 'Saving...'
-                    : editingId
-                    ? 'Save changes'
-                    : status ===
-                      'published'
-                    ? 'Publish to students'
-                    : 'Save draft'
-                }
-              </button>
 
-              {editingId && (
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={
-                    resetForm
-                  }
-                >
-                  Cancel edit
-                </button>
-              )}
-            </div>
-
-            {message && (
-              <p
-                className="form-message"
-              >
-                {message}
-              </p>
-            )}
-          </form>
-
-          <aside
-            className="panel admin-side"
-          >
-            <span
-              className="eyebrow"
-            >
-              UPSC EDITOR CHECKLIST
-            </span>
-
-            <h3>
-              Before publishing
-            </h3>
-
-            <ol>
-              <li>
-                Verify the primary source.
-              </li>
-              <li>
-                Keep the quick summary short.
-              </li>
-              <li>
-                Add only exam-relevant facts.
-              </li>
-              <li>
-                Separate Prelims facts from Mains analysis.
-              </li>
-              <li>
-                Mention challenges without exaggeration.
-              </li>
-              <li>
-                Finish with a balanced way forward.
-              </li>
-              <li>
-                Save as Draft until reviewed.
-              </li>
-            </ol>
-
-            <div
-              className="callout"
-            >
-              <strong>
-                Recommended workflow
-              </strong>
-
-              <p>
-                Create → Draft → Review → Publish. Students see only Published articles.
-              </p>
-            </div>
-
-            <div
-              className="callout"
-              style={{
-                marginTop:
-                  '14px'
-              }}
-            >
-              <strong>
-                Monthly and Yearly curation
-              </strong>
-
-              <p>
-                First publish the Daily Current Affair. Then select important Daily items for Monthly revision. From those Monthly items, select only the most important for Yearly revision.
-              </p>
-            </div>
-          </aside>
-        </section>
-
-        <section
-          className="panel"
-          style={{
-            marginTop:
-              '24px'
-          }}
-        >
-          <div
-            style={{
-              display:
-                'flex',
-              justifyContent:
-                'space-between',
-              alignItems:
-                'flex-start',
-              gap:
-                '16px',
-              flexWrap:
-                'wrap'
-            }}
-          >
-            <div>
-              <span
-                className="eyebrow"
-              >
-                CONTENT MANAGER
-              </span>
-
-              <h2>
-                Existing Current Affairs
-              </h2>
-
-              <p
-                style={{
-                  margin:
-                    '6px 0 0',
-                  color:
-                    '#94a3b8'
-                }}
-              >
-                Manage Daily content and curate Monthly and Yearly revision sets.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={() =>
-                void loadArticles()
-              }
-            >
-              Refresh list
-            </button>
-          </div>
-
-          <div
-            style={{
-              marginTop:
-                '20px'
-            }}
-          >
-            <span
-              className="eyebrow"
-            >
-              CURRENT AFFAIRS CURATION
-            </span>
-
-            <p
-              style={{
-                marginTop:
-                  '7px',
-                color:
-                  '#94a3b8',
-                lineHeight:
-                  1.6
-              }}
-            >
-              Daily → Monthly lets you select the most important Daily Current Affairs from a particular month. Monthly → Yearly lets you review those selected Monthly articles and keep only the highest-priority topics for annual revision.
-            </p>
-
-            <div
-              style={{
-                display:
-                  'grid',
-                gridTemplateColumns:
-                  'repeat(auto-fit, minmax(150px, 1fr))',
-                gap:
-                  '10px',
-                marginTop:
-                  '16px'
-              }}
-            >
-              <button
-                type="button"
-                className={
-                  curationView ===
-                    'all'
-                    ? 'filter active'
-                    : 'filter'
-                }
-                onClick={() => {
-                  setCurationView(
-                    'all'
-                  );
-
-                  setSelectedArticleIds(
-                    []
-                  );
-                }}
-              >
-                All Articles
-                {' '}
-                ({articles.length})
-              </button>
-
-              <button
-                type="button"
-                className={
-                  curationView ===
-                    'daily'
-                    ? 'filter active'
-                    : 'filter'
-                }
-                onClick={() => {
-                  setCurationView(
-                    'daily'
-                  );
-
-                  setSelectedArticleIds(
-                    []
-                  );
-                }}
-              >
-                Daily → Monthly
-                {' '}
-                ({publishedArticles.length})
-              </button>
-
-              <button
-                type="button"
-                className={
-                  curationView ===
-                    'monthly'
-                    ? 'filter active'
-                    : 'filter'
-                }
-                onClick={() => {
-                  setCurationView(
-                    'monthly'
-                  );
-
-                  setSelectedArticleIds(
-                    []
-                  );
-                }}
-              >
-                Monthly → Yearly
-                {' '}
-                ({monthlyArticles.length})
-              </button>
-
-              <button
-                type="button"
-                className={
-                  curationView ===
-                    'yearly'
-                    ? 'filter active'
-                    : 'filter'
-                }
-                onClick={() => {
-                  setCurationView(
-                    'yearly'
-                  );
-
-                  setSelectedArticleIds(
-                    []
-                  );
-                }}
-              >
-                Yearly Selected
-                {' '}
-                ({yearlyArticles.length})
-              </button>
-            </div>
-
-            <div
-              style={{
-                display:
-                  'grid',
-                gridTemplateColumns:
-                  'repeat(auto-fit, minmax(190px, 1fr))',
-                gap:
-                  '12px',
-                marginTop:
-                  '16px',
                 alignItems:
-                  'end'
+                  'center',
+
+                justifyContent:
+                  'center',
+
+                overflowWrap:
+                  'anywhere'
               }}
+              onClick={() =>
+                setPracticeMode(
+                  'prelims'
+                )
+              }
             >
-              {curationView ===
-                'daily' && (
-                <label
-                  style={{
-                    display:
-                      'grid',
-                    gap:
-                      '7px'
-                  }}
-                >
-                  Select Month
+              Prelims MCQ
+            </button>
 
-                  <input
-                    type="month"
-                    value={
-                      curationMonth
-                    }
-                    onChange={
-                      event =>
-                        setCurationMonth(
-                          event
-                            .target
-                            .value
-                        )
-                    }
-                  />
 
-                  <small>
-                    Show Daily Current Affairs from this month.
-                  </small>
-                </label>
-              )}
-
-              {(curationView ===
-                  'monthly' ||
-                curationView ===
-                  'yearly') && (
-                <label
-                  style={{
-                    display:
-                      'grid',
-                    gap:
-                      '7px'
-                  }}
-                >
-                  Select Year
-
-                  <input
-                    type="number"
-                    min="2000"
-                    max="2100"
-                    step="1"
-                    value={
-                      curationYear
-                    }
-                    onChange={
-                      event =>
-                        setCurationYear(
-                          event
-                            .target
-                            .value
-                        )
-                    }
-                  />
-
-                  <small>
-                    Show Current Affairs from this year.
-                  </small>
-                </label>
-              )}
-
-              {(curationView ===
-                  'daily' ||
-                curationView ===
-                  'monthly') && (
-                <label
-                  style={{
-                    display:
-                      'flex',
-                    alignItems:
-                      'center',
-                    gap:
-                      '10px',
-                    minHeight:
-                      '44px'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={
-                      curationPendingOnly
-                    }
-                    onChange={
-                      event =>
-                        setCurationPendingOnly(
-                          event
-                            .target
-                            .checked
-                        )
-                    }
-                  />
-
-                  <span>
-                    Unselected only
-                  </span>
-                </label>
-              )}
-
-              <button
-                type="button"
-                className="secondary-btn"
-                onClick={() => {
-                  setCurationMonth(
-                    getLocalDateValue()
-                      .slice(
-                        0,
-                        7
-                      )
-                  );
-
-                  setCurationYear(
-                    String(
-                      new Date()
-                        .getFullYear()
-                    )
-                  );
-
-                  setCurationPendingOnly(
-                    false
-                  );
-
-                  setCurationSearch(
-                    ''
-                  );
-
-                  setSelectedArticleIds(
-                    []
-                  );
-                }}
-              >
-                Reset filters
-              </button>
-            </div>
-
-            <label
+            <button
+              type="button"
+              className={
+                practiceMode ===
+                  'tests'
+                  ? 'filter active'
+                  : 'filter'
+              }
               style={{
+                width:
+                  '100%',
+
+                minWidth:
+                  0,
+
+                minHeight:
+                  '52px',
+
+                whiteSpace:
+                  'normal',
+
+                textAlign:
+                  'center',
+
+                lineHeight:
+                  1.2,
+
+                padding:
+                  '9px 5px',
+
+                fontSize:
+                  'clamp(0.68rem, 2.6vw, 0.8rem)',
+
                 display:
-                  'grid',
-                gap:
-                  '7px',
-                marginTop:
-                  '16px'
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                justifyContent:
+                  'center',
+
+                overflowWrap:
+                  'anywhere'
               }}
+              onClick={() =>
+                setPracticeMode(
+                  'tests'
+                )
+              }
             >
-              Search Current Affairs
+              Prelims Test Series
+            </button>
 
-              <input
-                type="search"
-                value={
-                  curationSearch
-                }
-                onChange={
-                  event =>
-                    setCurationSearch(
-                      event
-                        .target
-                        .value
-                    )
-                }
-                placeholder="Search title, subject, source, summary or tag..."
-              />
-            </label>
 
-            <div
+            <button
+              type="button"
+              className={
+                practiceMode ===
+                  'mains'
+                  ? 'filter active'
+                  : 'filter'
+              }
               style={{
+                width:
+                  '100%',
+
+                minWidth:
+                  0,
+
+                minHeight:
+                  '52px',
+
+                whiteSpace:
+                  'normal',
+
+                textAlign:
+                  'center',
+
+                lineHeight:
+                  1.2,
+
+                padding:
+                  '9px 5px',
+
+                fontSize:
+                  'clamp(0.68rem, 2.6vw, 0.8rem)',
+
                 display:
-                  'grid',
-                gridTemplateColumns:
-                  'repeat(auto-fit, minmax(160px, 1fr))',
-                gap:
-                  '10px',
-                marginTop:
-                  '16px'
+                  'flex',
+
+                alignItems:
+                  'center',
+
+                justifyContent:
+                  'center',
+
+                overflowWrap:
+                  'anywhere'
               }}
+              onClick={() =>
+                setPracticeMode(
+                  'mains'
+                )
+              }
             >
-              <div
-                className="panel"
-                style={{
-                  padding:
-                    '14px'
-                }}
-              >
-                <small>
-                  Published Daily
-                </small>
+              Mains Answer Writing
+            </button>
 
-                <h2
-                  style={{
-                    margin:
-                      '6px 0 0'
-                  }}
-                >
-                  {publishedArticles.length}
-                </h2>
-              </div>
-
-              <div
-                className="panel"
-                style={{
-                  padding:
-                    '14px'
-                }}
-              >
-                <small>
-                  Monthly Selected
-                </small>
-
-                <h2
-                  style={{
-                    margin:
-                      '6px 0 0'
-                  }}
-                >
-                  {monthlyArticles.length}
-                </h2>
-              </div>
-
-              <div
-                className="panel"
-                style={{
-                  padding:
-                    '14px'
-                }}
-              >
-                <small>
-                  Yearly Selected
-                </small>
-
-                <h2
-                  style={{
-                    margin:
-                      '6px 0 0'
-                  }}
-                >
-                  {yearlyArticles.length}
-                </h2>
-              </div>
-            </div>
           </div>
+        </div>
 
-          {(
-            curationView ===
-              'daily' ||
-            curationView ===
-              'monthly' ||
-            curationView ===
-              'yearly'
-          ) && (
-            <div
-              className="callout"
-              style={{
-                marginTop:
-                  '18px'
-              }}
-            >
-              <strong>
-                Bulk selection
-              </strong>
 
-              <p>
-                Selected:{' '}
-                {
-                  selectedArticleIds.length
-                }
-              </p>
-
-              <div
-                style={{
-                  display:
-                    'flex',
-                  gap:
-                    '8px',
-                  flexWrap:
-                    'wrap',
-                  marginTop:
-                    '10px'
-                }}
-              >
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  disabled={
-                    curationArticles.length ===
-                    0
-                  }
-                  onClick={() =>
-                    setSelectedArticleIds(
-                      Array.from(
-                        new Set([
-                          ...selectedArticleIds,
-                          ...curationArticles.map(
-                            article =>
-                              article.id
-                          )
-                        ])
-                      )
-                    )
-                  }
-                >
-                  Select all visible
-                </button>
-
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  disabled={
-                    selectedArticleIds.length ===
-                    0
-                  }
-                  onClick={() =>
-                    setSelectedArticleIds(
-                      []
-                    )
-                  }
-                >
-                  Clear selection
-                </button>
-
-                {curationView ===
-                  'daily' && (
-                  <button
-                    type="button"
-                    className="primary-btn"
-                    disabled={
-                      selectedArticleIds.length ===
-                      0
-                    }
-                    onClick={() =>
-                      void bulkChangeCuration(
-                        'monthly',
-                        true
-                      )
-                    }
-                  >
-                    Add selected to Monthly
-                  </button>
-                )}
-
-                {curationView ===
-                  'monthly' && (
-                  <>
-                    <button
-                      type="button"
-                      className="primary-btn"
-                      disabled={
-                        selectedArticleIds.length ===
-                        0
-                      }
-                      onClick={() =>
-                        void bulkChangeCuration(
-                          'yearly',
-                          true
-                        )
-                      }
-                    >
-                      Add selected to Yearly
-                    </button>
-
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      disabled={
-                        selectedArticleIds.length ===
-                        0
-                      }
-                      onClick={() =>
-                        void bulkChangeCuration(
-                          'monthly',
-                          false
-                        )
-                      }
-                    >
-                      Remove selected from Monthly
-                    </button>
-                  </>
-                )}
-
-                {curationView ===
-                  'yearly' && (
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    disabled={
-                      selectedArticleIds.length ===
-                      0
-                    }
-                    onClick={() =>
-                      void bulkChangeCuration(
-                        'yearly',
-                        false
-                      )
-                    }
-                  >
-                    Remove selected from Yearly
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {loadingArticles && (
-            <p>
-              Loading articles...
-            </p>
-          )}
-
-          {!loadingArticles &&
-            articles.length ===
-              0 && (
-              <p>
-                No Current Affairs found.
-              </p>
-            )}
-
-          {!loadingArticles &&
-            curationArticles.length ===
-              0 &&
-            articles.length >
-              0 && (
-              <div
-                className="callout"
-                style={{
-                  marginTop:
-                    '18px'
-                }}
-              >
-                <strong>
-                  No articles in this workspace.
-                </strong>
-
-                <p>
-                  {
-                    curationView ===
-                      'daily'
-                      ? 'No Daily Current Affairs match the selected month or filters.'
-                      : curationView ===
-                        'monthly'
-                      ? 'No Monthly-selected Current Affairs match the selected year or filters.'
-                      : curationView ===
-                        'yearly'
-                      ? 'No Yearly-selected Current Affairs match the selected year.'
-                      : 'Try changing or clearing the search.'
-                  }
-                </p>
-              </div>
-            )}
-
-          <div
-            style={{
-              display:
-                'grid',
-              gap:
-                '14px',
-              marginTop:
-                '20px'
-            }}
-          >
-            {curationArticles.map(
-              article => (
-                <article
-                  key={
-                    article.id
-                  }
-                  style={{
-                    padding:
-                      '18px',
-                    border:
-                      '1px solid rgba(255,255,255,0.10)',
-                    borderRadius:
-                      '14px'
-                  }}
-                >
-                  <div
-                    style={{
-                      display:
-                        'flex',
-                      justifyContent:
-                        'space-between',
-                      gap:
-                        '16px',
-                      flexWrap:
-                        'wrap'
-                    }}
-                  >
-                    <div
-                      style={{
-                        flex:
-                          '1 1 360px'
-                      }}
-                    >
-                      {curationView !==
-                        'all' && (
-                        <label
-                          style={{
-                            display:
-                              'flex',
-                            alignItems:
-                              'center',
-                            gap:
-                              '8px',
-                            marginBottom:
-                              '10px'
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={
-                              selectedArticleIds.includes(
-                                article.id
-                              )
-                            }
-                            onChange={() =>
-                              toggleArticleSelection(
-                                article.id
-                              )
-                            }
-                          />
-
-                          Select
-                        </label>
-                      )}
-
-                      <span
-                        className="eyebrow"
-                      >
-                        {article.subject}
-                      </span>
-
-                      <h3>
-                        {article.title}
-                      </h3>
-
-                      <p>
-                        Source:{' '}
-                        {article.source}
-                      </p>
-
-                      <p>
-                        Date:{' '}
-                        {
-                          article.published_at
-                            ? new Date(
-                                article.published_at
-                              )
-                                .toLocaleDateString(
-                                  'en-IN'
-                                )
-                            : '—'
-                        }
-                      </p>
-
-                      <p>
-                        Status:{' '}
-                        <strong>
-                          {article.status}
-                        </strong>
-                      </p>
-
-                      <div
-                        style={{
-                          display:
-                            'flex',
-                          gap:
-                            '8px',
-                          flexWrap:
-                            'wrap',
-                          marginTop:
-                            '10px'
-                        }}
-                      >
-                        <span
-                          style={{
-                            padding:
-                              '5px 9px',
-                            borderRadius:
-                              '999px',
-                            fontSize:
-                              '12px',
-                            fontWeight:
-                              700,
-                            background:
-                              'rgba(59,130,246,0.15)',
-                            border:
-                              '1px solid rgba(59,130,246,0.35)'
-                          }}
-                        >
-                          DAILY
-                        </span>
-
-                        {article.monthly_selected && (
-                          <span
-                            style={{
-                              padding:
-                                '5px 9px',
-                              borderRadius:
-                                '999px',
-                              fontSize:
-                                '12px',
-                              fontWeight:
-                                700,
-                              background:
-                                'rgba(16,185,129,0.15)',
-                              border:
-                                '1px solid rgba(16,185,129,0.35)'
-                            }}
-                          >
-                            MONTHLY SELECTED
-                          </span>
-                        )}
-
-                        {article.yearly_selected && (
-                          <span
-                            style={{
-                              padding:
-                                '5px 9px',
-                              borderRadius:
-                                '999px',
-                              fontSize:
-                                '12px',
-                              fontWeight:
-                                700,
-                              background:
-                                'rgba(245,158,11,0.15)',
-                              border:
-                                '1px solid rgba(245,158,11,0.35)'
-                            }}
-                          >
-                            YEARLY SELECTED
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display:
-                          'flex',
-                        gap:
-                          '8px',
-                        flexWrap:
-                          'wrap',
-                        alignItems:
-                          'flex-start',
-                        flex:
-                          '1 1 300px'
-                      }}
-                    >
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        onClick={() =>
-                          startEdit(
-                            article
-                          )
-                        }
-                      >
-                        Edit
-                      </button>
-
-                      {article.status ===
-                        'published' && (
-                        <>
-                          <button
-                            type="button"
-                            className="secondary-btn"
-                            onClick={() =>
-                              void changeCuration(
-                                article,
-                                'monthly',
-                                !article.monthly_selected
-                              )
-                            }
-                          >
-                            {
-                              article.monthly_selected
-                                ? 'Remove from Monthly'
-                                : 'Select for Monthly'
-                            }
-                          </button>
-
-                          <button
-                            type="button"
-                            className="secondary-btn"
-                            disabled={
-                              !article.monthly_selected
-                            }
-                            title={
-                              !article.monthly_selected
-                                ? 'Select for Monthly CA first'
-                                : article.yearly_selected
-                                ? 'Remove from Yearly Current Affairs'
-                                : 'Select for Yearly Current Affairs'
-                            }
-                            onClick={() =>
-                              void changeCuration(
-                                article,
-                                'yearly',
-                                !article.yearly_selected
-                              )
-                            }
-                          >
-                            {
-                              article.yearly_selected
-                                ? 'Remove from Yearly'
-                                : 'Select for Yearly'
-                            }
-                          </button>
-                        </>
-                      )}
-
-                      {article.status !==
-                        'published' && (
-                        <button
-                          type="button"
-                          className="secondary-btn"
-                          onClick={() =>
-                            void changeStatus(
-                              article,
-                              'published'
-                            )
-                          }
-                        >
-                          Publish
-                        </button>
-                      )}
-
-                      {article.status !==
-                        'draft' && (
-                        <button
-                          type="button"
-                          className="secondary-btn"
-                          onClick={() =>
-                            void changeStatus(
-                              article,
-                              'draft'
-                            )
-                          }
-                        >
-                          Move to draft
-                        </button>
-                      )}
-
-                      {article.status !==
-                        'archived' && (
-                        <button
-                          type="button"
-                          className="secondary-btn"
-                          onClick={() =>
-                            void changeStatus(
-                              article,
-                              'archived'
-                            )
-                          }
-                        >
-                          Archive
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        onClick={() =>
-                          void deleteArticle(
-                            article
-                          )
-                        }
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              )
-            )}
-          </div>
-        </section>
-      </div>
-
-      <div
-        style={{
-          display:
-            adminTab ===
-              'resources'
-              ? 'block'
-              : 'none'
-        }}
-      >
-        <ResourceAdminHub />
-      </div>
-
-      <div
-        style={{
-          display:
-            adminTab ===
-              'mcq'
-              ? 'block'
-              : 'none'
-        }}
-      >
-        <PrelimsAdminWorkspace />
-      </div>
-
-      <div
-        style={{
-          display:
-            adminTab ===
+        {
+          practiceMode ===
+            'prelims'
+            ? (
+              <PracticePage />
+            )
+            : practiceMode ===
               'tests'
-              ? 'block'
-              : 'none'
-        }}
-      >
-        <PrelimsTestManager />
-      </div>
+            ? (
+              <div
+                className="page-wrap"
+              >
+                <PrelimsTestSeries />
+              </div>
+            )
+            : (
+              <MainsPracticePage />
+            )
+        }
 
-      <div
-        style={{
-          display:
-            adminTab ===
-              'mains'
-              ? 'block'
-              : 'none'
-        }}
-      >
-        <section
-          className="panel"
-          style={{
-            padding:
-              '12px 14px',
-            marginBottom:
-              '12px'
-          }}
-        >
-          <div
-            style={{
-              display:
-                'grid',
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(180px, 1fr))',
-              gap:
-                '8px'
-            }}
-          >
-            <button
-              type="button"
-              className={
-                mainsWorkspace ===
-                  'pyq'
-                  ? 'filter active'
-                  : 'filter'
-              }
-              onClick={() =>
-                setMainsWorkspace(
-                  'pyq'
-                )
-              }
-            >
-              Previous Year Questions
-            </button>
+      </>
+    );
+  }
 
-            <button
-              type="button"
-              className={
-                mainsWorkspace ===
-                  'practice'
-                  ? 'filter active'
-                  : 'filter'
-              }
-              onClick={() =>
-                setMainsWorkspace(
-                  'practice'
-                )
-              }
-            >
-              Add / Manage Practice Questions
-            </button>
-          </div>
 
-          <small
-            style={{
-              display:
-                'block',
-              marginTop:
-                '8px',
-              color:
-                '#94a3b8'
-            }}
-          >
-            {
-              mainsWorkspace ===
-                'pyq'
-                ? 'Add, check and manage Mains previous-year questions and repeated appearances.'
-                : 'Create and manage Mains practice questions.'
+  /*
+   * =========================================
+   * CURRENT AFFAIRS
+   * =========================================
+   */
+
+  if (
+    active ===
+    'current'
+  ) {
+    content = (
+      <CurrentPage
+        items={
+          articles
+        }
+      />
+    );
+  }
+
+
+  /*
+   * =========================================
+   * PROFILE / MY STUDY
+   * =========================================
+   */
+
+  if (
+    active ===
+    'profile'
+  ) {
+    if (
+      !authReady
+    ) {
+      content = (
+        <LoadingCard
+          text="Loading your account…"
+        />
+      );
+    } else if (
+      !session ||
+      !profile
+    ) {
+      content = (
+        <AccountPage
+          intent="study"
+          onBack={() =>
+            setActive(
+              'home'
+            )
+          }
+        />
+      );
+    } else {
+      content = (
+        <>
+          <AccountStatusCard
+            session={
+              session
             }
-          </small>
-        </section>
 
-        {mainsWorkspace ===
-          'pyq' && (
-          <MainsPyqManager />
-        )}
+            profile={
+              profile
+            }
 
-        {mainsWorkspace ===
-          'practice' && (
-          <MainsQuestionManager />
-        )}
-      </div>
+            onSignOut={() => {
+              void signOut();
+            }}
+          />
 
-      <div
-        style={{
-          display:
-            adminTab ===
-              'evaluation'
-              ? 'block'
-              : 'none'
-        }}
+          <ProfilePage
+            onAdmin={() =>
+              setActive(
+                'admin'
+              )
+            }
+
+            onOpenPractice={
+              openPrelimsPractice
+            }
+          />
+        </>
+      );
+    }
+  }
+
+
+  /*
+   * =========================================
+   * ADMIN
+   * =========================================
+   */
+
+  if (
+    active ===
+    'admin'
+  ) {
+    if (
+      !authReady
+    ) {
+      content = (
+        <LoadingCard
+          text="Checking editor access…"
+        />
+      );
+    } else if (
+      !session
+    ) {
+      content = (
+        <AccountPage
+          intent="admin"
+          onBack={() =>
+            setActive(
+              'home'
+            )
+          }
+        />
+      );
+    } else if (
+      !isEditor
+    ) {
+      content = (
+        <AccessDenied
+          onBack={() =>
+            setActive(
+              'profile'
+            )
+          }
+        />
+      );
+    } else {
+      content = (
+        <AdminPage
+          onPublish={
+            item => {
+              publish(
+                item
+              );
+
+              setActive(
+                'current'
+              );
+            }
+          }
+        />
+      );
+    }
+  }
+
+
+  /*
+   * =========================================
+   * APP
+   * =========================================
+   */
+
+  return (
+    <IonApp>
+      <Shell
+        active={
+          active
+        }
+
+        onNavigate={
+          navigateMain
+        }
       >
-        <MainsEvaluationManager />
-      </div>
-    </div>
+        {content}
+      </Shell>
+    </IonApp>
   );
 }
