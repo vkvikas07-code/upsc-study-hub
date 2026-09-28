@@ -15,6 +15,12 @@ import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 type ArticleStatus = 'draft' | 'published' | 'archived';
 
+type CurationView =
+  | 'all'
+  | 'daily'
+  | 'monthly'
+  | 'yearly';
+
 type AdminTab =
   | 'current'
   | 'resources'
@@ -195,11 +201,19 @@ export function AdminPage({
       AdminArticle[]
     >([]);
 
-  const [
-    loadingArticles,
-    setLoadingArticles
-  ] =
-    useState(false);
+ const [
+  curationView,
+  setCurationView
+] =
+  useState<CurationView>(
+    'all'
+  );
+
+const [
+  curationSearch,
+  setCurationSearch
+] =
+  useState('');
 
   const [
     saving,
@@ -1448,6 +1462,88 @@ export function AdminPage({
     );
   }
 
+  const publishedArticles =
+  articles.filter(
+    article =>
+      article.status ===
+      'published'
+  );
+
+const monthlyArticles =
+  publishedArticles.filter(
+    article =>
+      article.monthly_selected
+  );
+
+const yearlyArticles =
+  monthlyArticles.filter(
+    article =>
+      article.yearly_selected
+  );
+
+const curationArticles =
+  articles.filter(
+    article => {
+
+      if (
+        curationView ===
+          'daily' &&
+        article.status !==
+          'published'
+      ) {
+        return false;
+      }
+
+      if (
+        curationView ===
+          'monthly' &&
+        (
+          article.status !==
+            'published' ||
+          !article.monthly_selected
+        )
+      ) {
+        return false;
+      }
+
+      if (
+        curationView ===
+          'yearly' &&
+        (
+          article.status !==
+            'published' ||
+          !article.yearly_selected
+        )
+      ) {
+        return false;
+      }
+
+      const search =
+        curationSearch
+          .trim()
+          .toLowerCase();
+
+      if (!search) {
+        return true;
+      }
+
+      const searchable =
+        [
+          article.title,
+          article.subject,
+          article.source,
+          article.summary,
+          ...(article.tags || [])
+        ]
+          .join(' ')
+          .toLowerCase();
+
+      return searchable.includes(
+        search
+      );
+    }
+  );
+  
   if (
     !isSupabaseConfigured
   ) {
@@ -2382,6 +2478,224 @@ export function AdminPage({
               </h2>
             </div>
 
+            <div
+  style={{
+    marginTop:
+      '20px'
+  }}
+>
+  <span
+    className="eyebrow"
+  >
+    CURRENT AFFAIRS CURATION
+  </span>
+
+  <p
+    style={{
+      marginTop:
+        '7px',
+      color:
+        '#94a3b8'
+    }}
+  >
+    Select the most important Daily Current Affairs for Monthly revision, then select the most important Monthly articles for the Yearly revision archive.
+  </p>
+
+  <div
+    style={{
+      display:
+        'grid',
+      gridTemplateColumns:
+        'repeat(auto-fit, minmax(150px, 1fr))',
+      gap:
+        '10px',
+      marginTop:
+        '16px'
+    }}
+  >
+    <button
+      type="button"
+      className={
+        curationView ===
+          'all'
+          ? 'filter active'
+          : 'filter'
+      }
+      onClick={() =>
+        setCurationView(
+          'all'
+        )
+      }
+    >
+      All Articles
+      {' '}
+      ({articles.length})
+    </button>
+
+    <button
+      type="button"
+      className={
+        curationView ===
+          'daily'
+          ? 'filter active'
+          : 'filter'
+      }
+      onClick={() =>
+        setCurationView(
+          'daily'
+        )
+      }
+    >
+      Daily → Monthly
+      {' '}
+      ({publishedArticles.length})
+    </button>
+
+    <button
+      type="button"
+      className={
+        curationView ===
+          'monthly'
+          ? 'filter active'
+          : 'filter'
+      }
+      onClick={() =>
+        setCurationView(
+          'monthly'
+        )
+      }
+    >
+      Monthly → Yearly
+      {' '}
+      ({monthlyArticles.length})
+    </button>
+
+    <button
+      type="button"
+      className={
+        curationView ===
+          'yearly'
+          ? 'filter active'
+          : 'filter'
+      }
+      onClick={() =>
+        setCurationView(
+          'yearly'
+        )
+      }
+    >
+      Yearly Selected
+      {' '}
+      ({yearlyArticles.length})
+    </button>
+  </div>
+
+  <label
+    style={{
+      display:
+        'grid',
+      gap:
+        '7px',
+      marginTop:
+        '16px'
+    }}
+  >
+    Search Current Affairs
+
+    <input
+      type="search"
+      value={
+        curationSearch
+      }
+      onChange={
+        event =>
+          setCurationSearch(
+            event
+              .target
+              .value
+          )
+      }
+      placeholder="Search title, subject, source, summary or tag..."
+    />
+  </label>
+
+  <div
+    style={{
+      display:
+        'grid',
+      gridTemplateColumns:
+        'repeat(auto-fit, minmax(160px, 1fr))',
+      gap:
+        '10px',
+      marginTop:
+        '16px'
+    }}
+  >
+    <div
+      className="panel"
+      style={{
+        padding:
+          '14px'
+      }}
+    >
+      <small>
+        Published Daily
+      </small>
+
+      <h2
+        style={{
+          margin:
+            '6px 0 0'
+        }}
+      >
+        {publishedArticles.length}
+      </h2>
+    </div>
+
+    <div
+      className="panel"
+      style={{
+        padding:
+          '14px'
+      }}
+    >
+      <small>
+        Monthly Selected
+      </small>
+
+      <h2
+        style={{
+          margin:
+            '6px 0 0'
+        }}
+      >
+        {monthlyArticles.length}
+      </h2>
+    </div>
+
+    <div
+      className="panel"
+      style={{
+        padding:
+          '14px'
+      }}
+    >
+      <small>
+        Yearly Selected
+      </small>
+
+      <h2
+        style={{
+          margin:
+            '6px 0 0'
+        }}
+      >
+        {yearlyArticles.length}
+      </h2>
+    </div>
+  </div>
+</div>
+            
             <button
               type="button"
               className="secondary-btn"
@@ -2407,6 +2721,39 @@ export function AdminPage({
               </p>
             )}
 
+          {!loadingArticles &&
+  curationArticles.length ===
+    0 &&
+  articles.length >
+    0 && (
+    <div
+      className="callout"
+      style={{
+        marginTop:
+          '18px'
+      }}
+    >
+      <strong>
+        No articles in this workspace.
+      </strong>
+
+      <p>
+        {
+          curationView ===
+            'daily'
+            ? 'Publish Daily Current Affairs first.'
+            : curationView ===
+              'monthly'
+            ? 'Select important Daily Current Affairs for Monthly revision.'
+            : curationView ===
+              'yearly'
+            ? 'Select important Monthly Current Affairs for the Yearly archive.'
+            : 'Try changing or clearing the search.'
+        }
+      </p>
+    </div>
+  )}
+          
           <div
             style={{
               display:
@@ -2419,8 +2766,8 @@ export function AdminPage({
                 '20px'
             }}
           >
-            {articles.map(
-              article => (
+           {curationArticles.map(
+  article => (
                 <article
                   key={
                     article.id
