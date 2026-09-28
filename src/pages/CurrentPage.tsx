@@ -741,17 +741,24 @@ export function CurrentPage({
   availableDays[0] ||
   getTodayDayKey();
 
-  const activeMonth =
-    selectedMonth ||
-    availableMonths[0] ||
-    '';
+const activeMonth =
+  selectedMonth ||
+  availableMonths[0] ||
+  getTodayDayKey()
+    .slice(
+      0,
+      7
+    );
 
-  const activeYear =
-    selectedYear ||
-    availableYears[0] ||
-    '';
+const activeYear =
+  selectedYear ||
+  availableYears[0] ||
+  String(
+    new Date()
+      .getFullYear()
+  );
 
-  const activeNewspaperDay =
+const activeNewspaperDay =
   selectedNewspaperDay ||
   availableNewspaperDays[0] ||
   getTodayDayKey();
@@ -1508,6 +1515,7 @@ export function CurrentPage({
         </div>
 
       {viewMode ===
+ {viewMode ===
   'daily' && (
   <label
     style={{
@@ -1523,7 +1531,8 @@ export function CurrentPage({
   >
     Select Date
 
-    <select
+    <input
+      type="date"
       value={
         activeDay
       }
@@ -1535,24 +1544,76 @@ export function CurrentPage({
               .value
           )
       }
-    >
-      {availableDays.map(
-        value => (
-          <option
-            key={
-              value
-            }
-            value={
-              value
-            }
-          >
-            {formatDayKey(
-              value
-            )}
-          </option>
-        )
-      )}
-    </select>
+    />
+  </label>
+)}
+
+{viewMode ===
+  'monthly' && (
+  <label
+    style={{
+      display:
+        'grid',
+
+      gap:
+        '7px',
+
+      marginTop:
+        '16px'
+    }}
+  >
+    Select Month
+
+    <input
+      type="month"
+      value={
+        activeMonth
+      }
+      onChange={
+        event =>
+          setSelectedMonth(
+            event
+              .target
+              .value
+          )
+      }
+    />
+  </label>
+)}
+
+{viewMode ===
+  'yearly' && (
+  <label
+    style={{
+      display:
+        'grid',
+
+      gap:
+        '7px',
+
+      marginTop:
+        '16px'
+    }}
+  >
+    Select Year
+
+    <input
+      type="number"
+      min="2000"
+      max="2100"
+      step="1"
+      value={
+        activeYear
+      }
+      onChange={
+        event =>
+          setSelectedYear(
+            event
+              .target
+              .value
+          )
+      }
+    />
   </label>
 )}
 
