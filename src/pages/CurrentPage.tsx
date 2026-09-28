@@ -58,10 +58,7 @@ function parsePublishedDate(
   const today =
     new Date();
 
-  if (
-    lower ===
-    'today'
-  ) {
+  if (lower === 'today') {
     return new Date(
       today.getFullYear(),
       today.getMonth(),
@@ -69,10 +66,7 @@ function parsePublishedDate(
     );
   }
 
-  if (
-    lower ===
-    'yesterday'
-  ) {
+  if (lower === 'yesterday') {
     const date =
       new Date(
         today.getFullYear(),
@@ -116,8 +110,7 @@ function parsePublishedDate(
 
     const month =
       monthMap[
-        match[2]
-          .toLowerCase()
+        match[2].toLowerCase()
       ];
 
     const year =
@@ -125,10 +118,7 @@ function parsePublishedDate(
         match[3]
       );
 
-    if (
-      month !==
-      undefined
-    ) {
+    if (month !== undefined) {
       return new Date(
         year,
         month,
@@ -138,9 +128,7 @@ function parsePublishedDate(
   }
 
   const parsed =
-    new Date(
-      clean
-    );
+    new Date(clean);
 
   if (
     Number.isNaN(
@@ -158,9 +146,7 @@ function getDayKey(
   value: string
 ): string | null {
   const date =
-    parsePublishedDate(
-      value
-    );
+    parsePublishedDate(value);
 
   if (!date) {
     return null;
@@ -193,9 +179,7 @@ function getMonthKey(
   value: string
 ): string | null {
   const date =
-    parsePublishedDate(
-      value
-    );
+    parsePublishedDate(value);
 
   if (!date) {
     return null;
@@ -220,9 +204,7 @@ function getYearKey(
   value: string
 ): string | null {
   const date =
-    parsePublishedDate(
-      value
-    );
+    parsePublishedDate(value);
 
   if (!date) {
     return null;
@@ -291,12 +273,9 @@ function formatArchiveDay(
   ).toLocaleDateString(
     'en-IN',
     {
-      day:
-        '2-digit',
-      month:
-        'long',
-      year:
-        'numeric'
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
     }
   );
 }
@@ -320,10 +299,8 @@ function formatArchiveMonth(
   ).toLocaleDateString(
     'en-IN',
     {
-      month:
-        'long',
-      year:
-        'numeric'
+      month: 'long',
+      year: 'numeric'
     }
   );
 }
@@ -343,8 +320,7 @@ function getNewspaperKey(
     clean.includes(
       'the hindu'
     ) ||
-    clean ===
-      'hindu'
+    clean === 'hindu'
   ) {
     return 'the_hindu';
   }
@@ -371,15 +347,11 @@ function getNoteExamStage(
     return 'both';
   }
 
-  if (
-    item.prelims
-  ) {
+  if (item.prelims) {
     return 'prelims';
   }
 
-  if (
-    item.mains
-  ) {
+  if (item.mains) {
     return 'mains';
   }
 
@@ -404,28 +376,20 @@ function AnalysisSection({
     <section
       className="panel"
       style={{
-        padding:
-          '20px',
-        marginTop:
-          '16px'
+        padding: '20px',
+        marginTop: '16px'
       }}
     >
-      <span
-        className="eyebrow"
-      >
+      <span className="eyebrow">
         {title}
       </span>
 
       <div
         style={{
-          whiteSpace:
-            'pre-wrap',
-          color:
-            '#cbd5e1',
-          lineHeight:
-            1.8,
-          marginTop:
-            '12px'
+          whiteSpace: 'pre-wrap',
+          color: '#cbd5e1',
+          lineHeight: 1.8,
+          marginTop: '12px'
         }}
       >
         {children}
@@ -535,24 +499,16 @@ export function CurrentPage({
         items
           .map(
             item =>
-              item.subject
-                .trim()
+              item.subject.trim()
           )
-          .filter(
-            value =>
-              Boolean(
-                value
-              )
-          )
+          .filter(Boolean)
       )
     ).sort(
       (
         a,
         b
       ) =>
-        a.localeCompare(
-          b
-        )
+        a.localeCompare(b)
     );
 
 
@@ -560,38 +516,31 @@ export function CurrentPage({
     items.filter(
       item => {
         if (
-          filter ===
-            'prelims' &&
+          filter === 'prelims' &&
           !item.prelims
         ) {
           return false;
         }
 
         if (
-          filter ===
-            'mains' &&
+          filter === 'mains' &&
           !item.mains
         ) {
           return false;
         }
 
         if (
-          filter ===
-            'pib' &&
+          filter === 'pib' &&
           !item.source
             .toLowerCase()
-            .includes(
-              'pib'
-            )
+            .includes('pib')
         ) {
           return false;
         }
 
         if (
-          subjectFilter !==
-            'all' &&
-          item.subject
-            .trim() !==
+          subjectFilter !== 'all' &&
+          item.subject.trim() !==
             subjectFilter
         ) {
           return false;
@@ -602,9 +551,7 @@ export function CurrentPage({
             .trim()
             .toLowerCase();
 
-        if (
-          search
-        ) {
+        if (search) {
           const searchable =
             [
               item.title,
@@ -613,9 +560,7 @@ export function CurrentPage({
               item.source,
               ...item.tags
             ]
-              .join(
-                ' '
-              )
+              .join(' ')
               .toLowerCase();
 
           if (
@@ -649,9 +594,7 @@ export function CurrentPage({
               value
             ):
               value is string =>
-                Boolean(
-                  value
-                )
+              Boolean(value)
           )
       )
     ).sort(
@@ -659,9 +602,7 @@ export function CurrentPage({
         a,
         b
       ) =>
-        b.localeCompare(
-          a
-        )
+        b.localeCompare(a)
     );
 
 
@@ -682,9 +623,7 @@ export function CurrentPage({
               value
             ):
               value is string =>
-                Boolean(
-                  value
-                )
+              Boolean(value)
           )
       )
     ).sort(
@@ -692,9 +631,7 @@ export function CurrentPage({
         a,
         b
       ) =>
-        b.localeCompare(
-          a
-        )
+        b.localeCompare(a)
     );
 
 
@@ -715,9 +652,7 @@ export function CurrentPage({
               value
             ):
               value is string =>
-                Boolean(
-                  value
-                )
+              Boolean(value)
           )
       )
     ).sort(
@@ -736,16 +671,14 @@ export function CurrentPage({
         items
           .filter(
             item => {
-              const sourceKey =
+              const source =
                 getNewspaperKey(
                   item.source
                 );
 
               return (
-                sourceKey ===
-                  'the_hindu' ||
-                sourceKey ===
-                  'indian_express'
+                source === 'the_hindu' ||
+                source === 'indian_express'
               );
             }
           )
@@ -762,9 +695,7 @@ export function CurrentPage({
               value
             ):
               value is string =>
-                Boolean(
-                  value
-                )
+              Boolean(value)
           )
       )
     ).sort(
@@ -772,9 +703,7 @@ export function CurrentPage({
         a,
         b
       ) =>
-        b.localeCompare(
-          a
-        )
+        b.localeCompare(a)
     );
 
 
@@ -821,45 +750,34 @@ export function CurrentPage({
           );
 
         if (
-          viewMode ===
-          'daily'
+          viewMode === 'daily'
         ) {
           return (
             getDayKey(
               articleDate
-            ) ===
-            activeDay
+            ) === activeDay
           );
         }
 
         if (
-          viewMode ===
-          'monthly'
+          viewMode === 'monthly'
         ) {
           return (
             getMonthKey(
               articleDate
-            ) ===
-            activeMonth
+            ) === activeMonth
           );
         }
 
         if (
-          viewMode ===
-          'yearly'
+          viewMode === 'yearly'
         ) {
           return (
             getYearKey(
               articleDate
-            ) ===
-            activeYear
+            ) === activeYear
           );
         }
-
-        const sourceKey =
-          getNewspaperKey(
-            item.source
-          );
 
         const articleDay =
           getDayKey(
@@ -873,20 +791,23 @@ export function CurrentPage({
           return false;
         }
 
+        const source =
+          getNewspaperKey(
+            item.source
+          );
+
         if (
           newspaperFilter ===
           'all'
         ) {
           return (
-            sourceKey ===
-              'the_hindu' ||
-            sourceKey ===
-              'indian_express'
+            source === 'the_hindu' ||
+            source === 'indian_express'
           );
         }
 
         return (
-          sourceKey ===
+          source ===
           newspaperFilter
         );
       }
@@ -910,9 +831,7 @@ export function CurrentPage({
               value
             ):
               value is string =>
-                Boolean(
-                  value
-                )
+              Boolean(value)
           )
       )
     )
@@ -921,14 +840,11 @@ export function CurrentPage({
           a,
           b
         ) =>
-          b.localeCompare(
-            a
-          )
+          b.localeCompare(a)
       )
       .map(
         day => ({
-          key:
-            day,
+          key: day,
 
           title:
             formatArchiveDay(
@@ -942,8 +858,7 @@ export function CurrentPage({
                   getArticleDateValue(
                     item
                   )
-                ) ===
-                day
+                ) === day
             )
         })
       );
@@ -966,9 +881,7 @@ export function CurrentPage({
               value
             ):
               value is string =>
-                Boolean(
-                  value
-                )
+              Boolean(value)
           )
       )
     )
@@ -977,14 +890,11 @@ export function CurrentPage({
           a,
           b
         ) =>
-          b.localeCompare(
-            a
-          )
+          b.localeCompare(a)
       )
       .map(
         month => ({
-          key:
-            month,
+          key: month,
 
           title:
             formatArchiveMonth(
@@ -998,11 +908,53 @@ export function CurrentPage({
                   getArticleDateValue(
                     item
                   )
-                ) ===
-                month
+                ) === month
             )
         })
       );
+
+
+  const snapshotTotal =
+    visibleItems.length;
+
+
+  const snapshotPrelims =
+    visibleItems.filter(
+      item =>
+        item.prelims
+    ).length;
+
+
+  const snapshotMains =
+    visibleItems.filter(
+      item =>
+        item.mains
+    ).length;
+
+
+  const snapshotPib =
+    visibleItems.filter(
+      item =>
+        item.source
+          .toLowerCase()
+          .includes('pib')
+    ).length;
+
+
+  const snapshotNewspaper =
+    visibleItems.filter(
+      item => {
+        const source =
+          getNewspaperKey(
+            item.source
+          );
+
+        return (
+          source === 'the_hindu' ||
+          source === 'indian_express'
+        );
+      }
+    ).length;
 
 
   async function openAnalysis(
@@ -1014,31 +966,27 @@ export function CurrentPage({
       item.id
     );
 
-    if (
-      !supabase
-    ) {
+    if (!supabase) {
       setSelected({
         ...item,
+
         sourceUrl:
           item.sourceUrl ||
           null,
+
         body:
           item.summary,
+
         source_url:
           item.sourceUrl ||
           null,
-        background:
-          null,
-        key_facts:
-          null,
-        prelims_points:
-          null,
-        mains_relevance:
-          null,
-        issues:
-          null,
-        way_forward:
-          null
+
+        background: null,
+        key_facts: null,
+        prelims_points: null,
+        mains_relevance: null,
+        issues: null,
+        way_forward: null
       });
 
       setLoadingId(
@@ -1048,52 +996,9 @@ export function CurrentPage({
       return;
     }
 
-  const snapshotTotal =
-    visibleItems.length;
-
-  const snapshotPrelims =
-    visibleItems.filter(
-      item =>
-        item.prelims
-    ).length;
-
-  const snapshotMains =
-    visibleItems.filter(
-      item =>
-        item.mains
-    ).length;
-
-  const snapshotPib =
-    visibleItems.filter(
-      item =>
-        item.source
-          .toLowerCase()
-          .includes(
-            'pib'
-          )
-    ).length;
-
-  const snapshotNewspaper =
-    visibleItems.filter(
-      item => {
-        const source =
-          getNewspaperKey(
-            item.source
-          );
-
-        return (
-          source ===
-            'the_hindu' ||
-          source ===
-            'indian_express'
-        );
-      }
-    ).length;
-    
     const {
       data,
-      error:
-        loadError
+      error: loadError
     } =
       await supabase
         .from(
@@ -1236,8 +1141,7 @@ export function CurrentPage({
       );
 
     mainArea?.scrollTo({
-      top:
-        0
+      top: 0
     });
   }
 
@@ -1309,21 +1213,16 @@ export function CurrentPage({
           className="article-foot"
         >
           <small>
-            Source:
-            {' '}
+            Source:{' '}
             {item.source}
           </small>
 
           <div
             style={{
-              display:
-                'flex',
-              gap:
-                '10px',
-              alignItems:
-                'center',
-              flexWrap:
-                'wrap'
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'center',
+              flexWrap: 'wrap'
             }}
           >
             {item.sourceUrl && (
@@ -1344,8 +1243,8 @@ export function CurrentPage({
             )}
 
             <button
-              className="text-btn"
               type="button"
+              className="text-btn"
               disabled={
                 loadingId ===
                 item.id
@@ -1370,9 +1269,7 @@ export function CurrentPage({
   }
 
 
-  if (
-    selected
-  ) {
+  if (selected) {
     const hasStructuredAnalysis =
       Boolean(
         selected.background ||
@@ -1797,8 +1694,7 @@ export function CurrentPage({
               );
 
               if (
-                filter ===
-                'pib'
+                filter === 'pib'
               ) {
                 setFilter(
                   'all'
@@ -2008,6 +1904,7 @@ export function CurrentPage({
         )}
       </section>
 
+
       <section
         className="panel"
         style={{
@@ -2128,6 +2025,7 @@ export function CurrentPage({
         </div>
       </section>
 
+
       <div
         className="filter-row"
       >
@@ -2135,8 +2033,7 @@ export function CurrentPage({
           type="button"
           className={
             `filter ${
-              filter ===
-                'all'
+              filter === 'all'
                 ? 'active'
                 : ''
             }`
@@ -2154,8 +2051,7 @@ export function CurrentPage({
           type="button"
           className={
             `filter ${
-              filter ===
-                'prelims'
+              filter === 'prelims'
                 ? 'active'
                 : ''
             }`
@@ -2173,8 +2069,7 @@ export function CurrentPage({
           type="button"
           className={
             `filter ${
-              filter ===
-                'mains'
+              filter === 'mains'
                 ? 'active'
                 : ''
             }`
@@ -2192,8 +2087,7 @@ export function CurrentPage({
           type="button"
           className={
             `filter ${
-              filter ===
-                'pib'
+              filter === 'pib'
                 ? 'active'
                 : ''
             }`
@@ -2208,15 +2102,14 @@ export function CurrentPage({
         </button>
       </div>
 
-            <section
+
+      <section
         className="panel"
         style={{
           marginTop:
             '18px',
-
           marginBottom:
             '18px',
-
           padding:
             '16px'
         }}
@@ -2231,13 +2124,10 @@ export function CurrentPage({
           style={{
             display:
               'grid',
-
             gridTemplateColumns:
               'repeat(auto-fit,minmax(150px,1fr))',
-
             gap:
               '12px',
-
             marginTop:
               '14px'
           }}
@@ -2253,12 +2143,7 @@ export function CurrentPage({
               Articles
             </small>
 
-            <h2
-              style={{
-                margin:
-                  '6px 0 0'
-              }}
-            >
+            <h2>
               {snapshotTotal}
             </h2>
           </div>
@@ -2274,12 +2159,7 @@ export function CurrentPage({
               Prelims
             </small>
 
-            <h2
-              style={{
-                margin:
-                  '6px 0 0'
-              }}
-            >
+            <h2>
               {snapshotPrelims}
             </h2>
           </div>
@@ -2295,12 +2175,7 @@ export function CurrentPage({
               Mains
             </small>
 
-            <h2
-              style={{
-                margin:
-                  '6px 0 0'
-              }}
-            >
+            <h2>
               {snapshotMains}
             </h2>
           </div>
@@ -2316,12 +2191,7 @@ export function CurrentPage({
               PIB
             </small>
 
-            <h2
-              style={{
-                margin:
-                  '6px 0 0'
-              }}
-            >
+            <h2>
               {snapshotPib}
             </h2>
           </div>
@@ -2337,17 +2207,14 @@ export function CurrentPage({
               Newspapers
             </small>
 
-            <h2
-              style={{
-                margin:
-                  '6px 0 0'
-              }}
-            >
+            <h2>
               {snapshotNewspaper}
             </h2>
           </div>
         </div>
       </section>
+
+
       {error && (
         <div
           className="panel"
@@ -2361,6 +2228,7 @@ export function CurrentPage({
           {error}
         </div>
       )}
+
 
       <section
         className="article-list"
@@ -2426,6 +2294,7 @@ export function CurrentPage({
             )
           )}
 
+
         {viewMode ===
           'yearly' &&
           yearlyGroups.map(
@@ -2487,6 +2356,7 @@ export function CurrentPage({
             )
           )}
 
+
         {(viewMode ===
             'daily' ||
           viewMode ===
@@ -2498,6 +2368,7 @@ export function CurrentPage({
               )
           )}
 
+
         {visibleItems.length ===
           0 && (
           <div
@@ -2505,8 +2376,7 @@ export function CurrentPage({
           >
             <p
               style={{
-                margin:
-                  0
+                margin: 0
               }}
             >
               No Current Affairs match this view or filter yet.
