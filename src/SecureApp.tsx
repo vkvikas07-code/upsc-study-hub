@@ -801,17 +801,35 @@ export default function SecureApp() {
    * =========================================
    */
 
-  function publish(
-    item: CurrentAffair
-  ) {
+ function publish(
+  item: CurrentAffair
+) {
+  setArticles(
+    current => {
+      const alreadyExists =
+        current.some(
+          article =>
+            article.id ===
+            item.id
+        );
 
-    setArticles(
-      current => [
+      if (alreadyExists) {
+        return current.map(
+          article =>
+            article.id ===
+              item.id
+              ? item
+              : article
+        );
+      }
+
+      return [
         item,
         ...current
-      ]
-    );
-  }
+      ];
+    }
+  );
+}
 
 
   /*
@@ -1395,164 +1413,7 @@ export default function SecureApp() {
   );
 
 
-  /*
-   * =========================================
-   * LOAD CURRENT AFFAIRS
-   * =========================================
-   */
-
-  useEffect(
-    () => {
-
-      async function loadCurrentAffairs() {
-
-        if (!supabase) {
-
-          return;
-        }
-
-
-        const {
-          data,
-          error
-        } =
-          await supabase
-            .from(
-              'current_affairs'
-            )
-          .select(
-  `
-  id,
-  title,
-  source,
-  source_url,
-  subject,
-  summary,
-  tags,
-  prelims,
-  mains,
-  monthly_selected,
-  yearly_selected,
-  published_at,
-  status
-  `
-)
-            .eq(
-              'status',
-              'published'
-            )
-            .order(
-              'published_at',
-              {
-                ascending:
-                  false
-              }
-            );
-
-
-        if (error) {
-
-          console.error(
-            'Unable to load current affairs:',
-            error
-          );
-
-
-          return;
-        }
-
-
-        if (
-          !data ||
-          data.length ===
-            0
-        ) {
-
-          return;
-        }
-
-
-        setArticles(
-
-          data.map(
-            item => ({
-
-              id:
-                item.id,
-
-              title:
-                item.title,
-
-              source:
-  item.source,
-
-sourceUrl:
-  item.source_url,
-
-subject:
-  item.subject,
-
-              summary:
-                item.summary,
-
-              tags:
-                item.tags ||
-                [],
-
-              prelims:
-                item.prelims,
-
-             mains:
-  item.mains,
-
-monthlySelected:
-  item.monthly_selected ===
-  true,
-
-yearlySelected:
-  item.yearly_selected ===
-  true,
-
-publishedAt:
-
-  item.published_at
-
-    ? new Date(
-        item.published_at
-      )
-        .toLocaleDateString(
-          'en-IN',
-          {
-            day:
-              '2-digit',
-
-            month:
-              'short',
-
-            year:
-              'numeric'
-          }
-        )
-
-    : '',
-
-publishedAtIso:
-  item.published_at ||
-  null
-              
-            })
-          )
-
-        );
-      }
-
-
-      void loadCurrentAffairs();
-
-    },
-    []
-  );
-
+  LOAD CURRENT AFFAIRS
 
   /*
    * =========================================
