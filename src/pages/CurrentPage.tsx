@@ -414,13 +414,13 @@ function AnalysisSection({
   return (
     <section
       className="panel"
-      style={
+      style={{
         padding:
           '20px',
 
         marginTop:
           '16px'
-      }
+      }}
     >
       <span
         className="eyebrow"
@@ -429,7 +429,7 @@ function AnalysisSection({
       </span>
 
       <div
-        style={
+        style={{
           whiteSpace:
             'pre-wrap',
 
@@ -441,7 +441,7 @@ function AnalysisSection({
 
           marginTop:
             '12px'
-        }
+        }}
       >
         {children}
       </div>
@@ -498,11 +498,11 @@ export function CurrentPage({
     );
 
   const [
-  selectedNewspaperDay,
-  setSelectedNewspaperDay
-] =
-  useState('');
-  
+    selectedNewspaperDay,
+    setSelectedNewspaperDay
+  ] =
+    useState('');
+
   const [
     selected,
     setSelected
@@ -664,52 +664,53 @@ export function CurrentPage({
 
 
   const availableNewspaperDays =
-  Array.from(
-    new Set(
-      items
-        .filter(
-          item => {
-            const sourceKey =
-              getNewspaperKey(
-                item.source
-              );
+    Array.from(
+      new Set(
+        items
+          .filter(
+            item => {
+              const sourceKey =
+                getNewspaperKey(
+                  item.source
+                );
 
-            return (
-              sourceKey ===
-                'the_hindu' ||
-              sourceKey ===
-                'indian_express'
-            );
-          }
-        )
-        .map(
-          item =>
-            getDayKey(
-              getArticleDateValue(
-                item
+              return (
+                sourceKey ===
+                  'the_hindu' ||
+                sourceKey ===
+                  'indian_express'
+              );
+            }
+          )
+          .map(
+            item =>
+              getDayKey(
+                getArticleDateValue(
+                  item
+                )
               )
-            )
-        )
-        .filter(
-          (
-            value
-          ):
-            value is string =>
-              Boolean(
-                value
-              )
-        )
-    )
-  ).sort(
-    (
-      a,
-      b
-    ) =>
-      b.localeCompare(
-        a
+          )
+          .filter(
+            (
+              value
+            ):
+              value is string =>
+                Boolean(
+                  value
+                )
+          )
       )
-  );
-  
+    ).sort(
+      (
+        a,
+        b
+      ) =>
+        b.localeCompare(
+          a
+        )
+    );
+
+
   const activeDay =
     selectedDay ||
     availableDays[0] ||
@@ -726,9 +727,10 @@ export function CurrentPage({
     '';
 
   const activeNewspaperDay =
-  selectedNewspaperDay ||
-  availableNewspaperDays[0] ||
-  '';
+    selectedNewspaperDay ||
+    availableNewspaperDays[0] ||
+    '';
+
 
   const visibleItems =
     filteredItems.filter(
@@ -775,41 +777,41 @@ export function CurrentPage({
           );
         }
 
-       const sourceKey =
-  getNewspaperKey(
-    item.source
-  );
+        const sourceKey =
+          getNewspaperKey(
+            item.source
+          );
 
-const articleDay =
-  getDayKey(
-    getArticleDateValue(
-      item
-    )
-  );
+        const articleDay =
+          getDayKey(
+            getArticleDateValue(
+              item
+            )
+          );
 
-if (
-  articleDay !==
-  activeNewspaperDay
-) {
-  return false;
-}
+        if (
+          articleDay !==
+          activeNewspaperDay
+        ) {
+          return false;
+        }
 
-if (
-  newspaperFilter ===
-  'all'
-) {
-  return (
-    sourceKey ===
-      'the_hindu' ||
-    sourceKey ===
-      'indian_express'
-  );
-}
+        if (
+          newspaperFilter ===
+          'all'
+        ) {
+          return (
+            sourceKey ===
+              'the_hindu' ||
+            sourceKey ===
+              'indian_express'
+          );
+        }
 
-return (
-  sourceKey ===
-  newspaperFilter
-);
+        return (
+          sourceKey ===
+          newspaperFilter
+        );
       }
     );
 
@@ -1055,17 +1057,17 @@ return (
               null
             )
           }
-          style={
+          style={{
             marginBottom:
               '18px'
-          }
+          }}
         >
           ← Back to Current Affairs
         </button>
 
         <article
           className="panel"
-          style={
+          style={{
             maxWidth:
               '940px',
 
@@ -1074,7 +1076,7 @@ return (
 
             padding:
               '24px'
-          }
+          }}
         >
           <div
             className="article-meta"
@@ -1089,23 +1091,23 @@ return (
           </div>
 
           <h1
-            style={
+            style={{
               margin:
                 '12px 0 8px',
 
               lineHeight:
                 1.25
-            }
+            }}
           >
             {selected.title}
           </h1>
 
           <div
             className="tag-row"
-            style={
+            style={{
               marginTop:
                 '15px'
-            }
+            }}
           >
             {selected.prelims && (
               <span
@@ -1139,16 +1141,16 @@ return (
         </article>
 
         <div
-          style={
+          style={{
             maxWidth:
               '940px',
 
             margin:
               '0 auto 32px'
-          }
+          }}
         >
           <section
-            style={
+            style={{
               padding:
                 '20px',
 
@@ -1160,7 +1162,7 @@ return (
 
               border:
                 '1px solid rgba(20,184,166,.24)'
-            }
+            }}
           >
             <span
               className="eyebrow"
@@ -1169,7 +1171,7 @@ return (
             </span>
 
             <p
-              style={
+              style={{
                 color:
                   '#e2e8f0',
 
@@ -1178,7 +1180,7 @@ return (
 
                 marginBottom:
                   0
-              }
+              }}
             >
               {selected.summary}
             </p>
@@ -1186,7 +1188,7 @@ return (
 
           <section
             className="panel"
-            style={
+            style={{
               marginTop:
                 '16px',
 
@@ -1198,7 +1200,7 @@ return (
 
               background:
                 'linear-gradient(135deg, rgba(20,184,166,.07), rgba(59,130,246,.035))'
-            }
+            }}
           >
             <span
               className="eyebrow"
@@ -1207,22 +1209,22 @@ return (
             </span>
 
             <h3
-              style={
+              style={{
                 margin:
                   '7px 0'
-              }
+              }}
             >
               Keep your own revision point
             </h3>
 
             <p
-              style={
+              style={{
                 margin:
                   '0 0 14px',
 
                 color:
                   '#94a3b8'
-              }
+              }}
             >
               Add your own observation, fact, example or answer-writing point without leaving this article.
             </p>
@@ -1308,13 +1310,13 @@ return (
 
           <section
             className="panel"
-            style={
+            style={{
               marginTop:
                 '16px',
 
               padding:
                 '20px'
-            }
+            }}
           >
             <span
               className="eyebrow"
@@ -1323,7 +1325,7 @@ return (
             </span>
 
             <p
-              style={
+              style={{
                 color:
                   '#cbd5e1',
 
@@ -1331,7 +1333,7 @@ return (
                   selected.source_url
                     ? '14px'
                     : 0
-              }
+              }}
             >
               {selected.source}
             </p>
@@ -1344,13 +1346,13 @@ return (
                 target="_blank"
                 rel="noreferrer"
                 className="primary-btn"
-                style={
+                style={{
                   display:
                     'inline-block',
 
                   textDecoration:
                     'none'
-                }
+                }}
               >
                 Open original source ↗
               </a>
@@ -1373,13 +1375,13 @@ return (
 
       <section
         className="panel"
-        style={
+        style={{
           marginBottom:
             '18px',
 
           padding:
             '14px'
-        }
+        }}
       >
         <span
           className="eyebrow"
@@ -1388,7 +1390,7 @@ return (
         </span>
 
         <div
-          style={
+          style={{
             display:
               'grid',
 
@@ -1400,7 +1402,7 @@ return (
 
             marginTop:
               '12px'
-          }
+          }}
         >
           <button
             type="button"
@@ -1453,31 +1455,31 @@ return (
             Yearly
           </button>
 
-  <button
-  type="button"
-  className={
-    viewMode ===
-      'newspaper'
-      ? 'filter active'
-      : 'filter'
-  }
-  onClick={() => {
-    setViewMode(
-      'newspaper'
-    );
+          <button
+            type="button"
+            className={
+              viewMode ===
+                'newspaper'
+                ? 'filter active'
+                : 'filter'
+            }
+            onClick={() => {
+              setViewMode(
+                'newspaper'
+              );
 
-    if (
-      filter ===
-      'pib'
-    ) {
-      setFilter(
-        'all'
-      );
-    }
-  }
->
-  Newspaper Reading
-</button>
+              if (
+                filter ===
+                'pib'
+              ) {
+                setFilter(
+                  'all'
+                );
+              }
+            }}
+          >
+            Newspaper Reading
+          </button>
         </div>
 
         {viewMode ===
@@ -1492,7 +1494,7 @@ return (
 
               marginTop:
                 '16px'
-            }
+            }}
           >
             Select Date
 
@@ -1541,7 +1543,7 @@ return (
 
               marginTop:
                 '16px'
-            }
+            }}
           >
             Select Month
 
@@ -1590,7 +1592,7 @@ return (
 
               marginTop:
                 '16px'
-            }
+            }}
           >
             Select Year
 
@@ -1635,60 +1637,60 @@ return (
 
                 color:
                   '#94a3b8'
-              }
+              }}
             >
               UPSC-focused newspaper reading with special emphasis on The Hindu and The Indian Express.
             </p>
 
             <label
-  style={{
-    display:
-      'grid',
+              style={{
+                display:
+                  'grid',
 
-    gap:
-      '7px',
+                gap:
+                  '7px',
 
-    marginTop:
-      '14px',
+                marginTop:
+                  '14px',
 
-    marginBottom:
-      '14px'
-  }
->
-  Newspaper Date
+                marginBottom:
+                  '14px'
+              }}
+            >
+              Newspaper Date
 
-  <select
-    value={
-      activeNewspaperDay
-    }
-    onChange={
-      event =>
-        setSelectedNewspaperDay(
-          event
-            .target
-            .value
-        )
-    }
-  >
-    {availableNewspaperDays.map(
-      value => (
-        <option
-          key={
-            value
-          }
-          value={
-            value
-          }
-        >
-          {formatDayKey(
-            value
-          )}
-        </option>
-      )
-    )}
-  </select>
-</label>
-            
+              <select
+                value={
+                  activeNewspaperDay
+                }
+                onChange={
+                  event =>
+                    setSelectedNewspaperDay(
+                      event
+                        .target
+                        .value
+                    )
+                }
+              >
+                {availableNewspaperDays.map(
+                  value => (
+                    <option
+                      key={
+                        value
+                      }
+                      value={
+                        value
+                      }
+                    >
+                      {formatDayKey(
+                        value
+                      )}
+                    </option>
+                  )
+                )}
+              </select>
+            </label>
+
             <div
               className="filter-row"
             >
@@ -1836,11 +1838,11 @@ return (
 
             color:
               '#fca5a5'
-          }
+          }}
         >
           {error}
         </div>
-      )
+      )}
 
       <section
         className="article-list"
@@ -1928,7 +1930,7 @@ return (
 
                     flexWrap:
                       'wrap'
-                  }
+                  }}
                 >
                   {item.sourceUrl && (
                     <a
@@ -1938,10 +1940,10 @@ return (
                       target="_blank"
                       rel="noreferrer"
                       className="text-btn"
-                      style={
+                      style={{
                         textDecoration:
                           'none'
-                      }
+                      }}
                     >
                       Original source ↗
                     </a>
@@ -1979,10 +1981,10 @@ return (
             className="panel"
           >
             <p
-              style={
+              style={{
                 margin:
                   0
-              }
+              }}
             >
               No Current Affairs match this view or filter yet.
             </p>
