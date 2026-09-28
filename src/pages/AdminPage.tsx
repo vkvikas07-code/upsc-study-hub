@@ -390,6 +390,17 @@ export function AdminPage({
 
 
   const [
+    selectedArticleIds,
+    setSelectedArticleIds
+  ] =
+    useState<
+      string[]
+    >(
+      []
+    );
+
+
+  const [
     saving,
     setSaving
   ] =
@@ -563,7 +574,6 @@ export function AdminPage({
     >(
       'draft'
     );
-
 
   function switchAdminTab(
     tab:
@@ -932,6 +942,11 @@ export function AdminPage({
     );
 
 
+    setSelectedArticleIds(
+      []
+    );
+
+
     setPassword(
       ''
     );
@@ -1274,7 +1289,6 @@ export function AdminPage({
         article.published_at
     };
   }
-
 
   async function saveArticle(
     event:
@@ -1958,6 +1972,217 @@ export function AdminPage({
   }
 
 
+  function toggleArticleSelection(
+    articleId:
+      string
+  ) {
+
+    setSelectedArticleIds(
+      current =>
+
+        current.includes(
+          articleId
+        )
+
+          ? current.filter(
+              id =>
+                id !==
+                articleId
+            )
+
+          : [
+              ...current,
+              articleId
+            ]
+    );
+  }
+
+
+  async function bulkChangeCuration(
+    level:
+      | 'monthly'
+      | 'yearly',
+
+    selected:
+      boolean
+  ) {
+
+    if (
+      !supabase ||
+      selectedArticleIds.length ===
+        0
+    ) {
+
+      setMessage(
+        'Select at least one Current Affair first.'
+      );
+
+      return;
+    }
+
+
+    const selectedArticles =
+      articles.filter(
+        article =>
+          selectedArticleIds.includes(
+            article.id
+          )
+      );
+
+
+    if (
+      level ===
+        'yearly' &&
+      selected &&
+      selectedArticles.some(
+        article =>
+          !article
+            .monthly_selected
+      )
+    ) {
+
+      setMessage(
+        'Yearly selection is allowed only for articles already selected for Monthly Current Affairs.'
+      );
+
+      return;
+    }
+
+
+    const updatePayload:
+      Record<
+        string,
+        boolean | string
+      > = {
+
+        updated_at:
+          new Date()
+            .toISOString()
+      };
+
+
+    if (
+      level ===
+      'monthly'
+    ) {
+
+      updatePayload
+        .monthly_selected =
+          selected;
+
+
+      if (!selected) {
+
+        updatePayload
+          .yearly_selected =
+            false;
+      }
+    }
+
+
+    if (
+      level ===
+      'yearly'
+    ) {
+
+      updatePayload
+        .yearly_selected =
+          selected;
+    }
+
+
+    setMessage(
+      'Updating selected Current Affairs...'
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from(
+          'current_affairs'
+        )
+        .update(
+          updatePayload
+        )
+        .in(
+          'id',
+          selectedArticleIds
+        )
+        .select(
+          ARTICLE_SELECT
+        );
+
+
+    if (error) {
+
+      console.error(
+        'Bulk Current Affairs curation failed:',
+        error
+      );
+
+
+      setMessage(
+        error.message
+      );
+
+
+      return;
+    }
+
+
+    const updatedItems =
+      (
+        data ||
+        []
+      ) as
+        AdminArticle[];
+
+
+    setArticles(
+      current =>
+        current.map(
+          article => {
+
+            const updated =
+              updatedItems.find(
+                item =>
+                  item.id ===
+                  article.id
+              );
+
+
+            return (
+              updated ||
+              article
+            );
+          }
+        )
+    );
+
+
+    setSelectedArticleIds(
+      []
+    );
+
+
+    setMessage(
+
+      level ===
+        'monthly'
+
+        ? selected
+          ? 'Selected articles added to Monthly Current Affairs.'
+          : 'Selected articles removed from Monthly Current Affairs.'
+
+        : selected
+        ? 'Selected articles added to Yearly Current Affairs.'
+        : 'Selected articles removed from Yearly Current Affairs.'
+    );
+  }
+
   async function deleteArticle(
     article:
       AdminArticle
@@ -2010,6 +2235,16 @@ export function AdminPage({
         current.filter(
           item =>
             item.id !==
+            article.id
+        )
+    );
+
+
+    setSelectedArticleIds(
+      current =>
+        current.filter(
+          id =>
+            id !==
             article.id
         )
     );
@@ -2291,118 +2526,89 @@ export function AdminPage({
       ]
     );
 
-
   if (
     !isSupabaseConfigured
   ) {
-
     return (
-
       <div
         className="page-wrap"
       >
-
         <TopBar
           title="Admin Studio"
           subtitle="Content management"
         />
 
-
         <section
           className="panel"
         >
-
           <h2>
             Supabase is not configured
           </h2>
-
         </section>
-
       </div>
     );
   }
 
-
   if (
     checkingAuth
   ) {
-
     return (
-
       <div
         className="page-wrap"
       >
-
         <TopBar
           title="Admin Studio"
           subtitle="Checking secure access"
         />
 
-
         <section
           className="panel"
         >
-
           <h2>
             Checking admin session...
           </h2>
-
         </section>
-
       </div>
     );
   }
 
-
   if (!isAdmin) {
-
     return (
-
       <div
         className="page-wrap"
       >
-
         <TopBar
           title="Admin Studio"
           subtitle="Secure administrator access"
         />
 
-
         <section
           className="admin-grid"
         >
-
           <form
             className="panel admin-form"
-
             onSubmit={
               login
             }
           >
-
             <span
               className="eyebrow"
             >
               ADMIN LOGIN
             </span>
 
-
             <h2>
               Sign in to manage content
             </h2>
 
-
             <label>
               Email
 
-
               <input
                 type="email"
-
                 value={
                   email
                 }
-
                 onChange={
                   event =>
                     setEmail(
@@ -2411,24 +2617,18 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 autoComplete="email"
               />
-
             </label>
-
 
             <label>
               Password
 
-
               <input
                 type="password"
-
                 value={
                   password
                 }
-
                 onChange={
                   event =>
                     setPassword(
@@ -2437,12 +2637,9 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 autoComplete="current-password"
               />
-
             </label>
-
 
             <button
               type="submit"
@@ -2451,76 +2648,57 @@ export function AdminPage({
               Sign in
             </button>
 
-
             {message && (
-
               <p
                 className="form-message"
               >
                 {message}
               </p>
             )}
-
           </form>
-
         </section>
-
       </div>
     );
   }
 
-
   return (
-
     <div
       className="page-wrap"
     >
-
       <TopBar
         title="Admin Studio"
         subtitle="Professional UPSC content publishing"
       />
 
-
       <section
         className="admin-status"
       >
-
         <div>
-
           <span
             className="status-dot online"
           />
 
-
           <strong>
             Secure Admin connected
           </strong>
-
         </div>
-
 
         <p>
           Manage Current Affairs, Study Material, Prelims MCQs, Prelims Test Series, Mains questions and student evaluations from separate workspaces.
         </p>
 
-
         <div
           style={{
             display:
               'flex',
-
             gap:
               '10px',
-
             flexWrap:
               'wrap'
           }}
         >
-
           <button
             type="button"
-
             onClick={() =>
               void loadArticles()
             }
@@ -2528,21 +2706,16 @@ export function AdminPage({
             Refresh
           </button>
 
-
           <button
             type="button"
-
             onClick={() =>
               void logout()
             }
           >
             Log out
           </button>
-
         </div>
-
       </section>
-
 
       <AdminWorkspaceStats
         onNavigate={
@@ -2550,62 +2723,45 @@ export function AdminPage({
         }
       />
 
-
       <section
         className="panel"
-
         style={{
           marginTop:
             '16px',
-
           marginBottom:
             '22px',
-
           padding:
             '14px',
-
           position:
             'sticky',
-
           top:
             '10px',
-
           zIndex:
             20,
-
           background:
             '#101a30',
-
           boxShadow:
             '0 10px 30px rgba(0,0,0,0.18)'
         }}
       >
-
         <div
           style={{
             display:
               'flex',
-
             gap:
               '10px',
-
             flexWrap:
               'wrap'
           }}
         >
-
           <button
             type="button"
-
             className={
               adminTab ===
                 'current'
-
                 ? 'filter active'
-
                 : 'filter'
             }
-
             onClick={() =>
               switchAdminTab(
                 'current'
@@ -2615,19 +2771,14 @@ export function AdminPage({
             Current Affairs
           </button>
 
-
           <button
             type="button"
-
             className={
               adminTab ===
                 'resources'
-
                 ? 'filter active'
-
                 : 'filter'
             }
-
             onClick={() =>
               switchAdminTab(
                 'resources'
@@ -2637,19 +2788,14 @@ export function AdminPage({
             Study Material
           </button>
 
-
           <button
             type="button"
-
             className={
               adminTab ===
                 'mcq'
-
                 ? 'filter active'
-
                 : 'filter'
             }
-
             onClick={() =>
               switchAdminTab(
                 'mcq'
@@ -2659,19 +2805,14 @@ export function AdminPage({
             Prelims MCQ
           </button>
 
-
           <button
             type="button"
-
             className={
               adminTab ===
                 'tests'
-
                 ? 'filter active'
-
                 : 'filter'
             }
-
             onClick={() =>
               switchAdminTab(
                 'tests'
@@ -2681,19 +2822,14 @@ export function AdminPage({
             Test Series
           </button>
 
-
           <button
             type="button"
-
             className={
               adminTab ===
                 'mains'
-
                 ? 'filter active'
-
                 : 'filter'
             }
-
             onClick={() =>
               switchAdminTab(
                 'mains'
@@ -2703,88 +2839,66 @@ export function AdminPage({
             Mains
           </button>
 
-
           <button
             type="button"
-
             className={
               adminTab ===
                 'evaluation'
-
                 ? 'filter active'
-
                 : 'filter'
             }
-
             onClick={() =>
               switchAdminTab(
                 'evaluation'
               )
             }
           >
-
-            Evaluations{' '}
-
+            Evaluations
+            {' '}
             <PendingEvaluationBadge />
-
           </button>
-
         </div>
-
       </section>
-
 
       <div
         style={{
           display:
             adminTab ===
               'current'
-
               ? 'block'
-
               : 'none'
         }}
       >
-
         <section
           className="admin-grid"
         >
-
           <form
             className="panel admin-form"
-
             onSubmit={
               saveArticle
             }
           >
-
             <span
               className="eyebrow"
             >
               CURRENT AFFAIRS EDITOR
             </span>
 
-
             <h2>
               {
                 editingId
-
                   ? 'Edit Current Affair'
-
                   : 'Add Current Affair'
               }
             </h2>
 
-
             <label>
               Title
-
 
               <input
                 value={
                   title
                 }
-
                 onChange={
                   event =>
                     setTitle(
@@ -2793,37 +2907,28 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="Current Affair headline"
-
                 required
               />
-
             </label>
-
 
             <div
               style={{
                 display:
                   'grid',
-
                 gridTemplateColumns:
                   'repeat(auto-fit, minmax(220px, 1fr))',
-
                 gap:
                   '12px'
               }}
             >
-
               <label>
                 Source
-
 
                 <input
                   value={
                     source
                   }
-
                   onChange={
                     event =>
                       setSource(
@@ -2832,65 +2937,48 @@ export function AdminPage({
                           .value
                       )
                   }
-
                   list="current-affairs-source-list"
-
                   placeholder="PIB"
-
                   required
                 />
-
 
                 <datalist
                   id="current-affairs-source-list"
                 >
-
                   <option
                     value="PIB"
                   />
-
                   <option
                     value="The Hindu"
                   />
-
                   <option
                     value="Indian Express"
                   />
-
                   <option
                     value="PRS India"
                   />
-
                   <option
                     value="RBI"
                   />
-
                   <option
                     value="Supreme Court of India"
                   />
-
                   <option
                     value="Government of India"
                   />
-
                   <option
                     value="Ministry / Department"
                   />
-
                 </datalist>
-
               </label>
-
 
               <label>
                 Subject
-
 
                 <input
                   value={
                     subject
                   }
-
                   onChange={
                     event =>
                       setSubject(
@@ -2899,28 +2987,20 @@ export function AdminPage({
                           .value
                       )
                   }
-
                   placeholder="Polity & Governance"
-
                   required
                 />
-
               </label>
-
             </div>
-
 
             <label>
               Current Affair Date
 
-
               <input
                 type="date"
-
                 value={
                   articleDate
                 }
-
                 onChange={
                   event =>
                     setArticleDate(
@@ -2929,29 +3009,22 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 required
               />
-
 
               <small>
                 This date is used for Daily, Monthly and Yearly Current Affairs archives.
               </small>
-
             </label>
-
 
             <label>
               Official Source URL
 
-
               <input
                 type="url"
-
                 value={
                   sourceUrl
                 }
-
                 onChange={
                   event =>
                     setSourceUrl(
@@ -2960,26 +3033,20 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="https://..."
               />
-
             </label>
-
 
             <label>
               Quick Revision Summary
-
 
               <textarea
                 rows={
                   4
                 }
-
                 value={
                   summary
                 }
-
                 onChange={
                   event =>
                     setSummary(
@@ -2988,28 +3055,21 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="2–4 lines explaining why this matters for UPSC."
-
                 required
               />
-
             </label>
-
 
             <label>
               Background
-
 
               <textarea
                 rows={
                   5
                 }
-
                 value={
                   background
                 }
-
                 onChange={
                   event =>
                     setBackground(
@@ -3018,26 +3078,20 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="Context and background of the issue."
               />
-
             </label>
-
 
             <label>
               Key Facts
-
 
               <textarea
                 rows={
                   5
                 }
-
                 value={
                   keyFacts
                 }
-
                 onChange={
                   event =>
                     setKeyFacts(
@@ -3046,26 +3100,20 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="Important facts, institutions, numbers and provisions."
               />
-
             </label>
-
 
             <label>
               Prelims Points
-
 
               <textarea
                 rows={
                   5
                 }
-
                 value={
                   prelimsPoints
                 }
-
                 onChange={
                   event =>
                     setPrelimsPoints(
@@ -3074,26 +3122,20 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="Facts, organisations, schemes and likely MCQ points."
               />
-
             </label>
-
 
             <label>
               Mains Relevance
-
 
               <textarea
                 rows={
                   5
                 }
-
                 value={
                   mainsRelevance
                 }
-
                 onChange={
                   event =>
                     setMainsRelevance(
@@ -3102,26 +3144,20 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="GS paper, syllabus linkage and analytical dimensions."
               />
-
             </label>
-
 
             <label>
               Issues / Challenges
-
 
               <textarea
                 rows={
                   5
                 }
-
                 value={
                   issues
                 }
-
                 onChange={
                   event =>
                     setIssues(
@@ -3130,26 +3166,20 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="Major concerns, gaps or limitations."
               />
-
             </label>
-
 
             <label>
               Way Forward
-
 
               <textarea
                 rows={
                   5
                 }
-
                 value={
                   wayForward
                 }
-
                 onChange={
                   event =>
                     setWayForward(
@@ -3158,22 +3188,17 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="Balanced solutions, reforms and conclusion points."
               />
-
             </label>
-
 
             <label>
               Tags
-
 
               <input
                 value={
                   tagsText
                 }
-
                 onChange={
                   event =>
                     setTagsText(
@@ -3182,31 +3207,23 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="Environment, GS-III, Energy"
               />
-
 
               <small>
                 Separate tags using commas.
               </small>
-
             </label>
-
 
             <div
               className="checkbox-row"
             >
-
               <label>
-
                 <input
                   type="checkbox"
-
                   checked={
                     prelims
                   }
-
                   onChange={
                     event =>
                       setPrelims(
@@ -3218,19 +3235,14 @@ export function AdminPage({
                 />
 
                 Prelims
-
               </label>
 
-
               <label>
-
                 <input
                   type="checkbox"
-
                   checked={
                     mains
                   }
-
                   onChange={
                     event =>
                       setMains(
@@ -3242,38 +3254,30 @@ export function AdminPage({
                 />
 
                 Mains
-
               </label>
-
             </div>
-
 
             <label>
               Status
-
 
               <select
                 value={
                   status
                 }
-
                 onChange={
                   event =>
                     setStatus(
                       event
                         .target
-                        .value as
-                        ArticleStatus
+                        .value as ArticleStatus
                     )
                 }
               >
-
                 <option
                   value="draft"
                 >
                   Draft
                 </option>
-
 
                 <option
                   value="published"
@@ -3281,66 +3285,47 @@ export function AdminPage({
                   Published
                 </option>
 
-
                 <option
                   value="archived"
                 >
                   Archived
                 </option>
-
               </select>
-
             </label>
-
 
             <div
               style={{
                 display:
                   'flex',
-
                 gap:
                   '12px',
-
                 flexWrap:
                   'wrap'
               }}
             >
-
               <button
                 type="submit"
-
                 className="primary-btn"
-
                 disabled={
                   saving
                 }
               >
                 {
                   saving
-
                     ? 'Saving...'
-
                     : editingId
-
                     ? 'Save changes'
-
                     : status ===
                       'published'
-
                     ? 'Publish to students'
-
                     : 'Save draft'
                 }
               </button>
 
-
               {editingId && (
-
                 <button
                   type="button"
-
                   className="secondary-btn"
-
                   onClick={
                     resetForm
                   }
@@ -3348,183 +3333,138 @@ export function AdminPage({
                   Cancel edit
                 </button>
               )}
-
             </div>
 
-
             {message && (
-
               <p
                 className="form-message"
               >
                 {message}
               </p>
             )}
-
           </form>
-
 
           <aside
             className="panel admin-side"
           >
-
             <span
               className="eyebrow"
             >
               UPSC EDITOR CHECKLIST
             </span>
 
-
             <h3>
               Before publishing
             </h3>
 
-
             <ol>
-
               <li>
                 Verify the primary source.
               </li>
-
               <li>
                 Keep the quick summary short.
               </li>
-
               <li>
                 Add only exam-relevant facts.
               </li>
-
               <li>
                 Separate Prelims facts from Mains analysis.
               </li>
-
               <li>
                 Mention challenges without exaggeration.
               </li>
-
               <li>
                 Finish with a balanced way forward.
               </li>
-
               <li>
                 Save as Draft until reviewed.
               </li>
-
             </ol>
-
 
             <div
               className="callout"
             >
-
               <strong>
                 Recommended workflow
               </strong>
 
-
               <p>
                 Create → Draft → Review → Publish. Students see only Published articles.
               </p>
-
             </div>
-
 
             <div
               className="callout"
-
               style={{
                 marginTop:
                   '14px'
               }}
             >
-
               <strong>
                 Monthly and Yearly curation
               </strong>
 
-
               <p>
                 First publish the Daily Current Affair. Then select important Daily items for Monthly revision. From those Monthly items, select only the most important for Yearly revision.
               </p>
-
             </div>
-
           </aside>
-
         </section>
-
 
         <section
           className="panel"
-
           style={{
             marginTop:
               '24px'
           }}
         >
-
           <div
             style={{
               display:
                 'flex',
-
               justifyContent:
                 'space-between',
-
               alignItems:
                 'flex-start',
-
               gap:
                 '16px',
-
               flexWrap:
                 'wrap'
             }}
           >
-
             <div>
-
               <span
                 className="eyebrow"
               >
                 CONTENT MANAGER
               </span>
 
-
               <h2>
                 Existing Current Affairs
               </h2>
-
 
               <p
                 style={{
                   margin:
                     '6px 0 0',
-
                   color:
                     '#94a3b8'
                 }}
               >
                 Manage Daily content and curate Monthly and Yearly revision sets.
               </p>
-
             </div>
-
 
             <button
               type="button"
-
               className="secondary-btn"
-
               onClick={() =>
                 void loadArticles()
               }
             >
               Refresh list
             </button>
-
           </div>
-
 
           <div
             style={{
@@ -3532,22 +3472,18 @@ export function AdminPage({
                 '20px'
             }}
           >
-
             <span
               className="eyebrow"
             >
               CURRENT AFFAIRS CURATION
             </span>
 
-
             <p
               style={{
                 marginTop:
                   '7px',
-
                 color:
                   '#94a3b8',
-
                 lineHeight:
                   1.6
               }}
@@ -3555,171 +3491,142 @@ export function AdminPage({
               Daily → Monthly lets you select the most important Daily Current Affairs from a particular month. Monthly → Yearly lets you review those selected Monthly articles and keep only the highest-priority topics for annual revision.
             </p>
 
-
             <div
               style={{
                 display:
                   'grid',
-
                 gridTemplateColumns:
                   'repeat(auto-fit, minmax(150px, 1fr))',
-
                 gap:
                   '10px',
-
                 marginTop:
                   '16px'
               }}
             >
-
               <button
                 type="button"
-
                 className={
                   curationView ===
                     'all'
-
                     ? 'filter active'
-
                     : 'filter'
                 }
-
-                onClick={() =>
+                onClick={() => {
                   setCurationView(
                     'all'
-                  )
-                }
+                  );
+
+                  setSelectedArticleIds(
+                    []
+                  );
+                }}
               >
-
-                All Articles{' '}
-
+                All Articles
+                {' '}
                 ({articles.length})
-
               </button>
-
 
               <button
                 type="button"
-
                 className={
                   curationView ===
                     'daily'
-
                     ? 'filter active'
-
                     : 'filter'
                 }
-
-                onClick={() =>
+                onClick={() => {
                   setCurationView(
                     'daily'
-                  )
-                }
+                  );
+
+                  setSelectedArticleIds(
+                    []
+                  );
+                }}
               >
-
-                Daily → Monthly{' '}
-
+                Daily → Monthly
+                {' '}
                 ({publishedArticles.length})
-
               </button>
-
 
               <button
                 type="button"
-
                 className={
                   curationView ===
                     'monthly'
-
                     ? 'filter active'
-
                     : 'filter'
                 }
-
-                onClick={() =>
+                onClick={() => {
                   setCurationView(
                     'monthly'
-                  )
-                }
+                  );
+
+                  setSelectedArticleIds(
+                    []
+                  );
+                }}
               >
-
-                Monthly → Yearly{' '}
-
+                Monthly → Yearly
+                {' '}
                 ({monthlyArticles.length})
-
               </button>
-
 
               <button
                 type="button"
-
                 className={
                   curationView ===
                     'yearly'
-
                     ? 'filter active'
-
                     : 'filter'
                 }
-
-                onClick={() =>
+                onClick={() => {
                   setCurationView(
                     'yearly'
-                  )
-                }
+                  );
+
+                  setSelectedArticleIds(
+                    []
+                  );
+                }}
               >
-
-                Yearly Selected{' '}
-
+                Yearly Selected
+                {' '}
                 ({yearlyArticles.length})
-
               </button>
-
             </div>
-
 
             <div
               style={{
                 display:
                   'grid',
-
                 gridTemplateColumns:
                   'repeat(auto-fit, minmax(190px, 1fr))',
-
                 gap:
                   '12px',
-
                 marginTop:
                   '16px',
-
                 alignItems:
                   'end'
               }}
             >
-
               {curationView ===
                 'daily' && (
-
                 <label
                   style={{
                     display:
                       'grid',
-
                     gap:
                       '7px'
                   }}
                 >
-
                   Select Month
-
 
                   <input
                     type="month"
-
                     value={
                       curationMonth
                     }
-
                     onChange={
                       event =>
                         setCurationMonth(
@@ -3730,47 +3637,34 @@ export function AdminPage({
                     }
                   />
 
-
                   <small>
                     Show Daily Current Affairs from this month.
                   </small>
-
                 </label>
               )}
 
-
               {(curationView ===
                   'monthly' ||
-
                 curationView ===
                   'yearly') && (
-
                 <label
                   style={{
                     display:
                       'grid',
-
                     gap:
                       '7px'
                   }}
                 >
-
                   Select Year
-
 
                   <input
                     type="number"
-
                     min="2000"
-
                     max="2100"
-
                     step="1"
-
                     value={
                       curationYear
                     }
-
                     onChange={
                       event =>
                         setCurationYear(
@@ -3781,44 +3675,33 @@ export function AdminPage({
                     }
                   />
 
-
                   <small>
                     Show Current Affairs from this year.
                   </small>
-
                 </label>
               )}
 
-
               {(curationView ===
                   'daily' ||
-
                 curationView ===
                   'monthly') && (
-
                 <label
                   style={{
                     display:
                       'flex',
-
                     alignItems:
                       'center',
-
                     gap:
                       '10px',
-
                     minHeight:
                       '44px'
                   }}
                 >
-
                   <input
                     type="checkbox"
-
                     checked={
                       curationPendingOnly
                     }
-
                     onChange={
                       event =>
                         setCurationPendingOnly(
@@ -3829,22 +3712,16 @@ export function AdminPage({
                     }
                   />
 
-
                   <span>
                     Unselected only
                   </span>
-
                 </label>
               )}
 
-
               <button
                 type="button"
-
                 className="secondary-btn"
-
                 onClick={() => {
-
                   setCurationMonth(
                     getLocalDateValue()
                       .slice(
@@ -3853,7 +3730,6 @@ export function AdminPage({
                       )
                   );
 
-
                   setCurationYear(
                     String(
                       new Date()
@@ -3861,46 +3737,40 @@ export function AdminPage({
                     )
                   );
 
-
                   setCurationPendingOnly(
                     false
                   );
 
-
                   setCurationSearch(
                     ''
+                  );
+
+                  setSelectedArticleIds(
+                    []
                   );
                 }}
               >
                 Reset filters
               </button>
-
             </div>
-
 
             <label
               style={{
                 display:
                   'grid',
-
                 gap:
                   '7px',
-
                 marginTop:
                   '16px'
               }}
             >
-
               Search Current Affairs
-
 
               <input
                 type="search"
-
                 value={
                   curationSearch
                 }
-
                 onChange={
                   event =>
                     setCurationSearch(
@@ -3909,42 +3779,32 @@ export function AdminPage({
                         .value
                     )
                 }
-
                 placeholder="Search title, subject, source, summary or tag..."
               />
-
             </label>
-
 
             <div
               style={{
                 display:
                   'grid',
-
                 gridTemplateColumns:
                   'repeat(auto-fit, minmax(160px, 1fr))',
-
                 gap:
                   '10px',
-
                 marginTop:
                   '16px'
               }}
             >
-
               <div
                 className="panel"
-
                 style={{
                   padding:
                     '14px'
                 }}
               >
-
                 <small>
                   Published Daily
                 </small>
-
 
                 <h2
                   style={{
@@ -3954,23 +3814,18 @@ export function AdminPage({
                 >
                   {publishedArticles.length}
                 </h2>
-
               </div>
-
 
               <div
                 className="panel"
-
                 style={{
                   padding:
                     '14px'
                 }}
               >
-
                 <small>
                   Monthly Selected
                 </small>
-
 
                 <h2
                   style={{
@@ -3980,23 +3835,18 @@ export function AdminPage({
                 >
                   {monthlyArticles.length}
                 </h2>
-
               </div>
-
 
               <div
                 className="panel"
-
                 style={{
                   padding:
                     '14px'
                 }}
               >
-
                 <small>
                   Yearly Selected
                 </small>
-
 
                 <h2
                   style={{
@@ -4006,598 +3856,620 @@ export function AdminPage({
                 >
                   {yearlyArticles.length}
                 </h2>
-
               </div>
-
             </div>
-
           </div>
 
+          {(
+            curationView ===
+              'daily' ||
+            curationView ===
+              'monthly' ||
+            curationView ===
+              'yearly'
+          ) && (
+            <div
+              className="callout"
+              style={{
+                marginTop:
+                  '18px'
+              }}
+            >
+              <strong>
+                Bulk selection
+              </strong>
+
+              <p>
+                Selected:{' '}
+                {
+                  selectedArticleIds.length
+                }
+              </p>
+
+              <div
+                style={{
+                  display:
+                    'flex',
+                  gap:
+                    '8px',
+                  flexWrap:
+                    'wrap',
+                  marginTop:
+                    '10px'
+                }}
+              >
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  disabled={
+                    curationArticles.length ===
+                    0
+                  }
+                  onClick={() =>
+                    setSelectedArticleIds(
+                      Array.from(
+                        new Set([
+                          ...selectedArticleIds,
+                          ...curationArticles.map(
+                            article =>
+                              article.id
+                          )
+                        ])
+                      )
+                    )
+                  }
+                >
+                  Select all visible
+                </button>
+
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  disabled={
+                    selectedArticleIds.length ===
+                    0
+                  }
+                  onClick={() =>
+                    setSelectedArticleIds(
+                      []
+                    )
+                  }
+                >
+                  Clear selection
+                </button>
+
+                {curationView ===
+                  'daily' && (
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    disabled={
+                      selectedArticleIds.length ===
+                      0
+                    }
+                    onClick={() =>
+                      void bulkChangeCuration(
+                        'monthly',
+                        true
+                      )
+                    }
+                  >
+                    Add selected to Monthly
+                  </button>
+                )}
+
+                {curationView ===
+                  'monthly' && (
+                  <>
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      disabled={
+                        selectedArticleIds.length ===
+                        0
+                      }
+                      onClick={() =>
+                        void bulkChangeCuration(
+                          'yearly',
+                          true
+                        )
+                      }
+                    >
+                      Add selected to Yearly
+                    </button>
+
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      disabled={
+                        selectedArticleIds.length ===
+                        0
+                      }
+                      onClick={() =>
+                        void bulkChangeCuration(
+                          'monthly',
+                          false
+                        )
+                      }
+                    >
+                      Remove selected from Monthly
+                    </button>
+                  </>
+                )}
+
+                {curationView ===
+                  'yearly' && (
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    disabled={
+                      selectedArticleIds.length ===
+                      0
+                    }
+                    onClick={() =>
+                      void bulkChangeCuration(
+                        'yearly',
+                        false
+                      )
+                    }
+                  >
+                    Remove selected from Yearly
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {loadingArticles && (
-
             <p>
               Loading articles...
             </p>
           )}
 
-
           {!loadingArticles &&
             articles.length ===
               0 && (
-
               <p>
                 No Current Affairs found.
               </p>
             )}
-
 
           {!loadingArticles &&
             curationArticles.length ===
               0 &&
             articles.length >
               0 && (
-
               <div
                 className="callout"
-
                 style={{
                   marginTop:
                     '18px'
                 }}
               >
-
                 <strong>
                   No articles in this workspace.
                 </strong>
-
 
                 <p>
                   {
                     curationView ===
                       'daily'
-
                       ? 'No Daily Current Affairs match the selected month or filters.'
-
                       : curationView ===
                         'monthly'
-
                       ? 'No Monthly-selected Current Affairs match the selected year or filters.'
-
                       : curationView ===
                         'yearly'
-
                       ? 'No Yearly-selected Current Affairs match the selected year.'
-
                       : 'Try changing or clearing the search.'
                   }
                 </p>
-
               </div>
             )}
-
 
           <div
             style={{
               display:
                 'grid',
-
               gap:
                 '14px',
-
               marginTop:
                 '20px'
             }}
           >
-
-            {curationArticles
-              .map(
-                article => (
-
-                  <article
-                    key={
-                      article.id
-                    }
-
+            {curationArticles.map(
+              article => (
+                <article
+                  key={
+                    article.id
+                  }
+                  style={{
+                    padding:
+                      '18px',
+                    border:
+                      '1px solid rgba(255,255,255,0.10)',
+                    borderRadius:
+                      '14px'
+                  }}
+                >
+                  <div
                     style={{
-                      padding:
-                        '18px',
-
-                      border:
-                        '1px solid rgba(255,255,255,0.10)',
-
-                      borderRadius:
-                        '14px'
+                      display:
+                        'flex',
+                      justifyContent:
+                        'space-between',
+                      gap:
+                        '16px',
+                      flexWrap:
+                        'wrap'
                     }}
                   >
-
                     <div
                       style={{
-                        display:
-                          'flex',
-
-                        justifyContent:
-                          'space-between',
-
-                        gap:
-                          '16px',
-
-                        flexWrap:
-                          'wrap'
+                        flex:
+                          '1 1 360px'
                       }}
                     >
-
-                      <div
-                        style={{
-                          flex:
-                            '1 1 360px'
-                        }}
-                      >
-
-                        <span
-                          className="eyebrow"
-                        >
-                          {article.subject}
-                        </span>
-
-
-                        <h3>
-                          {article.title}
-                        </h3>
-
-
-                        <p>
-
-                          Source:{' '}
-
-                          {article.source}
-
-                        </p>
-
-
-                        <p>
-
-                          Date:{' '}
-
-                          {
-                            article
-                              .published_at
-
-                              ? new Date(
-                                  article
-                                    .published_at
-                                )
-                                  .toLocaleDateString(
-                                    'en-IN'
-                                  )
-
-                              : '—'
-                          }
-
-                        </p>
-
-
-                        <p>
-
-                          Status:{' '}
-
-                          <strong>
-                            {article.status}
-                          </strong>
-
-                        </p>
-
-
-                        <div
+                      {curationView !==
+                        'all' && (
+                        <label
                           style={{
                             display:
                               'flex',
-
+                            alignItems:
+                              'center',
                             gap:
                               '8px',
-
-                            flexWrap:
-                              'wrap',
-
-                            marginTop:
+                            marginBottom:
                               '10px'
                           }}
                         >
+                          <input
+                            type="checkbox"
+                            checked={
+                              selectedArticleIds.includes(
+                                article.id
+                              )
+                            }
+                            onChange={() =>
+                              toggleArticleSelection(
+                                article.id
+                              )
+                            }
+                          />
 
-                          <span
-                            style={{
-                              padding:
-                                '5px 9px',
+                          Select
+                        </label>
+                      )}
 
-                              borderRadius:
-                                '999px',
+                      <span
+                        className="eyebrow"
+                      >
+                        {article.subject}
+                      </span>
 
-                              fontSize:
-                                '12px',
+                      <h3>
+                        {article.title}
+                      </h3>
 
-                              fontWeight:
-                                700,
+                      <p>
+                        Source:{' '}
+                        {article.source}
+                      </p>
 
-                              background:
-                                'rgba(59,130,246,0.15)',
+                      <p>
+                        Date:{' '}
+                        {
+                          article.published_at
+                            ? new Date(
+                                article.published_at
+                              )
+                                .toLocaleDateString(
+                                  'en-IN'
+                                )
+                            : '—'
+                        }
+                      </p>
 
-                              border:
-                                '1px solid rgba(59,130,246,0.35)'
-                            }}
-                          >
-                            DAILY
-                          </span>
-
-
-                          {article
-                            .monthly_selected && (
-
-                            <span
-                              style={{
-                                padding:
-                                  '5px 9px',
-
-                                borderRadius:
-                                  '999px',
-
-                                fontSize:
-                                  '12px',
-
-                                fontWeight:
-                                  700,
-
-                                background:
-                                  'rgba(16,185,129,0.15)',
-
-                                border:
-                                  '1px solid rgba(16,185,129,0.35)'
-                              }}
-                            >
-                              MONTHLY SELECTED
-                            </span>
-                          )}
-
-
-                          {article
-                            .yearly_selected && (
-
-                            <span
-                              style={{
-                                padding:
-                                  '5px 9px',
-
-                                borderRadius:
-                                  '999px',
-
-                                fontSize:
-                                  '12px',
-
-                                fontWeight:
-                                  700,
-
-                                background:
-                                  'rgba(245,158,11,0.15)',
-
-                                border:
-                                  '1px solid rgba(245,158,11,0.35)'
-                              }}
-                            >
-                              YEARLY SELECTED
-                            </span>
-                          )}
-
-                        </div>
-
-                      </div>
-
+                      <p>
+                        Status:{' '}
+                        <strong>
+                          {article.status}
+                        </strong>
+                      </p>
 
                       <div
                         style={{
                           display:
                             'flex',
-
                           gap:
                             '8px',
-
                           flexWrap:
                             'wrap',
-
-                          alignItems:
-                            'flex-start',
-
-                          flex:
-                            '1 1 300px'
+                          marginTop:
+                            '10px'
                         }}
                       >
-
-                        <button
-                          type="button"
-
-                          className="secondary-btn"
-
-                          onClick={() =>
-                            startEdit(
-                              article
-                            )
-                          }
+                        <span
+                          style={{
+                            padding:
+                              '5px 9px',
+                            borderRadius:
+                              '999px',
+                            fontSize:
+                              '12px',
+                            fontWeight:
+                              700,
+                            background:
+                              'rgba(59,130,246,0.15)',
+                            border:
+                              '1px solid rgba(59,130,246,0.35)'
+                          }}
                         >
-                          Edit
-                        </button>
+                          DAILY
+                        </span>
 
-
-                        {article.status ===
-                          'published' && (
-
-                          <>
-
-                            <button
-                              type="button"
-
-                              className="secondary-btn"
-
-                              onClick={() =>
-                                void changeCuration(
-                                  article,
-
-                                  'monthly',
-
-                                  !article
-                                    .monthly_selected
-                                )
-                              }
-                            >
-                              {
-                                article
-                                  .monthly_selected
-
-                                  ? 'Remove from Monthly'
-
-                                  : 'Select for Monthly'
-                              }
-                            </button>
-
-
-                            <button
-                              type="button"
-
-                              className="secondary-btn"
-
-                              disabled={
-                                !article
-                                  .monthly_selected
-                              }
-
-                              title={
-                                !article
-                                  .monthly_selected
-
-                                  ? 'Select for Monthly CA first'
-
-                                  : article
-                                      .yearly_selected
-
-                                  ? 'Remove from Yearly Current Affairs'
-
-                                  : 'Select for Yearly Current Affairs'
-                              }
-
-                              onClick={() =>
-                                void changeCuration(
-                                  article,
-
-                                  'yearly',
-
-                                  !article
-                                    .yearly_selected
-                                )
-                              }
-                            >
-                              {
-                                article
-                                  .yearly_selected
-
-                                  ? 'Remove from Yearly'
-
-                                  : 'Select for Yearly'
-                              }
-                            </button>
-
-                          </>
-                        )}
-
-
-                        {article.status !==
-                          'published' && (
-
-                          <button
-                            type="button"
-
-                            className="secondary-btn"
-
-                            onClick={() =>
-                              void changeStatus(
-                                article,
-
-                                'published'
-                              )
-                            }
+                        {article.monthly_selected && (
+                          <span
+                            style={{
+                              padding:
+                                '5px 9px',
+                              borderRadius:
+                                '999px',
+                              fontSize:
+                                '12px',
+                              fontWeight:
+                                700,
+                              background:
+                                'rgba(16,185,129,0.15)',
+                              border:
+                                '1px solid rgba(16,185,129,0.35)'
+                            }}
                           >
-                            Publish
-                          </button>
+                            MONTHLY SELECTED
+                          </span>
                         )}
 
-
-                        {article.status !==
-                          'draft' && (
-
-                          <button
-                            type="button"
-
-                            className="secondary-btn"
-
-                            onClick={() =>
-                              void changeStatus(
-                                article,
-
-                                'draft'
-                              )
-                            }
+                        {article.yearly_selected && (
+                          <span
+                            style={{
+                              padding:
+                                '5px 9px',
+                              borderRadius:
+                                '999px',
+                              fontSize:
+                                '12px',
+                              fontWeight:
+                                700,
+                              background:
+                                'rgba(245,158,11,0.15)',
+                              border:
+                                '1px solid rgba(245,158,11,0.35)'
+                            }}
                           >
-                            Move to draft
-                          </button>
+                            YEARLY SELECTED
+                          </span>
                         )}
-
-
-                        {article.status !==
-                          'archived' && (
-
-                          <button
-                            type="button"
-
-                            className="secondary-btn"
-
-                            onClick={() =>
-                              void changeStatus(
-                                article,
-
-                                'archived'
-                              )
-                            }
-                          >
-                            Archive
-                          </button>
-                        )}
-
-
-                        <button
-                          type="button"
-
-                          className="secondary-btn"
-
-                          onClick={() =>
-                            void deleteArticle(
-                              article
-                            )
-                          }
-                        >
-                          Delete
-                        </button>
-
                       </div>
-
                     </div>
 
-                  </article>
-                )
-              )}
+                    <div
+                      style={{
+                        display:
+                          'flex',
+                        gap:
+                          '8px',
+                        flexWrap:
+                          'wrap',
+                        alignItems:
+                          'flex-start',
+                        flex:
+                          '1 1 300px'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() =>
+                          startEdit(
+                            article
+                          )
+                        }
+                      >
+                        Edit
+                      </button>
 
+                      {article.status ===
+                        'published' && (
+                        <>
+                          <button
+                            type="button"
+                            className="secondary-btn"
+                            onClick={() =>
+                              void changeCuration(
+                                article,
+                                'monthly',
+                                !article.monthly_selected
+                              )
+                            }
+                          >
+                            {
+                              article.monthly_selected
+                                ? 'Remove from Monthly'
+                                : 'Select for Monthly'
+                            }
+                          </button>
+
+                          <button
+                            type="button"
+                            className="secondary-btn"
+                            disabled={
+                              !article.monthly_selected
+                            }
+                            title={
+                              !article.monthly_selected
+                                ? 'Select for Monthly CA first'
+                                : article.yearly_selected
+                                ? 'Remove from Yearly Current Affairs'
+                                : 'Select for Yearly Current Affairs'
+                            }
+                            onClick={() =>
+                              void changeCuration(
+                                article,
+                                'yearly',
+                                !article.yearly_selected
+                              )
+                            }
+                          >
+                            {
+                              article.yearly_selected
+                                ? 'Remove from Yearly'
+                                : 'Select for Yearly'
+                            }
+                          </button>
+                        </>
+                      )}
+
+                      {article.status !==
+                        'published' && (
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() =>
+                            void changeStatus(
+                              article,
+                              'published'
+                            )
+                          }
+                        >
+                          Publish
+                        </button>
+                      )}
+
+                      {article.status !==
+                        'draft' && (
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() =>
+                            void changeStatus(
+                              article,
+                              'draft'
+                            )
+                          }
+                        >
+                          Move to draft
+                        </button>
+                      )}
+
+                      {article.status !==
+                        'archived' && (
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() =>
+                            void changeStatus(
+                              article,
+                              'archived'
+                            )
+                          }
+                        >
+                          Archive
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() =>
+                          void deleteArticle(
+                            article
+                          )
+                        }
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              )
+            )}
           </div>
-
         </section>
-
       </div>
-
 
       <div
         style={{
           display:
             adminTab ===
               'resources'
-
               ? 'block'
-
               : 'none'
         }}
       >
-
         <ResourceAdminHub />
-
       </div>
-
 
       <div
         style={{
           display:
             adminTab ===
               'mcq'
-
               ? 'block'
-
               : 'none'
         }}
       >
-
         <PrelimsAdminWorkspace />
-
       </div>
-
 
       <div
         style={{
           display:
             adminTab ===
               'tests'
-
               ? 'block'
-
               : 'none'
         }}
       >
-
         <PrelimsTestManager />
-
       </div>
-
 
       <div
         style={{
           display:
             adminTab ===
               'mains'
-
               ? 'block'
-
               : 'none'
         }}
       >
-
         <section
           className="panel"
-
           style={{
             padding:
               '12px 14px',
-
             marginBottom:
               '12px'
           }}
         >
-
           <div
             style={{
               display:
                 'grid',
-
               gridTemplateColumns:
                 'repeat(auto-fit, minmax(180px, 1fr))',
-
               gap:
                 '8px'
             }}
           >
-
             <button
               type="button"
-
               className={
                 mainsWorkspace ===
                   'pyq'
-
                   ? 'filter active'
-
                   : 'filter'
               }
-
               onClick={() =>
                 setMainsWorkspace(
                   'pyq'
@@ -4607,19 +4479,14 @@ export function AdminPage({
               Previous Year Questions
             </button>
 
-
             <button
               type="button"
-
               className={
                 mainsWorkspace ===
                   'practice'
-
                   ? 'filter active'
-
                   : 'filter'
               }
-
               onClick={() =>
                 setMainsWorkspace(
                   'practice'
@@ -4628,18 +4495,14 @@ export function AdminPage({
             >
               Add / Manage Practice Questions
             </button>
-
           </div>
-
 
           <small
             style={{
               display:
                 'block',
-
               marginTop:
                 '8px',
-
               color:
                 '#94a3b8'
             }}
@@ -4647,48 +4510,34 @@ export function AdminPage({
             {
               mainsWorkspace ===
                 'pyq'
-
                 ? 'Add, check and manage Mains previous-year questions and repeated appearances.'
-
                 : 'Create and manage Mains practice questions.'
             }
           </small>
-
         </section>
-
 
         {mainsWorkspace ===
           'pyq' && (
-
           <MainsPyqManager />
         )}
 
-
         {mainsWorkspace ===
           'practice' && (
-
           <MainsQuestionManager />
         )}
-
       </div>
-
 
       <div
         style={{
           display:
             adminTab ===
               'evaluation'
-
               ? 'block'
-
               : 'none'
         }}
       >
-
         <MainsEvaluationManager />
-
       </div>
-
     </div>
   );
 }
