@@ -956,6 +956,47 @@ export function CurrentPage({
       }
     ).length;
 
+    const newspaperSubjectGroups =
+    Array.from(
+      new Set(
+        visibleItems
+          .map(
+            item =>
+              item.subject
+                .trim() ||
+              'Other'
+          )
+      )
+    )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          a.localeCompare(
+            b
+          )
+      )
+      .map(
+        subject => ({
+          key:
+            subject,
+
+          title:
+            subject,
+
+          items:
+            visibleItems.filter(
+              item =>
+                (
+                  item.subject
+                    .trim() ||
+                  'Other'
+                ) ===
+                subject
+            )
+        })
+      );
 
   async function openAnalysis(
     item: CurrentAffair
@@ -2357,15 +2398,77 @@ export function CurrentPage({
           )}
 
 
-        {(viewMode ===
-            'daily' ||
-          viewMode ===
-            'newspaper') &&
+                {viewMode ===
+          'daily' &&
           visibleItems.map(
             item =>
               renderArticleCard(
                 item
               )
+          )}
+
+
+        {viewMode ===
+          'newspaper' &&
+          newspaperSubjectGroups.map(
+            group => (
+              <section
+                key={
+                  group.key
+                }
+                style={{
+                  display:
+                    'grid',
+
+                  gap:
+                    '14px',
+
+                  marginBottom:
+                    '24px'
+                }}
+              >
+                <div
+                  className="panel"
+                  style={{
+                    padding:
+                      '16px'
+                  }}
+                >
+                  <span
+                    className="eyebrow"
+                  >
+                    SUBJECT
+                  </span>
+
+                  <h2
+                    style={{
+                      margin:
+                        '6px 0'
+                    }}
+                  >
+                    {group.title}
+                  </h2>
+
+                  <small>
+                    {group.items.length}
+                    {' '}
+                    {
+                      group.items.length ===
+                        1
+                        ? 'article'
+                        : 'articles'
+                    }
+                  </small>
+                </div>
+
+                {group.items.map(
+                  item =>
+                    renderArticleCard(
+                      item
+                    )
+                )}
+              </section>
+            )
           )}
 
 
