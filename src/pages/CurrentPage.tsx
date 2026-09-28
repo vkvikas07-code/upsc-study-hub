@@ -316,6 +316,64 @@ function getTodayDayKey():
   );
 }
 
+function formatArchiveDay(
+  value: string
+): string {
+  const [
+    year,
+    month,
+    day
+  ] =
+    value
+      .split('-')
+      .map(Number);
+
+  return new Date(
+    year,
+    month - 1,
+    day
+  ).toLocaleDateString(
+    'en-IN',
+    {
+      day:
+        '2-digit',
+
+      month:
+        'long',
+
+      year:
+        'numeric'
+    }
+  );
+}
+
+
+function formatArchiveMonth(
+  value: string
+): string {
+  const [
+    year,
+    month
+  ] =
+    value
+      .split('-')
+      .map(Number);
+
+  return new Date(
+    year,
+    month - 1,
+    1
+  ).toLocaleDateString(
+    'en-IN',
+    {
+      month:
+        'long',
+
+      year:
+        'numeric'
+    }
+  );
+}
 
 function getNewspaperKey(
   source: string
@@ -848,6 +906,117 @@ export function CurrentPage({
           );
         }
 
+        const monthlyGroups =
+  Array.from(
+    new Set(
+      visibleItems
+        .map(
+          item =>
+            getDayKey(
+              getArticleDateValue(
+                item
+              )
+            )
+        )
+        .filter(
+          (
+            value
+          ):
+            value is string =>
+              Boolean(
+                value
+              )
+        )
+    )
+  )
+    .sort(
+      (
+        a,
+        b
+      ) =>
+        b.localeCompare(
+          a
+        )
+    )
+    .map(
+      day => ({
+        key:
+          day,
+
+        title:
+          formatArchiveDay(
+            day
+          ),
+
+        items:
+          visibleItems.filter(
+            item =>
+              getDayKey(
+                getArticleDateValue(
+                  item
+                )
+              ) ===
+              day
+          )
+      })
+    );
+
+
+const yearlyGroups =
+  Array.from(
+    new Set(
+      visibleItems
+        .map(
+          item =>
+            getMonthKey(
+              getArticleDateValue(
+                item
+              )
+            )
+        )
+        .filter(
+          (
+            value
+          ):
+            value is string =>
+              Boolean(
+                value
+              )
+        )
+    )
+  )
+    .sort(
+      (
+        a,
+        b
+      ) =>
+        b.localeCompare(
+          a
+        )
+    )
+    .map(
+      month => ({
+        key:
+          month,
+
+        title:
+          formatArchiveMonth(
+            month
+          ),
+
+        items:
+          visibleItems.filter(
+            item =>
+              getMonthKey(
+                getArticleDateValue(
+                  item
+                )
+              ) ===
+              month
+          )
+      })
+    );
+        
         const sourceKey =
           getNewspaperKey(
             item.source
