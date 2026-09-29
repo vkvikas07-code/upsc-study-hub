@@ -197,6 +197,39 @@ function safeArray(
     );
 }
 
+function normalizeQuestionText(
+  value: string
+): string {
+
+  return value
+    .normalize('NFKC')
+    .toLowerCase()
+
+    // Standardise quotation marks
+    .replace(
+      /[“”]/g,
+      '"'
+    )
+
+    .replace(
+      /[‘’]/g,
+      "'"
+    )
+
+    // Remove punctuation differences
+    .replace(
+      /[.,!?;:()[\]{}"'“”‘’\-–—_/\\]+/g,
+      ' '
+    )
+
+    // Remove repeated spaces/new lines
+    .replace(
+      /\s+/g,
+      ' '
+    )
+
+    .trim();
+}
 
 export function CompactMcqEditor() {
 
@@ -1246,6 +1279,109 @@ export function CompactMcqEditor() {
       return;
     }
 
+    /* =========================================================
+   DUPLICATE QUESTION CHECK
+   ========================================================= */
+
+const normalizedCurrentQuestion =
+  normalizeQuestionText(
+    question
+  );
+
+
+setMessage(
+  'Checking for duplicate question...'
+);
+
+
+const {
+  data:
+    existingQuestions,
+
+  error:
+    duplicateCheckError
+} =
+  await client
+    .from(
+      'questions'
+    )
+    .select(
+      'id, question'
+    )
+    .eq(
+      'exam_stage',
+      'prelims'
+    )
+    .limit(
+      5000
+    );
+
+
+if (
+  duplicateCheckError
+) {
+
+  console.error(
+    'Duplicate question check failed:',
+    duplicateCheckError
+  );
+
+
+  setMessage(
+    `Unable to check duplicate questions: ${duplicateCheckError.message}`
+  );
+
+
+  return;
+}
+
+
+const duplicateQuestion =
+  (
+    existingQuestions ||
+    []
+  ).find(
+    item => {
+
+      /*
+       * When editing an existing question,
+       * do not compare the question against itself.
+       */
+
+      if (
+        editingId &&
+        item.id ===
+          editingId
+      ) {
+
+        return false;
+
+      }
+
+
+      return (
+        normalizeQuestionText(
+          item.question ||
+          ''
+        ) ===
+        normalizedCurrentQuestion
+      );
+    }
+  );
+
+
+if (
+  duplicateQuestion
+) {
+
+  setMessage(
+    '⚠️ This question already exists in the Prelims question bank. Duplicate question was not saved.'
+  );
+
+
+  return;
+}
+    
 
     if (
       options.some(
