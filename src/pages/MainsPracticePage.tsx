@@ -169,7 +169,6 @@ function WorkspaceTabs({
   active,
   onChange
 }: {
-
   active:
     WorkspaceView;
 
@@ -178,7 +177,6 @@ function WorkspaceTabs({
       value:
         WorkspaceView
     ) => void;
-
 }) {
 
   return (
@@ -276,9 +274,7 @@ export function MainsPracticePage() {
   ] =
     useState<
       MainsQuestion[]
-    >(
-      []
-    );
+    >([]);
 
 
   const [
@@ -288,9 +284,7 @@ export function MainsPracticePage() {
     useState<
       MainsQuestion |
       null
-    >(
-      null
-    );
+    >(null);
 
 
   const [
@@ -401,9 +395,7 @@ export function MainsPracticePage() {
     useState<
       string |
       null
-    >(
-      null
-    );
+    >(null);
 
 
   async function loadQuestions() {
@@ -459,6 +451,7 @@ export function MainsPracticePage() {
           key_points,
           introduction_hint,
           conclusion_hint,
+          framework_image_paths,
           source,
           source_url,
           tags,
@@ -518,8 +511,28 @@ export function MainsPracticePage() {
           ...item,
 
           tags:
-            item.tags ||
-            [],
+            Array.isArray(
+              item.tags
+            )
+              ? item.tags
+              : [],
+
+          framework_image_paths:
+            Array.isArray(
+              item.framework_image_paths
+            )
+              ? item
+                  .framework_image_paths
+                  .map(
+                    value =>
+                      String(
+                        value
+                      )
+                  )
+                  .filter(
+                    Boolean
+                  )
+              : [],
 
           difficulty:
             item.difficulty ||
@@ -829,13 +842,11 @@ export function MainsPracticePage() {
 
 
     mainArea?.scrollTo({
-
       top:
         0,
 
       behavior:
         'smooth'
-
     });
   }
 
@@ -957,6 +968,9 @@ export function MainsPracticePage() {
 
         conclusion_hint:
           item.conclusion_hint,
+
+        framework_image_paths:
+          [],
 
         source:
           item.source,
