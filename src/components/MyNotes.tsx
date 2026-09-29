@@ -13,6 +13,20 @@ import {
   supabase
 } from '../lib/supabase';
 
+import {
+  createNoteImageUrls,
+  removeNoteImages,
+  uploadNoteImages
+} from '../lib/noteImages';
+
+import {
+  StudentNoteImagePicker
+} from './StudentNoteImagePicker';
+
+import type {
+  PendingNoteImage
+} from './StudentNoteImagePicker';
+
 
 type ExamStage =
   | 'general'
@@ -46,6 +60,7 @@ type StudentNote = {
   id: string;
 
   title: string;
+
   content: string;
 
   subject:
@@ -68,12 +83,18 @@ type StudentNote = {
   tags:
     string[];
 
-  isPinned: boolean;
-  isArchived: boolean;
+  isPinned:
+    boolean;
+
+  isArchived:
+    boolean;
 
   sourceUrl:
     string |
     null;
+
+  imagePaths:
+    string[];
 
   createdAt:
     string |
@@ -132,6 +153,10 @@ type StudentNoteRow = {
     string |
     null;
 
+  image_paths:
+    string[] |
+    null;
+
   created_at:
     string |
     null;
@@ -143,17 +168,13 @@ type StudentNoteRow = {
 
 
 type NoteForm = {
-  title:
-    string;
+  title: string;
 
-  content:
-    string;
+  content: string;
 
-  subject:
-    string;
+  subject: string;
 
-  topic:
-    string;
+  topic: string;
 
   examStage:
     ExamStage;
@@ -164,11 +185,9 @@ type NoteForm = {
   language:
     NoteLanguage;
 
-  tags:
-    string;
+  tags: string;
 
-  sourceUrl:
-    string;
+  sourceUrl: string;
 };
 
 
@@ -204,9 +223,13 @@ const EMPTY_FORM:
 };
 
 
+const MAX_NOTE_IMAGES =
+  6;
+
+
 /*
  * =========================================
- * NORMALISE VALUES
+ * NORMALISERS
  * =========================================
  */
 
@@ -227,6 +250,7 @@ function normalizeExamStage(
   ) {
 
     return value;
+
   }
 
 
@@ -255,6 +279,7 @@ function normalizeNoteType(
   ) {
 
     return value;
+
   }
 
 
@@ -279,6 +304,7 @@ function normalizeLanguage(
   ) {
 
     return value;
+
   }
 
 
@@ -288,7 +314,7 @@ function normalizeLanguage(
 
 /*
  * =========================================
- * DATABASE ROW → NOTE
+ * DATABASE → APP
  * =========================================
  */
 
@@ -352,9 +378,9 @@ function mapNote(
       )
         ? row.tags
             .map(
-              tag =>
+              item =>
                 String(
-                  tag
+                  item
                 ).trim()
             )
             .filter(
@@ -379,6 +405,22 @@ function mapNote(
           )
         : null,
 
+    imagePaths:
+      Array.isArray(
+        row.image_paths
+      )
+        ? row.image_paths
+            .map(
+              item =>
+                String(
+                  item
+                )
+            )
+            .filter(
+              Boolean
+            )
+        : [],
+
     createdAt:
       row.created_at
         ? String(
@@ -399,7 +441,7 @@ function mapNote(
 
 /*
  * =========================================
- * TAG PARSER
+ * HELPERS
  * =========================================
  */
 
@@ -411,7 +453,9 @@ function parseTags(
   return Array.from(
     new Set(
       value
-        .split(',')
+        .split(
+          ','
+        )
         .map(
           item =>
             item.trim()
@@ -424,12 +468,6 @@ function parseTags(
 }
 
 
-/*
- * =========================================
- * DATE DISPLAY
- * =========================================
- */
-
 function formatDate(
   value:
     string |
@@ -437,7 +475,6 @@ function formatDate(
 ) {
 
   if (!value) {
-
     return '';
   }
 
@@ -455,6 +492,7 @@ function formatDate(
   ) {
 
     return '';
+
   }
 
 
@@ -481,12 +519,6 @@ function formatDate(
 }
 
 
-/*
- * =========================================
- * LABELS
- * =========================================
- */
-
 function examStageLabel(
   value:
     ExamStage
@@ -497,23 +529,17 @@ function examStageLabel(
   ) {
 
     case 'prelims':
-
       return 'Prelims';
 
-
     case 'mains':
-
       return 'Mains';
 
-
     case 'both':
-
       return 'Prelims + Mains';
 
-
     default:
-
       return 'General';
+
   }
 }
 
@@ -528,33 +554,23 @@ function noteTypeLabel(
   ) {
 
     case 'book':
-
       return 'Book Note';
 
-
     case 'current_affairs':
-
       return 'Current Affairs';
 
-
     case 'revision':
-
       return 'Revision';
 
-
     case 'prelims':
-
       return 'Prelims';
 
-
     case 'mains':
-
       return 'Mains';
 
-
     default:
-
       return 'General';
+
   }
 }
 
@@ -567,12 +583,6 @@ function noteTypeLabel(
 
 export function MyNotes() {
 
-  /*
-   * =========================================
-   * DATA
-   * =========================================
-   */
-
   const [
     notes,
     setNotes
@@ -581,12 +591,6 @@ export function MyNotes() {
       StudentNote[]
     >([]);
 
-
-  /*
-   * =========================================
-   * AUTH / LOAD STATE
-   * =========================================
-   */
 
   const [
     signedIn,
@@ -627,12 +631,6 @@ export function MyNotes() {
     );
 
 
-  /*
-   * =========================================
-   * EDITOR STATE
-   * =========================================
-   */
-
   const [
     editorOpen,
     setEditorOpen
@@ -665,17 +663,52 @@ export function MyNotes() {
     );
 
 
-  /*
-   * =========================================
-   * FILTERS
-   * =========================================
-   */
+  const [
+    pendingImages,
+    setPendingImages
+  ] =
+    useState<
+      PendingNoteImage[]
+    >([]);
+
+
+  const [
+    existingImagePaths,
+    setExistingImagePaths
+  ] =
+    useState<
+      string[]
+    >([]);
+
+
+  const [
+    removedImagePaths,
+    setRemovedImagePaths
+  ] =
+    useState<
+      string[]
+    >([]);
+
+
+  const [
+    imageUrls,
+    setImageUrls
+  ] =
+    useState<
+      Record<
+        string,
+        string
+      >
+    >({});
+
 
   const [
     search,
     setSearch
   ] =
-    useState('');
+    useState(
+      ''
+    );
 
 
   const [
@@ -716,24 +749,47 @@ export function MyNotes() {
     );
 
 
-  /*
-   * =========================================
-   * MESSAGE STATE
-   * =========================================
-   */
-
   const [
     message,
     setMessage
   ] =
-    useState('');
+    useState(
+      ''
+    );
 
 
   const [
     error,
     setError
   ] =
-    useState('');
+    useState(
+      ''
+    );
+
+
+  /*
+   * =========================================
+   * CLEAN LOCAL PREVIEW URLS
+   * =========================================
+   */
+
+  function clearPendingImages() {
+
+    pendingImages.forEach(
+      image => {
+
+        URL.revokeObjectURL(
+          image.previewUrl
+        );
+
+      }
+    );
+
+
+    setPendingImages(
+      []
+    );
+  }
 
 
   /*
@@ -754,11 +810,9 @@ export function MyNotes() {
         'Supabase is not configured.'
       );
 
-
       setLoading(
         false
       );
-
 
       return;
     }
@@ -768,8 +822,9 @@ export function MyNotes() {
       true
     );
 
-
-    setError('');
+    setError(
+      ''
+    );
 
 
     const {
@@ -788,16 +843,17 @@ export function MyNotes() {
         false
       );
 
-
       setNotes(
         []
       );
 
+      setImageUrls(
+        {}
+      );
 
       setLoading(
         false
       );
-
 
       return;
     }
@@ -831,6 +887,7 @@ export function MyNotes() {
           is_pinned,
           is_archived,
           source_url,
+          image_paths,
           created_at,
           updated_at
           `
@@ -869,16 +926,13 @@ export function MyNotes() {
         loadError.message
       );
 
-
       setNotes(
         []
       );
 
-
       setLoading(
         false
       );
-
 
       return;
     }
@@ -902,17 +956,46 @@ export function MyNotes() {
     );
 
 
+    const allPaths =
+      Array.from(
+        new Set(
+          nextNotes.flatMap(
+            note =>
+              note.imagePaths
+          )
+        )
+      );
+
+
+    if (
+      allPaths.length >
+      0
+    ) {
+
+      const urls =
+        await createNoteImageUrls(
+          allPaths
+        );
+
+
+      setImageUrls(
+        urls
+      );
+
+    } else {
+
+      setImageUrls(
+        {}
+      );
+
+    }
+
+
     setLoading(
       false
     );
   }
 
-
-  /*
-   * =========================================
-   * INITIAL LOAD
-   * =========================================
-   */
 
   useEffect(
     () => {
@@ -926,7 +1009,7 @@ export function MyNotes() {
 
   /*
    * =========================================
-   * FORM UPDATE
+   * FORM
    * =========================================
    */
 
@@ -944,24 +1027,27 @@ export function MyNotes() {
     setForm(
       current => ({
         ...current,
+
         [key]:
           value
       })
     );
 
 
-    setMessage('');
-    setError('');
+    setMessage(
+      ''
+    );
+
+    setError(
+      ''
+    );
   }
 
 
-  /*
-   * =========================================
-   * NEW NOTE
-   * =========================================
-   */
-
   function openNewNote() {
+
+    clearPendingImages();
+
 
     setEditingId(
       null
@@ -973,8 +1059,24 @@ export function MyNotes() {
     );
 
 
-    setMessage('');
-    setError('');
+    setExistingImagePaths(
+      []
+    );
+
+
+    setRemovedImagePaths(
+      []
+    );
+
+
+    setMessage(
+      ''
+    );
+
+
+    setError(
+      ''
+    );
 
 
     setEditorOpen(
@@ -1003,16 +1105,13 @@ export function MyNotes() {
   }
 
 
-  /*
-   * =========================================
-   * EDIT NOTE
-   * =========================================
-   */
-
   function openEditNote(
     note:
       StudentNote
   ) {
+
+    clearPendingImages();
+
 
     setEditingId(
       note.id
@@ -1056,8 +1155,24 @@ export function MyNotes() {
     });
 
 
-    setMessage('');
-    setError('');
+    setExistingImagePaths(
+      note.imagePaths
+    );
+
+
+    setRemovedImagePaths(
+      []
+    );
+
+
+    setMessage(
+      ''
+    );
+
+
+    setError(
+      ''
+    );
 
 
     setEditorOpen(
@@ -1086,13 +1201,10 @@ export function MyNotes() {
   }
 
 
-  /*
-   * =========================================
-   * CLOSE EDITOR
-   * =========================================
-   */
-
   function closeEditor() {
+
+    clearPendingImages();
+
 
     setEditorOpen(
       false
@@ -1104,12 +1216,24 @@ export function MyNotes() {
     );
 
 
+    setExistingImagePaths(
+      []
+    );
+
+
+    setRemovedImagePaths(
+      []
+    );
+
+
     setForm(
       EMPTY_FORM
     );
 
 
-    setError('');
+    setError(
+      ''
+    );
   }
 
 
@@ -1137,21 +1261,33 @@ export function MyNotes() {
         'Supabase is not configured.'
       );
 
-
       return;
     }
 
 
-    const title =
+    const cleanTitle =
       form.title.trim();
 
 
-    if (!title) {
+    if (!cleanTitle) {
 
       setError(
         'Please enter a note title.'
       );
 
+      return;
+    }
+
+
+    if (
+      existingImagePaths.length +
+      pendingImages.length >
+      MAX_NOTE_IMAGES
+    ) {
+
+      setError(
+        `Maximum ${MAX_NOTE_IMAGES} images are allowed per note.`
+      );
 
       return;
     }
@@ -1178,7 +1314,6 @@ export function MyNotes() {
         'Sign in to save notes.'
       );
 
-
       return;
     }
 
@@ -1188,16 +1323,23 @@ export function MyNotes() {
     );
 
 
-    setMessage('');
-    setError('');
+    setMessage(
+      ''
+    );
 
 
-    const payload = {
+    setError(
+      ''
+    );
+
+
+    const basePayload = {
 
       user_id:
         user.id,
 
-      title,
+      title:
+        cleanTitle,
 
       content:
         form.content,
@@ -1231,48 +1373,146 @@ export function MyNotes() {
     };
 
 
-    /*
-     * UPDATE EXISTING NOTE
-     */
+    try {
 
-    if (
-      editingId
-    ) {
-
-      const {
-        error:
-          updateError
-      } =
-        await client
-          .from(
-            'student_notes'
-          )
-          .update(
-            payload
-          )
-          .eq(
-            'id',
-            editingId
-          )
-          .eq(
-            'user_id',
-            user.id
-          );
-
+      /*
+       * UPDATE EXISTING NOTE
+       */
 
       if (
-        updateError
+        editingId
       ) {
 
-        console.error(
-          'Unable to update note:',
+        let newPaths:
+          string[] = [];
+
+
+        if (
+          pendingImages.length >
+          0
+        ) {
+
+          newPaths =
+            await uploadNoteImages({
+              userId:
+                user.id,
+
+              noteId:
+                editingId,
+
+              files:
+                pendingImages.map(
+                  image =>
+                    image.file
+                )
+            });
+
+        }
+
+
+        const finalPaths = [
+          ...existingImagePaths,
+          ...newPaths
+        ];
+
+
+        const {
+          error:
+            updateError
+        } =
+          await client
+            .from(
+              'student_notes'
+            )
+            .update({
+              ...basePayload,
+
+              image_paths:
+                finalPaths
+            })
+            .eq(
+              'id',
+              editingId
+            )
+            .eq(
+              'user_id',
+              user.id
+            );
+
+
+        if (
           updateError
+        ) {
+
+          if (
+            newPaths.length >
+            0
+          ) {
+
+            try {
+
+              await removeNoteImages(
+                newPaths
+              );
+
+            } catch (
+              cleanupError
+            ) {
+
+              console.error(
+                'Unable to clean uploaded images:',
+                cleanupError
+              );
+
+            }
+
+          }
+
+
+          throw updateError;
+
+        }
+
+
+        if (
+          removedImagePaths.length >
+          0
+        ) {
+
+          try {
+
+            await removeNoteImages(
+              removedImagePaths
+            );
+
+          } catch (
+            imageDeleteError
+          ) {
+
+            console.error(
+              'Unable to remove old note images:',
+              imageDeleteError
+            );
+
+          }
+
+        }
+
+
+        clearPendingImages();
+
+
+        setExistingImagePaths(
+          []
         );
 
 
-        setError(
-          updateError.message
+        setRemovedImagePaths(
+          []
         );
+
+
+        await loadNotes();
 
 
         setSaving(
@@ -1280,8 +1520,186 @@ export function MyNotes() {
         );
 
 
+        setEditorOpen(
+          false
+        );
+
+
+        setEditingId(
+          null
+        );
+
+
+        setForm(
+          EMPTY_FORM
+        );
+
+
+        setMessage(
+          'Note updated successfully.'
+        );
+
+
         return;
       }
+
+
+      /*
+       * CREATE NEW NOTE
+       */
+
+      const {
+        data:
+          created,
+
+        error:
+          insertError
+      } =
+        await client
+          .from(
+            'student_notes'
+          )
+          .insert({
+            ...basePayload,
+
+            image_paths:
+              []
+          })
+          .select(
+            'id'
+          )
+          .single();
+
+
+      if (
+        insertError ||
+        !created
+      ) {
+
+        throw (
+          insertError ||
+          new Error(
+            'Unable to create note.'
+          )
+        );
+
+      }
+
+
+      let uploadedPaths:
+        string[] = [];
+
+
+      try {
+
+        if (
+          pendingImages.length >
+          0
+        ) {
+
+          uploadedPaths =
+            await uploadNoteImages({
+              userId:
+                user.id,
+
+              noteId:
+                created.id,
+
+              files:
+                pendingImages.map(
+                  image =>
+                    image.file
+                )
+            });
+
+
+          const {
+            error:
+              imageUpdateError
+          } =
+            await client
+              .from(
+                'student_notes'
+              )
+              .update({
+                image_paths:
+                  uploadedPaths
+              })
+              .eq(
+                'id',
+                created.id
+              )
+              .eq(
+                'user_id',
+                user.id
+              );
+
+
+          if (
+            imageUpdateError
+          ) {
+
+            throw imageUpdateError;
+
+          }
+
+        }
+
+      } catch (
+        imageError
+      ) {
+
+        if (
+          uploadedPaths.length >
+          0
+        ) {
+
+          try {
+
+            await removeNoteImages(
+              uploadedPaths
+            );
+
+          } catch (
+            cleanupError
+          ) {
+
+            console.error(
+              'Unable to clean failed upload:',
+              cleanupError
+            );
+
+          }
+
+        }
+
+
+        await client
+          .from(
+            'student_notes'
+          )
+          .delete()
+          .eq(
+            'id',
+            created.id
+          )
+          .eq(
+            'user_id',
+            user.id
+          );
+
+
+        throw imageError;
+
+      }
+
+
+      const hadImages =
+        pendingImages.length >
+        0;
+
+
+      clearPendingImages();
 
 
       await loadNotes();
@@ -1308,43 +1726,18 @@ export function MyNotes() {
 
 
       setMessage(
-        'Note updated successfully.'
+        hadImages
+          ? 'New note and images saved successfully.'
+          : 'New note created successfully.'
       );
 
-
-      return;
-    }
-
-
-    /*
-     * CREATE NEW NOTE
-     */
-
-    const {
-      error:
-        insertError
-    } =
-      await client
-        .from(
-          'student_notes'
-        )
-        .insert(
-          payload
-        );
-
-
-    if (
-      insertError
+    } catch (
+      saveError
     ) {
 
       console.error(
-        'Unable to create note:',
-        insertError
-      );
-
-
-      setError(
-        insertError.message
+        'Unable to save note:',
+        saveError
       );
 
 
@@ -1353,37 +1746,20 @@ export function MyNotes() {
       );
 
 
-      return;
+      setError(
+        saveError instanceof
+          Error
+          ? saveError.message
+          : 'Unable to save note.'
+      );
+
     }
-
-
-    await loadNotes();
-
-
-    setSaving(
-      false
-    );
-
-
-    setEditorOpen(
-      false
-    );
-
-
-    setForm(
-      EMPTY_FORM
-    );
-
-
-    setMessage(
-      'New note created successfully.'
-    );
   }
 
 
   /*
    * =========================================
-   * PIN / UNPIN
+   * PIN
    * =========================================
    */
 
@@ -1397,7 +1773,6 @@ export function MyNotes() {
 
 
     if (!client) {
-
       return;
     }
 
@@ -1418,7 +1793,6 @@ export function MyNotes() {
         'Sign in to update notes.'
       );
 
-
       return;
     }
 
@@ -1426,10 +1800,6 @@ export function MyNotes() {
     setWorkingId(
       note.id
     );
-
-
-    setError('');
-    setMessage('');
 
 
     const {
@@ -1440,12 +1810,10 @@ export function MyNotes() {
         .from(
           'student_notes'
         )
-        .update(
-          {
-            is_pinned:
-              !note.isPinned
-          }
-        )
+        .update({
+          is_pinned:
+            !note.isPinned
+        })
         .eq(
           'id',
           note.id
@@ -1460,21 +1828,13 @@ export function MyNotes() {
       updateError
     ) {
 
-      console.error(
-        'Unable to update note pin:',
-        updateError
-      );
-
-
       setError(
         updateError.message
       );
 
-
       setWorkingId(
         null
       );
-
 
       return;
     }
@@ -1498,7 +1858,7 @@ export function MyNotes() {
 
   /*
    * =========================================
-   * ARCHIVE / RESTORE
+   * ARCHIVE
    * =========================================
    */
 
@@ -1512,7 +1872,6 @@ export function MyNotes() {
 
 
     if (!client) {
-
       return;
     }
 
@@ -1533,7 +1892,6 @@ export function MyNotes() {
         'Sign in to update notes.'
       );
 
-
       return;
     }
 
@@ -1541,10 +1899,6 @@ export function MyNotes() {
     setWorkingId(
       note.id
     );
-
-
-    setError('');
-    setMessage('');
 
 
     const nextArchived =
@@ -1587,21 +1941,13 @@ export function MyNotes() {
       updateError
     ) {
 
-      console.error(
-        'Unable to archive note:',
-        updateError
-      );
-
-
       setError(
         updateError.message
       );
 
-
       setWorkingId(
         null
       );
-
 
       return;
     }
@@ -1625,7 +1971,7 @@ export function MyNotes() {
 
   /*
    * =========================================
-   * DELETE NOTE
+   * DELETE
    * =========================================
    */
 
@@ -1640,10 +1986,7 @@ export function MyNotes() {
       );
 
 
-    if (
-      !confirmed
-    ) {
-
+    if (!confirmed) {
       return;
     }
 
@@ -1653,7 +1996,6 @@ export function MyNotes() {
 
 
     if (!client) {
-
       return;
     }
 
@@ -1674,7 +2016,6 @@ export function MyNotes() {
         'Sign in to delete notes.'
       );
 
-
       return;
     }
 
@@ -1684,8 +2025,9 @@ export function MyNotes() {
     );
 
 
-    setError('');
-    setMessage('');
+    setError(
+      ''
+    );
 
 
     const {
@@ -1711,23 +2053,40 @@ export function MyNotes() {
       deleteError
     ) {
 
-      console.error(
-        'Unable to delete note:',
-        deleteError
-      );
-
-
       setError(
         deleteError.message
       );
-
 
       setWorkingId(
         null
       );
 
-
       return;
+    }
+
+
+    if (
+      note.imagePaths.length >
+      0
+    ) {
+
+      try {
+
+        await removeNoteImages(
+          note.imagePaths
+        );
+
+      } catch (
+        imageDeleteError
+      ) {
+
+        console.error(
+          'Note was deleted but some stored images could not be cleaned:',
+          imageDeleteError
+        );
+
+      }
+
     }
 
 
@@ -1769,7 +2128,9 @@ export function MyNotes() {
               values.add(
                 item.name
               );
+
             }
+
           }
         );
 
@@ -1784,7 +2145,9 @@ export function MyNotes() {
               values.add(
                 note.subject
               );
+
             }
+
           }
         );
 
@@ -1812,7 +2175,7 @@ export function MyNotes() {
 
   /*
    * =========================================
-   * FILTER NOTES
+   * FILTER
    * =========================================
    */
 
@@ -1829,16 +2192,11 @@ export function MyNotes() {
         return notes.filter(
           note => {
 
-            /*
-             * ACTIVE / ARCHIVED
-             */
-
             if (
               view ===
                 'active' &&
               note.isArchived
             ) {
-
               return false;
             }
 
@@ -1848,14 +2206,9 @@ export function MyNotes() {
                 'archived' &&
               !note.isArchived
             ) {
-
               return false;
             }
 
-
-            /*
-             * SUBJECT
-             */
 
             if (
               subjectFilter !==
@@ -1863,14 +2216,9 @@ export function MyNotes() {
               note.subject !==
                 subjectFilter
             ) {
-
               return false;
             }
 
-
-            /*
-             * EXAM
-             */
 
             if (
               examFilter !==
@@ -1878,14 +2226,9 @@ export function MyNotes() {
               note.examStage !==
                 examFilter
             ) {
-
               return false;
             }
 
-
-            /*
-             * TYPE
-             */
 
             if (
               typeFilter !==
@@ -1893,14 +2236,9 @@ export function MyNotes() {
               note.noteType !==
                 typeFilter
             ) {
-
               return false;
             }
 
-
-            /*
-             * SEARCH
-             */
 
             if (
               query
@@ -1916,12 +2254,6 @@ export function MyNotes() {
                     '',
                   note.tags.join(
                     ' '
-                  ),
-                  examStageLabel(
-                    note.examStage
-                  ),
-                  noteTypeLabel(
-                    note.noteType
                   )
                 ]
                   .join(
@@ -1935,13 +2267,14 @@ export function MyNotes() {
                   query
                 )
               ) {
-
                 return false;
               }
+
             }
 
 
             return true;
+
           }
         );
 
@@ -1956,12 +2289,6 @@ export function MyNotes() {
       ]
     );
 
-
-  /*
-   * =========================================
-   * COUNTS
-   * =========================================
-   */
 
   const activeCount =
     notes.filter(
@@ -1987,7 +2314,7 @@ export function MyNotes() {
 
   /*
    * =========================================
-   * PAGE
+   * UI
    * =========================================
    */
 
@@ -1996,10 +2323,6 @@ export function MyNotes() {
     <section
       className="panel"
     >
-
-      {/* =====================================
-          HEADER
-      ===================================== */}
 
       <div
         className="panel-head"
@@ -2020,10 +2343,8 @@ export function MyNotes() {
 
 
           <p>
-            Create subject-wise notes,
-            organise topics, pin important
-            material and keep revision notes
-            in one place.
+            Create notes with text, diagrams,
+            maps, screenshots and photos.
           </p>
 
         </div>
@@ -2044,6 +2365,7 @@ export function MyNotes() {
 
           <button
             type="button"
+
             className="text-btn"
 
             disabled={
@@ -2062,6 +2384,7 @@ export function MyNotes() {
 
             <button
               type="button"
+
               className="primary-btn"
 
               onClick={
@@ -2078,10 +2401,6 @@ export function MyNotes() {
       </div>
 
 
-      {/* =====================================
-          LOADING
-      ===================================== */}
-
       {loading && (
 
         <p>
@@ -2091,44 +2410,29 @@ export function MyNotes() {
       )}
 
 
-      {/* =====================================
-          SIGNED OUT
-      ===================================== */}
-
       {!loading &&
         !signedIn && (
 
         <div
           className="callout"
         >
-
           <strong>
             Sign in to use My Notes
           </strong>
 
-
           <p>
-            Your notes are private and saved
-            to your own UPSC Study Hub account.
+            Notes and images remain private
+            inside your account.
           </p>
-
         </div>
 
       )}
 
 
-      {/* =====================================
-          SIGNED IN
-      ===================================== */}
-
       {!loading &&
         signedIn && (
 
         <>
-
-          {/* =================================
-              SUMMARY
-          ================================= */}
 
           <div
             className="metrics-grid"
@@ -2142,83 +2446,61 @@ export function MyNotes() {
             <article
               className="metric-card"
             >
-
               <div>
-
                 <span>
                   Active notes
                 </span>
-
 
                 <strong>
                   {activeCount}
                 </strong>
 
-
                 <small>
                   Current study notes
                 </small>
-
               </div>
-
             </article>
 
 
             <article
               className="metric-card"
             >
-
               <div>
-
                 <span>
                   Pinned
                 </span>
-
 
                 <strong>
                   {pinnedCount}
                 </strong>
 
-
                 <small>
                   Important notes
                 </small>
-
               </div>
-
             </article>
 
 
             <article
               className="metric-card"
             >
-
               <div>
-
                 <span>
                   Archived
                 </span>
-
 
                 <strong>
                   {archivedCount}
                 </strong>
 
-
                 <small>
                   Stored for later
                 </small>
-
               </div>
-
             </article>
 
           </div>
 
-
-          {/* =================================
-              MESSAGE
-          ================================= */}
 
           {message && (
 
@@ -2230,19 +2512,13 @@ export function MyNotes() {
                   '14px'
               }}
             >
-
               <strong>
                 ✓ {message}
               </strong>
-
             </div>
 
           )}
 
-
-          {/* =================================
-              ERROR
-          ================================= */}
 
           {error && (
 
@@ -2254,24 +2530,17 @@ export function MyNotes() {
                   '14px'
               }}
             >
-
               <strong>
                 Unable to complete action
               </strong>
 
-
               <p>
                 {error}
               </p>
-
             </div>
 
           )}
 
-
-          {/* =================================
-              NOTE EDITOR
-          ================================= */}
 
           {editorOpen && (
 
@@ -2333,6 +2602,7 @@ export function MyNotes() {
 
                 <button
                   type="button"
+
                   className="text-btn"
 
                   disabled={
@@ -2348,8 +2618,6 @@ export function MyNotes() {
 
               </div>
 
-
-              {/* TITLE */}
 
               <label
                 style={{
@@ -2394,8 +2662,6 @@ export function MyNotes() {
 
               </label>
 
-
-              {/* SUBJECT + TOPIC */}
 
               <div
                 style={{
@@ -2454,15 +2720,15 @@ export function MyNotes() {
                   >
 
                     {subjectOptions.map(
-                      subject => (
+                      item => (
 
                         <option
                           key={
-                            subject
+                            item
                           }
 
                           value={
-                            subject
+                            item
                           }
                         />
 
@@ -2512,8 +2778,6 @@ export function MyNotes() {
               </div>
 
 
-              {/* EXAM / TYPE / LANGUAGE */}
-
               <div
                 style={{
                   display:
@@ -2559,27 +2823,19 @@ export function MyNotes() {
                         '6px'
                     }}
                   >
-                    <option
-                      value="general"
-                    >
+                    <option value="general">
                       General
                     </option>
 
-                    <option
-                      value="prelims"
-                    >
+                    <option value="prelims">
                       Prelims
                     </option>
 
-                    <option
-                      value="mains"
-                    >
+                    <option value="mains">
                       Mains
                     </option>
 
-                    <option
-                      value="both"
-                    >
+                    <option value="both">
                       Prelims + Mains
                     </option>
                   </select>
@@ -2616,39 +2872,27 @@ export function MyNotes() {
                         '6px'
                     }}
                   >
-                    <option
-                      value="general"
-                    >
+                    <option value="general">
                       General
                     </option>
 
-                    <option
-                      value="book"
-                    >
+                    <option value="book">
                       Book Note
                     </option>
 
-                    <option
-                      value="current_affairs"
-                    >
+                    <option value="current_affairs">
                       Current Affairs
                     </option>
 
-                    <option
-                      value="revision"
-                    >
+                    <option value="revision">
                       Revision
                     </option>
 
-                    <option
-                      value="prelims"
-                    >
+                    <option value="prelims">
                       Prelims
                     </option>
 
-                    <option
-                      value="mains"
-                    >
+                    <option value="mains">
                       Mains
                     </option>
                   </select>
@@ -2685,27 +2929,19 @@ export function MyNotes() {
                         '6px'
                     }}
                   >
-                    <option
-                      value="English"
-                    >
+                    <option value="English">
                       English
                     </option>
 
-                    <option
-                      value="Hindi"
-                    >
+                    <option value="Hindi">
                       Hindi
                     </option>
 
-                    <option
-                      value="Bilingual"
-                    >
+                    <option value="Bilingual">
                       Bilingual
                     </option>
 
-                    <option
-                      value="Other"
-                    >
+                    <option value="Other">
                       Other
                     </option>
                   </select>
@@ -2714,8 +2950,6 @@ export function MyNotes() {
 
               </div>
 
-
-              {/* CONTENT */}
 
               <label
                 style={{
@@ -2766,7 +3000,227 @@ export function MyNotes() {
               </label>
 
 
-              {/* TAGS */}
+              <section
+                style={{
+                  marginTop:
+                    '16px'
+                }}
+              >
+
+                <strong>
+                  Images
+                </strong>
+
+
+                <p
+                  style={{
+                    margin:
+                      '5px 0 0',
+
+                    color:
+                      '#94a3b8'
+                  }}
+                >
+                  Add screenshots, diagrams,
+                  maps or handwritten notes.
+                </p>
+
+
+                {existingImagePaths.length >
+                  0 && (
+
+                  <div
+                    style={{
+                      display:
+                        'grid',
+
+                      gridTemplateColumns:
+                        'repeat(auto-fill, minmax(140px, 1fr))',
+
+                      gap:
+                        '10px',
+
+                      marginTop:
+                        '12px'
+                    }}
+                  >
+
+                    {existingImagePaths.map(
+                      path => {
+
+                        const url =
+                          imageUrls[
+                            path
+                          ];
+
+
+                        return (
+
+                          <div
+                            key={
+                              path
+                            }
+
+                            style={{
+                              position:
+                                'relative',
+
+                              minHeight:
+                                '150px',
+
+                              border:
+                                '1px solid rgba(255,255,255,.10)',
+
+                              borderRadius:
+                                '12px',
+
+                              overflow:
+                                'hidden',
+
+                              background:
+                                '#0f172a'
+                            }}
+                          >
+
+                            {url ? (
+
+                              <img
+                                src={
+                                  url
+                                }
+
+                                alt="Existing note attachment"
+
+                                style={{
+                                  width:
+                                    '100%',
+
+                                  height:
+                                    '150px',
+
+                                  objectFit:
+                                    'contain',
+
+                                  display:
+                                    'block'
+                                }}
+                              />
+
+                            ) : (
+
+                              <div
+                                style={{
+                                  padding:
+                                    '14px'
+                                }}
+                              >
+                                Loading image...
+                              </div>
+
+                            )}
+
+
+                            <button
+                              type="button"
+
+                              disabled={
+                                saving
+                              }
+
+                              onClick={() => {
+
+                                setExistingImagePaths(
+                                  current =>
+                                    current.filter(
+                                      item =>
+                                        item !==
+                                        path
+                                    )
+                                );
+
+
+                                setRemovedImagePaths(
+                                  current =>
+                                    current.includes(
+                                      path
+                                    )
+                                      ? current
+                                      : [
+                                          ...current,
+                                          path
+                                        ]
+                                );
+
+                              }}
+
+                              style={{
+                                position:
+                                  'absolute',
+
+                                top:
+                                  '7px',
+
+                                right:
+                                  '7px',
+
+                                border:
+                                  0,
+
+                                borderRadius:
+                                  '999px',
+
+                                padding:
+                                  '5px 9px',
+
+                                cursor:
+                                  'pointer',
+
+                                background:
+                                  'rgba(15,23,42,.92)',
+
+                                color:
+                                  '#fff'
+                              }}
+                            >
+                              ×
+                            </button>
+
+                          </div>
+
+                        );
+
+                      }
+                    )}
+
+                  </div>
+
+                )}
+
+
+                <StudentNoteImagePicker
+                  images={
+                    pendingImages
+                  }
+
+                  onChange={
+                    setPendingImages
+                  }
+
+                  maxImages={
+                    Math.max(
+                      0,
+                      MAX_NOTE_IMAGES -
+                      existingImagePaths.length
+                    )
+                  }
+
+                  disabled={
+                    saving
+                  }
+                />
+
+              </section>
+
 
               <label
                 style={{
@@ -2809,15 +3263,8 @@ export function MyNotes() {
                   }}
                 />
 
-
-                <small>
-                  Separate tags with commas.
-                </small>
-
               </label>
 
-
-              {/* SOURCE */}
 
               <label
                 style={{
@@ -2863,8 +3310,6 @@ export function MyNotes() {
               </label>
 
 
-              {/* SAVE */}
-
               <div
                 style={{
                   display:
@@ -2883,6 +3328,7 @@ export function MyNotes() {
 
                 <button
                   type="submit"
+
                   className="primary-btn"
 
                   disabled={
@@ -2901,6 +3347,7 @@ export function MyNotes() {
 
                 <button
                   type="button"
+
                   className="secondary-btn"
 
                   disabled={
@@ -2920,10 +3367,6 @@ export function MyNotes() {
 
           )}
 
-
-          {/* =================================
-              ACTIVE / ARCHIVED TABS
-          ================================= */}
 
           <div
             className="filter-row"
@@ -2950,9 +3393,7 @@ export function MyNotes() {
                 )
               }
             >
-              Active Notes
-              {' '}
-              ({activeCount})
+              Active Notes ({activeCount})
             </button>
 
 
@@ -2972,17 +3413,11 @@ export function MyNotes() {
                 )
               }
             >
-              Archived
-              {' '}
-              ({archivedCount})
+              Archived ({archivedCount})
             </button>
 
           </div>
 
-
-          {/* =================================
-              SEARCH + FILTERS
-          ================================= */}
 
           <div
             style={{
@@ -3014,7 +3449,7 @@ export function MyNotes() {
                   search
                 }
 
-                placeholder="Search title, topic, content or tag"
+                placeholder="Search notes"
 
                 onChange={
                   event =>
@@ -3063,26 +3498,24 @@ export function MyNotes() {
                 }}
               >
 
-                <option
-                  value="all"
-                >
+                <option value="all">
                   All subjects
                 </option>
 
 
                 {subjectOptions.map(
-                  subject => (
+                  item => (
 
                     <option
                       key={
-                        subject
+                        item
                       }
 
                       value={
-                        subject
+                        item
                       }
                     >
-                      {subject}
+                      {item}
                     </option>
 
                   )
@@ -3120,35 +3553,27 @@ export function MyNotes() {
                     '6px'
                 }}
               >
-                <option
-                  value="all"
-                >
+
+                <option value="all">
                   All
                 </option>
 
-                <option
-                  value="general"
-                >
+                <option value="general">
                   General
                 </option>
 
-                <option
-                  value="prelims"
-                >
+                <option value="prelims">
                   Prelims
                 </option>
 
-                <option
-                  value="mains"
-                >
+                <option value="mains">
                   Mains
                 </option>
 
-                <option
-                  value="both"
-                >
+                <option value="both">
                   Prelims + Mains
                 </option>
+
               </select>
 
             </label>
@@ -3181,57 +3606,41 @@ export function MyNotes() {
                     '6px'
                 }}
               >
-                <option
-                  value="all"
-                >
+
+                <option value="all">
                   All
                 </option>
 
-                <option
-                  value="general"
-                >
+                <option value="general">
                   General
                 </option>
 
-                <option
-                  value="book"
-                >
+                <option value="book">
                   Book Notes
                 </option>
 
-                <option
-                  value="current_affairs"
-                >
+                <option value="current_affairs">
                   Current Affairs
                 </option>
 
-                <option
-                  value="revision"
-                >
+                <option value="revision">
                   Revision
                 </option>
 
-                <option
-                  value="prelims"
-                >
+                <option value="prelims">
                   Prelims
                 </option>
 
-                <option
-                  value="mains"
-                >
+                <option value="mains">
                   Mains
                 </option>
+
               </select>
 
             </label>
 
           </div>
 
-
-          {/* =================================
-              RESULT COUNT
-          ================================= */}
 
           <div
             style={{
@@ -3241,11 +3650,11 @@ export function MyNotes() {
               justifyContent:
                 'space-between',
 
-              gap:
-                '10px',
-
               alignItems:
                 'center',
+
+              gap:
+                '10px',
 
               flexWrap:
                 'wrap',
@@ -3267,24 +3676,26 @@ export function MyNotes() {
             </strong>
 
 
-            {
-              (
-                search ||
-                subjectFilter !==
-                  'all' ||
-                examFilter !==
-                  'all' ||
-                typeFilter !==
-                  'all'
-              ) && (
+            {(
+              search ||
+              subjectFilter !==
+                'all' ||
+              examFilter !==
+                'all' ||
+              typeFilter !==
+                'all'
+            ) && (
 
               <button
                 type="button"
+
                 className="text-btn"
 
                 onClick={() => {
 
-                  setSearch('');
+                  setSearch(
+                    ''
+                  );
 
                   setSubjectFilter(
                     'all'
@@ -3307,10 +3718,6 @@ export function MyNotes() {
 
           </div>
 
-
-          {/* =================================
-              EMPTY
-          ================================= */}
 
           {filteredNotes.length ===
             0 && (
@@ -3335,42 +3742,13 @@ export function MyNotes() {
 
 
               <p>
-                {
-                  view ===
-                    'archived'
-                    ? 'Archived notes will appear here.'
-                    : 'Create your first UPSC study note or change the filters.'
-                }
+                Create a note or change the filters.
               </p>
-
-
-              {
-                view ===
-                  'active' &&
-                notes.length ===
-                  0 && (
-
-                <button
-                  type="button"
-                  className="primary-btn"
-
-                  onClick={
-                    openNewNote
-                  }
-                >
-                  Create First Note
-                </button>
-
-              )}
 
             </div>
 
           )}
 
-
-          {/* =================================
-              NOTES LIST
-          ================================= */}
 
           {filteredNotes.length >
             0 && (
@@ -3422,8 +3800,6 @@ export function MyNotes() {
                       }}
                     >
 
-                      {/* TOP */}
-
                       <div
                         style={{
                           display:
@@ -3443,12 +3819,7 @@ export function MyNotes() {
                         }}
                       >
 
-                        <div
-                          style={{
-                            flex:
-                              '1 1 260px'
-                          }}
-                        >
+                        <div>
 
                           <div
                             style={{
@@ -3458,46 +3829,37 @@ export function MyNotes() {
                               gap:
                                 '7px',
 
-                              alignItems:
-                                'center',
-
                               flexWrap:
                                 'wrap'
                             }}
                           >
 
                             {note.isPinned && (
-
-                              <span
-                                className="tag"
-                              >
+                              <span className="tag">
                                 ★ Pinned
                               </span>
-
                             )}
 
 
-                            <span
-                              className="tag"
-                            >
-                              {examStageLabel(
-                                note.examStage
-                              )}
+                            <span className="tag">
+                              {
+                                examStageLabel(
+                                  note.examStage
+                                )
+                              }
                             </span>
 
 
-                            <span
-                              className="tag"
-                            >
-                              {noteTypeLabel(
-                                note.noteType
-                              )}
+                            <span className="tag">
+                              {
+                                noteTypeLabel(
+                                  note.noteType
+                                )
+                              }
                             </span>
 
 
-                            <span
-                              className="tag"
-                            >
+                            <span className="tag">
                               {note.language}
                             </span>
 
@@ -3514,11 +3876,8 @@ export function MyNotes() {
                           </h3>
 
 
-                          {
-                            (
-                              note.subject ||
-                              note.topic
-                            ) && (
+                          {(note.subject ||
+                            note.topic) && (
 
                             <p
                               style={{
@@ -3531,19 +3890,15 @@ export function MyNotes() {
                             >
 
                               {note.subject && (
-
                                 <strong>
                                   {note.subject}
                                 </strong>
-
                               )}
 
 
-                              {
-                                note.subject &&
+                              {note.subject &&
                                 note.topic &&
-                                ' → '
-                              }
+                                ' → '}
 
 
                               {note.topic}
@@ -3563,15 +3918,15 @@ export function MyNotes() {
                         >
                           Updated
                           {' '}
-                          {formatDate(
-                            note.updatedAt
-                          )}
+                          {
+                            formatDate(
+                              note.updatedAt
+                            )
+                          }
                         </small>
 
                       </div>
 
-
-                      {/* CONTENT PREVIEW */}
 
                       {note.content && (
 
@@ -3587,13 +3942,7 @@ export function MyNotes() {
                               1.6,
 
                             color:
-                              '#dbe4ef',
-
-                            maxHeight:
-                              '180px',
-
-                            overflow:
-                              'hidden'
+                              '#dbe4ef'
                           }}
                         >
                           {note.content}
@@ -3602,7 +3951,107 @@ export function MyNotes() {
                       )}
 
 
-                      {/* TAGS */}
+                      {note.imagePaths.length >
+                        0 && (
+
+                        <div
+                          style={{
+                            display:
+                              'grid',
+
+                            gridTemplateColumns:
+                              'repeat(auto-fill, minmax(140px, 1fr))',
+
+                            gap:
+                              '8px',
+
+                            marginTop:
+                              '12px'
+                          }}
+                        >
+
+                          {note.imagePaths.map(
+                            path => {
+
+                              const url =
+                                imageUrls[
+                                  path
+                                ];
+
+
+                              if (!url) {
+                                return null;
+                              }
+
+
+                              return (
+
+                                <a
+                                  key={
+                                    path
+                                  }
+
+                                  href={
+                                    url
+                                  }
+
+                                  target="_blank"
+
+                                  rel="noreferrer"
+
+                                  style={{
+                                    display:
+                                      'block',
+
+                                    overflow:
+                                      'hidden',
+
+                                    borderRadius:
+                                      '10px',
+
+                                    border:
+                                      '1px solid rgba(255,255,255,.10)',
+
+                                    background:
+                                      '#0f172a'
+                                  }}
+                                >
+
+                                  <img
+                                    src={
+                                      url
+                                    }
+
+                                    alt="Note attachment"
+
+                                    loading="lazy"
+
+                                    style={{
+                                      display:
+                                        'block',
+
+                                      width:
+                                        '100%',
+
+                                      height:
+                                        '150px',
+
+                                      objectFit:
+                                        'cover'
+                                    }}
+                                  />
+
+                                </a>
+
+                              );
+
+                            }
+                          )}
+
+                        </div>
+
+                      )}
+
 
                       {note.tags.length >
                         0 && (
@@ -3644,8 +4093,6 @@ export function MyNotes() {
                       )}
 
 
-                      {/* SOURCE */}
-
                       {note.sourceUrl && (
 
                         <div
@@ -3677,8 +4124,6 @@ export function MyNotes() {
                       )}
 
 
-                      {/* ACTIONS */}
-
                       <div
                         style={{
                           display:
@@ -3697,6 +4142,7 @@ export function MyNotes() {
 
                         <button
                           type="button"
+
                           className="secondary-btn"
 
                           disabled={
@@ -3717,6 +4163,7 @@ export function MyNotes() {
 
                           <button
                             type="button"
+
                             className="secondary-btn"
 
                             disabled={
@@ -3741,6 +4188,7 @@ export function MyNotes() {
 
                         <button
                           type="button"
+
                           className="secondary-btn"
 
                           disabled={
@@ -3763,6 +4211,7 @@ export function MyNotes() {
 
                         <button
                           type="button"
+
                           className="text-btn"
 
                           disabled={
@@ -3787,6 +4236,7 @@ export function MyNotes() {
                     </article>
 
                   );
+
                 }
               )}
 
