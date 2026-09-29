@@ -6,15 +6,23 @@ import {
 } from 'react';
 
 import { TopBar } from '../components/TopBar';
-import { PrelimsBookmarkButton } from '../components/PrelimsBookmarkButton';
+
+import {
+  PrelimsBookmarkButton
+} from '../components/PrelimsBookmarkButton';
+
 import {
   PrelimsExplanationImages
 } from '../components/PrelimsExplanationImages';
+
 import {
   PrelimsPyqArchive,
   type PrelimsPaperTestPayload
 } from '../components/PrelimsPyqArchive';
-import { supabase } from '../lib/supabase';
+
+import {
+  supabase
+} from '../lib/supabase';
 
 
 type QuestionOrigin =
@@ -43,185 +51,74 @@ type Difficulty =
 
 
 type QuestionAppearance = {
-
-  appearance_id:
-    string | null;
-
-  stored_question_id:
-    string | null;
-
-  exam_paper_id:
-    string | null;
-
-  exam_family:
-    string | null;
-
-  commission:
-    string | null;
-
-  state:
-    string | null;
-
-  exam_name:
-    string | null;
-
-  exam_cycle:
-    string | null;
-
-  year:
-    number | null;
-
-  stage:
-    string | null;
-
-  paper:
-    string | null;
-
-  question_number:
-    string | null;
-
-  appearance_type:
-    string | null;
-
-  source_reference:
-    string | null;
+  appearance_id: string | null;
+  stored_question_id: string | null;
+  exam_paper_id: string | null;
+  exam_family: string | null;
+  commission: string | null;
+  state: string | null;
+  exam_name: string | null;
+  exam_cycle: string | null;
+  year: number | null;
+  stage: string | null;
+  paper: string | null;
+  question_number: string | null;
+  appearance_type: string | null;
+  source_reference: string | null;
 };
 
 
 type LiveQuestion = {
-
-  id:
-    string;
-
-  question:
-    string;
-
-  options:
-    string[];
-
-  correct_index:
-    number;
-
-  explanation:
-    string;
-
-  subject:
-    string;
-
-  difficulty:
-    Difficulty;
-
-  topic:
-    string | null;
-
-  paper:
-    string | null;
-
-  tags:
-    string[];
-
-  source:
-    string | null;
-
-  source_url:
-    string | null;
-
-  is_pyq:
-    boolean;
-
-  appearance_count:
-    number;
-
-  origins:
-    QuestionOrigin[];
-
-  cse_pyq_years:
-    number[];
-
-  upsc_exam_names:
-    string[];
-
-  upsc_exam_cycles:
-    string[];
-
-  upsc_exam_years:
-    number[];
-
-  state_psc_states:
-    string[];
-
-  state_psc_names:
-    string[];
-
-  state_psc_exam_names:
-    string[];
-
-  state_psc_years:
-    number[];
-
-  stored_question_ids:
-    string[];
-
-  appearances:
-    QuestionAppearance[];
+  id: string;
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+  subject: string;
+  difficulty: Difficulty;
+  topic: string | null;
+  paper: string | null;
+  tags: string[];
+  source: string | null;
+  source_url: string | null;
+  is_pyq: boolean;
+  appearance_count: number;
+  origins: QuestionOrigin[];
+  cse_pyq_years: number[];
+  upsc_exam_names: string[];
+  upsc_exam_cycles: string[];
+  upsc_exam_years: number[];
+  state_psc_states: string[];
+  state_psc_names: string[];
+  state_psc_exam_names: string[];
+  state_psc_years: number[];
+  stored_question_ids: string[];
+  appearances: QuestionAppearance[];
 };
 
 
 type AnswerRecord = {
-
-  question_id:
-    string;
-
-  selected_index:
-    number | null;
-
-  correct_index:
-    number;
-
-  is_correct:
-    boolean;
+  question_id: string;
+  selected_index: number | null;
+  correct_index: number;
+  is_correct: boolean;
 };
 
 
 type ExamResult = {
-
-  attempted:
-    number;
-
-  correct:
-    number;
-
-  incorrect:
-    number;
-
-  unanswered:
-    number;
-
-  markedForReview:
-    number;
-
-  positiveMarks:
-    number;
-
-  negativeMarks:
-    number;
-
-  marksObtained:
-    number;
-
-  maxMarks:
-    number;
-
-  timeUsedSeconds:
-    number;
-
-  timeLimitSeconds:
-    number;
-
-  answers:
-    AnswerRecord[];
+  attempted: number;
+  correct: number;
+  incorrect: number;
+  unanswered: number;
+  markedForReview: number;
+  positiveMarks: number;
+  negativeMarks: number;
+  marksObtained: number;
+  maxMarks: number;
+  timeUsedSeconds: number;
+  timeLimitSeconds: number;
+  answers: AnswerRecord[];
 };
-
 
 
 const CSE_MARKS_PER_QUESTION =
@@ -237,34 +134,28 @@ const CSE_SECONDS_PER_QUESTION =
   72;
 
 
+/* =========================================================
+   HELPERS
+   ========================================================= */
 
 function shuffleQuestions(
-  items:
-    LiveQuestion[]
+  items: LiveQuestion[]
 ) {
-
   const copy = [
     ...items
   ];
 
-
   for (
     let i =
       copy.length - 1;
-
     i > 0;
-
     i -= 1
   ) {
-
     const j =
       Math.floor(
         Math.random() *
-        (
-          i + 1
-        )
+        (i + 1)
       );
-
 
     [
       copy[i],
@@ -275,30 +166,24 @@ function shuffleQuestions(
     ];
   }
 
-
   return copy;
 }
 
 
-
 function formatTime(
-  seconds:
-    number
+  seconds: number
 ) {
-
   const safe =
     Math.max(
       0,
       seconds
     );
 
-
   const hours =
     Math.floor(
       safe /
       3600
     );
-
 
   const minutes =
     Math.floor(
@@ -309,46 +194,50 @@ function formatTime(
       60
     );
 
-
   const secs =
     safe %
     60;
 
-
   if (
-    hours > 0
+    hours >
+    0
   ) {
-
     return (
       `${hours}:` +
-      `${String(minutes).padStart(2, '0')}:` +
-      `${String(secs).padStart(2, '0')}`
+      `${String(
+        minutes
+      ).padStart(
+        2,
+        '0'
+      )}:` +
+      `${String(
+        secs
+      ).padStart(
+        2,
+        '0'
+      )}`
     );
   }
 
-
   return (
     `${minutes}:` +
-    `${String(secs).padStart(2, '0')}`
+    `${String(
+      secs
+    ).padStart(
+      2,
+      '0'
+    )}`
   );
 }
 
 
-
 function roundNumber(
-
-  value:
-    number,
-
-  decimals =
-    2
-
+  value: number,
+  decimals = 2
 ) {
-
   const multiplier =
     10 **
     decimals;
-
 
   return (
     Math.round(
@@ -360,13 +249,10 @@ function roundNumber(
 }
 
 
-
 function asStringArray(
-  value:
-    unknown
+  value: unknown
 ):
   string[] {
-
   return Array.isArray(
     value
   )
@@ -380,18 +266,14 @@ function asStringArray(
         .filter(
           Boolean
         )
-
     : [];
 }
 
 
-
 function asNumberArray(
-  value:
-    unknown
+  value: unknown
 ):
   number[] {
-
   return Array.isArray(
     value
   )
@@ -408,92 +290,69 @@ function asNumberArray(
               item
             )
         )
-
     : [];
 }
 
 
-
 function asOrigins(
-  value:
-    unknown
+  value: unknown
 ):
   QuestionOrigin[] {
-
   if (
     !Array.isArray(
       value
     )
   ) {
-
     return [];
   }
 
-
   return value.filter(
-
     (
       item
     ):
       item is
         QuestionOrigin =>
-
       item ===
         'cse' ||
-
       item ===
         'upsc' ||
-
       item ===
         'state'
-
   );
 }
 
 
-
 function normalizeDifficulty(
-  value:
-    unknown
+  value: unknown
 ):
   Difficulty {
-
   if (
     value ===
       'easy' ||
-
     value ===
       'hard'
   ) {
-
     return value;
   }
-
 
   return 'medium';
 }
 
 
-
 function asAppearances(
-  value:
-    unknown
+  value: unknown
 ):
   QuestionAppearance[] {
-
   if (
     !Array.isArray(
       value
     )
   ) {
-
     return [];
   }
 
-
   return value.map(
     raw => {
-
       const item =
         (
           raw ||
@@ -504,232 +363,142 @@ function asAppearances(
             unknown
           >;
 
-
       const rawYear =
         item.year;
 
-
       const year =
-
         rawYear ==
           null
-
           ? null
-
           : Number(
               rawYear
             );
 
-
       return {
-
         appearance_id:
-
-          item
-            .appearance_id ==
-          null
-
+          item.appearance_id ==
+            null
             ? null
-
             : String(
-                item
-                  .appearance_id
+                item.appearance_id
               ),
-
 
         stored_question_id:
-
-          item
-            .stored_question_id ==
-          null
-
+          item.stored_question_id ==
+            null
             ? null
-
             : String(
-                item
-                  .stored_question_id
+                item.stored_question_id
               ),
-
 
         exam_paper_id:
-
-          item
-            .exam_paper_id ==
-          null
-
+          item.exam_paper_id ==
+            null
             ? null
-
             : String(
-                item
-                  .exam_paper_id
+                item.exam_paper_id
               ),
-
 
         exam_family:
-
-          item
-            .exam_family ==
-          null
-
+          item.exam_family ==
+            null
             ? null
-
             : String(
-                item
-                  .exam_family
+                item.exam_family
               ),
-
 
         commission:
-
-          item
-            .commission ==
-          null
-
+          item.commission ==
+            null
             ? null
-
             : String(
-                item
-                  .commission
+                item.commission
               ),
 
-
         state:
-
           item.state ==
-          null
-
+            null
             ? null
-
             : String(
                 item.state
               ),
 
-
         exam_name:
-
-          item
-            .exam_name ==
-          null
-
+          item.exam_name ==
+            null
             ? null
-
             : String(
-                item
-                  .exam_name
+                item.exam_name
               ),
-
 
         exam_cycle:
-
-          item
-            .exam_cycle ==
-          null
-
+          item.exam_cycle ==
+            null
             ? null
-
             : String(
-                item
-                  .exam_cycle
+                item.exam_cycle
               ),
 
-
         year:
-
           year !==
             null &&
-
           Number.isFinite(
             year
           )
-
             ? year
-
             : null,
 
-
         stage:
-
           item.stage ==
-          null
-
+            null
             ? null
-
             : String(
                 item.stage
               ),
 
-
         paper:
-
           item.paper ==
-          null
-
+            null
             ? null
-
             : String(
                 item.paper
               ),
 
-
         question_number:
-
-          item
-            .question_number ==
-          null
-
+          item.question_number ==
+            null
             ? null
-
             : String(
-                item
-                  .question_number
+                item.question_number
               ),
-
 
         appearance_type:
-
-          item
-            .appearance_type ==
-          null
-
+          item.appearance_type ==
+            null
             ? null
-
             : String(
-                item
-                  .appearance_type
+                item.appearance_type
               ),
 
-
         source_reference:
-
-          item
-            .source_reference ==
-          null
-
+          item.source_reference ==
+            null
             ? null
-
             : String(
-                item
-                  .source_reference
+                item.source_reference
               )
-
       };
-
     }
   );
 }
 
 
-
 function hasOrigin(
-
   question:
     LiveQuestion,
-
   origin:
     QuestionOrigin
-
 ) {
-
   return question
     .origins
     .includes(
@@ -738,9 +507,11 @@ function hasOrigin(
 }
 
 
+/* =========================================================
+   PAGE
+   ========================================================= */
 
 export function PracticePage() {
-
 
   const [
     allQuestions,
@@ -794,7 +565,8 @@ export function PracticePage() {
     setSelected
   ] =
     useState<
-      number | null
+      number |
+      null
     >(
       null
     );
@@ -856,7 +628,8 @@ export function PracticePage() {
     setTimeLeft
   ] =
     useState<
-      number | null
+      number |
+      null
     >(
       null
     );
@@ -876,7 +649,8 @@ export function PracticePage() {
     setSessionStartedAt
   ] =
     useState<
-      number | null
+      number |
+      null
     >(
       null
     );
@@ -887,7 +661,8 @@ export function PracticePage() {
     setExamResult
   ] =
     useState<
-      ExamResult | null
+      ExamResult |
+      null
     >(
       null
     );
@@ -964,16 +739,24 @@ export function PracticePage() {
       false
     );
 
-  const [
-  originalPaperTest,
-  setOriginalPaperTest
-] =
-  useState<
-    PrelimsPaperTestPayload['paper'] | null
-  >(
-    null
-  );
 
+  const [
+    originalPaperTest,
+    setOriginalPaperTest
+  ] =
+    useState<
+      PrelimsPaperTestPayload[
+        'paper'
+      ] |
+      null
+    >(
+      null
+    );
+
+
+  /* ===============================
+     FILTERS
+     =============================== */
 
   const [
     originFilter,
@@ -1140,9 +923,11 @@ export function PracticePage() {
     );
 
 
+  /* =========================================================
+     RESET SESSION
+     ========================================================= */
 
   function resetActiveSession() {
-
     setQuestions(
       []
     );
@@ -1171,7 +956,6 @@ export function PracticePage() {
       false
     );
 
-
     setExamSelections(
       {}
     );
@@ -1179,7 +963,6 @@ export function PracticePage() {
     setMarkedForReview(
       {}
     );
-
 
     setTimeLeft(
       null
@@ -1193,7 +976,6 @@ export function PracticePage() {
       null
     );
 
-
     setExamResult(
       null
     );
@@ -1206,7 +988,6 @@ export function PracticePage() {
       false
     );
 
-
     setAttemptSaved(
       false
     );
@@ -1214,16 +995,22 @@ export function PracticePage() {
     setResultMessage(
       ''
     );
+
+    setOriginalPaperTest(
+      null
+    );
   }
 
 
+  /* =========================================================
+     BOOKMARKS
+     ========================================================= */
 
   async function loadBookmarkedQuestionIds() {
 
     if (
       !supabase
     ) {
-
       setBookmarkedQuestionIds(
         []
       );
@@ -1249,7 +1036,6 @@ export function PracticePage() {
     if (
       !user
     ) {
-
       setBookmarkedQuestionIds(
         []
       );
@@ -1296,12 +1082,10 @@ export function PracticePage() {
     if (
       bookmarkError
     ) {
-
       console.error(
         'Unable to load saved Prelims questions:',
         bookmarkError
       );
-
 
       setBookmarkedQuestionIds(
         []
@@ -1312,10 +1096,8 @@ export function PracticePage() {
 
 
     setBookmarkedQuestionIds(
-
       Array.from(
         new Set(
-
           (
             data ||
             []
@@ -1335,21 +1117,21 @@ export function PracticePage() {
             .filter(
               Boolean
             )
-
         )
       )
-
     );
   }
 
 
+  /* =========================================================
+     LOAD QUESTIONS
+     ========================================================= */
 
   async function loadQuestions() {
 
     if (
       !supabase
     ) {
-
       setError(
         'Practice database is not configured.'
       );
@@ -1389,22 +1171,18 @@ export function PracticePage() {
     if (
       loadError
     ) {
-
       console.error(
         'Unable to load canonical questions:',
         loadError
       );
 
-
       setError(
         loadError.message
       );
 
-
       setLoading(
         false
       );
-
 
       return;
     }
@@ -1412,255 +1190,193 @@ export function PracticePage() {
 
     const formatted:
       LiveQuestion[] =
-
       (
         data ||
         []
-      )
-        .map(
-          (
-            raw:
-              unknown
-          ) => {
+      ).map(
+        (
+          raw:
+            unknown
+        ) => {
 
-            const item =
-              (
-                raw ||
-                {}
-              ) as
-                Record<
-                  string,
-                  unknown
-                >;
+          const item =
+            (
+              raw ||
+              {}
+            ) as
+              Record<
+                string,
+                unknown
+              >;
 
 
-            const id =
+          const id =
+            String(
+              item.id ||
+              ''
+            );
+
+
+          const storedIds =
+            asStringArray(
+              item.stored_question_ids
+            );
+
+
+          return {
+            id,
+
+            question:
               String(
-                item.id ||
+                item.question ||
                 ''
-              );
+              ),
 
-
-            const storedIds =
+            options:
               asStringArray(
-                item
-                  .stored_question_ids
-              );
-
-
-            return {
-
-              id,
-
-
-              question:
-                String(
-                  item.question ||
-                  ''
-                ),
-
-
-              options:
-                asStringArray(
-                  item.options
-                ),
-
-
-              correct_index:
-                Number(
-                  item
-                    .correct_index ??
-                  0
-                ),
-
-
-              explanation:
-                String(
-                  item.explanation ||
-                  ''
-                ),
-
-
-              subject:
-                String(
-                  item.subject ||
-                  ''
-                ),
-
-
-              difficulty:
-                normalizeDifficulty(
-                  item.difficulty
-                ),
-
-
-              topic:
-
-                item.topic ==
-                  null
-
-                  ? null
-
-                  : String(
-                      item.topic
-                    ),
-
-
-              paper:
-
-                item.paper ==
-                  null
-
-                  ? null
-
-                  : String(
-                      item.paper
-                    ),
-
-
-              tags:
-                asStringArray(
-                  item.tags
-                ),
-
-
-              source:
-
-                item.source ==
-                  null
-
-                  ? null
-
-                  : String(
-                      item.source
-                    ),
-
-
-              source_url:
-
-                item
-                  .source_url ==
-                  null
-
-                  ? null
-
-                  : String(
-                      item
-                        .source_url
-                    ),
-
-
-              is_pyq:
-                Boolean(
-                  item.is_pyq
-                ),
-
-
-              appearance_count:
-                Number(
-                  item
-                    .appearance_count ||
-                  0
-                ),
-
-
-              origins:
-                asOrigins(
-                  item.origins
-                ),
-
-
-              cse_pyq_years:
-                asNumberArray(
-                  item
-                    .cse_pyq_years
-                ),
-
-
-              upsc_exam_names:
-                asStringArray(
-                  item
-                    .upsc_exam_names
-                ),
-
-
-              upsc_exam_cycles:
-                asStringArray(
-                  item
-                    .upsc_exam_cycles
-                ),
-
-
-              upsc_exam_years:
-                asNumberArray(
-                  item
-                    .upsc_exam_years
-                ),
-
-
-              state_psc_states:
-                asStringArray(
-                  item
-                    .state_psc_states
-                ),
-
-
-              state_psc_names:
-                asStringArray(
-                  item
-                    .state_psc_names
-                ),
-
-
-              state_psc_exam_names:
-                asStringArray(
-                  item
-                    .state_psc_exam_names
-                ),
-
-
-              state_psc_years:
-                asNumberArray(
-                  item
-                    .state_psc_years
-                ),
-
-
-              stored_question_ids:
-
-                storedIds
-                  .length >
-                  0
-
-                  ? storedIds
-
-                  : [
-                      id
-                    ],
-
-
-              appearances:
-                asAppearances(
-                  item
-                    .appearances
-                )
-
-            };
-
-          }
-        );
+                item.options
+              ),
+
+            correct_index:
+              Number(
+                item.correct_index ??
+                0
+              ),
+
+            explanation:
+              String(
+                item.explanation ||
+                ''
+              ),
+
+            subject:
+              String(
+                item.subject ||
+                ''
+              ),
+
+            difficulty:
+              normalizeDifficulty(
+                item.difficulty
+              ),
+
+            topic:
+              item.topic ==
+                null
+                ? null
+                : String(
+                    item.topic
+                  ),
+
+            paper:
+              item.paper ==
+                null
+                ? null
+                : String(
+                    item.paper
+                  ),
+
+            tags:
+              asStringArray(
+                item.tags
+              ),
+
+            source:
+              item.source ==
+                null
+                ? null
+                : String(
+                    item.source
+                  ),
+
+            source_url:
+              item.source_url ==
+                null
+                ? null
+                : String(
+                    item.source_url
+                  ),
+
+            is_pyq:
+              Boolean(
+                item.is_pyq
+              ),
+
+            appearance_count:
+              Number(
+                item.appearance_count ||
+                0
+              ),
+
+            origins:
+              asOrigins(
+                item.origins
+              ),
+
+            cse_pyq_years:
+              asNumberArray(
+                item.cse_pyq_years
+              ),
+
+            upsc_exam_names:
+              asStringArray(
+                item.upsc_exam_names
+              ),
+
+            upsc_exam_cycles:
+              asStringArray(
+                item.upsc_exam_cycles
+              ),
+
+            upsc_exam_years:
+              asNumberArray(
+                item.upsc_exam_years
+              ),
+
+            state_psc_states:
+              asStringArray(
+                item.state_psc_states
+              ),
+
+            state_psc_names:
+              asStringArray(
+                item.state_psc_names
+              ),
+
+            state_psc_exam_names:
+              asStringArray(
+                item.state_psc_exam_names
+              ),
+
+            state_psc_years:
+              asNumberArray(
+                item.state_psc_years
+              ),
+
+            stored_question_ids:
+              storedIds.length >
+                0
+                ? storedIds
+                : [
+                    id
+                  ],
+
+            appearances:
+              asAppearances(
+                item.appearances
+              )
+          };
+        }
+      );
 
 
     setAllQuestions(
       formatted
     );
 
-
     await loadBookmarkedQuestionIds();
 
-
     resetActiveSession();
-
 
     setLoading(
       false
@@ -1668,30 +1384,27 @@ export function PracticePage() {
   }
 
 
-
   useEffect(
     () => {
-
       void loadQuestions();
-
     },
     []
   );
 
 
+  /* =========================================================
+     EXAM TIMER
+     ========================================================= */
 
   useEffect(
     () => {
 
       if (
         !practiceStarted ||
-
         sessionMode !==
           'exam' ||
-
         finished
       ) {
-
         return;
       }
 
@@ -1708,7 +1421,6 @@ export function PracticePage() {
                     current ===
                     null
                   ) {
-
                     return null;
                   }
 
@@ -1717,7 +1429,6 @@ export function PracticePage() {
                     current <=
                     1
                   ) {
-
                     return 0;
                   }
 
@@ -1749,24 +1460,18 @@ export function PracticePage() {
   );
 
 
-
   useEffect(
     () => {
 
       if (
         practiceStarted &&
-
         sessionMode ===
           'exam' &&
-
         !finished &&
-
         !examSubmitting &&
-
         timeLeft ===
           0
       ) {
-
         void submitExam(
           true
         );
@@ -1783,14 +1488,15 @@ export function PracticePage() {
   );
 
 
+  /* =========================================================
+     FILTER DATA
+     ========================================================= */
 
   const subjects =
     useMemo(
       () =>
-
         Array.from(
           new Set(
-
             allQuestions
               .map(
                 item =>
@@ -1799,36 +1505,28 @@ export function PracticePage() {
               .filter(
                 Boolean
               )
-
           )
         ).sort(),
-
       [
         allQuestions
       ]
     );
 
 
-
   const topics =
     useMemo(
       () =>
-
         Array.from(
           new Set<
             string
           >(
-
             allQuestions
               .filter(
                 item =>
-
                   subjectFilter ===
                     'all' ||
-
                   item.subject ===
                     subjectFilter
-
               )
               .map(
                 item =>
@@ -1844,10 +1542,8 @@ export function PracticePage() {
                     value
                   )
               )
-
           )
         ).sort(),
-
       [
         allQuestions,
         subjectFilter
@@ -1855,50 +1551,38 @@ export function PracticePage() {
     );
 
 
-
   const csePyqYears =
     useMemo(
       () =>
-
         Array.from(
           new Set<
             number
           >(
-
             allQuestions
               .filter(
                 item =>
-
                   hasOrigin(
                     item,
                     'cse'
                   ) &&
-
                   item.is_pyq &&
-
                   (
                     subjectFilter ===
                       'all' ||
-
                     item.subject ===
                       subjectFilter
                   ) &&
-
                   (
                     topicFilter ===
                       'all' ||
-
                     item.topic ===
                       topicFilter
                   )
-
               )
               .flatMap(
                 item =>
-                  item
-                    .cse_pyq_years
+                  item.cse_pyq_years
               )
-
           )
         )
           .sort(
@@ -1908,7 +1592,6 @@ export function PracticePage() {
             ) =>
               b - a
           ),
-
       [
         allQuestions,
         subjectFilter,
@@ -1917,72 +1600,52 @@ export function PracticePage() {
     );
 
 
-
   const upscExams =
     useMemo(
       () =>
-
         Array.from(
           new Set<
             string
           >(
-
             allQuestions
               .flatMap(
                 item =>
-                  item
-                    .upsc_exam_names
+                  item.upsc_exam_names
               )
-
           )
         ).sort(),
-
       [
         allQuestions
       ]
     );
 
 
-
   const upscCycles =
     useMemo(
       () =>
-
         Array.from(
           new Set<
             string
           >(
-
             allQuestions
               .flatMap(
                 item =>
-
-                  item
-                    .appearances
-
+                  item.appearances
                     .filter(
                       appearance =>
-
-                        appearance
-                          .exam_family ===
+                        appearance.exam_family ===
                           'upsc_other' &&
-
                         (
                           upscExamFilter ===
                             'all' ||
-
-                          appearance
-                            .exam_name ===
+                          appearance.exam_name ===
                             upscExamFilter
                         )
                     )
-
                     .map(
                       appearance =>
-                        appearance
-                          .exam_cycle
+                        appearance.exam_cycle
                     )
-
                     .filter(
                       (
                         value
@@ -1993,12 +1656,9 @@ export function PracticePage() {
                           value
                         )
                     )
-
               )
-
           )
         ).sort(),
-
       [
         allQuestions,
         upscExamFilter
@@ -2006,45 +1666,32 @@ export function PracticePage() {
     );
 
 
-
   const upscYears =
     useMemo(
       () =>
-
         Array.from(
           new Set<
             number
           >(
-
             allQuestions
               .flatMap(
                 item =>
-
-                  item
-                    .appearances
-
+                  item.appearances
                     .filter(
                       appearance =>
-
-                        appearance
-                          .exam_family ===
+                        appearance.exam_family ===
                           'upsc_other' &&
-
                         (
                           upscExamFilter ===
                             'all' ||
-
-                          appearance
-                            .exam_name ===
+                          appearance.exam_name ===
                             upscExamFilter
                         )
                     )
-
                     .map(
                       appearance =>
                         appearance.year
                     )
-
                     .filter(
                       (
                         value
@@ -2054,9 +1701,7 @@ export function PracticePage() {
                         value !==
                           null
                     )
-
               )
-
           )
         )
           .sort(
@@ -2066,7 +1711,6 @@ export function PracticePage() {
             ) =>
               b - a
           ),
-
       [
         allQuestions,
         upscExamFilter
@@ -2074,71 +1718,52 @@ export function PracticePage() {
     );
 
 
-
   const states =
     useMemo(
       () =>
-
         Array.from(
           new Set<
             string
           >(
-
             allQuestions
               .flatMap(
                 item =>
-                  item
-                    .state_psc_states
+                  item.state_psc_states
               )
-
           )
         ).sort(),
-
       [
         allQuestions
       ]
     );
 
 
-
   const stateExams =
     useMemo(
       () =>
-
         Array.from(
           new Set<
             string
           >(
-
             allQuestions
               .flatMap(
                 item =>
-
-                  item
-                    .appearances
-
+                  item.appearances
                     .filter(
                       appearance =>
-
-                        appearance
-                          .exam_family ===
+                        appearance.exam_family ===
                           'state_psc' &&
-
                         (
                           stateFilter ===
                             'all' ||
-
                           appearance.state ===
                             stateFilter
                         )
                     )
-
                     .map(
                       appearance =>
-                        appearance
-                          .exam_name
+                        appearance.exam_name
                     )
-
                     .filter(
                       (
                         value
@@ -2149,12 +1774,9 @@ export function PracticePage() {
                           value
                         )
                     )
-
               )
-
           )
         ).sort(),
-
       [
         allQuestions,
         stateFilter
@@ -2162,53 +1784,38 @@ export function PracticePage() {
     );
 
 
-
   const stateYears =
     useMemo(
       () =>
-
         Array.from(
           new Set<
             number
           >(
-
             allQuestions
               .flatMap(
                 item =>
-
-                  item
-                    .appearances
-
+                  item.appearances
                     .filter(
                       appearance =>
-
-                        appearance
-                          .exam_family ===
+                        appearance.exam_family ===
                           'state_psc' &&
-
                         (
                           stateFilter ===
                             'all' ||
-
                           appearance.state ===
                             stateFilter
                         ) &&
-
                         (
                           stateExamFilter ===
                             'all' ||
-
-                          appearance
-                            .exam_name ===
+                          appearance.exam_name ===
                             stateExamFilter
                         )
                     )
-
                     .map(
                       appearance =>
                         appearance.year
                     )
-
                     .filter(
                       (
                         value
@@ -2218,9 +1825,7 @@ export function PracticePage() {
                         value !==
                           null
                     )
-
               )
-
           )
         )
           .sort(
@@ -2230,7 +1835,6 @@ export function PracticePage() {
             ) =>
               b - a
           ),
-
       [
         allQuestions,
         stateFilter,
@@ -2239,418 +1843,292 @@ export function PracticePage() {
     );
 
 
+  /* =========================================================
+     FILTER QUESTIONS
+     ========================================================= */
 
   const filteredQuestions =
     useMemo(
       () =>
-
-        allQuestions
-          .filter(
-            item => {
-
-              const search =
-                searchText
-                  .trim()
-                  .toLowerCase();
-
-
-              const appearanceText =
-
-                item
-                  .appearances
-
-                  .flatMap(
-                    appearance => [
-
-                      appearance
-                        .commission ||
-                        '',
-
-                      appearance.state ||
-                        '',
-
-                      appearance
-                        .exam_name ||
-                        '',
-
-                      appearance
-                        .exam_cycle ||
-                        '',
-
-                      appearance.year
-
-                        ? String(
-                            appearance.year
-                          )
-
-                        : '',
-
-                      appearance.stage ||
-                        '',
-
-                      appearance.paper ||
-                        ''
-
-                    ]
-                  )
-
-                  .join(
-                    ' '
-                  );
-
-
-              const searchableText =
-
-                [
-
-                  item.question,
-
-                  item.subject,
-
-                  item.topic ||
-                    '',
-
-                  item.tags
-                    .join(
-                      ' '
-                    ),
-
-                  item.source ||
-                    '',
-
-                  appearanceText
-
-                ]
-
-                  .join(
-                    ' '
-                  )
-
-                  .toLowerCase();
-
-
-              const matchesSearch =
-
-                !search ||
-
-                searchableText
-                  .includes(
-                    search
-                  );
-
-
-              const matchesOrigin =
-
-                originFilter ===
-                  'all' ||
-
-                hasOrigin(
-                  item,
-                  originFilter
-                );
-
-
-              const matchesSubject =
-
-                subjectFilter ===
-                  'all' ||
-
-                item.subject ===
-                  subjectFilter;
-
-
-              const matchesTopic =
-
-                topicFilter ===
-                  'all' ||
-
-                item.topic ===
-                  topicFilter;
-
-
-              const matchesDifficulty =
-
-                difficultyFilter ===
-                  'all' ||
-
-                item.difficulty ===
-                  difficultyFilter;
-
-
-              const matchesType =
-
-                typeFilter ===
-                  'all' ||
-
-                (
-                  typeFilter ===
-                    'pyq' &&
-
-                  item.is_pyq
-                ) ||
-
-                (
-                  typeFilter ===
-                    'practice' &&
-
-                  !item.is_pyq
-                );
-
-
-              const matchesCseYear =
-
-                csePyqYearFilter ===
-                  'all' ||
-
-                item
-                  .appearances
-                  .some(
-                    appearance =>
-
-                      appearance
-                        .exam_family ===
-                        'upsc_cse' &&
-
-                      String(
-                        appearance.year ||
-                        ''
-                      ) ===
-                        csePyqYearFilter
-                  );
-
-
-              const hasUpscFilters =
-
-                upscExamFilter !==
-                  'all' ||
-
-                upscCycleFilter !==
-                  'all' ||
-
-                upscYearFilter !==
-                  'all';
-
-
-              const matchesUpsc =
-
-                !hasUpscFilters ||
-
-                item
-                  .appearances
-                  .some(
-                    appearance =>
-
-                      appearance
-                        .exam_family ===
-                        'upsc_other' &&
-
-                      (
-                        upscExamFilter ===
-                          'all' ||
-
-                        appearance
-                          .exam_name ===
-                          upscExamFilter
-                      ) &&
-
-                      (
-                        upscCycleFilter ===
-                          'all' ||
-
-                        appearance
-                          .exam_cycle ===
-                          upscCycleFilter
-                      ) &&
-
-                      (
-                        upscYearFilter ===
-                          'all' ||
-
-                        String(
-                          appearance.year ||
-                          ''
-                        ) ===
-                          upscYearFilter
-                      )
-                  );
-
-
-              const hasStateFilters =
-
-                stateFilter !==
-                  'all' ||
-
-                stateExamFilter !==
-                  'all' ||
-
-                stateYearFilter !==
-                  'all';
-
-
-              const matchesState =
-
-                !hasStateFilters ||
-
-                item
-                  .appearances
-                  .some(
-                    appearance =>
-
-                      appearance
-                        .exam_family ===
-                        'state_psc' &&
-
-                      (
-                        stateFilter ===
-                          'all' ||
-
-                        appearance.state ===
-                          stateFilter
-                      ) &&
-
-                      (
-                        stateExamFilter ===
-                          'all' ||
-
-                        appearance
-                          .exam_name ===
-                          stateExamFilter
-                      ) &&
-
-                      (
-                        stateYearFilter ===
-                          'all' ||
-
-                        String(
-                          appearance.year ||
-                          ''
-                        ) ===
-                          stateYearFilter
-                      )
-                  );
-
-
-              const matchesBookmarked =
-
-                !bookmarkedOnly ||
-
-                item
-                  .stored_question_ids
-                  .some(
-                    storedId =>
-
-                      bookmarkedQuestionIds
-                        .includes(
-                          storedId
+        allQuestions.filter(
+          item => {
+
+            const search =
+              searchText
+                .trim()
+                .toLowerCase();
+
+
+            const appearanceText =
+              item.appearances
+                .flatMap(
+                  appearance => [
+                    appearance.commission ||
+                      '',
+                    appearance.state ||
+                      '',
+                    appearance.exam_name ||
+                      '',
+                    appearance.exam_cycle ||
+                      '',
+                    appearance.year
+                      ? String(
+                          appearance.year
                         )
-                  );
+                      : '',
+                    appearance.stage ||
+                      '',
+                    appearance.paper ||
+                      ''
+                  ]
+                )
+                .join(
+                  ' '
+                );
 
 
-              return (
+            const searchableText =
+              [
+                item.question,
+                item.subject,
+                item.topic ||
+                  '',
+                item.tags.join(
+                  ' '
+                ),
+                item.source ||
+                  '',
+                appearanceText
+              ]
+                .join(
+                  ' '
+                )
+                .toLowerCase();
 
-                matchesSearch &&
 
-                matchesOrigin &&
-
-                matchesSubject &&
-
-                matchesTopic &&
-
-                matchesDifficulty &&
-
-                matchesType &&
-
-                matchesCseYear &&
-
-                matchesUpsc &&
-
-                matchesState &&
-
-                matchesBookmarked
-
+            const matchesSearch =
+              !search ||
+              searchableText.includes(
+                search
               );
 
-            }
-          ),
 
+            const matchesOrigin =
+              originFilter ===
+                'all' ||
+              hasOrigin(
+                item,
+                originFilter
+              );
+
+
+            const matchesSubject =
+              subjectFilter ===
+                'all' ||
+              item.subject ===
+                subjectFilter;
+
+
+            const matchesTopic =
+              topicFilter ===
+                'all' ||
+              item.topic ===
+                topicFilter;
+
+
+            const matchesDifficulty =
+              difficultyFilter ===
+                'all' ||
+              item.difficulty ===
+                difficultyFilter;
+
+
+            const matchesType =
+              typeFilter ===
+                'all' ||
+              (
+                typeFilter ===
+                  'pyq' &&
+                item.is_pyq
+              ) ||
+              (
+                typeFilter ===
+                  'practice' &&
+                !item.is_pyq
+              );
+
+
+            const matchesCseYear =
+              csePyqYearFilter ===
+                'all' ||
+              item.appearances.some(
+                appearance =>
+                  appearance.exam_family ===
+                    'upsc_cse' &&
+                  String(
+                    appearance.year ||
+                    ''
+                  ) ===
+                    csePyqYearFilter
+              );
+
+
+            const hasUpscFilters =
+              upscExamFilter !==
+                'all' ||
+              upscCycleFilter !==
+                'all' ||
+              upscYearFilter !==
+                'all';
+
+
+            const matchesUpsc =
+              !hasUpscFilters ||
+              item.appearances.some(
+                appearance =>
+                  appearance.exam_family ===
+                    'upsc_other' &&
+                  (
+                    upscExamFilter ===
+                      'all' ||
+                    appearance.exam_name ===
+                      upscExamFilter
+                  ) &&
+                  (
+                    upscCycleFilter ===
+                      'all' ||
+                    appearance.exam_cycle ===
+                      upscCycleFilter
+                  ) &&
+                  (
+                    upscYearFilter ===
+                      'all' ||
+                    String(
+                      appearance.year ||
+                      ''
+                    ) ===
+                      upscYearFilter
+                  )
+              );
+
+
+            const hasStateFilters =
+              stateFilter !==
+                'all' ||
+              stateExamFilter !==
+                'all' ||
+              stateYearFilter !==
+                'all';
+
+
+            const matchesState =
+              !hasStateFilters ||
+              item.appearances.some(
+                appearance =>
+                  appearance.exam_family ===
+                    'state_psc' &&
+                  (
+                    stateFilter ===
+                      'all' ||
+                    appearance.state ===
+                      stateFilter
+                  ) &&
+                  (
+                    stateExamFilter ===
+                      'all' ||
+                    appearance.exam_name ===
+                      stateExamFilter
+                  ) &&
+                  (
+                    stateYearFilter ===
+                      'all' ||
+                    String(
+                      appearance.year ||
+                      ''
+                    ) ===
+                      stateYearFilter
+                  )
+              );
+
+
+            const matchesBookmarked =
+              !bookmarkedOnly ||
+              item.stored_question_ids.some(
+                storedId =>
+                  bookmarkedQuestionIds.includes(
+                    storedId
+                  )
+              );
+
+
+            return (
+              matchesSearch &&
+              matchesOrigin &&
+              matchesSubject &&
+              matchesTopic &&
+              matchesDifficulty &&
+              matchesType &&
+              matchesCseYear &&
+              matchesUpsc &&
+              matchesState &&
+              matchesBookmarked
+            );
+          }
+        ),
       [
-
         allQuestions,
-
         searchText,
-
         originFilter,
-
         subjectFilter,
-
         topicFilter,
-
         difficultyFilter,
-
         typeFilter,
-
         csePyqYearFilter,
-
         upscExamFilter,
-
         upscCycleFilter,
-
         upscYearFilter,
-
         stateFilter,
-
         stateExamFilter,
-
         stateYearFilter,
-
         bookmarkedOnly,
-
         bookmarkedQuestionIds
-
       ]
     );
 
 
-
   const sessionQuestionCount =
-
     sessionSize ===
       'all'
-
-      ? filteredQuestions
-          .length
-
+      ? filteredQuestions.length
       : Math.min(
           Number(
             sessionSize
           ),
-          filteredQuestions
-            .length
+          filteredQuestions.length
         );
 
 
+  /* =========================================================
+     FILTER ACTIONS
+     ========================================================= */
 
   function changeSessionMode(
     mode:
       SessionMode
   ) {
-
     setSessionMode(
       mode
     );
-
 
     if (
       mode ===
       'exam'
     ) {
-
       changeOriginFilter(
         'cse'
       );
     }
   }
-
 
 
   function changeOriginFilter(
@@ -2668,11 +2146,9 @@ export function PracticePage() {
       value !==
       'cse'
     ) {
-
       setSessionMode(
         'practice'
       );
-
 
       setCsePyqYearFilter(
         'all'
@@ -2684,7 +2160,6 @@ export function PracticePage() {
       value !==
       'upsc'
     ) {
-
       setUpscExamFilter(
         'all'
       );
@@ -2703,7 +2178,6 @@ export function PracticePage() {
       value !==
       'state'
     ) {
-
       setStateFilter(
         'all'
       );
@@ -2717,7 +2191,6 @@ export function PracticePage() {
       );
     }
   }
-
 
 
   function changeTypeFilter(
@@ -2736,7 +2209,6 @@ export function PracticePage() {
       value !==
       'pyq'
     ) {
-
       setCsePyqYearFilter(
         'all'
       );
@@ -2744,9 +2216,7 @@ export function PracticePage() {
   }
 
 
-
   function resetFilters() {
-
     setSessionMode(
       'practice'
     );
@@ -2817,247 +2287,253 @@ export function PracticePage() {
   }
 
 
-
   function buildPracticeConfig() {
-  return {
-    session_mode:
-      sessionMode,
+    return {
+      session_mode:
+        sessionMode,
 
-    origin:
-      originFilter,
+      origin:
+        originFilter,
 
-    subject:
-      subjectFilter,
+      subject:
+        subjectFilter,
 
-    topic:
-      topicFilter,
+      topic:
+        topicFilter,
 
-    difficulty:
-      difficultyFilter,
+      difficulty:
+        difficultyFilter,
 
-    question_type:
-      typeFilter,
+      question_type:
+        typeFilter,
 
-    cse_pyq_year:
-      csePyqYearFilter,
+      cse_pyq_year:
+        csePyqYearFilter,
 
-    upsc_exam:
-      upscExamFilter,
+      upsc_exam:
+        upscExamFilter,
 
-    upsc_cycle:
-      upscCycleFilter,
+      upsc_cycle:
+        upscCycleFilter,
 
-    upsc_year:
-      upscYearFilter,
+      upsc_year:
+        upscYearFilter,
 
-    state:
-      stateFilter,
+      state:
+        stateFilter,
 
-    state_exam:
-      stateExamFilter,
+      state_exam:
+        stateExamFilter,
 
-    state_year:
-      stateYearFilter,
+      state_year:
+        stateYearFilter,
 
-    session_size:
-      sessionSize,
+      session_size:
+        sessionSize,
 
-    search:
-      searchText,
+      search:
+        searchText,
 
-    bookmarked_only:
-      bookmarkedOnly,
+      bookmarked_only:
+        bookmarkedOnly,
 
-    original_pyq_paper:
-      originalPaperTest
-        ? {
-            exam_paper_id:
-              originalPaperTest
-                .exam_paper_id,
+      original_pyq_paper:
+        originalPaperTest
+          ? {
+              exam_paper_id:
+                originalPaperTest.exam_paper_id,
 
-            exam_family:
-              originalPaperTest
-                .exam_family,
+              exam_family:
+                originalPaperTest.exam_family,
 
-            commission:
-              originalPaperTest
-                .commission,
+              commission:
+                originalPaperTest.commission,
 
-            state:
-              originalPaperTest
-                .state,
+              state:
+                originalPaperTest.state,
 
-            exam_name:
-              originalPaperTest
-                .exam_name,
+              exam_name:
+                originalPaperTest.exam_name,
 
-            exam_cycle:
-              originalPaperTest
-                .exam_cycle,
+              exam_cycle:
+                originalPaperTest.exam_cycle,
 
-            exam_year:
-              originalPaperTest
-                .exam_year,
+              exam_year:
+                originalPaperTest.exam_year,
 
-            exam_stage:
-              originalPaperTest
-                .exam_stage,
+              exam_stage:
+                originalPaperTest.exam_stage,
 
-            paper:
-              originalPaperTest
-                .paper,
+              paper:
+                originalPaperTest.paper,
 
-            paper_code:
-              originalPaperTest
-                .paper_code,
+              paper_code:
+                originalPaperTest.paper_code,
 
-            source:
-              originalPaperTest
-                .source,
+              source:
+                originalPaperTest.source,
 
-            source_url:
-              originalPaperTest
-                .source_url
-          }
-        : null,
+              source_url:
+                originalPaperTest.source_url
+            }
+          : null,
 
-    cse_pattern:
-      sessionMode ===
-        'exam'
-        ? {
-            marks_per_question:
-              CSE_MARKS_PER_QUESTION,
+      cse_pattern:
+        sessionMode ===
+          'exam'
+          ? {
+              marks_per_question:
+                CSE_MARKS_PER_QUESTION,
 
-            negative_mark:
-              CSE_NEGATIVE_MARK,
+              negative_mark:
+                CSE_NEGATIVE_MARK,
 
-            seconds_per_question:
-              CSE_SECONDS_PER_QUESTION
-          }
-        : null
-  };
-}
+              seconds_per_question:
+                CSE_SECONDS_PER_QUESTION
+            }
+          : null
+    };
+  }
 
+
+  /* =========================================================
+     ORIGINAL PYQ PAPER
+     ========================================================= */
 
   function startOriginalPaperTest(
-  payload: PrelimsPaperTestPayload
-) {
-  if (
-    payload.paper.exam_family !==
-    'upsc_cse'
+    payload:
+      PrelimsPaperTestPayload
   ) {
-    setSetupMessage(
-      'Original paper test mode is currently available for UPSC CSE only.'
-    );
 
-    return;
-  }
+    if (
+      payload.paper.exam_family !==
+      'upsc_cse'
+    ) {
+      setSetupMessage(
+        'Original paper test mode is currently available for UPSC CSE only.'
+      );
 
-  if (
-    payload.questions.length ===
-    0
-  ) {
-    setSetupMessage(
-      'No questions are available for this paper.'
-    );
+      return;
+    }
 
-    return;
-  }
 
-  const paperYear =
-    payload.paper.exam_year;
+    if (
+      payload.questions.length ===
+      0
+    ) {
+      setSetupMessage(
+        'No questions are available for this paper.'
+      );
+
+      return;
+    }
+
+
+    const paperYear =
+      payload.paper.exam_year;
+
 
     setOriginalPaperTest(
-  payload.paper
-);
+      payload.paper
+    );
 
-  const selectedSet:
-    LiveQuestion[] =
-    payload.questions.map(
-      item => ({
-        id:
-          item.canonical_question_id ||
-          item.question_id,
 
-        question:
-          item.question,
+    const selectedSet:
+      LiveQuestion[] =
+      payload.questions.map(
+        item => ({
+          id:
+            item.canonical_question_id ||
+            item.question_id,
 
-        options:
-          [...item.options],
+          question:
+            item.question,
 
-        correct_index:
-          item.correct_index,
+          options:
+            [
+              ...item.options
+            ],
 
-        explanation:
-          item.explanation,
+          correct_index:
+            item.correct_index,
 
-        subject:
-          item.subject,
+          explanation:
+            item.explanation,
 
-        difficulty:
-          normalizeDifficulty(
-            item.difficulty
-          ),
+          subject:
+            item.subject,
 
-        topic:
-          item.topic,
+          difficulty:
+            normalizeDifficulty(
+              item.difficulty
+            ),
 
-        paper:
-          payload.paper.paper,
+          topic:
+            item.topic,
 
-        tags:
-          [...item.tags],
+          paper:
+            payload.paper.paper,
 
-        source:
-          item.source ||
-          payload.paper.source,
+          tags:
+            [
+              ...item.tags
+            ],
 
-        source_url:
-          item.source_url ||
-          payload.paper.source_url,
+          source:
+            item.source ||
+            payload.paper.source,
 
-        is_pyq:
-          true,
+          source_url:
+            item.source_url ||
+            payload.paper.source_url,
 
-        appearance_count:
-          1,
+          is_pyq:
+            true,
 
-        origins:
-          ['cse'],
+          appearance_count:
+            1,
 
-        cse_pyq_years:
-          paperYear
-            ? [paperYear]
-            : [],
+          origins:
+            [
+              'cse'
+            ],
 
-        upsc_exam_names:
-          [],
+          cse_pyq_years:
+            paperYear
+              ? [
+                  paperYear
+                ]
+              : [],
 
-        upsc_exam_cycles:
-          [],
+          upsc_exam_names:
+            [],
 
-        upsc_exam_years:
-          [],
+          upsc_exam_cycles:
+            [],
 
-        state_psc_states:
-          [],
+          upsc_exam_years:
+            [],
 
-        state_psc_names:
-          [],
+          state_psc_states:
+            [],
 
-        state_psc_exam_names:
-          [],
+          state_psc_names:
+            [],
 
-        state_psc_years:
-          [],
+          state_psc_exam_names:
+            [],
 
-        stored_question_ids:
-          item.question_id
-            ? [item.question_id]
-            : [],
+          state_psc_years:
+            [],
 
-        appearances:
-          [
+          stored_question_ids:
+            item.question_id
+              ? [
+                  item.question_id
+                ]
+              : [],
+
+          appearances: [
             {
               appearance_id:
                 item.appearance_id,
@@ -3105,202 +2581,57 @@ export function PracticePage() {
                 payload.paper.source
             }
           ]
-      })
+        })
+      );
+
+
+    setSessionMode(
+      'exam'
     );
 
-  setSessionMode(
-    'exam'
-  );
+    setOriginFilter(
+      'cse'
+    );
 
-  setOriginFilter(
-    'cse'
-  );
+    setTypeFilter(
+      'pyq'
+    );
 
-  setTypeFilter(
-    'pyq'
-  );
+    setCsePyqYearFilter(
+      paperYear
+        ? String(
+            paperYear
+          )
+        : 'all'
+    );
 
-  setCsePyqYearFilter(
-    paperYear
-      ? String(paperYear)
-      : 'all'
-  );
+    setSessionSize(
+      'all'
+    );
 
-  setSessionSize(
-    'all'
-  );
+    setSubjectFilter(
+      'all'
+    );
 
-  setSubjectFilter(
-    'all'
-  );
+    setTopicFilter(
+      'all'
+    );
 
-  setTopicFilter(
-    'all'
-  );
+    setDifficultyFilter(
+      'all'
+    );
 
-  setDifficultyFilter(
-    'all'
-  );
+    setSearchText(
+      ''
+    );
 
-  setSearchText(
-    ''
-  );
-
-  setBookmarkedOnly(
-    false
-  );
-
-  setQuestions(
-    selectedSet
-  );
-
-  setIndex(
-    0
-  );
-
-  setSelected(
-    null
-  );
-
-  setScore(
-    0
-  );
-
-  setAnswers(
-    []
-  );
-
-  setFinished(
-    false
-  );
-
-  setExamSelections(
-    {}
-  );
-
-  setMarkedForReview(
-    {}
-  );
-
-  setExamResult(
-    null
-  );
-
-  setShowExamReview(
-    false
-  );
-
-  setExamSubmitting(
-    false
-  );
-
-  setAttemptSaved(
-    false
-  );
-
-  setResultMessage(
-    ''
-  );
-
-  setSetupMessage(
-    ''
-  );
-
-  setSessionStartedAt(
-    Date.now()
-  );
-
-  const limit =
-    selectedSet.length *
-    CSE_SECONDS_PER_QUESTION;
-
-  setTimeLimitSeconds(
-    limit
-  );
-
-  setTimeLeft(
-    limit
-  );
-
-  setPracticeStarted(
-    true
-  );
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
-}
-  
-  function startPractice() {
-    setOriginalPaperTest(
-  null
-);
-
-    if (
-      filteredQuestions
-        .length ===
-      0
-    ) {
-
-      setSetupMessage(
-
-        bookmarkedOnly
-
-          ? 'No saved questions match the selected filters.'
-
-          : 'No published questions match these filters.'
-
-      );
-
-
-      return;
-    }
-
-
-    if (
-      sessionMode ===
-        'exam' &&
-
-      originFilter !==
-        'cse'
-    ) {
-
-      setSetupMessage(
-        'CSE Exam Mode can only use CSE / General questions.'
-      );
-
-
-      return;
-    }
-
-
-    const randomized =
-      shuffleQuestions(
-        filteredQuestions
-      );
-
-
-    const selectedSet =
-
-      sessionSize ===
-        'all'
-
-        ? randomized
-
-        : randomized
-            .slice(
-              0,
-              Number(
-                sessionSize
-              )
-            );
-
+    setBookmarkedOnly(
+      false
+    );
 
     setQuestions(
       selectedSet
     );
-
 
     setIndex(
       0
@@ -3322,6 +2653,150 @@ export function PracticePage() {
       false
     );
 
+    setExamSelections(
+      {}
+    );
+
+    setMarkedForReview(
+      {}
+    );
+
+    setExamResult(
+      null
+    );
+
+    setShowExamReview(
+      false
+    );
+
+    setExamSubmitting(
+      false
+    );
+
+    setAttemptSaved(
+      false
+    );
+
+    setResultMessage(
+      ''
+    );
+
+    setSetupMessage(
+      ''
+    );
+
+    setSessionStartedAt(
+      Date.now()
+    );
+
+
+    const limit =
+      selectedSet.length *
+      CSE_SECONDS_PER_QUESTION;
+
+
+    setTimeLimitSeconds(
+      limit
+    );
+
+    setTimeLeft(
+      limit
+    );
+
+    setPracticeStarted(
+      true
+    );
+
+
+    window.scrollTo({
+      top:
+        0,
+      behavior:
+        'smooth'
+    });
+  }
+
+
+  /* =========================================================
+     START SESSION
+     ========================================================= */
+
+  function startPractice() {
+
+    setOriginalPaperTest(
+      null
+    );
+
+
+    if (
+      filteredQuestions.length ===
+      0
+    ) {
+      setSetupMessage(
+        bookmarkedOnly
+          ? 'No saved questions match the selected filters.'
+          : 'No published questions match these filters.'
+      );
+
+      return;
+    }
+
+
+    if (
+      sessionMode ===
+        'exam' &&
+      originFilter !==
+        'cse'
+    ) {
+      setSetupMessage(
+        'CSE Exam Mode can only use CSE / General questions.'
+      );
+
+      return;
+    }
+
+
+    const randomized =
+      shuffleQuestions(
+        filteredQuestions
+      );
+
+
+    const selectedSet =
+      sessionSize ===
+        'all'
+        ? randomized
+        : randomized.slice(
+            0,
+            Number(
+              sessionSize
+            )
+          );
+
+
+    setQuestions(
+      selectedSet
+    );
+
+    setIndex(
+      0
+    );
+
+    setSelected(
+      null
+    );
+
+    setScore(
+      0
+    );
+
+    setAnswers(
+      []
+    );
+
+    setFinished(
+      false
+    );
 
     setExamSelections(
       {}
@@ -3343,7 +2818,6 @@ export function PracticePage() {
       false
     );
 
-
     setAttemptSaved(
       false
     );
@@ -3356,7 +2830,6 @@ export function PracticePage() {
       ''
     );
 
-
     setSessionStartedAt(
       Date.now()
     );
@@ -3366,26 +2839,18 @@ export function PracticePage() {
       sessionMode ===
       'exam'
     ) {
-
       const limit =
-
-        selectedSet
-          .length *
-
+        selectedSet.length *
         CSE_SECONDS_PER_QUESTION;
-
 
       setTimeLimitSeconds(
         limit
       );
 
-
       setTimeLeft(
         limit
       );
-
     } else {
-
       setTimeLimitSeconds(
         0
       );
@@ -3402,6 +2867,9 @@ export function PracticePage() {
   }
 
 
+  /* =========================================================
+     PRACTICE ANSWERS
+     ========================================================= */
 
   function answerPracticeQuestion(
     option:
@@ -3411,12 +2879,10 @@ export function PracticePage() {
     if (
       selected !==
         null ||
-
       !questions[
         index
       ]
     ) {
-
       return;
     }
 
@@ -3428,11 +2894,8 @@ export function PracticePage() {
 
 
     const isCorrect =
-
       option ===
-
-      currentQuestion
-        .correct_index;
+      currentQuestion.correct_index;
 
 
     setSelected(
@@ -3443,7 +2906,6 @@ export function PracticePage() {
     if (
       isCorrect
     ) {
-
       setScore(
         current =>
           current +
@@ -3454,32 +2916,28 @@ export function PracticePage() {
 
     setAnswers(
       current => [
-
         ...current,
-
         {
-
           question_id:
-            currentQuestion
-              .id,
+            currentQuestion.id,
 
           selected_index:
             option,
 
           correct_index:
-            currentQuestion
-              .correct_index,
+            currentQuestion.correct_index,
 
           is_correct:
             isCorrect
-
         }
-
       ]
     );
   }
 
 
+  /* =========================================================
+     EXAM ANSWERS
+     ========================================================= */
 
   function answerExamQuestion(
     option:
@@ -3495,26 +2953,20 @@ export function PracticePage() {
     if (
       !currentQuestion
     ) {
-
       return;
     }
 
 
     setExamSelections(
       current => ({
-
         ...current,
-
         [
-          currentQuestion
-            .id
+          currentQuestion.id
         ]:
           option
-
       })
     );
   }
-
 
 
   function clearExamResponse() {
@@ -3528,30 +2980,24 @@ export function PracticePage() {
     if (
       !currentQuestion
     ) {
-
       return;
     }
 
 
     setExamSelections(
       current => {
-
         const copy = {
           ...current
         };
 
-
         delete copy[
-          currentQuestion
-            .id
+          currentQuestion.id
         ];
-
 
         return copy;
       }
     );
   }
-
 
 
   function toggleMarkForReview() {
@@ -3565,32 +3011,25 @@ export function PracticePage() {
     if (
       !currentQuestion
     ) {
-
       return;
     }
 
 
     setMarkedForReview(
       current => ({
-
         ...current,
 
         [
-          currentQuestion
-            .id
+          currentQuestion.id
         ]:
-
           !Boolean(
             current[
-              currentQuestion
-                .id
+              currentQuestion.id
             ]
           )
-
       })
     );
   }
-
 
 
   function getDurationSeconds() {
@@ -3598,74 +3037,60 @@ export function PracticePage() {
     if (
       !sessionStartedAt
     ) {
-
       return 0;
     }
 
 
     return Math.max(
-
       0,
-
       Math.floor(
-
         (
           Date.now() -
           sessionStartedAt
         ) /
         1000
-
       )
-
     );
   }
 
 
+  /* =========================================================
+     SAVE ATTEMPT
+     ========================================================= */
 
   async function saveAttempt(
-
     mode:
       SessionMode,
-
     records:
       AnswerRecord[],
-
     correct:
       number,
-
     incorrect:
       number,
-
     unanswered:
       number,
-
     marksObtained:
-      number | null,
-
+      number |
+      null,
     maxMarks:
-      number | null,
-
+      number |
+      null,
     negativeMarks:
-      number | null,
-
+      number |
+      null,
     durationSeconds:
       number,
-
     limitSeconds:
-      number | null
-
+      number |
+      null
   ) {
 
     if (
       !supabase ||
-
       attemptSaved ||
-
-      questions
-        .length ===
+      questions.length ===
         0
     ) {
-
       return;
     }
 
@@ -3673,7 +3098,6 @@ export function PracticePage() {
     setSavingResult(
       true
     );
-
 
     setResultMessage(
       ''
@@ -3693,46 +3117,35 @@ export function PracticePage() {
     if (
       !user
     ) {
-
       setSavingResult(
         false
       );
 
-
       setResultMessage(
         'Result completed. Sign in as a student to save practice history.'
       );
-
 
       return;
     }
 
 
     const subjectsInSession =
-
       Array.from(
         new Set(
-
-          questions
-            .map(
-              item =>
-                item.subject
-            )
-
+          questions.map(
+            item =>
+              item.subject
+          )
         )
       );
 
 
     const sessionSubject =
-
-      subjectsInSession
-        .length ===
+      subjectsInSession.length ===
         1
-
         ? subjectsInSession[
             0
           ]
-
         : 'Mixed';
 
 
@@ -3742,37 +3155,27 @@ export function PracticePage() {
 
 
     const percentage =
-
       mode ===
         'exam' &&
-
       maxMarks !==
         null &&
-
       maxMarks >
         0 &&
-
       marksObtained !==
         null
-
         ? roundNumber(
-
             (
               marksObtained /
               maxMarks
             ) *
             100
-
           )
-
         : roundNumber(
-
             (
               correct /
               questions.length
             ) *
             100
-
           );
 
 
@@ -3785,7 +3188,6 @@ export function PracticePage() {
           'practice_attempts'
         )
         .insert({
-
           user_id:
             user.id,
 
@@ -3832,29 +3234,24 @@ export function PracticePage() {
 
           practice_config:
             buildPracticeConfig()
-
         });
 
 
     if (
       saveError
     ) {
-
       console.error(
         'Unable to save practice result:',
         saveError
       );
 
-
       setResultMessage(
         `Result could not be saved: ${saveError.message}`
       );
 
-
       setSavingResult(
         false
       );
-
 
       return;
     }
@@ -3866,14 +3263,10 @@ export function PracticePage() {
 
 
     setResultMessage(
-
       mode ===
         'exam'
-
         ? 'Exam result saved successfully.'
-
         : 'Practice result saved successfully.'
-
     );
 
 
@@ -3883,40 +3276,31 @@ export function PracticePage() {
   }
 
 
+  /* =========================================================
+     PRACTICE FINISH
+     ========================================================= */
 
   async function finishPracticeMode() {
 
     const correct =
-
-      answers
-        .filter(
-          item =>
-            item
-              .is_correct
-        )
-        .length;
+      answers.filter(
+        item =>
+          item.is_correct
+      ).length;
 
 
     const incorrect =
-
-      answers
-        .filter(
-          item =>
-            !item
-              .is_correct
-        )
-        .length;
+      answers.filter(
+        item =>
+          !item.is_correct
+      ).length;
 
 
     const unanswered =
-
       Math.max(
-
         0,
-
         questions.length -
         answers.length
-
       );
 
 
@@ -3924,37 +3308,24 @@ export function PracticePage() {
       correct
     );
 
-
     setFinished(
       true
     );
 
 
     await saveAttempt(
-
       'practice',
-
       answers,
-
       correct,
-
       incorrect,
-
       unanswered,
-
       null,
-
       null,
-
       null,
-
       getDurationSeconds(),
-
       null
-
     );
   }
-
 
 
   async function nextPracticeQuestion() {
@@ -3964,7 +3335,6 @@ export function PracticePage() {
       questions.length -
       1
     ) {
-
       await finishPracticeMode();
 
       return;
@@ -3977,13 +3347,15 @@ export function PracticePage() {
         1
     );
 
-
     setSelected(
       null
     );
   }
 
 
+  /* =========================================================
+     SUBMIT EXAM
+     ========================================================= */
 
   async function submitExam(
     automatic =
@@ -3992,14 +3364,10 @@ export function PracticePage() {
 
     if (
       finished ||
-
       examSubmitting ||
-
-      questions
-        .length ===
+      questions.length ===
         0
     ) {
-
       return;
     }
 
@@ -4009,54 +3377,39 @@ export function PracticePage() {
     ) {
 
       const unansweredCount =
-
-        questions
-          .filter(
-            item =>
-
-              typeof
-                examSelections[
-                  item.id
-                ] !==
-                'number'
-          )
-          .length;
+        questions.filter(
+          item =>
+            typeof
+              examSelections[
+                item.id
+              ] !==
+              'number'
+        ).length;
 
 
       const reviewCount =
-
-        questions
-          .filter(
-            item =>
-
-              Boolean(
-                markedForReview[
-                  item.id
-                ]
-              )
-          )
-          .length;
+        questions.filter(
+          item =>
+            Boolean(
+              markedForReview[
+                item.id
+              ]
+            )
+        ).length;
 
 
       const confirmed =
-
         window.confirm(
-
           `Submit your exam now?\n\n` +
-
           `Unanswered: ${unansweredCount}\n` +
-
           `Marked for Review: ${reviewCount}\n\n` +
-
           'You will not be able to change answers after submission.'
-
         );
 
 
       if (
         !confirmed
       ) {
-
         return;
       }
     }
@@ -4069,7 +3422,6 @@ export function PracticePage() {
 
     const records:
       AnswerRecord[] =
-
       questions.map(
         item => {
 
@@ -4080,140 +3432,100 @@ export function PracticePage() {
 
 
           const hasAnswer =
-
             typeof chosen ===
             'number';
 
 
           return {
-
             question_id:
               item.id,
 
             selected_index:
-
               hasAnswer
-
                 ? chosen
-
                 : null,
 
             correct_index:
               item.correct_index,
 
             is_correct:
-
               hasAnswer &&
-
               chosen ===
-                item
-                  .correct_index
-
+                item.correct_index
           };
-
         }
       );
 
 
     const attempted =
-
-      records
-        .filter(
-          item =>
-
-            item
-              .selected_index !==
-              null
-        )
-        .length;
+      records.filter(
+        item =>
+          item.selected_index !==
+          null
+      ).length;
 
 
     const correct =
-
-      records
-        .filter(
-          item =>
-            item
-              .is_correct
-        )
-        .length;
+      records.filter(
+        item =>
+          item.is_correct
+      ).length;
 
 
     const incorrect =
-
-      records
-        .filter(
-          item =>
-
-            item
-              .selected_index !==
-              null &&
-
-            !item
-              .is_correct
-        )
-        .length;
+      records.filter(
+        item =>
+          item.selected_index !==
+            null &&
+          !item.is_correct
+      ).length;
 
 
     const unanswered =
-
       questions.length -
       attempted;
 
 
     const reviewCount =
-
-      questions
-        .filter(
-          item =>
-
-            Boolean(
-              markedForReview[
-                item.id
-              ]
-            )
-        )
-        .length;
+      questions.filter(
+        item =>
+          Boolean(
+            markedForReview[
+              item.id
+            ]
+          )
+      ).length;
 
 
     const positiveMarks =
-
       correct *
       CSE_MARKS_PER_QUESTION;
 
 
     const negativeMarks =
-
       incorrect *
       CSE_NEGATIVE_MARK;
 
 
     const marksObtained =
-
       positiveMarks -
       negativeMarks;
 
 
     const maxMarks =
-
       questions.length *
       CSE_MARKS_PER_QUESTION;
 
 
     const duration =
-
       Math.min(
-
         timeLimitSeconds,
-
         getDurationSeconds()
-
       );
 
 
     const result:
       ExamResult = {
-
       attempted,
 
       correct,
@@ -4222,10 +3534,8 @@ export function PracticePage() {
 
       unanswered,
 
-
       markedForReview:
         reviewCount,
-
 
       positiveMarks:
         roundNumber(
@@ -4233,13 +3543,11 @@ export function PracticePage() {
           4
         ),
 
-
       negativeMarks:
         roundNumber(
           negativeMarks,
           4
         ),
-
 
       marksObtained:
         roundNumber(
@@ -4247,20 +3555,16 @@ export function PracticePage() {
           4
         ),
 
-
       maxMarks:
         roundNumber(
           maxMarks,
           4
         ),
 
-
       timeUsedSeconds:
         duration,
 
-
       timeLimitSeconds,
-
 
       answers:
         records
@@ -4271,16 +3575,13 @@ export function PracticePage() {
       correct
     );
 
-
     setAnswers(
       records
     );
 
-
     setExamResult(
       result
     );
-
 
     setFinished(
       true
@@ -4288,46 +3589,37 @@ export function PracticePage() {
 
 
     await saveAttempt(
-
       'exam',
-
       records,
-
       correct,
-
       incorrect,
-
       unanswered,
-
-      result
-        .marksObtained,
-
-      result
-        .maxMarks,
-
-      result
-        .negativeMarks,
-
-      result
-        .timeUsedSeconds,
-
-      result
-        .timeLimitSeconds
-
+      result.marksObtained,
+      result.maxMarks,
+      result.negativeMarks,
+      result.timeUsedSeconds,
+      result.timeLimitSeconds
     );
 
 
     if (
       automatic
     ) {
-
       setResultMessage(
         'Time expired. Your exam was submitted automatically.'
       );
     }
+
+
+    setExamSubmitting(
+      false
+    );
   }
 
 
+  /* =========================================================
+     RESTART
+     ========================================================= */
 
   function restartSameSet() {
 
@@ -4351,7 +3643,6 @@ export function PracticePage() {
       false
     );
 
-
     setExamSelections(
       {}
     );
@@ -4372,7 +3663,6 @@ export function PracticePage() {
       false
     );
 
-
     setAttemptSaved(
       false
     );
@@ -4380,7 +3670,6 @@ export function PracticePage() {
     setResultMessage(
       ''
     );
-
 
     setSessionStartedAt(
       Date.now()
@@ -4391,28 +3680,21 @@ export function PracticePage() {
       sessionMode ===
       'exam'
     ) {
-
       const limit =
-
         questions.length *
         CSE_SECONDS_PER_QUESTION;
-
 
       setTimeLimitSeconds(
         limit
       );
-
 
       setTimeLeft(
         limit
       );
-
     } else {
-
       setTimeLimitSeconds(
         0
       );
-
 
       setTimeLeft(
         null
@@ -4421,22 +3703,21 @@ export function PracticePage() {
   }
 
 
-
   function changePracticeSet() {
-
     resetActiveSession();
 
     void loadBookmarkedQuestionIds();
   }
 
 
+  /* =========================================================
+     LOADING
+     ========================================================= */
 
   if (
     loading
   ) {
-
     return (
-
       <div
         className="page-wrap"
       >
@@ -4445,34 +3726,28 @@ export function PracticePage() {
           title="Prelims Practice"
           subtitle="UPSC and State PSC question bank"
         />
-
 
         <section
           className="panel"
         >
-
           <h2>
             Loading MCQs...
           </h2>
-
         </section>
 
       </div>
-
     );
-    setOriginalPaperTest(
-  null
-);
   }
 
 
+  /* =========================================================
+     LOAD ERROR
+     ========================================================= */
 
   if (
     error
   ) {
-
     return (
-
       <div
         className="page-wrap"
       >
@@ -4481,7 +3756,6 @@ export function PracticePage() {
           title="Prelims Practice"
           subtitle="UPSC and State PSC question bank"
         />
-
 
         <section
           className="panel"
@@ -4491,11 +3765,9 @@ export function PracticePage() {
             Unable to load questions
           </h2>
 
-
           <p>
             {error}
           </p>
-
 
           <button
             className="primary-btn"
@@ -4509,18 +3781,18 @@ export function PracticePage() {
         </section>
 
       </div>
-
     );
   }
 
 
+  /* =========================================================
+     SETUP SCREEN
+     ========================================================= */
 
   if (
     !practiceStarted
   ) {
-
     return (
-
       <div
         className="page-wrap"
       >
@@ -4547,7 +3819,6 @@ export function PracticePage() {
           </h2>
 
 
-
           <div
             className="callout"
             style={{
@@ -4567,11 +3838,11 @@ export function PracticePage() {
 
               Mode
 
-
               <select
                 value={
                   sessionMode
                 }
+
                 onChange={
                   (
                     event:
@@ -4580,8 +3851,7 @@ export function PracticePage() {
                       >
                   ) =>
                     changeSessionMode(
-                      event.target
-                        .value as
+                      event.target.value as
                         SessionMode
                     )
                 }
@@ -4592,7 +3862,6 @@ export function PracticePage() {
                 >
                   Practice Mode
                 </option>
-
 
                 <option
                   value="exam"
@@ -4606,31 +3875,26 @@ export function PracticePage() {
 
 
             <p>
-
               {
                 sessionMode ===
                   'exam'
-
                   ? 'CSE-style simulation: +2 correct, -0.6667 wrong, answers hidden until submission.'
-
                   : 'See the correct answer and explanation after every question.'
               }
-
             </p>
 
           </div>
-
 
 
           <label>
 
             Question Origin
 
-
             <select
               value={
                 originFilter
               }
+
               onChange={
                 (
                   event:
@@ -4639,8 +3903,7 @@ export function PracticePage() {
                     >
                 ) =>
                   changeOriginFilter(
-                    event.target
-                      .value as
+                    event.target.value as
                       | 'all'
                       | QuestionOrigin
                   )
@@ -4653,20 +3916,17 @@ export function PracticePage() {
                 All Prelims Questions
               </option>
 
-
               <option
                 value="cse"
               >
                 CSE / General Practice
               </option>
 
-
               <option
                 value="upsc"
               >
                 Other UPSC Examinations
               </option>
-
 
               <option
                 value="state"
@@ -4679,17 +3939,17 @@ export function PracticePage() {
           </label>
 
 
-
           <label>
 
             Search Question Bank
 
-
             <input
               type="search"
+
               value={
                 searchText
               }
+
               onChange={
                 (
                   event:
@@ -4698,20 +3958,18 @@ export function PracticePage() {
                     >
                 ) =>
                   setSearchText(
-                    event.target
-                      .value
+                    event.target.value
                   )
               }
+
               placeholder="Article 21, monsoon, inflation, biodiversity..."
             />
-
 
             <small>
               Search by question, topic, tag, examination, year or source.
             </small>
 
           </label>
-
 
 
           <div
@@ -4722,11 +3980,11 @@ export function PracticePage() {
 
               Subject
 
-
               <select
                 value={
                   subjectFilter
                 }
+
                 onChange={
                   (
                     event:
@@ -4736,15 +3994,12 @@ export function PracticePage() {
                   ) => {
 
                     setSubjectFilter(
-                      event.target
-                        .value
+                      event.target.value
                     );
-
 
                     setTopicFilter(
                       'all'
                     );
-
 
                     setCsePyqYearFilter(
                       'all'
@@ -4759,11 +4014,9 @@ export function PracticePage() {
                   All Subjects
                 </option>
 
-
                 {
                   subjects.map(
                     item => (
-
                       <option
                         key={
                           item
@@ -4774,7 +4027,6 @@ export function PracticePage() {
                       >
                         {item}
                       </option>
-
                     )
                   )
                 }
@@ -4784,16 +4036,15 @@ export function PracticePage() {
             </label>
 
 
-
             <label>
 
               Topic
-
 
               <select
                 value={
                   topicFilter
                 }
+
                 onChange={
                   (
                     event:
@@ -4803,10 +4054,8 @@ export function PracticePage() {
                   ) => {
 
                     setTopicFilter(
-                      event.target
-                        .value
+                      event.target.value
                     );
-
 
                     setCsePyqYearFilter(
                       'all'
@@ -4821,11 +4070,9 @@ export function PracticePage() {
                   All Topics
                 </option>
 
-
                 {
                   topics.map(
                     topic => (
-
                       <option
                         key={
                           topic
@@ -4836,7 +4083,6 @@ export function PracticePage() {
                       >
                         {topic}
                       </option>
-
                     )
                   )
                 }
@@ -4848,7 +4094,6 @@ export function PracticePage() {
           </div>
 
 
-
           <div
             className="form-two"
           >
@@ -4857,11 +4102,11 @@ export function PracticePage() {
 
               Difficulty
 
-
               <select
                 value={
                   difficultyFilter
                 }
+
                 onChange={
                   (
                     event:
@@ -4870,8 +4115,7 @@ export function PracticePage() {
                       >
                   ) =>
                     setDifficultyFilter(
-                      event.target
-                        .value as
+                      event.target.value as
                         | 'all'
                         | Difficulty
                     )
@@ -4884,20 +4128,17 @@ export function PracticePage() {
                   All Difficulty
                 </option>
 
-
                 <option
                   value="easy"
                 >
                   Easy
                 </option>
 
-
                 <option
                   value="medium"
                 >
                   Medium
                 </option>
-
 
                 <option
                   value="hard"
@@ -4910,16 +4151,15 @@ export function PracticePage() {
             </label>
 
 
-
             <label>
 
               Question Type
-
 
               <select
                 value={
                   typeFilter
                 }
+
                 onChange={
                   (
                     event:
@@ -4928,8 +4168,7 @@ export function PracticePage() {
                       >
                   ) =>
                     changeTypeFilter(
-                      event.target
-                        .value as
+                      event.target.value as
                         | 'all'
                         | 'practice'
                         | 'pyq'
@@ -4943,13 +4182,11 @@ export function PracticePage() {
                   All Questions
                 </option>
 
-
                 <option
                   value="pyq"
                 >
                   Previous Year Questions
                 </option>
-
 
                 <option
                   value="practice"
@@ -4962,7 +4199,6 @@ export function PracticePage() {
             </label>
 
           </div>
-
 
 
           <div
@@ -4980,17 +4216,13 @@ export function PracticePage() {
 
               Revision Set
 
-
               <select
                 value={
-
                   bookmarkedOnly
-
                     ? 'saved'
-
                     : 'all'
-
                 }
+
                 onChange={
                   (
                     event:
@@ -4999,9 +4231,8 @@ export function PracticePage() {
                       >
                   ) =>
                     setBookmarkedOnly(
-                      event.target
-                        .value ===
-                        'saved'
+                      event.target.value ===
+                      'saved'
                     )
                 }
               >
@@ -5011,7 +4242,6 @@ export function PracticePage() {
                 >
                   All Questions
                 </option>
-
 
                 <option
                   value="saved"
@@ -5028,409 +4258,124 @@ export function PracticePage() {
 
 
             <small>
-
               {
                 bookmarkSignedIn
-
                   ? `${
-                      bookmarkedQuestionIds
-                        .length
+                      bookmarkedQuestionIds.length
                     } saved Prelims question${
-                      bookmarkedQuestionIds
-                        .length ===
+                      bookmarkedQuestionIds.length ===
                         1
-
                         ? ''
-
                         : 's'
                     }.`
-
                   : 'Sign in to use Saved for Revision.'
               }
-
             </small>
 
           </div>
 
 
-
           {
             originFilter ===
               'cse' &&
-
             typeFilter ===
               'pyq' && (
 
-              <div
-                className="callout"
+            <div
+              className="callout"
+            >
+
+              <span
+                className="eyebrow"
               >
-
-                <span
-                  className="eyebrow"
-                >
-                  CSE PRELIMS PYQ
-                </span>
+                CSE PRELIMS PYQ
+              </span>
 
 
-                <label>
+              <label>
 
-                  PYQ Year
+                PYQ Year
 
+                <select
+                  value={
+                    csePyqYearFilter
+                  }
 
-                  <select
-                    value={
-                      csePyqYearFilter
-                    }
-                    onChange={
-                      (
-                        event:
-                          ChangeEvent<
-                            HTMLSelectElement
-                          >
-                      ) =>
-                        setCsePyqYearFilter(
-                          event.target
-                            .value
-                        )
-                    }
-                  >
-
-                    <option
-                      value="all"
-                    >
-                      All CSE PYQ Years
-                    </option>
-
-
-                    {
-                      csePyqYears.map(
-                        year => (
-
-                          <option
-                            key={
-                              year
-                            }
-                            value={
-                              String(
-                                year
-                              )
-                            }
-                          >
-                            {year}
-                          </option>
-
-                        )
+                  onChange={
+                    (
+                      event:
+                        ChangeEvent<
+                          HTMLSelectElement
+                        >
+                    ) =>
+                      setCsePyqYearFilter(
+                        event.target.value
                       )
-                    }
+                  }
+                >
 
-                  </select>
+                  <option
+                    value="all"
+                  >
+                    All CSE PYQ Years
+                  </option>
 
-                </label>
+                  {
+                    csePyqYears.map(
+                      year => (
+                        <option
+                          key={
+                            year
+                          }
+                          value={
+                            String(
+                              year
+                            )
+                          }
+                        >
+                          {year}
+                        </option>
+                      )
+                    )
+                  }
 
-              </div>
+                </select>
 
-            )
-          }
+              </label>
 
+            </div>
+
+          )}
 
 
           {
             originFilter ===
               'upsc' && (
 
-              <div
-                className="callout"
+            <div
+              className="callout"
+            >
+
+              <span
+                className="eyebrow"
               >
+                OTHER UPSC EXAMS
+              </span>
 
-                <span
-                  className="eyebrow"
-                >
-                  OTHER UPSC EXAMS
-                </span>
-
-
-
-                <div
-                  className="form-two"
-                >
-
-                  <label>
-
-                    Examination
-
-
-                    <select
-                      value={
-                        upscExamFilter
-                      }
-                      onChange={
-                        (
-                          event:
-                            ChangeEvent<
-                              HTMLSelectElement
-                            >
-                        ) => {
-
-                          setUpscExamFilter(
-                            event.target
-                              .value
-                          );
-
-
-                          setUpscCycleFilter(
-                            'all'
-                          );
-
-
-                          setUpscYearFilter(
-                            'all'
-                          );
-                        }
-                      }
-                    >
-
-                      <option
-                        value="all"
-                      >
-                        All UPSC Exams
-                      </option>
-
-
-                      {
-                        upscExams.map(
-                          exam => (
-
-                            <option
-                              key={
-                                exam
-                              }
-                              value={
-                                exam
-                              }
-                            >
-                              {exam}
-                            </option>
-
-                          )
-                        )
-                      }
-
-                    </select>
-
-                  </label>
-
-
-
-                  <label>
-
-                    Cycle
-
-
-                    <select
-                      value={
-                        upscCycleFilter
-                      }
-                      onChange={
-                        (
-                          event:
-                            ChangeEvent<
-                              HTMLSelectElement
-                            >
-                        ) =>
-                          setUpscCycleFilter(
-                            event.target
-                              .value
-                          )
-                      }
-                    >
-
-                      <option
-                        value="all"
-                      >
-                        All Cycles
-                      </option>
-
-
-                      {
-                        upscCycles.map(
-                          cycle => (
-
-                            <option
-                              key={
-                                cycle
-                              }
-                              value={
-                                cycle
-                              }
-                            >
-                              {cycle}
-                            </option>
-
-                          )
-                        )
-                      }
-
-                    </select>
-
-                  </label>
-
-                </div>
-
-
-
-                <label>
-
-                  Examination Year
-
-
-                  <select
-                    value={
-                      upscYearFilter
-                    }
-                    onChange={
-                      (
-                        event:
-                          ChangeEvent<
-                            HTMLSelectElement
-                          >
-                      ) =>
-                        setUpscYearFilter(
-                          event.target
-                            .value
-                        )
-                    }
-                  >
-
-                    <option
-                      value="all"
-                    >
-                      All Years
-                    </option>
-
-
-                    {
-                      upscYears.map(
-                        year => (
-
-                          <option
-                            key={
-                              year
-                            }
-                            value={
-                              String(
-                                year
-                              )
-                            }
-                          >
-                            {year}
-                          </option>
-
-                        )
-                      )
-                    }
-
-                  </select>
-
-                </label>
-
-              </div>
-
-            )
-          }
-
-
-
-          {
-            originFilter ===
-              'state' && (
 
               <div
-                className="callout"
+                className="form-two"
               >
-
-                <span
-                  className="eyebrow"
-                >
-                  STATE PSC
-                </span>
-
-
-                <label>
-
-                  State
-
-
-                  <select
-                    value={
-                      stateFilter
-                    }
-                    onChange={
-                      (
-                        event:
-                          ChangeEvent<
-                            HTMLSelectElement
-                          >
-                      ) => {
-
-                        setStateFilter(
-                          event.target
-                            .value
-                        );
-
-
-                        setStateExamFilter(
-                          'all'
-                        );
-
-
-                        setStateYearFilter(
-                          'all'
-                        );
-                      }
-                    }
-                  >
-
-                    <option
-                      value="all"
-                    >
-                      All States
-                    </option>
-
-
-                    {
-                      states.map(
-                        state => (
-
-                          <option
-                            key={
-                              state
-                            }
-                            value={
-                              state
-                            }
-                          >
-                            {state}
-                          </option>
-
-                        )
-                      )
-                    }
-
-                  </select>
-
-                </label>
-
-
 
                 <label>
 
                   Examination
 
-
                   <select
                     value={
-                      stateExamFilter
+                      upscExamFilter
                     }
+
                     onChange={
                       (
                         event:
@@ -5439,13 +4384,15 @@ export function PracticePage() {
                           >
                       ) => {
 
-                        setStateExamFilter(
-                          event.target
-                            .value
+                        setUpscExamFilter(
+                          event.target.value
                         );
 
+                        setUpscCycleFilter(
+                          'all'
+                        );
 
-                        setStateYearFilter(
+                        setUpscYearFilter(
                           'all'
                         );
                       }
@@ -5455,14 +4402,12 @@ export function PracticePage() {
                     <option
                       value="all"
                     >
-                      All Examinations
+                      All UPSC Exams
                     </option>
 
-
                     {
-                      stateExams.map(
+                      upscExams.map(
                         exam => (
-
                           <option
                             key={
                               exam
@@ -5473,7 +4418,6 @@ export function PracticePage() {
                           >
                             {exam}
                           </option>
-
                         )
                       )
                     }
@@ -5483,16 +4427,15 @@ export function PracticePage() {
                 </label>
 
 
-
                 <label>
 
-                  Examination Year
-
+                  Cycle
 
                   <select
                     value={
-                      stateYearFilter
+                      upscCycleFilter
                     }
+
                     onChange={
                       (
                         event:
@@ -5500,9 +4443,8 @@ export function PracticePage() {
                             HTMLSelectElement
                           >
                       ) =>
-                        setStateYearFilter(
-                          event.target
-                            .value
+                        setUpscCycleFilter(
+                          event.target.value
                         )
                     }
                   >
@@ -5510,27 +4452,22 @@ export function PracticePage() {
                     <option
                       value="all"
                     >
-                      All Years
+                      All Cycles
                     </option>
 
-
                     {
-                      stateYears.map(
-                        year => (
-
+                      upscCycles.map(
+                        cycle => (
                           <option
                             key={
-                              year
+                              cycle
                             }
                             value={
-                              String(
-                                year
-                              )
+                              cycle
                             }
                           >
-                            {year}
+                            {cycle}
                           </option>
-
                         )
                       )
                     }
@@ -5541,9 +4478,248 @@ export function PracticePage() {
 
               </div>
 
-            )
-          }
 
+              <label>
+
+                Examination Year
+
+                <select
+                  value={
+                    upscYearFilter
+                  }
+
+                  onChange={
+                    (
+                      event:
+                        ChangeEvent<
+                          HTMLSelectElement
+                        >
+                    ) =>
+                      setUpscYearFilter(
+                        event.target.value
+                      )
+                  }
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All Years
+                  </option>
+
+                  {
+                    upscYears.map(
+                      year => (
+                        <option
+                          key={
+                            year
+                          }
+                          value={
+                            String(
+                              year
+                            )
+                          }
+                        >
+                          {year}
+                        </option>
+                      )
+                    )
+                  }
+
+                </select>
+
+              </label>
+
+            </div>
+
+          )}
+
+
+          {
+            originFilter ===
+              'state' && (
+
+            <div
+              className="callout"
+            >
+
+              <span
+                className="eyebrow"
+              >
+                STATE PSC
+              </span>
+
+
+              <label>
+
+                State
+
+                <select
+                  value={
+                    stateFilter
+                  }
+
+                  onChange={
+                    (
+                      event:
+                        ChangeEvent<
+                          HTMLSelectElement
+                        >
+                    ) => {
+
+                      setStateFilter(
+                        event.target.value
+                      );
+
+                      setStateExamFilter(
+                        'all'
+                      );
+
+                      setStateYearFilter(
+                        'all'
+                      );
+                    }
+                  }
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All States
+                  </option>
+
+                  {
+                    states.map(
+                      state => (
+                        <option
+                          key={
+                            state
+                          }
+                          value={
+                            state
+                          }
+                        >
+                          {state}
+                        </option>
+                      )
+                    )
+                  }
+
+                </select>
+
+              </label>
+
+
+              <label>
+
+                Examination
+
+                <select
+                  value={
+                    stateExamFilter
+                  }
+
+                  onChange={
+                    (
+                      event:
+                        ChangeEvent<
+                          HTMLSelectElement
+                        >
+                    ) => {
+
+                      setStateExamFilter(
+                        event.target.value
+                      );
+
+                      setStateYearFilter(
+                        'all'
+                      );
+                    }
+                  }
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All Examinations
+                  </option>
+
+                  {
+                    stateExams.map(
+                      exam => (
+                        <option
+                          key={
+                            exam
+                          }
+                          value={
+                            exam
+                          }
+                        >
+                          {exam}
+                        </option>
+                      )
+                    )
+                  }
+
+                </select>
+
+              </label>
+
+
+              <label>
+
+                Examination Year
+
+                <select
+                  value={
+                    stateYearFilter
+                  }
+
+                  onChange={
+                    (
+                      event:
+                        ChangeEvent<
+                          HTMLSelectElement
+                        >
+                    ) =>
+                      setStateYearFilter(
+                        event.target.value
+                      )
+                  }
+                >
+
+                  <option
+                    value="all"
+                  >
+                    All Years
+                  </option>
+
+                  {
+                    stateYears.map(
+                      year => (
+                        <option
+                          key={
+                            year
+                          }
+                          value={
+                            String(
+                              year
+                            )
+                          }
+                        >
+                          {year}
+                        </option>
+                      )
+                    )
+                  }
+
+                </select>
+
+              </label>
+
+            </div>
+
+          )}
 
 
           <div
@@ -5561,11 +4737,11 @@ export function PracticePage() {
 
               Number of Questions
 
-
               <select
                 value={
                   sessionSize
                 }
+
                 onChange={
                   (
                     event:
@@ -5574,8 +4750,7 @@ export function PracticePage() {
                       >
                   ) =>
                     setSessionSize(
-                      event.target
-                        .value as
+                      event.target.value as
                         SessionSize
                     )
                 }
@@ -5587,13 +4762,11 @@ export function PracticePage() {
                   10 Questions
                 </option>
 
-
                 <option
                   value="20"
                 >
                   20 Questions
                 </option>
-
 
                 <option
                   value="50"
@@ -5601,13 +4774,11 @@ export function PracticePage() {
                   50 Questions
                 </option>
 
-
                 <option
                   value="100"
                 >
                   100 Questions
                 </option>
-
 
                 <option
                   value="all"
@@ -5621,29 +4792,18 @@ export function PracticePage() {
 
 
             <p>
-
               <strong>
-                {
-                  filteredQuestions
-                    .length
-                }
+                {filteredQuestions.length}
               </strong>{' '}
-
               questions match.
-
             </p>
 
 
             <p>
-
               Session Questions:{' '}
-
               <strong>
-                {
-                  sessionQuestionCount
-                }
+                {sessionQuestionCount}
               </strong>
-
             </p>
 
 
@@ -5651,67 +4811,49 @@ export function PracticePage() {
               sessionMode ===
                 'exam' && (
 
-                <>
+              <>
+                <p>
+                  Maximum Marks:{' '}
+                  <strong>
+                    {
+                      sessionQuestionCount *
+                      CSE_MARKS_PER_QUESTION
+                    }
+                  </strong>
+                </p>
 
-                  <p>
-
-                    Maximum Marks:{' '}
-
-                    <strong>
-                      {
+                <p>
+                  Time Limit:{' '}
+                  <strong>
+                    {
+                      formatTime(
                         sessionQuestionCount *
-                        CSE_MARKS_PER_QUESTION
-                      }
-                    </strong>
+                        CSE_SECONDS_PER_QUESTION
+                      )
+                    }
+                  </strong>
+                </p>
+              </>
 
-                  </p>
-
-
-                  <p>
-
-                    Time Limit:{' '}
-
-                    <strong>
-
-                      {
-                        formatTime(
-
-                          sessionQuestionCount *
-                          CSE_SECONDS_PER_QUESTION
-
-                        )
-                      }
-
-                    </strong>
-
-                  </p>
-
-                </>
-
-              )
-            }
+            )}
 
           </div>
-
 
 
           {
             setupMessage && (
 
-              <p
-                className="form-message"
-              >
-                {setupMessage}
-              </p>
+            <p
+              className="form-message"
+            >
+              {setupMessage}
+            </p>
 
-            )
-          }
-
+          )}
 
 
           <div
             style={{
-
               display:
                 'flex',
 
@@ -5723,38 +4865,35 @@ export function PracticePage() {
 
               marginTop:
                 '18px'
-
             }}
           >
 
             <button
               className="primary-btn"
               type="button"
+
               disabled={
-                filteredQuestions
-                  .length ===
-                  0
+                filteredQuestions.length ===
+                0
               }
+
               onClick={
                 startPractice
               }
             >
-
               {
                 sessionMode ===
                   'exam'
-
                   ? 'Start Exam'
-
                   : 'Start Practice'
               }
-
             </button>
 
 
             <button
               className="secondary-btn"
               type="button"
+
               onClick={
                 resetFilters
               }
@@ -5763,9 +4902,10 @@ export function PracticePage() {
             </button>
 
 
-                        <button
+            <button
               className="secondary-btn"
               type="button"
+
               onClick={
                 loadQuestions
               }
@@ -5778,9 +4918,9 @@ export function PracticePage() {
         </section>
 
 
-        {/* =====================================
-            PRELIMS ORIGINAL PYQ PAPER ARCHIVE
-        ===================================== */}
+        {/* ===================================================
+            ORIGINAL PYQ PAPER ARCHIVE
+            =================================================== */}
 
         <section
           className="panel"
@@ -5825,57 +4965,49 @@ export function PracticePage() {
             </p>
 
 
-           <PrelimsPyqArchive
-  onStartPaperTest={
-    startOriginalPaperTest
-  }
-/>
+            <PrelimsPyqArchive
+              onStartPaperTest={
+                startOriginalPaperTest
+              }
+            />
 
           </details>
 
         </section>
 
       </div>
-
     );
   }
 
 
+  /* =========================================================
+     FINISHED - EXAM RESULT
+     ========================================================= */
 
   if (
     finished
   ) {
+
     if (
       sessionMode ===
         'exam' &&
-
       examResult
     ) {
 
       const percentage =
-
-        examResult
-          .maxMarks >
-        0
-
+        examResult.maxMarks >
+          0
           ? roundNumber(
-
               (
-                examResult
-                  .marksObtained /
-
-                examResult
-                  .maxMarks
+                examResult.marksObtained /
+                examResult.maxMarks
               ) *
               100
-
             )
-
           : 0;
 
 
       return (
-
         <div
           className="page-wrap"
         >
@@ -5898,19 +5030,13 @@ export function PracticePage() {
 
 
             <h2>
-
               {
-                examResult
-                  .marksObtained
+                examResult.marksObtained
               }
-
               /
-
               {
-                examResult
-                  .maxMarks
+                examResult.maxMarks
               }
-
             </h2>
 
 
@@ -5924,10 +5050,8 @@ export function PracticePage() {
             </p>
 
 
-
             <div
               style={{
-
                 display:
                   'grid',
 
@@ -5942,14 +5066,12 @@ export function PracticePage() {
 
                 textAlign:
                   'left'
-
               }}
             >
 
               <div
                 className="callout"
               >
-
                 <strong>
                   {questions.length}
                 </strong>
@@ -5957,176 +5079,141 @@ export function PracticePage() {
                 <p>
                   Questions
                 </p>
-
               </div>
 
 
               <div
                 className="callout"
               >
-
                 <strong>
                   {
-                    examResult
-                      .attempted
+                    examResult.attempted
                   }
                 </strong>
 
                 <p>
                   Attempted
                 </p>
-
               </div>
 
 
               <div
                 className="callout"
               >
-
                 <strong>
                   {
-                    examResult
-                      .correct
+                    examResult.correct
                   }
                 </strong>
 
                 <p>
                   Correct
                 </p>
-
               </div>
 
 
               <div
                 className="callout"
               >
-
                 <strong>
                   {
-                    examResult
-                      .incorrect
+                    examResult.incorrect
                   }
                 </strong>
 
                 <p>
                   Incorrect
                 </p>
-
               </div>
 
 
               <div
                 className="callout"
               >
-
                 <strong>
                   {
-                    examResult
-                      .unanswered
+                    examResult.unanswered
                   }
                 </strong>
 
                 <p>
                   Unanswered
                 </p>
-
               </div>
 
 
               <div
                 className="callout"
               >
-
                 <strong>
                   {
-                    examResult
-                      .markedForReview
+                    examResult.markedForReview
                   }
                 </strong>
 
                 <p>
                   Marked Review
                 </p>
-
               </div>
 
 
               <div
                 className="callout"
               >
-
                 <strong>
-
                   -
-
                   {
-                    examResult
-                      .negativeMarks
+                    examResult.negativeMarks
                   }
-
                 </strong>
 
                 <p>
                   Negative Marks
                 </p>
-
               </div>
 
 
               <div
                 className="callout"
               >
-
                 <strong>
-
                   {
                     formatTime(
-                      examResult
-                        .timeUsedSeconds
+                      examResult.timeUsedSeconds
                     )
                   }
-
                 </strong>
 
                 <p>
                   Time Used
                 </p>
-
               </div>
 
             </div>
 
 
-
             {
               savingResult && (
-
                 <p>
                   Saving result...
                 </p>
-
               )
             }
 
 
-
             {
               resultMessage && (
-
                 <p
                   className="form-message"
                 >
                   {resultMessage}
                 </p>
-
               )
             }
 
 
-
             <div
               style={{
-
                 display:
                   'flex',
 
@@ -6141,12 +5228,12 @@ export function PracticePage() {
 
                 marginTop:
                   '18px'
-
               }}
             >
 
               <button
                 className="primary-btn"
+
                 onClick={
                   () =>
                     setShowExamReview(
@@ -6155,20 +5242,17 @@ export function PracticePage() {
                     )
                 }
               >
-
                 {
                   showExamReview
-
                     ? 'Hide Answer Review'
-
                     : 'Review Answers'
                 }
-
               </button>
 
 
               <button
                 className="secondary-btn"
+
                 onClick={
                   restartSameSet
                 }
@@ -6179,6 +5263,7 @@ export function PracticePage() {
 
               <button
                 className="secondary-btn"
+
                 onClick={
                   changePracticeSet
                 }
@@ -6191,312 +5276,258 @@ export function PracticePage() {
           </section>
 
 
+          {/* =================================================
+              EXAM ANSWER REVIEW
+              ================================================= */}
 
           {
             showExamReview && (
 
-              <section
-                className="panel"
+            <section
+              className="panel"
+              style={{
+                marginTop:
+                  '18px'
+              }}
+            >
+
+              <span
+                className="eyebrow"
+              >
+                ANSWER REVIEW
+              </span>
+
+
+              <h2>
+                Review Your Exam
+              </h2>
+
+
+              <div
                 style={{
-                  marginTop:
-                    '18px'
+                  display:
+                    'grid',
+
+                  gap:
+                    '16px'
                 }}
               >
 
-                <span
-                  className="eyebrow"
-                >
-                  ANSWER REVIEW
-                </span>
+                {
+                  questions.map(
+                    (
+                      question,
+                      questionIndex
+                    ) => {
+
+                      const record =
+                        examResult.answers[
+                          questionIndex
+                        ];
 
 
-                <h2>
-                  Review Your Exam
-                </h2>
+                      const selectedIndex =
+                        record?.selected_index ??
+                        null;
 
 
-                <div
-                  style={{
-
-                    display:
-                      'grid',
-
-                    gap:
-                      '16px'
-
-                  }}
-                >
-
-                  {
-                    questions.map(
-                      (
-                        question,
-                        questionIndex
-                      ) => {
-
-                        const record =
-
-                          examResult
-                            .answers[
-                              questionIndex
-                            ];
+                      const wasMarked =
+                        Boolean(
+                          markedForReview[
+                            question.id
+                          ]
+                        );
 
 
-                        const selectedIndex =
+                      return (
+                        <article
+                          key={
+                            question.id
+                          }
 
-                          record
-                            ?.selected_index ??
-                          null;
+                          style={{
+                            padding:
+                              '16px',
+
+                            border:
+                              '1px solid rgba(255,255,255,.10)',
+
+                            borderRadius:
+                              '14px'
+                          }}
+                        >
+
+                          <div
+                            className="tag-row"
+                          >
+
+                            <span
+                              className="tag"
+                            >
+                              Question{' '}
+                              {
+                                questionIndex +
+                                1
+                              }
+                            </span>
 
 
-                        const wasMarked =
-
-                          Boolean(
-                            markedForReview[
-                              question.id
-                            ]
-                          );
-
-
-                        return (
-
-                          <article
-                            key={
-                              question.id
+                            {
+                              wasMarked && (
+                                <span
+                                  className="tag"
+                                >
+                                  Marked for Review
+                                </span>
+                              )
                             }
+
+                          </div>
+
+
+                          <h3>
+                            {
+                              question.question
+                            }
+                          </h3>
+
+
+                          <p>
+                            Your Answer:{' '}
+
+                            <strong>
+                              {
+                                selectedIndex ===
+                                  null
+                                  ? 'Not Answered'
+                                  : `${
+                                      String.fromCharCode(
+                                        65 +
+                                        selectedIndex
+                                      )
+                                    }. ${
+                                      question.options[
+                                        selectedIndex
+                                      ] ||
+                                      ''
+                                    }`
+                              }
+                            </strong>
+                          </p>
+
+
+                          <p>
+                            Correct Answer:{' '}
+
+                            <strong>
+                              {
+                                String.fromCharCode(
+                                  65 +
+                                  question.correct_index
+                                )
+                              }.
+                              {' '}
+                              {
+                                question.options[
+                                  question.correct_index
+                                ] ||
+                                ''
+                              }
+                            </strong>
+                          </p>
+
+
+                          <p>
+                            Status:{' '}
+
+                            <strong>
+                              {
+                                selectedIndex ===
+                                  null
+                                  ? 'Unanswered'
+                                  : record?.is_correct
+                                  ? 'Correct'
+                                  : 'Incorrect'
+                              }
+                            </strong>
+                          </p>
+
+
+                          <div
+                            className="explanation"
+                          >
+
+                            <strong>
+                              Explanation
+                            </strong>
+
+
+                            <p>
+                              {
+                                question.explanation
+                              }
+                            </p>
+
+
+                            <PrelimsExplanationImages
+                              questionIds={
+                                question.stored_question_ids
+                              }
+                            />
+
+                          </div>
+
+
+                          <div
                             style={{
-
-                              padding:
-                                '16px',
-
-                              border:
-                                '1px solid rgba(255,255,255,.10)',
-
-                              borderRadius:
+                              marginTop:
                                 '14px'
-
                             }}
                           >
 
-                            <div
-                              className="tag-row"
-                            >
-
-                              <span
-                                className="tag"
-                              >
-
-                                Question{' '}
-
-                                {
-                                  questionIndex +
-                                  1
-                                }
-
-                              </span>
-
-
-                              {
-                                wasMarked && (
-
-                                  <span
-                                    className="tag"
-                                  >
-                                    Marked for Review
-                                  </span>
-
-                                )
+                            <PrelimsBookmarkButton
+                              questionId={
+                                question.id
                               }
+                            />
 
-                            </div>
+                          </div>
 
+                        </article>
+                      );
+                    }
+                  )
+                }
 
-                            <h3>
-                              {
-                                question.question
-                              }
-                            </h3>
+              </div>
 
+            </section>
 
-                            <p>
-
-                              Your Answer:{' '}
-
-
-                              <strong>
-
-                                {
-                                  selectedIndex ===
-                                    null
-
-                                    ? 'Not Answered'
-
-                                    : `${
-
-                                        String.fromCharCode(
-                                          65 +
-                                          selectedIndex
-                                        )
-
-                                      }. ${
-
-                                        question
-                                          .options[
-                                            selectedIndex
-                                          ] ||
-                                        ''
-
-                                      }`
-                                }
-
-                              </strong>
-
-                            </p>
-
-
-                            <p>
-
-                              Correct Answer:{' '}
-
-
-                              <strong>
-
-                                {
-                                  String.fromCharCode(
-
-                                    65 +
-
-                                    question
-                                      .correct_index
-
-                                  )
-                                }.
-
-                                {' '}
-
-                                {
-                                  question
-                                    .options[
-                                      question
-                                        .correct_index
-                                    ] ||
-                                  ''
-                                }
-
-                              </strong>
-
-                            </p>
-
-
-                            <p>
-
-                              Status:{' '}
-
-
-                              <strong>
-
-                                {
-                                  selectedIndex ===
-                                    null
-
-                                    ? 'Unanswered'
-
-                                    : record
-                                        ?.is_correct
-
-                                      ? 'Correct'
-
-                                      : 'Incorrect'
-                                }
-
-                              </strong>
-
-                            </p>
-
-
-                            <div
-                              className="explanation"
-                            >
-
-                              <strong>
-                                Explanation
-                              </strong>
-
-
-                              <p>
-                                {
-                                  question
-                                    .explanation
-                                }
-                              </p>
-
-                              <PrelimsExplanationImages
-  questionIds={
-    q.stored_question_ids
-  }
-/>
-
-                            </div>
-
-
-                            <div
-                              style={{
-                                marginTop:
-                                  '14px'
-                              }}
-                            >
-
-                              <PrelimsBookmarkButton
-                                questionId={
-                                  question.id
-                                }
-                              />
-
-                            </div>
-
-                          </article>
-
-                        );
-
-                      }
-                    )
-                  }
-
-                </div>
-
-              </section>
-
-            )
-          }
+          )}
 
         </div>
-
       );
     }
 
 
+    /* =======================================================
+       PRACTICE RESULT
+       ======================================================= */
 
     const percentage =
-
       questions.length >
-      0
-
+        0
         ? Math.round(
-
             (
               score /
               questions.length
             ) *
             100
-
           )
-
         : 0;
 
 
-
     return (
-
       <div
         className="page-wrap"
       >
@@ -6519,13 +5550,9 @@ export function PracticePage() {
 
 
           <h2>
-
             {score}
-
             /
-
             {questions.length}
-
           </h2>
 
 
@@ -6541,31 +5568,26 @@ export function PracticePage() {
 
           {
             savingResult && (
-
               <p>
                 Saving your result...
               </p>
-
             )
           }
 
 
           {
             resultMessage && (
-
               <p
                 className="form-message"
               >
                 {resultMessage}
               </p>
-
             )
           }
 
 
           <div
             style={{
-
               display:
                 'flex',
 
@@ -6577,12 +5599,12 @@ export function PracticePage() {
 
               justifyContent:
                 'center'
-
             }}
           >
 
             <button
               className="primary-btn"
+
               onClick={
                 restartSameSet
               }
@@ -6593,6 +5615,7 @@ export function PracticePage() {
 
             <button
               className="secondary-btn"
+
               onClick={
                 changePracticeSet
               }
@@ -6605,11 +5628,13 @@ export function PracticePage() {
         </section>
 
       </div>
-
     );
   }
 
 
+  /* =========================================================
+     ACTIVE QUESTION
+     ========================================================= */
 
   const q =
     questions[
@@ -6620,11 +5645,13 @@ export function PracticePage() {
   if (
     !q
   ) {
-
     return null;
   }
 
 
+  /* =========================================================
+     ACTIVE CSE EXAM MODE
+     ========================================================= */
 
   if (
     sessionMode ===
@@ -6646,44 +5673,33 @@ export function PracticePage() {
 
 
     const answeredCount =
-
-      questions
-        .filter(
-          item =>
-
-            typeof
-              examSelections[
-                item.id
-              ] ===
-              'number'
-        )
-        .length;
+      questions.filter(
+        item =>
+          typeof
+            examSelections[
+              item.id
+            ] ===
+            'number'
+      ).length;
 
 
     const reviewCount =
-
-      questions
-        .filter(
-          item =>
-
-            Boolean(
-              markedForReview[
-                item.id
-              ]
-            )
-        )
-        .length;
+      questions.filter(
+        item =>
+          Boolean(
+            markedForReview[
+              item.id
+            ]
+          )
+      ).length;
 
 
     const unansweredCount =
-
       questions.length -
       answeredCount;
 
 
-
     return (
-
       <div
         className="page-wrap"
       >
@@ -6704,7 +5720,6 @@ export function PracticePage() {
 
           <div
             style={{
-
               display:
                 'flex',
 
@@ -6719,7 +5734,6 @@ export function PracticePage() {
 
               flexWrap:
                 'wrap'
-
             }}
           >
 
@@ -6738,14 +5752,12 @@ export function PracticePage() {
                     0
                 }}
               >
-
                 {
                   formatTime(
                     timeLeft ??
                     0
                   )
                 }
-
               </h2>
 
             </div>
@@ -6781,9 +5793,11 @@ export function PracticePage() {
             <button
               className="secondary-btn"
               type="button"
+
               disabled={
                 examSubmitting
               }
+
               onClick={
                 () =>
                   submitExam(
@@ -6791,15 +5805,11 @@ export function PracticePage() {
                   )
               }
             >
-
               {
                 examSubmitting
-
                   ? 'Submitting...'
-
                   : 'Submit Exam'
               }
-
             </button>
 
           </div>
@@ -6807,6 +5817,7 @@ export function PracticePage() {
         </section>
 
 
+        {/* QUESTION PALETTE */}
 
         <section
           className="panel"
@@ -6825,7 +5836,6 @@ export function PracticePage() {
 
           <div
             style={{
-
               display:
                 'flex',
 
@@ -6837,7 +5847,6 @@ export function PracticePage() {
 
               marginTop:
                 '12px'
-
             }}
           >
 
@@ -6849,7 +5858,6 @@ export function PracticePage() {
                 ) => {
 
                   const hasAnswer =
-
                     typeof
                       examSelections[
                         item.id
@@ -6858,7 +5866,6 @@ export function PracticePage() {
 
 
                   const isMarked =
-
                     Boolean(
                       markedForReview[
                         item.id
@@ -6867,7 +5874,6 @@ export function PracticePage() {
 
 
                   const isCurrent =
-
                     paletteIndex ===
                     index;
 
@@ -6884,79 +5890,67 @@ export function PracticePage() {
                     '#94a3b8';
 
 
-
                   if (
                     hasAnswer &&
                     !isMarked
                   ) {
-
                     background =
                       'rgba(20,184,166,.18)';
 
-
                     border =
                       '1px solid rgba(45,212,191,.55)';
-
 
                     color =
                       '#5eead4';
                   }
 
 
-
                   if (
                     !hasAnswer &&
                     isMarked
                   ) {
-
                     background =
                       'rgba(251,191,36,.15)';
 
-
                     border =
                       '1px solid rgba(251,191,36,.55)';
-
 
                     color =
                       '#fbbf24';
                   }
 
 
-
                   if (
                     hasAnswer &&
                     isMarked
                   ) {
-
                     background =
                       'rgba(139,92,246,.20)';
 
-
                     border =
                       '1px solid rgba(167,139,250,.70)';
-
 
                     color =
                       '#ddd6fe';
                   }
 
 
-
                   return (
-
                     <button
                       key={
                         item.id
                       }
+
                       type="button"
+
                       onClick={
                         () =>
                           setIndex(
                             paletteIndex
                           )
                       }
-                      style={{
 
+                      style={{
                         minWidth:
                           '44px',
 
@@ -6979,25 +5973,17 @@ export function PracticePage() {
                           'pointer',
 
                         boxShadow:
-
                           isCurrent
-
                             ? '0 0 0 2px #f8fafc'
-
                             : 'none'
-
                       }}
                     >
-
                       {
                         paletteIndex +
                         1
                       }
-
                     </button>
-
                   );
-
                 }
               )
             }
@@ -7007,6 +5993,7 @@ export function PracticePage() {
         </section>
 
 
+        {/* EXAM QUESTION */}
 
         <section
           className="quiz-card"
@@ -7025,21 +6012,17 @@ export function PracticePage() {
 
               {
                 q.topic && (
-
                   <small
                     style={{
-
                       display:
                         'block',
 
                       marginTop:
                         '4px'
-
                     }}
                   >
                     {q.topic}
                   </small>
-
                 )
               }
 
@@ -7047,35 +6030,26 @@ export function PracticePage() {
 
 
             <strong>
-
               Question{' '}
-
               {
                 index +
                 1
               }
-
               /
-
               {
                 questions.length
               }
-
             </strong>
 
           </div>
 
 
-
           <div
             className="progress-track"
           >
-
             <span
               style={{
-
                 width:
-
                   `${
                     (
                       (
@@ -7086,12 +6060,9 @@ export function PracticePage() {
                     ) *
                     100
                   }%`
-
               }}
             />
-
           </div>
-
 
 
           <div
@@ -7118,56 +6089,41 @@ export function PracticePage() {
 
             {
               q.is_pyq && (
-
                 <span
                   className="tag"
                 >
-
                   PYQ
-
                   {
-                    q
-                      .cse_pyq_years
-                      .length >
-                    0
-
+                    q.cse_pyq_years.length >
+                      0
                       ? ` · ${
-                          q
-                            .cse_pyq_years
-                            .join(
-                              ', '
-                            )
+                          q.cse_pyq_years.join(
+                            ', '
+                          )
                         }`
-
                       : ''
                   }
-
                 </span>
-
               )
             }
 
 
             {
               currentMarked && (
-
                 <span
                   className="tag"
                 >
                   ★ Marked for Review
                 </span>
-
               )
             }
 
           </div>
 
 
-
           <h2>
             {q.question}
           </h2>
-
 
 
           <div
@@ -7182,64 +6138,51 @@ export function PracticePage() {
                 ) => {
 
                   const isChosen =
-
                     chosen ===
                     optionIndex;
 
 
                   return (
-
                     <button
                       key={
                         `${q.id}-${optionIndex}`
                       }
+
                       className="option"
+
                       onClick={
                         () =>
                           answerExamQuestion(
                             optionIndex
                           )
                       }
+
                       style={{
-
                         border:
-
                           isChosen
-
                             ? '2px solid #2dd4bf'
-
                             : undefined,
 
-
                         background:
-
                           isChosen
-
                             ? 'rgba(20,184,166,.12)'
-
                             : undefined
-
                       }}
                     >
 
                       <span>
-
                         {
                           String.fromCharCode(
                             65 +
                             optionIndex
                           )
                         }
-
                       </span>
-
 
                       {option}
 
                     </button>
-
                   );
-
                 }
               )
             }
@@ -7247,10 +6190,8 @@ export function PracticePage() {
           </div>
 
 
-
           <div
             style={{
-
               display:
                 'flex',
 
@@ -7262,17 +6203,18 @@ export function PracticePage() {
 
               marginTop:
                 '18px'
-
             }}
           >
 
             <button
               className="secondary-btn"
               type="button"
+
               disabled={
                 index ===
                 0
               }
+
               onClick={
                 () =>
                   setIndex(
@@ -7292,10 +6234,12 @@ export function PracticePage() {
             <button
               className="secondary-btn"
               type="button"
+
               disabled={
                 typeof chosen !==
                 'number'
               }
+
               onClick={
                 clearExamResponse
               }
@@ -7307,33 +6251,28 @@ export function PracticePage() {
             <button
               className="secondary-btn"
               type="button"
+
               onClick={
                 toggleMarkForReview
               }
             >
-
               {
                 currentMarked
-
                   ? '★ Remove Review Mark'
-
                   : '☆ Mark for Review'
               }
-
             </button>
-
 
 
             {
               index <
               questions.length -
-              1
-
+                1
                 ? (
-
                   <button
                     className="primary-btn"
                     type="button"
+
                     onClick={
                       () =>
                         setIndex(
@@ -7349,17 +6288,16 @@ export function PracticePage() {
                   >
                     Save & Next
                   </button>
-
                 )
-
                 : (
-
                   <button
                     className="primary-btn"
                     type="button"
+
                     disabled={
                       examSubmitting
                     }
+
                     onClick={
                       () =>
                         submitExam(
@@ -7367,17 +6305,12 @@ export function PracticePage() {
                         )
                     }
                   >
-
                     {
                       examSubmitting
-
                         ? 'Submitting...'
-
                         : 'Submit Exam'
                     }
-
                   </button>
-
                 )
             }
 
@@ -7386,14 +6319,15 @@ export function PracticePage() {
         </section>
 
       </div>
-
     );
   }
 
 
+  /* =========================================================
+     NORMAL PRACTICE MODE
+     ========================================================= */
 
   return (
-
     <div
       className="page-wrap"
     >
@@ -7421,21 +6355,17 @@ export function PracticePage() {
 
             {
               q.topic && (
-
                 <small
                   style={{
-
                     display:
                       'block',
 
                     marginTop:
                       '4px'
-
                   }}
                 >
                   {q.topic}
                 </small>
-
               )
             }
 
@@ -7443,33 +6373,25 @@ export function PracticePage() {
 
 
           <strong>
-
             {
               index +
               1
             }
-
             /
-
             {
               questions.length
             }
-
           </strong>
 
         </div>
 
 
-
         <div
           className="progress-track"
         >
-
           <span
             style={{
-
               width:
-
                 `${
                   (
                     (
@@ -7480,12 +6402,9 @@ export function PracticePage() {
                   ) *
                   100
                 }%`
-
             }}
           />
-
         </div>
-
 
 
         <div
@@ -7507,13 +6426,11 @@ export function PracticePage() {
             q.origins.includes(
               'cse'
             ) && (
-
               <span
                 className="tag"
               >
                 CSE / General
               </span>
-
             )
           }
 
@@ -7522,13 +6439,11 @@ export function PracticePage() {
             q.origins.includes(
               'upsc'
             ) && (
-
               <span
                 className="tag"
               >
                 Other UPSC
               </span>
-
             )
           }
 
@@ -7537,58 +6452,45 @@ export function PracticePage() {
             q.origins.includes(
               'state'
             ) && (
-
               <span
                 className="tag"
               >
                 State PSC
               </span>
-
             )
           }
 
 
           {
             q.is_pyq && (
-
               <span
                 className="tag"
               >
-
                 PYQ
-
 
                 {
                   q.appearance_count >
-                  0
-
+                    0
                     ? ` · Asked ${
                         q.appearance_count
                       } time${
                         q.appearance_count ===
                           1
-
                           ? ''
-
                           : 's'
                       }`
-
                     : ''
                 }
-
               </span>
-
             )
           }
 
         </div>
 
 
-
         <h2>
           {q.question}
         </h2>
-
 
 
         <div
@@ -7603,34 +6505,28 @@ export function PracticePage() {
               ) => {
 
                 const optionState =
-
                   selected ===
                     null
-
                     ? ''
-
                     : optionIndex ===
                       q.correct_index
-
-                      ? 'correct'
-
-                      : selected ===
-                        optionIndex
-
-                        ? 'wrong'
-
-                        : 'muted';
+                    ? 'correct'
+                    : selected ===
+                      optionIndex
+                    ? 'wrong'
+                    : 'muted';
 
 
                 return (
-
                   <button
                     key={
                       `${q.id}-${optionIndex}`
                     }
+
                     className={
                       `option ${optionState}`
                     }
+
                     onClick={
                       () =>
                         answerPracticeQuestion(
@@ -7640,23 +6536,18 @@ export function PracticePage() {
                   >
 
                     <span>
-
                       {
                         String.fromCharCode(
                           65 +
                           optionIndex
                         )
                       }
-
                     </span>
-
 
                     {option}
 
                   </button>
-
                 );
-
               }
             )
           }
@@ -7664,336 +6555,288 @@ export function PracticePage() {
         </div>
 
 
+        {/* ===================================================
+            CORRECTED PRACTICE EXPLANATION
+            =================================================== */}
 
         {
           selected !==
             null && (
 
-            <div
-  className="explanation"
->
+          <div
+            className="explanation"
+          >
 
-  <strong>
-    Explanation
-  </strong>
+            <strong>
+              Explanation
+            </strong>
 
 
-  <p>
-    {
-      question
-        .explanation
-    }
-  </p>
+            <p>
+              {q.explanation}
+            </p>
 
 
-  <PrelimsExplanationImages
-    questionIds={
-      question
-        .stored_question_ids
-    }
-  />
+            {/* EXPLANATION IMAGES */}
 
-</div>
-                    style={{
-                      marginTop:
-                        '14px'
-                    }}
-                  >
-
-                    <strong>
-                      Previous Exam Appearances
-                    </strong>
-
-
-                    <div
-                      style={{
-
-                        display:
-                          'grid',
-
-                        gap:
-                          '8px',
-
-                        marginTop:
-                          '10px'
-
-                      }}
-                    >
-
-                      {
-                        q.appearances
-                          .slice(
-                            0,
-                            10
-                          )
-                          .map(
-                            (
-                              appearance,
-                              appearanceIndex
-                            ) => (
-
-                              <div
-                                key={
-
-                                  appearance
-                                    .appearance_id ||
-
-                                  `${
-                                    appearance
-                                      .exam_paper_id ||
-                                    'paper'
-                                  }-${appearanceIndex}`
-
-                                }
-                                style={{
-
-                                  padding:
-                                    '9px 11px',
-
-                                  borderRadius:
-                                    '10px',
-
-                                  background:
-                                    'rgba(255,255,255,.04)'
-
-                                }}
-                              >
-
-                                {
-                                  [
-
-                                    appearance
-                                      .commission,
-
-                                    appearance
-                                      .state,
-
-                                    appearance
-                                      .exam_name,
-
-                                    appearance
-                                      .exam_cycle
-
-                                      ? `Cycle ${
-                                          appearance
-                                            .exam_cycle
-                                        }`
-
-                                      : null,
-
-                                    appearance.year,
-
-                                    appearance.stage,
-
-                                    appearance.paper
-
-                                  ]
-
-                                    .filter(
-                                      value =>
-
-                                        value !==
-                                          null &&
-
-                                        value !==
-                                          undefined &&
-
-                                        value !==
-                                          ''
-                                    )
-
-                                    .join(
-                                      ' · '
-                                    )
-                                }
-
-
-                                {
-                                  appearance
-                                    .question_number && (
-
-                                    <small
-                                      style={{
-
-                                        display:
-                                          'block',
-
-                                        marginTop:
-                                          '4px'
-
-                                      }}
-                                    >
-
-                                      Question No.{' '}
-
-                                      {
-                                        appearance
-                                          .question_number
-                                      }
-
-                                    </small>
-
-                                  )
-                                }
-
-
-                                {
-                                  appearance
-                                    .appearance_type ===
-                                    'reordered' && (
-
-                                    <small
-                                      style={{
-
-                                        display:
-                                          'block',
-
-                                        marginTop:
-                                          '4px'
-
-                                      }}
-                                    >
-                                      Same question with reordered options
-                                    </small>
-
-                                  )
-                                }
-
-                              </div>
-
-                            )
-                          )
-                      }
-
-                    </div>
-
-
-                    {
-                      q.appearances
-                        .length >
-                      10 && (
-
-                        <small
-                          style={{
-
-                            display:
-                              'block',
-
-                            marginTop:
-                              '8px'
-
-                          }}
-                        >
-
-                          +
-
-                          {
-                            q.appearances
-                              .length -
-                            10
-                          }{' '}
-
-                          more appearances
-
-                        </small>
-
-                      )
-                    }
-
-                  </div>
-
-                )
+            <PrelimsExplanationImages
+              questionIds={
+                q.stored_question_ids
               }
+            />
 
 
-              {
-                q.source && (
+            {/* PREVIOUS EXAM APPEARANCES */}
 
-                  <p>
-
-                    <small>
-
-                      Source:{' '}
-
-                      {q.source}
-
-                    </small>
-
-                  </p>
-
-                )
-              }
-
-
-              {
-                q.source_url && (
-
-                  <p>
-
-                    <a
-                      href={
-                        q.source_url
-                      }
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Open source reference
-                    </a>
-
-                  </p>
-
-                )
-              }
-
+            {
+              q.appearances.length >
+                0 && (
 
               <div
                 style={{
-
                   marginTop:
-                    '16px',
-
-                  marginBottom:
-                    '16px'
-
+                    '14px'
                 }}
               >
 
-                <PrelimsBookmarkButton
-                  questionId={
-                    q.id
+                <strong>
+                  Previous Exam Appearances
+                </strong>
+
+
+                <div
+                  style={{
+                    display:
+                      'grid',
+
+                    gap:
+                      '8px',
+
+                    marginTop:
+                      '10px'
+                  }}
+                >
+
+                  {
+                    q.appearances
+                      .slice(
+                        0,
+                        10
+                      )
+                      .map(
+                        (
+                          appearance,
+                          appearanceIndex
+                        ) => (
+
+                        <div
+                          key={
+                            appearance.appearance_id ||
+                            `${
+                              appearance.exam_paper_id ||
+                              'paper'
+                            }-${appearanceIndex}`
+                          }
+
+                          style={{
+                            padding:
+                              '9px 11px',
+
+                            borderRadius:
+                              '10px',
+
+                            background:
+                              'rgba(255,255,255,.04)'
+                          }}
+                        >
+
+                          {
+                            [
+                              appearance.commission,
+                              appearance.state,
+                              appearance.exam_name,
+
+                              appearance.exam_cycle
+                                ? `Cycle ${
+                                    appearance.exam_cycle
+                                  }`
+                                : null,
+
+                              appearance.year,
+                              appearance.stage,
+                              appearance.paper
+                            ]
+                              .filter(
+                                value =>
+                                  value !==
+                                    null &&
+                                  value !==
+                                    undefined &&
+                                  value !==
+                                    ''
+                              )
+                              .join(
+                                ' · '
+                              )
+                          }
+
+
+                          {
+                            appearance.question_number && (
+
+                            <small
+                              style={{
+                                display:
+                                  'block',
+
+                                marginTop:
+                                  '4px'
+                              }}
+                            >
+                              Question No.{' '}
+                              {
+                                appearance.question_number
+                              }
+                            </small>
+
+                          )}
+
+
+                          {
+                            appearance.appearance_type ===
+                              'reordered' && (
+
+                            <small
+                              style={{
+                                display:
+                                  'block',
+
+                                marginTop:
+                                  '4px'
+                              }}
+                            >
+                              Same question with reordered options
+                            </small>
+
+                          )}
+
+                        </div>
+
+                      )
+                    )
                   }
-                />
+
+                </div>
+
+
+                {
+                  q.appearances.length >
+                    10 && (
+
+                  <small
+                    style={{
+                      display:
+                        'block',
+
+                      marginTop:
+                        '8px'
+                    }}
+                  >
+                    +
+                    {
+                      q.appearances.length -
+                      10
+                    }{' '}
+                    more appearances
+                  </small>
+
+                )}
 
               </div>
 
+            )}
 
-              <button
-                className="primary-btn"
-                onClick={
-                  nextPracticeQuestion
+
+            {/* SOURCE */}
+
+            {
+              q.source && (
+
+              <p>
+                <small>
+                  Source:{' '}
+                  {q.source}
+                </small>
+              </p>
+
+            )}
+
+
+            {
+              q.source_url && (
+
+              <p>
+                <a
+                  href={
+                    q.source_url
+                  }
+
+                  target="_blank"
+
+                  rel="noreferrer"
+                >
+                  Open source reference
+                </a>
+              </p>
+
+            )}
+
+
+            {/* BOOKMARK */}
+
+            <div
+              style={{
+                marginTop:
+                  '16px',
+
+                marginBottom:
+                  '16px'
+              }}
+            >
+
+              <PrelimsBookmarkButton
+                questionId={
+                  q.id
                 }
-              >
-
-                {
-                  index ===
-                  questions.length -
-                  1
-
-                    ? 'See Result'
-
-                    : 'Next Question'
-                }
-
-              </button>
+              />
 
             </div>
 
-          )
-        }
+
+            {/* NEXT */}
+
+            <button
+              className="primary-btn"
+
+              onClick={
+                nextPracticeQuestion
+              }
+            >
+              {
+                index ===
+                questions.length -
+                  1
+                  ? 'See Result'
+                  : 'Next Question'
+              }
+            </button>
+
+          </div>
+
+        )}
 
       </section>
 
     </div>
-
   );
 }
