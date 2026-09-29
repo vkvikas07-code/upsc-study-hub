@@ -8,6 +8,9 @@ import {
 import { TopBar } from '../components/TopBar';
 import { PrelimsBookmarkButton } from '../components/PrelimsBookmarkButton';
 import {
+  PrelimsExplanationImages
+} from '../components/PrelimsExplanationImages';
+import {
   PrelimsPyqArchive,
   type PrelimsPaperTestPayload
 } from '../components/PrelimsPyqArchive';
@@ -6427,6 +6430,12 @@ export function PracticePage() {
                                 }
                               </p>
 
+                              <PrelimsExplanationImages
+  questionIds={
+    q.stored_question_ids
+  }
+/>
+
                             </div>
 
 
@@ -7661,26 +7670,30 @@ export function PracticePage() {
             null && (
 
             <div
-              className="explanation"
-            >
+  className="explanation"
+>
 
-              <strong>
-                Explanation
-              </strong>
-
-
-              <p>
-                {q.explanation}
-              </p>
+  <strong>
+    Explanation
+  </strong>
 
 
+  <p>
+    {
+      question
+        .explanation
+    }
+  </p>
 
-              {
-                q.appearances
-                  .length >
-                0 && (
 
-                  <div
+  <PrelimsExplanationImages
+    questionIds={
+      question
+        .stored_question_ids
+    }
+  />
+
+</div>
                     style={{
                       marginTop:
                         '14px'
