@@ -7,17 +7,89 @@ export const NOTE_IMAGE_BUCKET =
   'student-note-images';
 
 
-const MAX_WIDTH =
+const MAX_IMAGE_WIDTH =
   1600;
 
 
-const MAX_HEIGHT =
+const MAX_IMAGE_HEIGHT =
   1600;
 
 
-const QUALITY =
+const IMAGE_QUALITY =
   0.82;
 
+
+/*
+ * =========================================
+ * LOAD IMAGE
+ * =========================================
+ */
+
+function loadImage(
+  file:
+    File
+):
+  Promise<HTMLImageElement> {
+
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+
+      const url =
+        URL.createObjectURL(
+          file
+        );
+
+
+      const image =
+        new Image();
+
+
+      image.onload =
+        () => {
+
+          URL.revokeObjectURL(
+            url
+          );
+
+          resolve(
+            image
+          );
+
+        };
+
+
+      image.onerror =
+        () => {
+
+          URL.revokeObjectURL(
+            url
+          );
+
+          reject(
+            new Error(
+              'Unable to read image.'
+            )
+          );
+
+        };
+
+
+      image.src =
+        url;
+
+    }
+  );
+}
+
+
+/*
+ * =========================================
+ * COMPRESS IMAGE
+ * =========================================
+ */
 
 export async function compressNoteImage(
   file:
@@ -26,35 +98,60 @@ export async function compressNoteImage(
   Promise<File> {
 
   if (
+    !file.type.startsWith(
+      'image/'
+    )
+  ) {
+
+    throw new Error(
+      'Selected file is not an image.'
+    );
+
+  }
+
+
+  if (
     file.type ===
       'image/webp' &&
     file.size <
       700 * 1024
   ) {
+
     return file;
+
   }
 
 
-  const bitmap =
-    await createImageBitmap(
+  const image =
+    await loadImage(
       file
     );
 
 
   let width =
-    bitmap.width;
+    image.naturalWidth;
 
 
   let height =
-    bitmap.height;
+    image.naturalHeight;
 
 
-  const ratio =
+  if (
+    width <= 0 ||
+    height <= 0
+  ) {
+
+    return file;
+
+  }
+
+
+  const scale =
     Math.min(
       1,
-      MAX_WIDTH /
+      MAX_IMAGE_WIDTH /
         width,
-      MAX_HEIGHT /
+      MAX_IMAGE_HEIGHT /
         height
     );
 
@@ -64,7 +161,7 @@ export async function compressNoteImage(
       1,
       Math.round(
         width *
-        ratio
+        scale
       )
     );
 
@@ -74,7 +171,7 @@ export async function compressNoteImage(
       1,
       Math.round(
         height *
-        ratio
+        scale
       )
     );
 
@@ -100,14 +197,14 @@ export async function compressNoteImage(
 
 
   if (!context) {
-    bitmap.close();
 
     return file;
+
   }
 
 
   context.drawImage(
-    bitmap,
+    image,
     0,
     0,
     width,
@@ -115,25 +212,27 @@ export async function compressNoteImage(
   );
 
 
-  bitmap.close();
-
-
   const blob =
     await new Promise<
       Blob |
       null
     >(
-      resolve =>
+      resolve => {
+
         canvas.toBlob(
           resolve,
           'image/webp',
-          QUALITY
-        )
+          IMAGE_QUALITY
+        );
+
+      }
     );
 
 
   if (!blob) {
+
     return file;
+
   }
 
 
@@ -167,6 +266,12 @@ export async function compressNoteImage(
 }
 
 
+/*
+ * =========================================
+ * UPLOAD
+ * =========================================
+ */
+
 export async function uploadNoteImages({
   userId,
   noteId,
@@ -188,13 +293,15 @@ export async function uploadNoteImages({
 
 
   if (!client) {
+
     throw new Error(
       'Supabase is not configured.'
     );
+
   }
 
 
-  const paths:
+  const uploadedPaths:
     string[] = [];
 
 
@@ -211,18 +318,30 @@ export async function uploadNoteImages({
 
       const compressed =
         await compressNoteImage(
-          files[index]
+          files[
+            index
+          ]
         );
 
 
       const unique =
         `${Date.now()}-${index}-${Math.random()
           .toString(36)
-          .slice(2, 8)}`;
+          .slice(2, 9)}`;
+
+
+      const extension =
+        compressed.type ===
+          'image/webp'
+          ? 'webp'
+          : compressed.type ===
+            'image/png'
+          ? 'png'
+          : 'jpg';
 
 
       const path =
-        `${userId}/${noteId}/${unique}.webp`;
+        `${userId}/${noteId}/${unique}.${extension}`;
 
 
       const {
@@ -237,11 +356,11 @@ export async function uploadNoteImages({
             path,
             compressed,
             {
-              cacheControl:
-                '3600',
-
               upsert:
                 false,
+
+              cacheControl:
+                '3600',
 
               contentType:
                 compressed.type
@@ -250,25 +369,27 @@ export async function uploadNoteImages({
 
 
       if (error) {
+
         throw error;
+
       }
 
 
-      paths.push(
+      uploadedPaths.push(
         path
       );
 
     }
 
 
-    return paths;
+    return uploadedPaths;
 
   } catch (
     error
   ) {
 
     if (
-      paths.length >
+      uploadedPaths.length >
       0
     ) {
 
@@ -278,32 +399,47 @@ export async function uploadNoteImages({
           NOTE_IMAGE_BUCKET
         )
         .remove(
-          paths
+          uploadedPaths
         );
 
     }
 
 
     throw error;
+
   }
 }
 
+
+/*
+ * =========================================
+ * DELETE
+ * =========================================
+ */
 
 export async function removeNoteImages(
   paths:
     string[]
 ) {
 
+  if (
+    paths.length ===
+    0
+  ) {
+    return;
+  }
+
+
   const client =
     supabase;
 
 
-  if (
-    !client ||
-    paths.length ===
-      0
-  ) {
-    return;
+  if (!client) {
+
+    throw new Error(
+      'Supabase is not configured.'
+    );
+
   }
 
 
@@ -321,10 +457,18 @@ export async function removeNoteImages(
 
 
   if (error) {
+
     throw error;
+
   }
 }
 
+
+/*
+ * =========================================
+ * PRIVATE SIGNED URLS
+ * =========================================
+ */
 
 export async function createNoteImageUrls(
   paths:
@@ -337,22 +481,38 @@ export async function createNoteImageUrls(
     >
   > {
 
+  if (
+    paths.length ===
+    0
+  ) {
+
+    return {};
+
+  }
+
+
   const client =
     supabase;
 
 
-  if (
-    !client ||
-    paths.length ===
-      0
-  ) {
+  if (!client) {
+
     return {};
+
   }
 
 
-  const entries =
+  const uniquePaths =
+    Array.from(
+      new Set(
+        paths
+      )
+    );
+
+
+  const result =
     await Promise.all(
-      paths.map(
+      uniquePaths.map(
         async path => {
 
           const {
@@ -375,10 +535,15 @@ export async function createNoteImageUrls(
             !data
               ?.signedUrl
           ) {
-            return [
-              path,
-              ''
-            ] as const;
+
+            console.error(
+              'Unable to create note image URL:',
+              error
+            );
+
+
+            return null;
+
           }
 
 
@@ -393,16 +558,16 @@ export async function createNoteImageUrls(
 
 
   return Object.fromEntries(
-    entries.filter(
+    result.filter(
       (
-        [
-          ,
-          url
-        ]
-      ) =>
-        Boolean(
-          url
-        )
+        item
+      ):
+        item is
+          readonly [
+            string,
+            string
+          ] =>
+          item !== null
     )
   );
 }
