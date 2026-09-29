@@ -2266,54 +2266,69 @@ export function CompactMcqEditor() {
 
           <label>
 
-            Subject
+  Subject
 
 
-            <select
-              value={
-                subject
-              }
+  <select
+    value={
+      subject
+    }
 
-              onChange={
-                event =>
-                  setSubject(
-                    event.target.value
-                  )
-              }
-            >
+    onChange={
+      event =>
+        setSubject(
+          event.target.value
+        )
+    }
+  >
 
-              <option>
-                Polity
-              </option>
+    <option value="Polity">
+      Polity
+    </option>
 
-              <option>
-                History
-              </option>
+    <option value="History">
+      History
+    </option>
 
-              <option>
-                Geography
-              </option>
+    <option value="Geography">
+      Geography
+    </option>
 
-              <option>
-                Economy
-              </option>
+    <option value="Economy">
+      Economy
+    </option>
 
-              <option>
-                Environment
-              </option>
+    <option value="Environment">
+      Environment
+    </option>
 
-              <option>
-                Science & Tech
-              </option>
+    <option value="Science & Tech">
+      Science & Tech
+    </option>
 
-              <option>
-                Current Affairs
-              </option>
+    <option value="Current Affairs">
+      Current Affairs
+    </option>
 
-            </select>
+    <option value="Disaster Management">
+      Disaster Management
+    </option>
 
-          </label>
+    <option value="Agriculture">
+      Agriculture
+    </option>
 
+    <option value="International Relations">
+      International Relations
+    </option>
+
+    <option value="Defence">
+      Defence
+    </option>
+
+  </select>
+
+</label>
 
           <label>
 
