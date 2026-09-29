@@ -1,65 +1,149 @@
-import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import {
+  useEffect,
+  useState
+} from 'react';
 
-import { supabase } from '../lib/supabase';
+import type {
+  FormEvent
+} from 'react';
+
+import {
+  supabase
+} from '../lib/supabase';
+
+import {
+  StudentNoteImagePicker
+} from './StudentNoteImagePicker';
+
+import type {
+  PendingNoteImage
+} from './StudentNoteImagePicker';
+
+import {
+  createMainsFrameworkImageUrls,
+  removeMainsFrameworkImages,
+  uploadMainsFrameworkImages
+} from '../lib/mainsImages';
+
 
 type QuestionStatus =
   | 'draft'
   | 'published'
   | 'archived';
 
+
 type QuestionType =
   | 'practice'
   | 'pyq';
 
+
 type SectionType =
   | 'gs'
   | 'optional';
+
 
 type Difficulty =
   | 'easy'
   | 'medium'
   | 'hard';
 
+
 type MainsQuestion = {
   id: string;
+
   question: string;
 
-  question_type: QuestionType;
-  section_type: SectionType;
+  question_type:
+    QuestionType;
 
-  gs_paper: string | null;
+  section_type:
+    SectionType;
 
-  optional_subject: string | null;
-  optional_paper: string | null;
+  gs_paper:
+    string |
+    null;
+
+  optional_subject:
+    string |
+    null;
+
+  optional_paper:
+    string |
+    null;
 
   subject: string;
-  topic: string | null;
-  syllabus_link: string | null;
 
-  directive: string | null;
+  topic:
+    string |
+    null;
 
-  marks: number | null;
-  word_limit: number | null;
+  syllabus_link:
+    string |
+    null;
 
-  pyq_year: number | null;
+  directive:
+    string |
+    null;
 
-  answer_framework: string | null;
-  key_points: string | null;
-  introduction_hint: string | null;
-  conclusion_hint: string | null;
+  marks:
+    number |
+    null;
 
-  source: string | null;
-  source_url: string | null;
+  word_limit:
+    number |
+    null;
 
-  tags: string[];
+  pyq_year:
+    number |
+    null;
 
-  difficulty: Difficulty;
-  status: QuestionStatus;
+  answer_framework:
+    string |
+    null;
 
-  created_at: string;
-  updated_at: string;
+  key_points:
+    string |
+    null;
+
+  introduction_hint:
+    string |
+    null;
+
+  conclusion_hint:
+    string |
+    null;
+
+  framework_image_paths:
+    string[];
+
+  source:
+    string |
+    null;
+
+  source_url:
+    string |
+    null;
+
+  tags:
+    string[];
+
+  difficulty:
+    Difficulty;
+
+  status:
+    QuestionStatus;
+
+  created_at:
+    string;
+
+  updated_at:
+    string;
 };
+
+
+const MAX_FRAMEWORK_IMAGES =
+  6;
+
 
 const MAINS_SELECT = `
   id,
@@ -80,6 +164,7 @@ const MAINS_SELECT = `
   key_points,
   introduction_hint,
   conclusion_hint,
+  framework_image_paths,
   source,
   source_url,
   tags,
@@ -88,6 +173,7 @@ const MAINS_SELECT = `
   created_at,
   updated_at
 `;
+
 
 const optionalSubjects = [
   'Agriculture',
@@ -141,412 +227,1054 @@ const optionalSubjects = [
   'Urdu Literature'
 ];
 
+
+function safeStringArray(
+  value:
+    unknown
+):
+  string[] {
+
+  if (
+    !Array.isArray(
+      value
+    )
+  ) {
+    return [];
+  }
+
+
+  return value
+    .map(
+      item =>
+        String(
+          item
+        )
+    )
+    .filter(
+      Boolean
+    );
+}
+
+
 export function MainsQuestionManager() {
-  const [questions, setQuestions] =
-    useState<MainsQuestion[]>([]);
 
-  const [loading, setLoading] =
-    useState(false);
+  /* =========================================================
+     QUESTION LIST
+     ========================================================= */
 
-  const [saving, setSaving] =
-    useState(false);
+  const [
+    questions,
+    setQuestions
+  ] =
+    useState<
+      MainsQuestion[]
+    >([]);
 
-  const [editingId, setEditingId] =
-    useState<string | null>(null);
 
-  const [message, setMessage] =
-    useState('');
+  const [
+    loading,
+    setLoading
+  ] =
+    useState(
+      false
+    );
 
-  const [sectionType, setSectionType] =
-    useState<SectionType>('gs');
 
-  const [questionType, setQuestionType] =
-    useState<QuestionType>('practice');
+  const [
+    saving,
+    setSaving
+  ] =
+    useState(
+      false
+    );
 
-  const [question, setQuestion] =
-    useState('');
 
-  const [gsPaper, setGsPaper] =
-    useState('GS-I');
+  const [
+    editingId,
+    setEditingId
+  ] =
+    useState<
+      string |
+      null
+    >(
+      null
+    );
+
+
+  const [
+    message,
+    setMessage
+  ] =
+    useState(
+      ''
+    );
+
+
+  /* =========================================================
+     MAIN FORM
+     ========================================================= */
+
+  const [
+    sectionType,
+    setSectionType
+  ] =
+    useState<
+      SectionType
+    >(
+      'gs'
+    );
+
+
+  const [
+    questionType,
+    setQuestionType
+  ] =
+    useState<
+      QuestionType
+    >(
+      'practice'
+    );
+
+
+  const [
+    question,
+    setQuestion
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    gsPaper,
+    setGsPaper
+  ] =
+    useState(
+      'GS-I'
+    );
+
 
   const [
     optionalSubject,
     setOptionalSubject
-  ] = useState('Geography');
+  ] =
+    useState(
+      'Geography'
+    );
+
 
   const [
     optionalPaper,
     setOptionalPaper
-  ] = useState('Paper-I');
+  ] =
+    useState(
+      'Paper-I'
+    );
 
-  const [subject, setSubject] =
-    useState('Indian Heritage & Culture');
 
-  const [topic, setTopic] =
-    useState('');
+  const [
+    subject,
+    setSubject
+  ] =
+    useState(
+      'Indian Heritage & Culture'
+    );
+
+
+  const [
+    topic,
+    setTopic
+  ] =
+    useState(
+      ''
+    );
+
 
   const [
     syllabusLink,
     setSyllabusLink
-  ] = useState('');
+  ] =
+    useState(
+      ''
+    );
 
-  const [directive, setDirective] =
-    useState('Discuss');
 
-  const [marks, setMarks] =
-    useState('10');
+  const [
+    directive,
+    setDirective
+  ] =
+    useState(
+      'Discuss'
+    );
 
-  const [wordLimit, setWordLimit] =
-    useState('150');
 
-  const [pyqYear, setPyqYear] =
-    useState('');
+  const [
+    marks,
+    setMarks
+  ] =
+    useState(
+      '10'
+    );
+
+
+  const [
+    wordLimit,
+    setWordLimit
+  ] =
+    useState(
+      '150'
+    );
+
+
+  const [
+    pyqYear,
+    setPyqYear
+  ] =
+    useState(
+      ''
+    );
+
 
   const [
     answerFramework,
     setAnswerFramework
-  ] = useState('');
+  ] =
+    useState(
+      ''
+    );
 
-  const [keyPoints, setKeyPoints] =
-    useState('');
+
+  const [
+    keyPoints,
+    setKeyPoints
+  ] =
+    useState(
+      ''
+    );
+
 
   const [
     introductionHint,
     setIntroductionHint
-  ] = useState('');
+  ] =
+    useState(
+      ''
+    );
+
 
   const [
     conclusionHint,
     setConclusionHint
-  ] = useState('');
+  ] =
+    useState(
+      ''
+    );
 
-  const [source, setSource] =
-    useState('');
 
-  const [sourceUrl, setSourceUrl] =
-    useState('');
+  /* =========================================================
+     FRAMEWORK IMAGES
+     ========================================================= */
 
-  const [tagsText, setTagsText] =
-    useState('');
-
-  const [difficulty, setDifficulty] =
-    useState<Difficulty>('medium');
-
-  const [status, setStatus] =
-    useState<QuestionStatus>('draft');
   const [
-  searchText,
-  setSearchText
-] =
-  useState('');
+    pendingFrameworkImages,
+    setPendingFrameworkImages
+  ] =
+    useState<
+      PendingNoteImage[]
+    >([]);
 
 
-const [
-  bankSection,
-  setBankSection
-] =
-  useState<
-    'all' |
-    SectionType
-  >('all');
+  const [
+    existingFrameworkImagePaths,
+    setExistingFrameworkImagePaths
+  ] =
+    useState<
+      string[]
+    >([]);
 
 
-const [
-  bankQuestionType,
-  setBankQuestionType
-] =
-  useState<
-    'all' |
-    QuestionType
-  >('all');
+  const [
+    removedFrameworkImagePaths,
+    setRemovedFrameworkImagePaths
+  ] =
+    useState<
+      string[]
+    >([]);
 
 
-const [
-  bankStatus,
-  setBankStatus
-] =
-  useState<
-    'all' |
-    QuestionStatus
-  >('all');
+  const [
+    frameworkImageUrls,
+    setFrameworkImageUrls
+  ] =
+    useState<
+      Record<
+        string,
+        string
+      >
+    >({});
 
 
-const [
-  bankDifficulty,
-  setBankDifficulty
-] =
-  useState<
-    'all' |
-    Difficulty
-  >('all');
+  const [
+    source,
+    setSource
+  ] =
+    useState(
+      ''
+    );
 
 
-const [
-  bankGsPaper,
-  setBankGsPaper
-] =
-  useState('all');
+  const [
+    sourceUrl,
+    setSourceUrl
+  ] =
+    useState(
+      ''
+    );
 
 
-const [
-  bankOptionalSubject,
-  setBankOptionalSubject
-] =
-  useState('all');
+  const [
+    tagsText,
+    setTagsText
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    difficulty,
+    setDifficulty
+  ] =
+    useState<
+      Difficulty
+    >(
+      'medium'
+    );
+
+
+  const [
+    status,
+    setStatus
+  ] =
+    useState<
+      QuestionStatus
+    >(
+      'draft'
+    );
+
+
+  /* =========================================================
+     QUESTION BANK FILTERS
+     ========================================================= */
+
+  const [
+    searchText,
+    setSearchText
+  ] =
+    useState(
+      ''
+    );
+
+
+  const [
+    bankSection,
+    setBankSection
+  ] =
+    useState<
+      | 'all'
+      | SectionType
+    >(
+      'all'
+    );
+
+
+  const [
+    bankQuestionType,
+    setBankQuestionType
+  ] =
+    useState<
+      | 'all'
+      | QuestionType
+    >(
+      'all'
+    );
+
+
+  const [
+    bankStatus,
+    setBankStatus
+  ] =
+    useState<
+      | 'all'
+      | QuestionStatus
+    >(
+      'all'
+    );
+
+
+  const [
+    bankDifficulty,
+    setBankDifficulty
+  ] =
+    useState<
+      | 'all'
+      | Difficulty
+    >(
+      'all'
+    );
+
+
+  const [
+    bankGsPaper,
+    setBankGsPaper
+  ] =
+    useState(
+      'all'
+    );
+
+
+  const [
+    bankOptionalSubject,
+    setBankOptionalSubject
+  ] =
+    useState(
+      'all'
+    );
+
+
+  /* =========================================================
+     IMAGE PREVIEW CLEANUP
+     ========================================================= */
+
+  function clearPendingFrameworkImagePreviews() {
+
+    pendingFrameworkImages.forEach(
+      image => {
+
+        URL.revokeObjectURL(
+          image.previewUrl
+        );
+
+      }
+    );
+
+
+    setPendingFrameworkImages(
+      []
+    );
+  }
+
+
+  /* =========================================================
+     LOAD QUESTIONS
+     ========================================================= */
 
   async function loadQuestions() {
-    if (!supabase) {
+
+    const client =
+      supabase;
+
+
+    if (
+      !client
+    ) {
+
       setMessage(
         'Supabase is not configured.'
       );
+
       return;
     }
 
-    setLoading(true);
 
-    const { data, error } =
-      await supabase
-        .from('mains_questions')
-        .select(MAINS_SELECT)
+    setLoading(
+      true
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await client
+        .from(
+          'mains_questions'
+        )
+        .select(
+          MAINS_SELECT
+        )
         .order(
           'created_at',
-          { ascending: false }
+          {
+            ascending:
+              false
+          }
         );
 
-    if (error) {
+
+    if (
+      error
+    ) {
+
       console.error(
         'Unable to load Mains questions:',
         error
       );
 
-      setMessage(error.message);
-      setLoading(false);
+
+      setMessage(
+        error.message
+      );
+
+
+      setLoading(
+        false
+      );
+
 
       return;
     }
 
+
+    const loaded =
+      (
+        data ||
+        []
+      ).map(
+        item => ({
+          ...item,
+
+          tags:
+            safeStringArray(
+              item.tags
+            ),
+
+          framework_image_paths:
+            safeStringArray(
+              item.framework_image_paths
+            )
+        })
+      ) as
+        MainsQuestion[];
+
+
     setQuestions(
-      ((data || []).map(item => ({
-        ...item,
-        tags: item.tags || []
-      })) as MainsQuestion[])
+      loaded
     );
 
-    setLoading(false);
+
+    setLoading(
+      false
+    );
   }
 
-  useEffect(() => {
-    loadQuestions();
-  }, []);
 
-  function resetForm() {
-    setEditingId(null);
+  useEffect(
+    () => {
 
-    setSectionType('gs');
-    setQuestionType('practice');
+      void loadQuestions();
 
-    setQuestion('');
+    },
+    []
+  );
 
-    setGsPaper('GS-I');
+
+  /* =========================================================
+     RESET FORM
+     ========================================================= */
+
+  function resetForm(
+    keepMessage =
+      false
+  ) {
+
+    clearPendingFrameworkImagePreviews();
+
+
+    setEditingId(
+      null
+    );
+
+
+    setSectionType(
+      'gs'
+    );
+
+
+    setQuestionType(
+      'practice'
+    );
+
+
+    setQuestion(
+      ''
+    );
+
+
+    setGsPaper(
+      'GS-I'
+    );
+
 
     setOptionalSubject(
       'Geography'
     );
 
+
     setOptionalPaper(
       'Paper-I'
     );
+
 
     setSubject(
       'Indian Heritage & Culture'
     );
 
-    setTopic('');
-    setSyllabusLink('');
 
-    setDirective('Discuss');
+    setTopic(
+      ''
+    );
 
-    setMarks('10');
-    setWordLimit('150');
 
-    setPyqYear('');
+    setSyllabusLink(
+      ''
+    );
 
-    setAnswerFramework('');
-    setKeyPoints('');
-    setIntroductionHint('');
-    setConclusionHint('');
 
-    setSource('');
-    setSourceUrl('');
+    setDirective(
+      'Discuss'
+    );
 
-    setTagsText('');
 
-    setDifficulty('medium');
-    setStatus('draft');
+    setMarks(
+      '10'
+    );
+
+
+    setWordLimit(
+      '150'
+    );
+
+
+    setPyqYear(
+      ''
+    );
+
+
+    setAnswerFramework(
+      ''
+    );
+
+
+    setKeyPoints(
+      ''
+    );
+
+
+    setIntroductionHint(
+      ''
+    );
+
+
+    setConclusionHint(
+      ''
+    );
+
+
+    setExistingFrameworkImagePaths(
+      []
+    );
+
+
+    setRemovedFrameworkImagePaths(
+      []
+    );
+
+
+    setFrameworkImageUrls(
+      {}
+    );
+
+
+    setSource(
+      ''
+    );
+
+
+    setSourceUrl(
+      ''
+    );
+
+
+    setTagsText(
+      ''
+    );
+
+
+    setDifficulty(
+      'medium'
+    );
+
+
+    setStatus(
+      'draft'
+    );
+
+
+    if (
+      !keepMessage
+    ) {
+
+      setMessage(
+        ''
+      );
+
+    }
   }
 
-  function startEdit(
-    item: MainsQuestion
-  ) {
-    setEditingId(item.id);
 
-    setQuestion(item.question);
+  /* =========================================================
+     START EDIT
+     ========================================================= */
+
+  async function startEdit(
+    item:
+      MainsQuestion
+  ) {
+
+    clearPendingFrameworkImagePreviews();
+
+
+    setEditingId(
+      item.id
+    );
+
+
+    setQuestion(
+      item.question
+    );
+
 
     setQuestionType(
       item.question_type
     );
 
+
     setSectionType(
       item.section_type
     );
 
+
     setGsPaper(
-      item.gs_paper || 'GS-I'
+      item.gs_paper ||
+      'GS-I'
     );
+
 
     setOptionalSubject(
       item.optional_subject ||
-        'Geography'
+      'Geography'
     );
+
 
     setOptionalPaper(
       item.optional_paper ||
-        'Paper-I'
+      'Paper-I'
     );
 
-    setSubject(item.subject);
+
+    setSubject(
+      item.subject
+    );
+
 
     setTopic(
-      item.topic || ''
+      item.topic ||
+      ''
     );
+
 
     setSyllabusLink(
-      item.syllabus_link || ''
+      item.syllabus_link ||
+      ''
     );
 
+
     setDirective(
-      item.directive || ''
+      item.directive ||
+      ''
     );
+
 
     setMarks(
       item.marks
-        ? String(item.marks)
+        ? String(
+            item.marks
+          )
         : ''
     );
+
 
     setWordLimit(
       item.word_limit
-        ? String(item.word_limit)
+        ? String(
+            item.word_limit
+          )
         : ''
     );
+
 
     setPyqYear(
       item.pyq_year
-        ? String(item.pyq_year)
+        ? String(
+            item.pyq_year
+          )
         : ''
     );
 
+
     setAnswerFramework(
-      item.answer_framework || ''
+      item.answer_framework ||
+      ''
     );
+
 
     setKeyPoints(
-      item.key_points || ''
+      item.key_points ||
+      ''
     );
+
 
     setIntroductionHint(
-      item.introduction_hint || ''
+      item.introduction_hint ||
+      ''
     );
+
 
     setConclusionHint(
-      item.conclusion_hint || ''
+      item.conclusion_hint ||
+      ''
     );
+
+
+    const imagePaths =
+      safeStringArray(
+        item.framework_image_paths
+      );
+
+
+    setExistingFrameworkImagePaths(
+      imagePaths
+    );
+
+
+    setRemovedFrameworkImagePaths(
+      []
+    );
+
+
+    setFrameworkImageUrls(
+      {}
+    );
+
+
+    if (
+      imagePaths.length >
+      0
+    ) {
+
+      try {
+
+        const urls =
+          await createMainsFrameworkImageUrls(
+            imagePaths
+          );
+
+
+        setFrameworkImageUrls(
+          urls
+        );
+
+      } catch (
+        imageError
+      ) {
+
+        console.error(
+          'Unable to load framework image previews:',
+          imageError
+        );
+
+      }
+    }
+
 
     setSource(
-      item.source || ''
+      item.source ||
+      ''
     );
+
 
     setSourceUrl(
-      item.source_url || ''
+      item.source_url ||
+      ''
     );
 
+
     setTagsText(
-      (item.tags || [])
-        .join(', ')
+      (
+        item.tags ||
+        []
+      ).join(
+        ', '
+      )
     );
+
 
     setDifficulty(
       item.difficulty
     );
 
+
     setStatus(
       item.status
     );
 
+
     setMessage(
       'Editing Mains question.'
     );
+
 
     const mainArea =
       document.querySelector(
         '.main-area'
       );
 
-    if (mainArea) {
+
+    if (
+      mainArea
+    ) {
+
       mainArea.scrollTo({
-        top: 0,
-        behavior: 'smooth'
+        top:
+          0,
+
+        behavior:
+          'smooth'
       });
+
+    } else {
+
+      window.scrollTo({
+        top:
+          0,
+
+        behavior:
+          'smooth'
+      });
+
     }
   }
 
-  async function saveQuestion(
-    e: FormEvent
-  ) {
-    e.preventDefault();
 
-    if (!supabase) {
+  /* =========================================================
+     SAVE QUESTION
+     ========================================================= */
+
+  async function saveQuestion(
+    event:
+      FormEvent
+  ) {
+
+    event.preventDefault();
+
+
+    const client =
+      supabase;
+
+
+    if (
+      !client
+    ) {
+
       setMessage(
         'Supabase is not configured.'
       );
+
       return;
     }
 
-    if (!question.trim()) {
+
+    if (
+      !question.trim()
+    ) {
+
       setMessage(
         'Enter the Mains question.'
       );
+
       return;
     }
 
-    if (!subject.trim()) {
+
+    if (
+      !subject.trim()
+    ) {
+
       setMessage(
         'Enter the subject.'
       );
+
       return;
     }
 
+
     if (
-      questionType === 'pyq' &&
+      questionType ===
+        'pyq' &&
       !pyqYear.trim()
     ) {
+
       setMessage(
         'Previous Year Question requires a year.'
       );
+
       return;
     }
 
+
     if (
-      sectionType === 'optional' &&
+      sectionType ===
+        'optional' &&
       !optionalSubject
     ) {
+
       setMessage(
         'Select the Optional Subject.'
       );
+
       return;
     }
 
-    setSaving(true);
+
+    if (
+      existingFrameworkImagePaths.length +
+      pendingFrameworkImages.length >
+      MAX_FRAMEWORK_IMAGES
+    ) {
+
+      setMessage(
+        `Maximum ${MAX_FRAMEWORK_IMAGES} framework images are allowed.`
+      );
+
+      return;
+    }
+
+
+    setSaving(
+      true
+    );
+
 
     setMessage(
       editingId
@@ -554,30 +1282,51 @@ const [
         : 'Saving Mains question...'
     );
 
-    const {
-      data: { user }
-    } =
-      await supabase.auth.getUser();
 
-    if (!user) {
-      setSaving(false);
+    const {
+      data: {
+        user
+      }
+    } =
+      await client
+        .auth
+        .getUser();
+
+
+    if (
+      !user
+    ) {
+
+      setSaving(
+        false
+      );
+
 
       setMessage(
         'Admin session expired. Sign in again.'
       );
 
+
       return;
     }
 
+
     const tags =
       tagsText
-        .split(',')
-        .map(
-          tag => tag.trim()
+        .split(
+          ','
         )
-        .filter(Boolean);
+        .map(
+          tag =>
+            tag.trim()
+        )
+        .filter(
+          Boolean
+        );
+
 
     const payload = {
+
       question:
         question.trim(),
 
@@ -588,17 +1337,20 @@ const [
         sectionType,
 
       gs_paper:
-        sectionType === 'gs'
+        sectionType ===
+          'gs'
           ? gsPaper
           : null,
 
       optional_subject:
-        sectionType === 'optional'
+        sectionType ===
+          'optional'
           ? optionalSubject
           : null,
 
       optional_paper:
-        sectionType === 'optional'
+        sectionType ===
+          'optional'
           ? optionalPaper
           : null,
 
@@ -619,18 +1371,25 @@ const [
 
       marks:
         marks.trim()
-          ? Number(marks)
+          ? Number(
+              marks
+            )
           : null,
 
       word_limit:
         wordLimit.trim()
-          ? Number(wordLimit)
+          ? Number(
+              wordLimit
+            )
           : null,
 
       pyq_year:
-        questionType === 'pyq' &&
+        questionType ===
+          'pyq' &&
         pyqYear.trim()
-          ? Number(pyqYear)
+          ? Number(
+              pyqYear
+            )
           : null,
 
       answer_framework:
@@ -664,72 +1423,230 @@ const [
       status,
 
       updated_at:
-        new Date().toISOString()
+        new Date()
+          .toISOString()
     };
 
-    if (editingId) {
-      const { data, error } =
-        await supabase
-          .from('mains_questions')
-          .update(payload)
-          .eq(
-            'id',
-            editingId
-          )
-          .select(
-            MAINS_SELECT
-          )
-          .single();
 
-      if (
-        error ||
-        !data
-      ) {
-        console.error(
-          'Mains update failed:',
+    /* =======================================================
+       UPDATE EXISTING QUESTION
+       ======================================================= */
+
+    if (
+      editingId
+    ) {
+
+      let uploadedPaths:
+        string[] = [];
+
+
+      try {
+
+        if (
+          pendingFrameworkImages.length >
+          0
+        ) {
+
+          uploadedPaths =
+            await uploadMainsFrameworkImages({
+              questionId:
+                editingId,
+
+              files:
+                pendingFrameworkImages.map(
+                  image =>
+                    image.file
+                )
+            });
+
+        }
+
+
+        const finalImagePaths = [
+          ...existingFrameworkImagePaths,
+          ...uploadedPaths
+        ];
+
+
+        const {
+          data,
           error
+        } =
+          await client
+            .from(
+              'mains_questions'
+            )
+            .update({
+              ...payload,
+
+              framework_image_paths:
+                finalImagePaths
+            })
+            .eq(
+              'id',
+              editingId
+            )
+            .select(
+              MAINS_SELECT
+            )
+            .single();
+
+
+        if (
+          error ||
+          !data
+        ) {
+
+          if (
+            uploadedPaths.length >
+            0
+          ) {
+
+            try {
+
+              await removeMainsFrameworkImages(
+                uploadedPaths
+              );
+
+            } catch (
+              cleanupError
+            ) {
+
+              console.error(
+                'Unable to clean failed framework uploads:',
+                cleanupError
+              );
+
+            }
+          }
+
+
+          throw (
+            error ||
+            new Error(
+              'Mains question update failed.'
+            )
+          );
+        }
+
+
+        if (
+          removedFrameworkImagePaths.length >
+          0
+        ) {
+
+          try {
+
+            await removeMainsFrameworkImages(
+              removedFrameworkImagePaths
+            );
+
+          } catch (
+            cleanupError
+          ) {
+
+            console.error(
+              'Unable to delete removed framework images:',
+              cleanupError
+            );
+
+          }
+        }
+
+
+        const updated = {
+          ...data,
+
+          tags:
+            safeStringArray(
+              data.tags
+            ),
+
+          framework_image_paths:
+            safeStringArray(
+              data.framework_image_paths
+            )
+        } as
+          MainsQuestion;
+
+
+        setQuestions(
+          current =>
+            current.map(
+              item =>
+                item.id ===
+                  updated.id
+                  ? updated
+                  : item
+            )
         );
+
+
+        setSaving(
+          false
+        );
+
+
+        resetForm(
+          true
+        );
+
 
         setMessage(
-          error?.message ||
-            'Mains question update failed.'
+          'Mains question updated successfully.'
         );
 
-        setSaving(false);
+
+        return;
+
+      } catch (
+        saveError
+      ) {
+
+        console.error(
+          'Mains question update failed:',
+          saveError
+        );
+
+
+        setSaving(
+          false
+        );
+
+
+        setMessage(
+          saveError instanceof
+            Error
+            ? saveError.message
+            : 'Mains question update failed.'
+        );
+
+
         return;
       }
-
-      const updated = {
-        ...data,
-        tags: data.tags || []
-      } as MainsQuestion;
-
-      setQuestions(
-        current =>
-          current.map(
-            item =>
-              item.id ===
-              updated.id
-                ? updated
-                : item
-          )
-      );
-
-      setSaving(false);
-      resetForm();
-
-      setMessage(
-        'Mains question updated successfully.'
-      );
-
-      return;
     }
 
-    const { data, error } =
-      await supabase
-        .from('mains_questions')
+
+    /* =======================================================
+       CREATE NEW QUESTION
+       ======================================================= */
+
+    const {
+      data:
+        createdQuestion,
+
+      error:
+        createError
+    } =
+      await client
+        .from(
+          'mains_questions'
+        )
         .insert({
           ...payload,
+
+          framework_image_paths:
+            [],
 
           created_by:
             user.id
@@ -739,62 +1656,305 @@ const [
         )
         .single();
 
+
     if (
-      error ||
-      !data
+      createError ||
+      !createdQuestion
     ) {
+
       console.error(
         'Mains question creation failed:',
-        error
+        createError
       );
+
+
+      setSaving(
+        false
+      );
+
 
       setMessage(
-        error?.message ||
-          'Unable to save Mains question.'
+        createError?.message ||
+        'Unable to save Mains question.'
       );
 
-      setSaving(false);
+
       return;
     }
 
-    const created = {
-      ...data,
-      tags: data.tags || []
-    } as MainsQuestion;
 
-    setQuestions(
-      current => [
-        created,
-        ...current
-      ]
-    );
+    let uploadedPaths:
+      string[] = [];
 
-    setSaving(false);
-    resetForm();
 
-    setMessage(
-      created.status ===
-        'published'
-        ? 'Mains question published successfully.'
-        : 'Mains question saved as draft.'
-    );
+    try {
+
+      if (
+        pendingFrameworkImages.length >
+        0
+      ) {
+
+        uploadedPaths =
+          await uploadMainsFrameworkImages({
+            questionId:
+              createdQuestion.id,
+
+            files:
+              pendingFrameworkImages.map(
+                image =>
+                  image.file
+              )
+          });
+
+
+        const {
+          data:
+            updatedWithImages,
+
+          error:
+            imageUpdateError
+        } =
+          await client
+            .from(
+              'mains_questions'
+            )
+            .update({
+              framework_image_paths:
+                uploadedPaths
+            })
+            .eq(
+              'id',
+              createdQuestion.id
+            )
+            .select(
+              MAINS_SELECT
+            )
+            .single();
+
+
+        if (
+          imageUpdateError ||
+          !updatedWithImages
+        ) {
+
+          throw (
+            imageUpdateError ||
+            new Error(
+              'Unable to link framework images.'
+            )
+          );
+        }
+
+
+        const created = {
+          ...updatedWithImages,
+
+          tags:
+            safeStringArray(
+              updatedWithImages.tags
+            ),
+
+          framework_image_paths:
+            safeStringArray(
+              updatedWithImages.framework_image_paths
+            )
+        } as
+          MainsQuestion;
+
+
+        setQuestions(
+          current => [
+            created,
+            ...current
+          ]
+        );
+
+      } else {
+
+        const created = {
+          ...createdQuestion,
+
+          tags:
+            safeStringArray(
+              createdQuestion.tags
+            ),
+
+          framework_image_paths:
+            safeStringArray(
+              createdQuestion.framework_image_paths
+            )
+        } as
+          MainsQuestion;
+
+
+        setQuestions(
+          current => [
+            created,
+            ...current
+          ]
+        );
+      }
+
+
+      const hadImages =
+        pendingFrameworkImages.length >
+        0;
+
+
+      const published =
+        status ===
+        'published';
+
+
+      setSaving(
+        false
+      );
+
+
+      resetForm(
+        true
+      );
+
+
+      if (
+        hadImages
+      ) {
+
+        setMessage(
+          published
+            ? 'Mains question and framework images published successfully.'
+            : 'Mains question and framework images saved successfully.'
+        );
+
+      } else {
+
+        setMessage(
+          published
+            ? 'Mains question published successfully.'
+            : 'Mains question saved as draft.'
+        );
+
+      }
+
+    } catch (
+      imageError
+    ) {
+
+      console.error(
+        'Framework image upload failed:',
+        imageError
+      );
+
+
+      if (
+        uploadedPaths.length >
+        0
+      ) {
+
+        try {
+
+          await removeMainsFrameworkImages(
+            uploadedPaths
+          );
+
+        } catch (
+          cleanupError
+        ) {
+
+          console.error(
+            'Unable to clean framework images:',
+            cleanupError
+          );
+
+        }
+      }
+
+
+      /*
+       * Delete the newly-created database row because
+       * the image operation did not complete correctly.
+       */
+
+      const {
+        error:
+          deleteError
+      } =
+        await client
+          .from(
+            'mains_questions'
+          )
+          .delete()
+          .eq(
+            'id',
+            createdQuestion.id
+          );
+
+
+      if (
+        deleteError
+      ) {
+
+        console.error(
+          'Unable to remove incomplete Mains question:',
+          deleteError
+        );
+
+      }
+
+
+      setSaving(
+        false
+      );
+
+
+      setMessage(
+        imageError instanceof
+          Error
+          ? imageError.message
+          : 'Unable to upload framework images.'
+      );
+    }
   }
 
-  async function changeStatus(
-    item: MainsQuestion,
-    nextStatus: QuestionStatus
-  ) {
-    if (!supabase) return;
 
-    const { data, error } =
-      await supabase
-        .from('mains_questions')
+  /* =========================================================
+     CHANGE STATUS
+     ========================================================= */
+
+  async function changeStatus(
+    item:
+      MainsQuestion,
+
+    nextStatus:
+      QuestionStatus
+  ) {
+
+    const client =
+      supabase;
+
+
+    if (
+      !client
+    ) {
+      return;
+    }
+
+
+    const {
+      data,
+      error
+    } =
+      await client
+        .from(
+          'mains_questions'
+        )
         .update({
           status:
             nextStatus,
 
           updated_at:
-            new Date().toISOString()
+            new Date()
+              .toISOString()
         })
         .eq(
           'id',
@@ -805,66 +1965,150 @@ const [
         )
         .single();
 
+
     if (
       error ||
       !data
     ) {
+
       setMessage(
         error?.message ||
-          'Unable to change status.'
+        'Unable to change status.'
       );
+
 
       return;
     }
 
+
     const updated = {
       ...data,
-      tags: data.tags || []
-    } as MainsQuestion;
+
+      tags:
+        safeStringArray(
+          data.tags
+        ),
+
+      framework_image_paths:
+        safeStringArray(
+          data.framework_image_paths
+        )
+    } as
+      MainsQuestion;
+
 
     setQuestions(
       current =>
         current.map(
           questionItem =>
             questionItem.id ===
-            updated.id
+              updated.id
               ? updated
               : questionItem
         )
     );
+
 
     setMessage(
       `Mains question changed to ${nextStatus}.`
     );
   }
 
+
+  /* =========================================================
+     DELETE QUESTION
+     ========================================================= */
+
   async function deleteQuestion(
-    item: MainsQuestion
+    item:
+      MainsQuestion
   ) {
-    if (!supabase) return;
+
+    const client =
+      supabase;
+
+
+    if (
+      !client
+    ) {
+      return;
+    }
+
 
     const confirmed =
       window.confirm(
         'Delete this Mains question permanently?'
       );
 
-    if (!confirmed) return;
 
-    const { error } =
-      await supabase
-        .from('mains_questions')
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+
+
+    const imagePaths =
+      safeStringArray(
+        item.framework_image_paths
+      );
+
+
+    /*
+     * Delete database row first.
+     * Only remove storage objects after DB deletion succeeds.
+     */
+
+    const {
+      error
+    } =
+      await client
+        .from(
+          'mains_questions'
+        )
         .delete()
         .eq(
           'id',
           item.id
         );
 
-    if (error) {
+
+    if (
+      error
+    ) {
+
       setMessage(
         error.message
       );
+
+
       return;
     }
+
+
+    if (
+      imagePaths.length >
+      0
+    ) {
+
+      try {
+
+        await removeMainsFrameworkImages(
+          imagePaths
+        );
+
+      } catch (
+        imageError
+      ) {
+
+        console.error(
+          'Mains question deleted, but framework image cleanup failed:',
+          imageError
+        );
+
+      }
+    }
+
 
     setQuestions(
       current =>
@@ -875,401 +2119,599 @@ const [
         )
     );
 
+
     if (
       editingId ===
       item.id
     ) {
+
       resetForm();
+
     }
+
 
     setMessage(
-  'Mains question deleted.'
-);
-}
+      'Mains question deleted.'
+    );
+  }
 
 
-const filteredQuestions =
-  questions.filter(
-    (
-      item:
-        MainsQuestion
-    ) => {
-      const search =
-        searchText
-          .trim()
-          .toLowerCase();
+  /* =========================================================
+     FILTER QUESTION BANK
+     ========================================================= */
+
+  const filteredQuestions =
+    questions.filter(
+      item => {
+
+        const search =
+          searchText
+            .trim()
+            .toLowerCase();
 
 
-      const matchesSearch =
-        !search ||
-        item.question
-          .toLowerCase()
-          .includes(
-            search
-          ) ||
-        item.subject
-          .toLowerCase()
-          .includes(
-            search
-          ) ||
-        (
-          item.topic ||
-          ''
-        )
-          .toLowerCase()
-          .includes(
-            search
-          ) ||
-        (
-          item.source ||
-          ''
-        )
-          .toLowerCase()
-          .includes(
-            search
-          );
+        const matchesSearch =
+          !search ||
+          item.question
+            .toLowerCase()
+            .includes(
+              search
+            ) ||
+          item.subject
+            .toLowerCase()
+            .includes(
+              search
+            ) ||
+          (
+            item.topic ||
+            ''
+          )
+            .toLowerCase()
+            .includes(
+              search
+            ) ||
+          (
+            item.source ||
+            ''
+          )
+            .toLowerCase()
+            .includes(
+              search
+            );
 
 
-      const matchesSection =
-        bankSection ===
-          'all' ||
-        item.section_type ===
-          bankSection;
+        const matchesSection =
+          bankSection ===
+            'all' ||
+          item.section_type ===
+            bankSection;
 
 
-      const matchesQuestionType =
-        bankQuestionType ===
-          'all' ||
-        item.question_type ===
-          bankQuestionType;
+        const matchesQuestionType =
+          bankQuestionType ===
+            'all' ||
+          item.question_type ===
+            bankQuestionType;
 
 
-      const matchesStatus =
-        bankStatus ===
-          'all' ||
-        item.status ===
-          bankStatus;
+        const matchesStatus =
+          bankStatus ===
+            'all' ||
+          item.status ===
+            bankStatus;
 
 
-      const matchesDifficulty =
-        bankDifficulty ===
-          'all' ||
-        item.difficulty ===
-          bankDifficulty;
+        const matchesDifficulty =
+          bankDifficulty ===
+            'all' ||
+          item.difficulty ===
+            bankDifficulty;
 
 
-      const matchesGsPaper =
-        bankGsPaper ===
-          'all' ||
-        item.gs_paper ===
-          bankGsPaper;
+        const matchesGsPaper =
+          bankGsPaper ===
+            'all' ||
+          item.gs_paper ===
+            bankGsPaper;
 
 
-      const matchesOptionalSubject =
-        bankOptionalSubject ===
-          'all' ||
-        item.optional_subject ===
-          bankOptionalSubject;
+        const matchesOptionalSubject =
+          bankOptionalSubject ===
+            'all' ||
+          item.optional_subject ===
+            bankOptionalSubject;
 
 
-      return (
-        matchesSearch &&
-        matchesSection &&
-        matchesQuestionType &&
-        matchesStatus &&
-        matchesDifficulty &&
-        matchesGsPaper &&
-        matchesOptionalSubject
-      );
-    }
-  );
+        return (
+          matchesSearch &&
+          matchesSection &&
+          matchesQuestionType &&
+          matchesStatus &&
+          matchesDifficulty &&
+          matchesGsPaper &&
+          matchesOptionalSubject
+        );
+      }
+    );
 
 
-function clearBankFilters() {
-  setSearchText('');
+  function clearBankFilters() {
 
-  setBankSection(
-    'all'
-  );
+    setSearchText(
+      ''
+    );
 
-  setBankQuestionType(
-    'all'
-  );
 
-  setBankStatus(
-    'all'
-  );
+    setBankSection(
+      'all'
+    );
 
-  setBankDifficulty(
-    'all'
-  );
 
-  setBankGsPaper(
-    'all'
-  );
+    setBankQuestionType(
+      'all'
+    );
 
-  setBankOptionalSubject(
-    'all'
-  );
-}
 
- return (
+    setBankStatus(
+      'all'
+    );
+
+
+    setBankDifficulty(
+      'all'
+    );
+
+
+    setBankGsPaper(
+      'all'
+    );
+
+
+    setBankOptionalSubject(
+      'all'
+    );
+  }
+
+
+  /* =========================================================
+     UI
+     ========================================================= */
+
+  return (
+
     <section
       style={{
-        marginTop: '30px'
+        marginTop:
+          '30px'
       }}
     >
+
+      {/* =====================================================
+          CREATE / EDIT QUESTION
+          ===================================================== */}
+
       <div
         className="panel admin-form"
       >
-        <span className="eyebrow">
+
+        <span
+          className="eyebrow"
+        >
           MAINS QUESTION MANAGER
         </span>
 
+
         <h2>
-          {editingId
-            ? 'Edit Mains Question'
-            : 'Create Mains Question'}
+          {
+            editingId
+              ? 'Edit Mains Question'
+              : 'Create Mains Question'
+          }
         </h2>
+
 
         <form
           onSubmit={
             saveQuestion
           }
         >
-          <div className="form-two">
+
+          {/* SECTION / QUESTION TYPE */}
+
+          <div
+            className="form-two"
+          >
+
             <label>
+
               Section
 
+
               <select
-                value={sectionType}
+                value={
+                  sectionType
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setSectionType(
-                      e.target
-                        .value as SectionType
+                      event.target.value as
+                        SectionType
                     )
                 }
               >
-                <option value="gs">
+
+                <option
+                  value="gs"
+                >
                   General Studies
                 </option>
 
-                <option value="optional">
+                <option
+                  value="optional"
+                >
                   Optional Subject
                 </option>
+
               </select>
+
             </label>
 
+
             <label>
+
               Question Type
 
+
               <select
-                value={questionType}
+                value={
+                  questionType
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setQuestionType(
-                      e.target
-                        .value as QuestionType
+                      event.target.value as
+                        QuestionType
                     )
                 }
               >
-                <option value="practice">
+
+                <option
+                  value="practice"
+                >
                   Practice Question
                 </option>
 
-                <option value="pyq">
+                <option
+                  value="pyq"
+                >
                   Previous Year Question
                 </option>
+
               </select>
+
             </label>
+
           </div>
 
-          {sectionType === 'gs' && (
+
+          {/* GS PAPER */}
+
+          {
+            sectionType ===
+              'gs' && (
+
             <label>
+
               GS Paper
 
+
               <select
-                value={gsPaper}
+                value={
+                  gsPaper
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setGsPaper(
-                      e.target.value
+                      event.target.value
                     )
                 }
               >
-                <option value="GS-I">
+
+                <option
+                  value="GS-I"
+                >
                   GS-I
                 </option>
 
-                <option value="GS-II">
+                <option
+                  value="GS-II"
+                >
                   GS-II
                 </option>
 
-                <option value="GS-III">
+                <option
+                  value="GS-III"
+                >
                   GS-III
                 </option>
 
-                <option value="GS-IV">
+                <option
+                  value="GS-IV"
+                >
                   GS-IV
                 </option>
+
               </select>
+
             </label>
+
           )}
 
-          {sectionType ===
-            'optional' && (
-            <div className="form-two">
+
+          {/* OPTIONAL */}
+
+          {
+            sectionType ===
+              'optional' && (
+
+            <div
+              className="form-two"
+            >
+
               <label>
+
                 Optional Subject
+
 
                 <select
                   value={
                     optionalSubject
                   }
+
                   onChange={
-                    e =>
+                    event =>
                       setOptionalSubject(
-                        e.target.value
+                        event.target.value
                       )
                   }
                 >
-                  {optionalSubjects.map(
-                    item => (
-                      <option
-                        key={item}
-                        value={item}
-                      >
-                        {item}
-                      </option>
+
+                  {
+                    optionalSubjects.map(
+                      item => (
+
+                        <option
+                          key={
+                            item
+                          }
+
+                          value={
+                            item
+                          }
+                        >
+                          {item}
+                        </option>
+
+                      )
                     )
-                  )}
+                  }
+
                 </select>
+
               </label>
 
+
               <label>
+
                 Optional Paper
+
 
                 <select
                   value={
                     optionalPaper
                   }
+
                   onChange={
-                    e =>
+                    event =>
                       setOptionalPaper(
-                        e.target.value
+                        event.target.value
                       )
                   }
                 >
-                  <option value="Paper-I">
+
+                  <option
+                    value="Paper-I"
+                  >
                     Paper-I
                   </option>
 
-                  <option value="Paper-II">
+                  <option
+                    value="Paper-II"
+                  >
                     Paper-II
                   </option>
+
                 </select>
+
               </label>
+
             </div>
+
           )}
 
-          {questionType ===
-            'pyq' && (
+
+          {/* PYQ YEAR */}
+
+          {
+            questionType ===
+              'pyq' && (
+
             <label>
+
               Previous Year
+
 
               <input
                 type="number"
+
                 min="1979"
+
                 max="2100"
-                value={pyqYear}
+
+                value={
+                  pyqYear
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setPyqYear(
-                      e.target.value
+                      event.target.value
                     )
                 }
+
                 placeholder="2025"
               />
+
             </label>
+
           )}
 
+
+          {/* QUESTION */}
+
           <label>
+
             Question
 
+
             <textarea
-              rows={5}
-              value={question}
+              rows={
+                5
+              }
+
+              value={
+                question
+              }
+
               onChange={
-                e =>
+                event =>
                   setQuestion(
-                    e.target.value
+                    event.target.value
                   )
               }
+
               placeholder="Enter UPSC Mains question"
             />
+
           </label>
 
-          <div className="form-two">
+
+          {/* SUBJECT / TOPIC */}
+
+          <div
+            className="form-two"
+          >
+
             <label>
+
               Subject / Syllabus Area
 
+
               <input
-                value={subject}
+                value={
+                  subject
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setSubject(
-                      e.target.value
+                      event.target.value
                     )
                 }
+
                 placeholder="Indian Society / Governance / Economy..."
               />
+
             </label>
+
 
             <label>
+
               Topic
 
+
               <input
-                value={topic}
+                value={
+                  topic
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setTopic(
-                      e.target.value
+                      event.target.value
                     )
                 }
+
                 placeholder="Federalism / Agriculture / Ethics..."
               />
+
             </label>
+
           </div>
 
+
+          {/* SYLLABUS */}
+
           <label>
+
             UPSC Syllabus Linkage
 
+
             <textarea
-              rows={3}
-              value={syllabusLink}
+              rows={
+                3
+              }
+
+              value={
+                syllabusLink
+              }
+
               onChange={
-                e =>
+                event =>
                   setSyllabusLink(
-                    e.target.value
+                    event.target.value
                   )
               }
+
               placeholder="Mention the exact syllabus linkage."
             />
+
           </label>
 
+
+          {/* DIRECTIVE */}
+
           <label>
+
             Directive
 
+
             <select
-              value={directive}
+              value={
+                directive
+              }
+
               onChange={
-                e =>
+                event =>
                   setDirective(
-                    e.target.value
+                    event.target.value
                   )
               }
             >
+
               <option>
                 Discuss
               </option>
@@ -1313,781 +2755,1496 @@ function clearBankFilters() {
               <option>
                 Assess
               </option>
+
             </select>
+
           </label>
 
-          <div className="form-two">
+
+          {/* MARKS / WORD LIMIT */}
+
+          <div
+            className="form-two"
+          >
+
             <label>
+
               Marks
 
+
               <select
-                value={marks}
+                value={
+                  marks
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setMarks(
-                      e.target.value
+                      event.target.value
                     )
                 }
               >
-                <option value="10">
+
+                <option
+                  value="10"
+                >
                   10 Marks
                 </option>
 
-                <option value="15">
+                <option
+                  value="15"
+                >
                   15 Marks
                 </option>
 
-                <option value="20">
+                <option
+                  value="20"
+                >
                   20 Marks
                 </option>
+
               </select>
+
             </label>
 
+
             <label>
+
               Word Limit
 
+
               <select
-                value={wordLimit}
+                value={
+                  wordLimit
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setWordLimit(
-                      e.target.value
+                      event.target.value
                     )
                 }
               >
-                <option value="150">
+
+                <option
+                  value="150"
+                >
                   150 Words
                 </option>
 
-                <option value="250">
+                <option
+                  value="250"
+                >
                   250 Words
                 </option>
 
-                <option value="300">
+                <option
+                  value="300"
+                >
                   300 Words
                 </option>
 
-                <option value="400">
+                <option
+                  value="400"
+                >
                   400 Words
                 </option>
+
               </select>
+
             </label>
+
           </div>
 
+
+          {/* ANSWER FRAMEWORK */}
+
           <label>
+
             Answer Framework
 
+
             <textarea
-              rows={6}
+              rows={
+                6
+              }
+
               value={
                 answerFramework
               }
+
               onChange={
-                e =>
+                event =>
                   setAnswerFramework(
-                    e.target.value
+                    event.target.value
                   )
               }
+
               placeholder="Suggested structure: Introduction → Main Body → Conclusion"
             />
+
           </label>
 
+
+          {/* KEY POINTS */}
+
           <label>
+
             Key Points
 
+
             <textarea
-              rows={6}
-              value={keyPoints}
+              rows={
+                6
+              }
+
+              value={
+                keyPoints
+              }
+
               onChange={
-                e =>
+                event =>
                   setKeyPoints(
-                    e.target.value
+                    event.target.value
                   )
               }
+
               placeholder="Important arguments, facts, examples, committees, judgments or reports."
             />
+
           </label>
 
+
+          {/* INTRODUCTION */}
+
           <label>
+
             Introduction Hint
 
+
             <textarea
-              rows={3}
+              rows={
+                3
+              }
+
               value={
                 introductionHint
               }
+
               onChange={
-                e =>
+                event =>
                   setIntroductionHint(
-                    e.target.value
+                    event.target.value
                   )
               }
+
               placeholder="How a strong answer may begin."
             />
+
           </label>
 
+
+          {/* CONCLUSION */}
+
           <label>
+
             Conclusion Hint
 
+
             <textarea
-              rows={3}
+              rows={
+                3
+              }
+
               value={
                 conclusionHint
               }
+
               onChange={
-                e =>
+                event =>
                   setConclusionHint(
-                    e.target.value
+                    event.target.value
                   )
               }
+
               placeholder="Balanced conclusion or way forward."
             />
+
           </label>
 
+
+          {/* =================================================
+              FRAMEWORK IMAGES
+              ================================================= */}
+
+          <section
+            style={{
+              marginTop:
+                '16px',
+
+              marginBottom:
+                '16px',
+
+              padding:
+                '14px',
+
+              border:
+                '1px solid rgba(255,255,255,.08)',
+
+              borderRadius:
+                '14px'
+            }}
+          >
+
+            <span
+              className="eyebrow"
+            >
+              VISUAL ANSWER FRAMEWORK
+            </span>
+
+
+            <h3
+              style={{
+                margin:
+                  '6px 0'
+              }}
+            >
+              Add Maps, Diagrams, Flowcharts or Graphs
+            </h3>
+
+
+            <p
+              style={{
+                margin:
+                  '4px 0 12px',
+
+                color:
+                  '#94a3b8'
+              }}
+            >
+              These visuals can be shown with the suggested answer framework after the student attempts the question.
+            </p>
+
+
+            {/* EXISTING IMAGES */}
+
+            {
+              existingFrameworkImagePaths.length >
+              0 && (
+
+              <div
+                style={{
+                  display:
+                    'grid',
+
+                  gridTemplateColumns:
+                    'repeat(auto-fill, minmax(160px, 1fr))',
+
+                  gap:
+                    '10px',
+
+                  marginBottom:
+                    '12px'
+                }}
+              >
+
+                {
+                  existingFrameworkImagePaths.map(
+                    path => {
+
+                      const url =
+                        frameworkImageUrls[
+                          path
+                        ];
+
+
+                      return (
+
+                        <div
+                          key={
+                            path
+                          }
+
+                          style={{
+                            position:
+                              'relative',
+
+                            minHeight:
+                              '160px',
+
+                            overflow:
+                              'hidden',
+
+                            borderRadius:
+                              '12px',
+
+                            border:
+                              '1px solid rgba(255,255,255,.10)',
+
+                            background:
+                              '#0f172a'
+                          }}
+                        >
+
+                          {
+                            url
+                              ? (
+
+                              <img
+                                src={
+                                  url
+                                }
+
+                                alt="Mains framework"
+
+                                style={{
+                                  display:
+                                    'block',
+
+                                  width:
+                                    '100%',
+
+                                  height:
+                                    '170px',
+
+                                  objectFit:
+                                    'contain'
+                                }}
+                              />
+
+                            )
+                              : (
+
+                              <div
+                                style={{
+                                  padding:
+                                    '14px'
+                                }}
+                              >
+                                Loading image...
+                              </div>
+
+                            )
+                          }
+
+
+                          <button
+                            type="button"
+
+                            disabled={
+                              saving
+                            }
+
+                            aria-label="Remove framework image"
+
+                            onClick={() => {
+
+                              setExistingFrameworkImagePaths(
+                                current =>
+                                  current.filter(
+                                    item =>
+                                      item !==
+                                      path
+                                  )
+                              );
+
+
+                              setRemovedFrameworkImagePaths(
+                                current =>
+                                  current.includes(
+                                    path
+                                  )
+                                    ? current
+                                    : [
+                                        ...current,
+                                        path
+                                      ]
+                              );
+
+                            }}
+
+                            style={{
+                              position:
+                                'absolute',
+
+                              top:
+                                '7px',
+
+                              right:
+                                '7px',
+
+                              border:
+                                0,
+
+                              borderRadius:
+                                '999px',
+
+                              padding:
+                                '5px 9px',
+
+                              cursor:
+                                'pointer',
+
+                              background:
+                                'rgba(15,23,42,.92)',
+
+                              color:
+                                '#fff'
+                            }}
+                          >
+                            ×
+                          </button>
+
+                        </div>
+
+                      );
+
+                    }
+                  )
+                }
+
+              </div>
+
+            )}
+
+
+            <StudentNoteImagePicker
+              images={
+                pendingFrameworkImages
+              }
+
+              onChange={
+                setPendingFrameworkImages
+              }
+
+              maxImages={
+                Math.max(
+                  0,
+
+                  MAX_FRAMEWORK_IMAGES -
+                  existingFrameworkImagePaths.length
+                )
+              }
+
+              disabled={
+                saving
+              }
+            />
+
+
+            <small
+              style={{
+                display:
+                  'block',
+
+                marginTop:
+                  '8px',
+
+                color:
+                  '#94a3b8'
+              }}
+            >
+              Maximum {MAX_FRAMEWORK_IMAGES} images. JPG, PNG and WebP are supported and automatically compressed.
+            </small>
+
+          </section>
+
+
+          {/* TAGS */}
+
           <label>
+
             Tags
 
+
             <input
-              value={tagsText}
+              value={
+                tagsText
+              }
+
               onChange={
-                e =>
+                event =>
                   setTagsText(
-                    e.target.value
+                    event.target.value
                   )
               }
+
               placeholder="GS-II, Federalism, Constitution"
             />
+
 
             <small>
               Separate tags using commas.
             </small>
+
           </label>
 
-          <div className="form-two">
+
+          {/* SOURCE */}
+
+          <div
+            className="form-two"
+          >
+
             <label>
+
               Source
 
+
               <input
-                value={source}
+                value={
+                  source
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setSource(
-                      e.target.value
+                      event.target.value
                     )
                 }
+
                 placeholder="UPSC / PIB / NCERT / ARC..."
               />
+
             </label>
 
+
             <label>
+
               Source URL
+
 
               <input
                 type="url"
-                value={sourceUrl}
+
+                value={
+                  sourceUrl
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setSourceUrl(
-                      e.target.value
+                      event.target.value
                     )
                 }
+
                 placeholder="https://..."
               />
+
             </label>
+
           </div>
 
-          <div className="form-two">
+
+          {/* DIFFICULTY / STATUS */}
+
+          <div
+            className="form-two"
+          >
+
             <label>
+
               Difficulty
 
+
               <select
-                value={difficulty}
+                value={
+                  difficulty
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setDifficulty(
-                      e.target
-                        .value as Difficulty
+                      event.target.value as
+                        Difficulty
                     )
                 }
               >
-                <option value="easy">
+
+                <option
+                  value="easy"
+                >
                   Easy
                 </option>
 
-                <option value="medium">
+                <option
+                  value="medium"
+                >
                   Medium
                 </option>
 
-                <option value="hard">
+                <option
+                  value="hard"
+                >
                   Hard
                 </option>
+
               </select>
+
             </label>
 
+
             <label>
+
               Status
 
+
               <select
-                value={status}
+                value={
+                  status
+                }
+
                 onChange={
-                  e =>
+                  event =>
                     setStatus(
-                      e.target
-                        .value as QuestionStatus
+                      event.target.value as
+                        QuestionStatus
                     )
                 }
               >
-                <option value="draft">
+
+                <option
+                  value="draft"
+                >
                   Draft
                 </option>
 
-                <option value="published">
+                <option
+                  value="published"
+                >
                   Published
                 </option>
 
-                <option value="archived">
+                <option
+                  value="archived"
+                >
                   Archived
                 </option>
+
               </select>
+
             </label>
+
           </div>
+
+
+          {/* SAVE BUTTONS */}
 
           <div
             style={{
-              display: 'flex',
-              gap: '10px',
-              flexWrap: 'wrap',
-              marginTop: '16px'
+              display:
+                'flex',
+
+              gap:
+                '10px',
+
+              flexWrap:
+                'wrap',
+
+              marginTop:
+                '16px'
             }}
           >
+
             <button
               type="submit"
+
               className="primary-btn"
-              disabled={saving}
+
+              disabled={
+                saving
+              }
             >
-              {saving
-                ? 'Saving...'
-                : editingId
-                ? 'Save changes'
-                : status ===
+              {
+                saving
+                  ? 'Saving...'
+                  : editingId
+                  ? 'Save changes'
+                  : status ===
                     'published'
-                ? 'Publish question'
-                : 'Save draft'}
+                  ? 'Publish question'
+                  : 'Save draft'
+              }
             </button>
 
-            {editingId && (
+
+            {
+              editingId && (
+
               <button
                 type="button"
-                onClick={resetForm}
+
+                className="secondary-btn"
+
+                disabled={
+                  saving
+                }
+
+                onClick={() =>
+                  resetForm()
+                }
               >
                 Cancel edit
               </button>
+
             )}
+
           </div>
 
-          {message && (
-            <p className="form-message">
+
+          {
+            message && (
+
+            <p
+              className="form-message"
+            >
               {message}
             </p>
+
           )}
+
         </form>
+
       </div>
 
-     <div
-  className="panel admin-form"
+
+      {/* =====================================================
+          QUESTION BANK
+          ===================================================== */}
+
+      <div
+        className="panel admin-form"
+
         style={{
-          marginTop: '22px'
+          marginTop:
+            '22px'
         }}
       >
+
         <div
           style={{
-            display: 'flex',
+            display:
+              'flex',
+
             justifyContent:
               'space-between',
+
             alignItems:
               'center',
-            gap: '12px',
-            flexWrap: 'wrap'
+
+            gap:
+              '12px',
+
+            flexWrap:
+              'wrap'
           }}
         >
+
           <div>
-            <span className="eyebrow">
+
+            <span
+              className="eyebrow"
+            >
               MAINS QUESTION BANK
             </span>
+
 
             <h2>
               Existing Mains Questions
             </h2>
+
           </div>
 
-        <button
-  type="button"
-  className="secondary-btn"
-  onClick={loadQuestions}
->
-  Refresh questions
-</button>
 
-</div>
+          <button
+            type="button"
 
+            className="secondary-btn"
 
-{/* SEARCH */}
-
-<div
-  style={{
-    marginTop: '20px'
-  }}
->
-  <label>
-    Search Mains Question Bank
-
-    <input
-      type="search"
-      value={searchText}
-      onChange={
-        event =>
-          setSearchText(
-            event.target.value
-          )
-      }
-      placeholder="Search question, subject, topic or source..."
-    />
-  </label>
-</div>
-
-
-{/* SECTION + QUESTION TYPE */}
-
-<div className="form-two">
-
-  <label>
-    Section
-
-    <select
-      value={bankSection}
-      onChange={
-        event => {
-          const next =
-            event.target.value as
-              | 'all'
-              | SectionType;
-
-          setBankSection(
-            next
-          );
-
-          if (
-            next !== 'gs'
-          ) {
-            setBankGsPaper(
-              'all'
-            );
-          }
-
-          if (
-            next !==
-            'optional'
-          ) {
-            setBankOptionalSubject(
-              'all'
-            );
-          }
-        }
-      }
-    >
-      <option value="all">
-        All Sections
-      </option>
-
-      <option value="gs">
-        General Studies
-      </option>
-
-      <option value="optional">
-        Optional Subjects
-      </option>
-    </select>
-
-  </label>
-
-
-  <label>
-    Question Type
-
-    <select
-      value={
-        bankQuestionType
-      }
-      onChange={
-        event =>
-          setBankQuestionType(
-            event.target
-              .value as
-              | 'all'
-              | QuestionType
-          )
-      }
-    >
-      <option value="all">
-        All Questions
-      </option>
-
-      <option value="practice">
-        Practice Questions
-      </option>
-
-      <option value="pyq">
-        Previous Year Questions
-      </option>
-    </select>
-
-  </label>
-
-</div>
-
-
-{/* GS PAPER */}
-
-{bankSection === 'gs' && (
-
-  <label>
-    GS Paper
-
-    <select
-      value={
-        bankGsPaper
-      }
-      onChange={
-        event =>
-          setBankGsPaper(
-            event.target.value
-          )
-      }
-    >
-      <option value="all">
-        All GS Papers
-      </option>
-
-      <option value="GS-I">
-        GS-I
-      </option>
-
-      <option value="GS-II">
-        GS-II
-      </option>
-
-      <option value="GS-III">
-        GS-III
-      </option>
-
-      <option value="GS-IV">
-        GS-IV
-      </option>
-    </select>
-
-  </label>
-
-)}
-
-
-{/* OPTIONAL SUBJECT */}
-
-{bankSection ===
-  'optional' && (
-
-  <label>
-    Optional Subject
-
-    <select
-      value={
-        bankOptionalSubject
-      }
-      onChange={
-        event =>
-          setBankOptionalSubject(
-            event.target.value
-          )
-      }
-    >
-      <option value="all">
-        All Optional Subjects
-      </option>
-
-      {optionalSubjects.map(
-        item => (
-
-          <option
-            key={item}
-            value={item}
+            onClick={() =>
+              void loadQuestions()
+            }
           >
-            {item}
-          </option>
+            Refresh questions
+          </button>
 
-        )
-      )}
-    </select>
-
-  </label>
-
-)}
+        </div>
 
 
-{/* DIFFICULTY + STATUS */}
-
-<div className="form-two">
-
-  <label>
-    Difficulty
-
-    <select
-      value={
-        bankDifficulty
-      }
-      onChange={
-        event =>
-          setBankDifficulty(
-            event.target
-              .value as
-              | 'all'
-              | Difficulty
-          )
-      }
-    >
-      <option value="all">
-        All Difficulty
-      </option>
-
-      <option value="easy">
-        Easy
-      </option>
-
-      <option value="medium">
-        Medium
-      </option>
-
-      <option value="hard">
-        Hard
-      </option>
-    </select>
-
-  </label>
-
-
-  <label>
-    Status
-
-    <select
-      value={
-        bankStatus
-      }
-      onChange={
-        event =>
-          setBankStatus(
-            event.target
-              .value as
-              | 'all'
-              | QuestionStatus
-          )
-      }
-    >
-      <option value="all">
-        All Status
-      </option>
-
-      <option value="draft">
-        Draft
-      </option>
-
-      <option value="published">
-        Published
-      </option>
-
-      <option value="archived">
-        Archived
-      </option>
-    </select>
-
-  </label>
-
-</div>
-
-
-{/* RESULT COUNT */}
-
-<div
-  style={{
-    display: 'flex',
-    justifyContent:
-      'space-between',
-    alignItems: 'center',
-    gap: '12px',
-    flexWrap: 'wrap',
-    marginTop: '12px',
-    marginBottom: '18px'
-  }}
->
-
-  <p>
-    Showing{' '}
-
-    <strong>
-      {
-        filteredQuestions
-          .length
-      }
-    </strong>
-
-    {' '}of{' '}
-
-    <strong>
-      {
-        questions.length
-      }
-    </strong>
-
-    {' '}questions
-  </p>
-
-
-  <button
-    type="button"
-    className="secondary-btn"
-    onClick={
-      clearBankFilters
-    }
-  >
-    Clear Filters
-  </button>
-
-</div>
-
-
-{!loading &&
-  questions.length > 0 &&
-  filteredQuestions.length ===
-    0 && (
-
-  <div className="callout">
-
-    <strong>
-      No questions match these filters.
-    </strong>
-
-    <p>
-      Try another search or clear the filters.
-    </p>
-
-  </div>
-
-)}
-
-
-{loading && (
-          <p>
-            Loading Mains questions...
-          </p>
-        )}
-
-        {!loading &&
-          questions.length === 0 && (
-            <p>
-              No Mains questions created yet.
-            </p>
-          )}
+        {/* SEARCH */}
 
         <div
           style={{
-            display: 'grid',
-            gap: '14px',
-            marginTop: '18px'
+            marginTop:
+              '20px'
           }}
         >
-          {filteredQuestions.map(
-            item => (
+
+          <label>
+
+            Search Mains Question Bank
+
+
+            <input
+              type="search"
+
+              value={
+                searchText
+              }
+
+              onChange={
+                event =>
+                  setSearchText(
+                    event.target.value
+                  )
+              }
+
+              placeholder="Search question, subject, topic or source..."
+            />
+
+          </label>
+
+        </div>
+
+
+        {/* SECTION / QUESTION TYPE */}
+
+        <div
+          className="form-two"
+        >
+
+          <label>
+
+            Section
+
+
+            <select
+              value={
+                bankSection
+              }
+
+              onChange={
+                event => {
+
+                  const next =
+                    event.target.value as
+                      | 'all'
+                      | SectionType;
+
+
+                  setBankSection(
+                    next
+                  );
+
+
+                  if (
+                    next !==
+                    'gs'
+                  ) {
+
+                    setBankGsPaper(
+                      'all'
+                    );
+
+                  }
+
+
+                  if (
+                    next !==
+                    'optional'
+                  ) {
+
+                    setBankOptionalSubject(
+                      'all'
+                    );
+
+                  }
+                }
+              }
+            >
+
+              <option
+                value="all"
+              >
+                All Sections
+              </option>
+
+              <option
+                value="gs"
+              >
+                General Studies
+              </option>
+
+              <option
+                value="optional"
+              >
+                Optional Subjects
+              </option>
+
+            </select>
+
+          </label>
+
+
+          <label>
+
+            Question Type
+
+
+            <select
+              value={
+                bankQuestionType
+              }
+
+              onChange={
+                event =>
+                  setBankQuestionType(
+                    event.target.value as
+                      | 'all'
+                      | QuestionType
+                  )
+              }
+            >
+
+              <option
+                value="all"
+              >
+                All Questions
+              </option>
+
+              <option
+                value="practice"
+              >
+                Practice Questions
+              </option>
+
+              <option
+                value="pyq"
+              >
+                Previous Year Questions
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+
+        {/* GS FILTER */}
+
+        {
+          bankSection ===
+            'gs' && (
+
+          <label>
+
+            GS Paper
+
+
+            <select
+              value={
+                bankGsPaper
+              }
+
+              onChange={
+                event =>
+                  setBankGsPaper(
+                    event.target.value
+                  )
+              }
+            >
+
+              <option
+                value="all"
+              >
+                All GS Papers
+              </option>
+
+              <option
+                value="GS-I"
+              >
+                GS-I
+              </option>
+
+              <option
+                value="GS-II"
+              >
+                GS-II
+              </option>
+
+              <option
+                value="GS-III"
+              >
+                GS-III
+              </option>
+
+              <option
+                value="GS-IV"
+              >
+                GS-IV
+              </option>
+
+            </select>
+
+          </label>
+
+        )}
+
+
+        {/* OPTIONAL FILTER */}
+
+        {
+          bankSection ===
+            'optional' && (
+
+          <label>
+
+            Optional Subject
+
+
+            <select
+              value={
+                bankOptionalSubject
+              }
+
+              onChange={
+                event =>
+                  setBankOptionalSubject(
+                    event.target.value
+                  )
+              }
+            >
+
+              <option
+                value="all"
+              >
+                All Optional Subjects
+              </option>
+
+
+              {
+                optionalSubjects.map(
+                  item => (
+
+                    <option
+                      key={
+                        item
+                      }
+
+                      value={
+                        item
+                      }
+                    >
+                      {item}
+                    </option>
+
+                  )
+                )
+              }
+
+            </select>
+
+          </label>
+
+        )}
+
+
+        {/* DIFFICULTY / STATUS */}
+
+        <div
+          className="form-two"
+        >
+
+          <label>
+
+            Difficulty
+
+
+            <select
+              value={
+                bankDifficulty
+              }
+
+              onChange={
+                event =>
+                  setBankDifficulty(
+                    event.target.value as
+                      | 'all'
+                      | Difficulty
+                  )
+              }
+            >
+
+              <option
+                value="all"
+              >
+                All Difficulty
+              </option>
+
+              <option
+                value="easy"
+              >
+                Easy
+              </option>
+
+              <option
+                value="medium"
+              >
+                Medium
+              </option>
+
+              <option
+                value="hard"
+              >
+                Hard
+              </option>
+
+            </select>
+
+          </label>
+
+
+          <label>
+
+            Status
+
+
+            <select
+              value={
+                bankStatus
+              }
+
+              onChange={
+                event =>
+                  setBankStatus(
+                    event.target.value as
+                      | 'all'
+                      | QuestionStatus
+                  )
+              }
+            >
+
+              <option
+                value="all"
+              >
+                All Status
+              </option>
+
+              <option
+                value="draft"
+              >
+                Draft
+              </option>
+
+              <option
+                value="published"
+              >
+                Published
+              </option>
+
+              <option
+                value="archived"
+              >
+                Archived
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+
+        {/* COUNT */}
+
+        <div
+          style={{
+            display:
+              'flex',
+
+            justifyContent:
+              'space-between',
+
+            alignItems:
+              'center',
+
+            gap:
+              '12px',
+
+            flexWrap:
+              'wrap',
+
+            marginTop:
+              '12px',
+
+            marginBottom:
+              '18px'
+          }}
+        >
+
+          <p>
+
+            Showing{' '}
+
+            <strong>
+              {
+                filteredQuestions.length
+              }
+            </strong>
+
+            {' '}of{' '}
+
+            <strong>
+              {
+                questions.length
+              }
+            </strong>
+
+            {' '}questions
+
+          </p>
+
+
+          <button
+            type="button"
+
+            className="secondary-btn"
+
+            onClick={
+              clearBankFilters
+            }
+          >
+            Clear Filters
+          </button>
+
+        </div>
+
+
+        {
+          !loading &&
+          questions.length >
+            0 &&
+          filteredQuestions.length ===
+            0 && (
+
+          <div
+            className="callout"
+          >
+
+            <strong>
+              No questions match these filters.
+            </strong>
+
+
+            <p>
+              Try another search or clear the filters.
+            </p>
+
+          </div>
+
+        )}
+
+
+        {
+          loading && (
+
+          <p>
+            Loading Mains questions...
+          </p>
+
+        )}
+
+
+        {
+          !loading &&
+          questions.length ===
+            0 && (
+
+          <p>
+            No Mains questions created yet.
+          </p>
+
+        )}
+
+
+        {/* QUESTION CARDS */}
+
+        <div
+          style={{
+            display:
+              'grid',
+
+            gap:
+              '14px',
+
+            marginTop:
+              '18px'
+          }}
+        >
+
+          {
+            filteredQuestions.map(
+              item => (
+
               <article
-                key={item.id}
+                key={
+                  item.id
+                }
+
                 style={{
                   border:
                     '1px solid rgba(255,255,255,.10)',
+
                   borderRadius:
                     '14px',
-                  padding: '18px'
+
+                  padding:
+                    '18px'
                 }}
               >
+
                 <div
                   style={{
-                    display: 'flex',
+                    display:
+                      'flex',
+
                     justifyContent:
                       'space-between',
-                    gap: '18px',
-                    flexWrap: 'wrap'
+
+                    gap:
+                      '18px',
+
+                    flexWrap:
+                      'wrap'
                   }}
                 >
+
                   <div
                     style={{
-                      flex: '1 1 500px'
+                      flex:
+                        '1 1 500px'
                     }}
                   >
-                    <span className="eyebrow">
-                      {item.section_type ===
-                      'gs'
-                        ? item.gs_paper
-                        : `${item.optional_subject} • ${item.optional_paper}`}
+
+                    <span
+                      className="eyebrow"
+                    >
+                      {
+                        item.section_type ===
+                          'gs'
+                          ? item.gs_paper
+                          : `${item.optional_subject} • ${item.optional_paper}`
+                      }
                     </span>
+
 
                     <h3>
                       {item.question}
                     </h3>
 
+
                     <p>
-                      {item.question_type ===
-                      'pyq'
-                        ? `PYQ ${item.pyq_year || ''}`
-                        : 'Practice Question'}
+                      {
+                        item.question_type ===
+                          'pyq'
+                          ? `PYQ ${item.pyq_year || ''}`
+                          : 'Practice Question'
+                      }
                     </p>
 
-                    <p>
-                      {item.marks
-                        ? `${item.marks} marks`
-                        : ''}
 
-                      {item.word_limit
-                        ? ` • ${item.word_limit} words`
-                        : ''}
+                    <p>
+
+                      {
+                        item.marks
+                          ? `${item.marks} marks`
+                          : ''
+                      }
+
+
+                      {
+                        item.word_limit
+                          ? ` • ${item.word_limit} words`
+                          : ''
+                      }
+
                     </p>
 
+
+                    {
+                      item.framework_image_paths.length >
+                      0 && (
+
+                      <p>
+                        Visual framework:{' '}
+                        <strong>
+                          {
+                            item.framework_image_paths.length
+                          } image
+                          {
+                            item.framework_image_paths.length ===
+                              1
+                              ? ''
+                              : 's'
+                          }
+                        </strong>
+                      </p>
+
+                    )}
+
+
                     <p>
+
                       Status:{' '}
+
                       <strong>
                         {item.status}
                       </strong>
+
                     </p>
+
                   </div>
+
 
                   <div
                     style={{
-                      display: 'flex',
-                      gap: '8px',
-                      flexWrap: 'wrap',
+                      display:
+                        'flex',
+
+                      gap:
+                        '8px',
+
+                      flexWrap:
+                        'wrap',
+
                       alignItems:
                         'flex-start'
                     }}
                   >
+
                     <button
                       type="button"
+
                       onClick={() =>
-                        startEdit(item)
+                        void startEdit(
+                          item
+                        )
                       }
                     >
                       Edit
                     </button>
 
-                    {item.status !==
-                      'published' && (
+
+                    {
+                      item.status !==
+                        'published' && (
+
                       <button
                         type="button"
+
                         onClick={() =>
-                          changeStatus(
+                          void changeStatus(
                             item,
                             'published'
                           )
@@ -2095,14 +4252,19 @@ function clearBankFilters() {
                       >
                         Publish
                       </button>
+
                     )}
 
-                    {item.status !==
-                      'draft' && (
+
+                    {
+                      item.status !==
+                        'draft' && (
+
                       <button
                         type="button"
+
                         onClick={() =>
-                          changeStatus(
+                          void changeStatus(
                             item,
                             'draft'
                           )
@@ -2110,14 +4272,19 @@ function clearBankFilters() {
                       >
                         Draft
                       </button>
+
                     )}
 
-                    {item.status !==
-                      'archived' && (
+
+                    {
+                      item.status !==
+                        'archived' && (
+
                       <button
                         type="button"
+
                         onClick={() =>
-                          changeStatus(
+                          void changeStatus(
                             item,
                             'archived'
                           )
@@ -2125,25 +4292,38 @@ function clearBankFilters() {
                       >
                         Archive
                       </button>
+
                     )}
+
 
                     <button
                       type="button"
+
                       onClick={() =>
-                        deleteQuestion(
+                        void deleteQuestion(
                           item
                         )
                       }
                     >
                       Delete
                     </button>
+
                   </div>
+
                 </div>
+
               </article>
+
             )
           )}
+
         </div>
+
       </div>
+
     </section>
   );
 }
+
+
+export default MainsQuestionManager;
