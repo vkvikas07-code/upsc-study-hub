@@ -9,6 +9,10 @@ import {
 } from './components/TopBar';
 
 import {
+  MainsFrameworkImages
+} from './components/MainsFrameworkImages';
+
+import {
   supabase
 } from './lib/supabase';
 
@@ -60,6 +64,9 @@ export type MainsWorkspaceQuestion = {
   conclusion_hint:
     string | null;
 
+  framework_image_paths:
+    string[];
+
   source:
     string | null;
 
@@ -88,32 +95,42 @@ export function MainsAnswerWorkspace({
   onBack:
     () => void;
 }) {
+
   const [
     loading,
     setLoading
   ] =
-    useState(true);
+    useState(
+      true
+    );
 
 
   const [
     saving,
     setSaving
   ] =
-    useState(false);
+    useState(
+      false
+    );
 
 
   const [
     uploading,
     setUploading
   ] =
-    useState(false);
+    useState(
+      false
+    );
 
 
   const [
     userId,
     setUserId
   ] =
-    useState<string | null>(
+    useState<
+      string |
+      null
+    >(
       null
     );
 
@@ -122,7 +139,10 @@ export function MainsAnswerWorkspace({
     attemptId,
     setAttemptId
   ] =
-    useState<string | null>(
+    useState<
+      string |
+      null
+    >(
       null
     );
 
@@ -138,21 +158,28 @@ export function MainsAnswerWorkspace({
     elapsedSeconds,
     setElapsedSeconds
   ] =
-    useState(0);
+    useState(
+      0
+    );
 
 
   const [
     timerRunning,
     setTimerRunning
   ] =
-    useState(true);
+    useState(
+      true
+    );
 
 
   const [
     pdfFile,
     setPdfFile
   ] =
-    useState<File | null>(
+    useState<
+      File |
+      null
+    >(
       null
     );
 
@@ -161,7 +188,10 @@ export function MainsAnswerWorkspace({
     pdfPath,
     setPdfPath
   ] =
-    useState<string | null>(
+    useState<
+      string |
+      null
+    >(
       null
     );
 
@@ -170,7 +200,10 @@ export function MainsAnswerWorkspace({
     pdfFileName,
     setPdfFileName
   ] =
-    useState<string | null>(
+    useState<
+      string |
+      null
+    >(
       null
     );
 
@@ -179,7 +212,9 @@ export function MainsAnswerWorkspace({
     submitted,
     setSubmitted
   ] =
-    useState(false);
+    useState(
+      false
+    );
 
 
   const [
@@ -193,23 +228,35 @@ export function MainsAnswerWorkspace({
     showGuidance,
     setShowGuidance
   ] =
-    useState(false);
+    useState(
+      false
+    );
 
 
   const wordCount =
     useMemo(
       () => {
+
         const clean =
           answerText.trim();
 
-        if (!clean) {
+
+        if (
+          !clean
+        ) {
           return 0;
         }
 
+
         return clean
-          .split(/\s+/)
-          .filter(Boolean)
+          .split(
+            /\s+/
+          )
+          .filter(
+            Boolean
+          )
           .length;
+
       },
       [
         answerText
@@ -223,19 +270,23 @@ export function MainsAnswerWorkspace({
 
 
   const overWordLimit =
-    wordLimit > 0 &&
-    wordCount > wordLimit;
+    wordLimit >
+      0 &&
+    wordCount >
+      wordLimit;
 
 
   function formatTime(
     totalSeconds:
       number
   ) {
+
     const hours =
       Math.floor(
         totalSeconds /
         3600
       );
+
 
     const minutes =
       Math.floor(
@@ -245,6 +296,7 @@ export function MainsAnswerWorkspace({
         ) /
         60
       );
+
 
     const seconds =
       totalSeconds %
@@ -272,7 +324,9 @@ export function MainsAnswerWorkspace({
   function getSubmissionMode(
     hasPdf:
       boolean
-  ): SubmissionMode {
+  ):
+    SubmissionMode {
+
     const hasText =
       answerText
         .trim()
@@ -288,7 +342,9 @@ export function MainsAnswerWorkspace({
     }
 
 
-    if (hasPdf) {
+    if (
+      hasPdf
+    ) {
       return 'pdf';
     }
 
@@ -299,15 +355,22 @@ export function MainsAnswerWorkspace({
 
   useEffect(
     () => {
+
       async function initialise() {
-        if (!supabase) {
+
+        if (
+          !supabase
+        ) {
+
           setMessage(
             'Supabase is not configured.'
           );
 
+
           setLoading(
             false
           );
+
 
           return;
         }
@@ -323,14 +386,19 @@ export function MainsAnswerWorkspace({
             .getUser();
 
 
-        if (!user) {
+        if (
+          !user
+        ) {
+
           setMessage(
             'Please sign in before starting a Mains answer.'
           );
 
+
           setLoading(
             false
           );
+
 
           return;
         }
@@ -374,48 +442,62 @@ export function MainsAnswerWorkspace({
             .maybeSingle();
 
 
-        if (error) {
+        if (
+          error
+        ) {
+
           console.error(
             'Unable to load Mains draft:',
             error
           );
 
+
           setMessage(
             error.message
           );
+
 
           setLoading(
             false
           );
 
+
           return;
         }
 
 
-        if (data) {
+        if (
+          data
+        ) {
+
           setAttemptId(
             data.id
           );
+
 
           setAnswerText(
             data.answer_text ||
             ''
           );
 
+
           setElapsedSeconds(
             data.elapsed_seconds ||
             0
           );
+
 
           setPdfPath(
             data.pdf_path ||
             null
           );
 
+
           setPdfFileName(
             data.pdf_file_name ||
             null
           );
+
 
           setMessage(
             'Your saved draft has been restored.'
@@ -429,7 +511,8 @@ export function MainsAnswerWorkspace({
       }
 
 
-      initialise();
+      void initialise();
+
     },
     [
       question.id
@@ -439,6 +522,7 @@ export function MainsAnswerWorkspace({
 
   useEffect(
     () => {
+
       if (
         loading ||
         submitted ||
@@ -452,21 +536,26 @@ export function MainsAnswerWorkspace({
       const timer =
         window.setInterval(
           () => {
+
             setElapsedSeconds(
               current =>
                 current +
                 1
             );
+
           },
           1000
         );
 
 
       return () => {
+
         window.clearInterval(
           timer
         );
+
       };
+
     },
     [
       loading,
@@ -478,17 +567,22 @@ export function MainsAnswerWorkspace({
 
 
   async function ensureDraft() {
+
     if (
       !supabase ||
       !userId
     ) {
+
       throw new Error(
         'Please sign in first.'
       );
     }
 
 
-    if (attemptId) {
+    if (
+      attemptId
+    ) {
+
       return attemptId;
     }
 
@@ -502,6 +596,7 @@ export function MainsAnswerWorkspace({
           'mains_attempts'
         )
         .insert({
+
           user_id:
             userId,
 
@@ -531,6 +626,7 @@ export function MainsAnswerWorkspace({
           updated_at:
             new Date()
               .toISOString()
+
         })
         .select(
           'id'
@@ -542,6 +638,7 @@ export function MainsAnswerWorkspace({
       error ||
       !data
     ) {
+
       throw new Error(
         error?.message ||
         'Unable to create answer draft.'
@@ -562,17 +659,22 @@ export function MainsAnswerWorkspace({
     currentAttemptId:
       string
   ) {
+
     if (
       !supabase ||
       !userId
     ) {
+
       throw new Error(
         'Please sign in first.'
       );
     }
 
 
-    if (!pdfFile) {
+    if (
+      !pdfFile
+    ) {
+
       return {
         path:
           pdfPath,
@@ -587,6 +689,7 @@ export function MainsAnswerWorkspace({
       pdfFile.type !==
       'application/pdf'
     ) {
+
       throw new Error(
         'Only PDF files are allowed.'
       );
@@ -597,6 +700,7 @@ export function MainsAnswerWorkspace({
       pdfFile.size >
       MAX_PDF_SIZE
     ) {
+
       throw new Error(
         'PDF must be smaller than 10 MB.'
       );
@@ -638,7 +742,10 @@ export function MainsAnswerWorkspace({
     );
 
 
-    if (error) {
+    if (
+      error
+    ) {
+
       throw new Error(
         error.message
       );
@@ -649,9 +756,11 @@ export function MainsAnswerWorkspace({
       filePath
     );
 
+
     setPdfFileName(
       pdfFile.name
     );
+
 
     setPdfFile(
       null
@@ -669,22 +778,27 @@ export function MainsAnswerWorkspace({
 
 
   async function saveDraft() {
+
     if (
       !supabase ||
       !userId
     ) {
+
       setMessage(
         'Please sign in before saving.'
       );
+
 
       return;
     }
 
 
     try {
+
       setSaving(
         true
       );
+
 
       setMessage(
         'Saving draft...'
@@ -717,6 +831,7 @@ export function MainsAnswerWorkspace({
             'mains_attempts'
           )
           .update({
+
             answer_text:
               answerText,
 
@@ -742,6 +857,7 @@ export function MainsAnswerWorkspace({
             updated_at:
               new Date()
                 .toISOString()
+
           })
           .eq(
             'id',
@@ -749,7 +865,10 @@ export function MainsAnswerWorkspace({
           );
 
 
-      if (error) {
+      if (
+        error
+      ) {
+
         throw new Error(
           error.message
         );
@@ -759,9 +878,14 @@ export function MainsAnswerWorkspace({
       setMessage(
         'Draft saved successfully.'
       );
-    } catch (error) {
+
+    } catch (
+      error
+    ) {
+
       const errorText =
-        error instanceof Error
+        error instanceof
+          Error
           ? error.message
           : 'Unable to save draft.';
 
@@ -769,10 +893,13 @@ export function MainsAnswerWorkspace({
       setMessage(
         errorText
       );
+
     } finally {
+
       setSaving(
         false
       );
+
 
       setUploading(
         false
@@ -782,13 +909,16 @@ export function MainsAnswerWorkspace({
 
 
   async function submitAnswer() {
+
     if (
       !supabase ||
       !userId
     ) {
+
       setMessage(
         'Please sign in before submitting.'
       );
+
 
       return;
     }
@@ -799,9 +929,11 @@ export function MainsAnswerWorkspace({
       !pdfFile &&
       !pdfPath
     ) {
+
       setMessage(
         'Write an answer or upload a PDF before submitting.'
       );
+
 
       return;
     }
@@ -813,19 +945,24 @@ export function MainsAnswerWorkspace({
       );
 
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
       return;
     }
 
 
     try {
+
       setSaving(
         true
       );
 
+
       setTimerRunning(
         false
       );
+
 
       setMessage(
         'Submitting answer...'
@@ -863,6 +1000,7 @@ export function MainsAnswerWorkspace({
             'mains_attempts'
           )
           .update({
+
             answer_text:
               answerText,
 
@@ -896,6 +1034,7 @@ export function MainsAnswerWorkspace({
 
             updated_at:
               submittedAt
+
           })
           .eq(
             'id',
@@ -903,7 +1042,10 @@ export function MainsAnswerWorkspace({
           );
 
 
-      if (error) {
+      if (
+        error
+      ) {
+
         throw new Error(
           error.message
         );
@@ -914,6 +1056,7 @@ export function MainsAnswerWorkspace({
         true
       );
 
+
       setShowGuidance(
         true
       );
@@ -922,14 +1065,19 @@ export function MainsAnswerWorkspace({
       setMessage(
         'Answer submitted successfully. Evaluation status: Pending.'
       );
-    } catch (error) {
+
+    } catch (
+      error
+    ) {
+
       setTimerRunning(
         true
       );
 
 
       const errorText =
-        error instanceof Error
+        error instanceof
+          Error
           ? error.message
           : 'Unable to submit answer.';
 
@@ -937,10 +1085,13 @@ export function MainsAnswerWorkspace({
       setMessage(
         errorText
       );
+
     } finally {
+
       setSaving(
         false
       );
+
 
       setUploading(
         false
@@ -950,6 +1101,7 @@ export function MainsAnswerWorkspace({
 
 
   async function openSavedPdf() {
+
     if (
       !supabase ||
       !pdfPath
@@ -977,10 +1129,12 @@ export function MainsAnswerWorkspace({
       error ||
       !data
     ) {
+
       setMessage(
         error?.message ||
         'Unable to open PDF.'
       );
+
 
       return;
     }
@@ -995,6 +1149,7 @@ export function MainsAnswerWorkspace({
 
 
   async function removePdf() {
+
     if (
       submitted
     ) {
@@ -1002,7 +1157,9 @@ export function MainsAnswerWorkspace({
     }
 
 
-    if (!supabase) {
+    if (
+      !supabase
+    ) {
       return;
     }
 
@@ -1011,23 +1168,29 @@ export function MainsAnswerWorkspace({
       pdfFile &&
       !pdfPath
     ) {
+
       setPdfFile(
         null
       );
+
 
       setPdfFileName(
         null
       );
 
+
       setMessage(
         'Selected PDF removed.'
       );
+
 
       return;
     }
 
 
-    if (!pdfPath) {
+    if (
+      !pdfPath
+    ) {
       return;
     }
 
@@ -1038,7 +1201,9 @@ export function MainsAnswerWorkspace({
       );
 
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
       return;
     }
 
@@ -1056,16 +1221,23 @@ export function MainsAnswerWorkspace({
         ]);
 
 
-    if (error) {
+    if (
+      error
+    ) {
+
       setMessage(
         error.message
       );
+
 
       return;
     }
 
 
-    if (attemptId) {
+    if (
+      attemptId
+    ) {
+
       const {
         error:
           updateError
@@ -1075,6 +1247,7 @@ export function MainsAnswerWorkspace({
             'mains_attempts'
           )
           .update({
+
             pdf_path:
               null,
 
@@ -1087,6 +1260,7 @@ export function MainsAnswerWorkspace({
             updated_at:
               new Date()
                 .toISOString()
+
           })
           .eq(
             'id',
@@ -1094,10 +1268,14 @@ export function MainsAnswerWorkspace({
           );
 
 
-      if (updateError) {
+      if (
+        updateError
+      ) {
+
         setMessage(
           updateError.message
         );
+
 
         return;
       }
@@ -1108,9 +1286,11 @@ export function MainsAnswerWorkspace({
       null
     );
 
+
     setPdfFileName(
       null
     );
+
 
     setPdfFile(
       null
@@ -1123,9 +1303,15 @@ export function MainsAnswerWorkspace({
   }
 
 
-  if (loading) {
+  if (
+    loading
+  ) {
+
     return (
-      <div className="page-wrap">
+
+      <div
+        className="page-wrap"
+      >
 
         <TopBar
           title="Answer Writing"
@@ -1133,7 +1319,9 @@ export function MainsAnswerWorkspace({
         />
 
 
-        <section className="panel">
+        <section
+          className="panel"
+        >
 
           <h2>
             Preparing answer workspace...
@@ -1142,13 +1330,20 @@ export function MainsAnswerWorkspace({
         </section>
 
       </div>
+
     );
   }
 
 
-  if (!userId) {
+  if (
+    !userId
+  ) {
+
     return (
-      <div className="page-wrap">
+
+      <div
+        className="page-wrap"
+      >
 
         <TopBar
           title="Answer Writing"
@@ -1156,9 +1351,13 @@ export function MainsAnswerWorkspace({
         />
 
 
-        <section className="panel">
+        <section
+          className="panel"
+        >
 
-          <span className="eyebrow">
+          <span
+            className="eyebrow"
+          >
             SIGN IN REQUIRED
           </span>
 
@@ -1188,12 +1387,16 @@ export function MainsAnswerWorkspace({
         </section>
 
       </div>
+
     );
   }
 
 
   return (
-    <div className="page-wrap">
+
+    <div
+      className="page-wrap"
+    >
 
       <TopBar
         title="Mains Answer Writing"
@@ -1224,7 +1427,9 @@ export function MainsAnswerWorkspace({
         }}
       >
 
-        <span className="eyebrow">
+        <span
+          className="eyebrow"
+        >
           {
             question.section_type ===
             'gs'
@@ -1244,38 +1449,62 @@ export function MainsAnswerWorkspace({
         </h2>
 
 
-        <div className="tag-row">
+        <div
+          className="tag-row"
+        >
 
-          {question.directive && (
-            <span className="tag">
+          {
+            question.directive && (
+
+            <span
+              className="tag"
+            >
               {question.directive}
             </span>
+
           )}
 
 
-          {question.marks && (
-            <span className="tag">
+          {
+            question.marks && (
+
+            <span
+              className="tag"
+            >
               {question.marks} Marks
             </span>
+
           )}
 
 
-          {question.word_limit && (
-            <span className="tag">
+          {
+            question.word_limit && (
+
+            <span
+              className="tag"
+            >
               {question.word_limit} Words
             </span>
+
           )}
 
 
-          <span className="tag">
+          <span
+            className="tag"
+          >
             {question.subject}
           </span>
 
 
-          {question.topic && (
-            <span className="tag">
+          {
+            question.topic && (
+
+            <span
+              className="tag"
+            >
               {question.topic}
             </span>
+
           )}
 
         </div>
@@ -1317,9 +1546,12 @@ export function MainsAnswerWorkspace({
             }}
           >
 
-            <span className="eyebrow">
+            <span
+              className="eyebrow"
+            >
               TIMER
             </span>
+
 
             <h3>
               {
@@ -1345,9 +1577,12 @@ export function MainsAnswerWorkspace({
             }}
           >
 
-            <span className="eyebrow">
+            <span
+              className="eyebrow"
+            >
               WORDS
             </span>
+
 
             <h3
               style={{
@@ -1382,9 +1617,12 @@ export function MainsAnswerWorkspace({
             }}
           >
 
-            <span className="eyebrow">
+            <span
+              className="eyebrow"
+            >
               STATUS
             </span>
+
 
             <h3>
               {
@@ -1401,7 +1639,9 @@ export function MainsAnswerWorkspace({
         </div>
 
 
-        {!submitted && (
+        {
+          !submitted && (
+
           <div
             style={{
               display:
@@ -1436,6 +1676,7 @@ export function MainsAnswerWorkspace({
             </button>
 
           </div>
+
         )}
 
       </section>
@@ -1449,7 +1690,9 @@ export function MainsAnswerWorkspace({
         }}
       >
 
-        <span className="eyebrow">
+        <span
+          className="eyebrow"
+        >
           WRITE YOUR ANSWER
         </span>
 
@@ -1513,7 +1756,9 @@ export function MainsAnswerWorkspace({
         />
 
 
-        {overWordLimit && (
+        {
+          overWordLimit && (
+
           <p
             style={{
               color:
@@ -1524,6 +1769,7 @@ export function MainsAnswerWorkspace({
             {wordLimit}
             -word limit.
           </p>
+
         )}
 
       </section>
@@ -1537,7 +1783,9 @@ export function MainsAnswerWorkspace({
         }}
       >
 
-        <span className="eyebrow">
+        <span
+          className="eyebrow"
+        >
           HANDWRITTEN ANSWER
         </span>
 
@@ -1553,20 +1801,27 @@ export function MainsAnswerWorkspace({
         </p>
 
 
-        {!submitted && (
+        {
+          !submitted && (
+
           <input
             type="file"
             accept="application/pdf,.pdf"
             onChange={
               event => {
+
                 const selectedFile =
                   event
                     .target
-                    .files?.[0] ||
+                    .files?.[
+                      0
+                    ] ||
                   null;
 
 
-                if (!selectedFile) {
+                if (
+                  !selectedFile
+                ) {
                   return;
                 }
 
@@ -1575,9 +1830,11 @@ export function MainsAnswerWorkspace({
                   selectedFile.type !==
                   'application/pdf'
                 ) {
+
                   setMessage(
                     'Please choose a PDF file.'
                   );
+
 
                   return;
                 }
@@ -1587,9 +1844,11 @@ export function MainsAnswerWorkspace({
                   selectedFile.size >
                   MAX_PDF_SIZE
                 ) {
+
                   setMessage(
                     'PDF must be smaller than 10 MB.'
                   );
+
 
                   return;
                 }
@@ -1630,10 +1889,13 @@ export function MainsAnswerWorkspace({
                 '12px'
             }}
           />
+
         )}
 
 
-        {pdfFileName && (
+        {
+          pdfFileName && (
+
           <div
             style={{
               marginTop:
@@ -1676,7 +1938,9 @@ export function MainsAnswerWorkspace({
               }}
             >
 
-              {pdfPath && (
+              {
+                pdfPath && (
+
                 <button
                   type="button"
                   className="secondary-btn"
@@ -1686,10 +1950,13 @@ export function MainsAnswerWorkspace({
                 >
                   Open PDF
                 </button>
+
               )}
 
 
-              {!submitted && (
+              {
+                !submitted && (
+
                 <button
                   type="button"
                   className="secondary-btn"
@@ -1699,17 +1966,21 @@ export function MainsAnswerWorkspace({
                 >
                   Remove PDF
                 </button>
+
               )}
 
             </div>
 
           </div>
+
         )}
 
       </section>
 
 
-      {!submitted && (
+      {
+        !submitted && (
+
         <section
           className="panel"
           style={{
@@ -1780,10 +2051,13 @@ export function MainsAnswerWorkspace({
           </p>
 
         </section>
+
       )}
 
 
-      {message && (
+      {
+        message && (
+
         <section
           className="panel"
           style={{
@@ -1795,10 +2069,13 @@ export function MainsAnswerWorkspace({
             {message}
           </strong>
         </section>
+
       )}
 
 
-      {submitted && (
+      {
+        submitted && (
+
         <section
           className="panel"
           style={{
@@ -1813,7 +2090,9 @@ export function MainsAnswerWorkspace({
           }}
         >
 
-          <span className="eyebrow">
+          <span
+            className="eyebrow"
+          >
             EVALUATION STATUS
           </span>
 
@@ -1830,10 +2109,13 @@ export function MainsAnswerWorkspace({
           </p>
 
         </section>
+
       )}
 
 
-      {submitted && (
+      {
+        submitted && (
+
         <section
           className="panel"
           style={{
@@ -1842,7 +2124,9 @@ export function MainsAnswerWorkspace({
           }}
         >
 
-          <span className="eyebrow">
+          <span
+            className="eyebrow"
+          >
             POST-ATTEMPT REVIEW
           </span>
 
@@ -1870,7 +2154,9 @@ export function MainsAnswerWorkspace({
           </button>
 
 
-          {showGuidance && (
+          {
+            showGuidance && (
+
             <div
               style={{
                 display:
@@ -1884,10 +2170,16 @@ export function MainsAnswerWorkspace({
               }}
             >
 
-              {question.syllabus_link && (
-                <div className="panel">
+              {
+                question.syllabus_link && (
 
-                  <span className="eyebrow">
+                <div
+                  className="panel"
+                >
+
+                  <span
+                    className="eyebrow"
+                  >
                     SYLLABUS LINKAGE
                   </span>
 
@@ -1899,13 +2191,20 @@ export function MainsAnswerWorkspace({
                   </p>
 
                 </div>
+
               )}
 
 
-              {question.introduction_hint && (
-                <div className="panel">
+              {
+                question.introduction_hint && (
 
-                  <span className="eyebrow">
+                <div
+                  className="panel"
+                >
+
+                  <span
+                    className="eyebrow"
+                  >
                     INTRODUCTION HINT
                   </span>
 
@@ -1922,13 +2221,20 @@ export function MainsAnswerWorkspace({
                   </p>
 
                 </div>
+
               )}
 
 
-              {question.answer_framework && (
-                <div className="panel">
+              {
+                question.answer_framework && (
 
-                  <span className="eyebrow">
+                <div
+                  className="panel"
+                >
+
+                  <span
+                    className="eyebrow"
+                  >
                     ANSWER FRAMEWORK
                   </span>
 
@@ -1948,13 +2254,29 @@ export function MainsAnswerWorkspace({
                   </p>
 
                 </div>
+
               )}
 
 
-              {question.key_points && (
-                <div className="panel">
+              <MainsFrameworkImages
+                paths={
+                  question.framework_image_paths
+                }
 
-                  <span className="eyebrow">
+                title="Visual Answer Framework"
+              />
+
+
+              {
+                question.key_points && (
+
+                <div
+                  className="panel"
+                >
+
+                  <span
+                    className="eyebrow"
+                  >
                     KEY POINTS
                   </span>
 
@@ -1974,13 +2296,20 @@ export function MainsAnswerWorkspace({
                   </p>
 
                 </div>
+
               )}
 
 
-              {question.conclusion_hint && (
-                <div className="panel">
+              {
+                question.conclusion_hint && (
 
-                  <span className="eyebrow">
+                <div
+                  className="panel"
+                >
+
+                  <span
+                    className="eyebrow"
+                  >
                     CONCLUSION HINT
                   </span>
 
@@ -1997,12 +2326,15 @@ export function MainsAnswerWorkspace({
                   </p>
 
                 </div>
+
               )}
 
             </div>
+
           )}
 
         </section>
+
       )}
 
     </div>
