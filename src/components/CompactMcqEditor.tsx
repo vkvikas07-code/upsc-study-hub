@@ -43,95 +43,34 @@ type QuestionOrigin =
 
 type RecentQuestion = {
   id: string;
-
   question: string;
-
   options: string[];
-
   correct_index: number;
-
   explanation: string;
-
-  explanation_image_paths:
-    string[];
-
+  explanation_image_paths: string[];
   subject: string;
+  topic: string | null;
+  paper: string | null;
+  difficulty: Difficulty;
+  tags: string[];
+  is_pyq: boolean;
+  pyq_year: number | null;
+  status: QuestionStatus;
+  source: string | null;
+  source_url: string | null;
 
-  topic:
-    string |
-    null;
+  upsc_exam_name: string | null;
+  upsc_exam_cycle: string | null;
+  upsc_exam_stage: string | null;
+  upsc_exam_paper: string | null;
+  upsc_exam_year: number | null;
 
-  paper:
-    string |
-    null;
-
-  difficulty:
-    Difficulty;
-
-  tags:
-    string[];
-
-  is_pyq:
-    boolean;
-
-  pyq_year:
-    number |
-    null;
-
-  status:
-    QuestionStatus;
-
-  source:
-    string |
-    null;
-
-  source_url:
-    string |
-    null;
-
-  upsc_exam_name:
-    string |
-    null;
-
-  upsc_exam_cycle:
-    string |
-    null;
-
-  upsc_exam_stage:
-    string |
-    null;
-
-  upsc_exam_paper:
-    string |
-    null;
-
-  upsc_exam_year:
-    number |
-    null;
-
-  state_psc_state:
-    string |
-    null;
-
-  state_psc_name:
-    string |
-    null;
-
-  state_psc_exam_name:
-    string |
-    null;
-
-  state_psc_year:
-    number |
-    null;
-
-  state_psc_stage:
-    string |
-    null;
-
-  state_psc_paper:
-    string |
-    null;
+  state_psc_state: string | null;
+  state_psc_name: string | null;
+  state_psc_exam_name: string | null;
+  state_psc_year: number | null;
+  state_psc_stage: string | null;
+  state_psc_paper: string | null;
 };
 
 
@@ -166,15 +105,28 @@ const QUESTION_SELECT = `
 `;
 
 
-const MAX_EXPLANATION_IMAGES =
-  6;
+const MAX_EXPLANATION_IMAGES = 6;
+
+
+const SUBJECTS = [
+  'Polity',
+  'History',
+  'Geography',
+  'Economy',
+  'Environment',
+  'Science & Tech',
+  'Current Affairs',
+  'Disaster Management',
+  'Agriculture',
+  'International Relations',
+  'Defence',
+  'CSAT'
+];
 
 
 function safeArray(
-  value:
-    unknown
-):
-  string[] {
+  value: unknown
+): string[] {
 
   if (
     !Array.isArray(
@@ -183,7 +135,6 @@ function safeArray(
   ) {
     return [];
   }
-
 
   return value
     .map(
@@ -197,39 +148,35 @@ function safeArray(
     );
 }
 
+
 function normalizeQuestionText(
   value: string
 ): string {
 
   return value
-    .normalize('NFKC')
+    .normalize(
+      'NFKC'
+    )
     .toLowerCase()
-
-    // Standardise quotation marks
     .replace(
       /[“”]/g,
       '"'
     )
-
     .replace(
       /[‘’]/g,
       "'"
     )
-
-    // Remove punctuation differences
     .replace(
       /[.,!?;:()[\]{}"'“”‘’\-–—_/\\]+/g,
       ' '
     )
-
-    // Remove repeated spaces/new lines
     .replace(
       /\s+/g,
       ' '
     )
-
     .trim();
 }
+
 
 export function CompactMcqEditor() {
 
@@ -246,77 +193,57 @@ export function CompactMcqEditor() {
     editingId,
     setEditingId
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     question,
     setQuestion
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     optionA,
     setOptionA
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     optionB,
     setOptionB
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     optionC,
     setOptionC
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     optionD,
     setOptionD
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     correctIndex,
     setCorrectIndex
   ] =
-    useState(
-      0
-    );
+    useState(0);
 
 
   const [
     explanation,
     setExplanation
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
-
-  /* =========================================================
-     EXPLANATION IMAGES
-     ========================================================= */
 
   const [
     pendingExplanationImages,
@@ -370,9 +297,7 @@ export function CompactMcqEditor() {
     topic,
     setTopic
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
@@ -410,9 +335,7 @@ export function CompactMcqEditor() {
     tagsText,
     setTagsText
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
@@ -428,9 +351,7 @@ export function CompactMcqEditor() {
     pyqYear,
     setPyqYear
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
@@ -448,125 +369,91 @@ export function CompactMcqEditor() {
     source,
     setSource
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     sourceUrl,
     setSourceUrl
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
-
-  /* =========================================================
-     OTHER UPSC
-     ========================================================= */
 
   const [
     upscExamName,
     setUpscExamName
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     upscExamCycle,
     setUpscExamCycle
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     upscExamStage,
     setUpscExamStage
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     upscExamPaper,
     setUpscExamPaper
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     upscExamYear,
     setUpscExamYear
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
-
-  /* =========================================================
-     STATE PSC
-     ========================================================= */
 
   const [
     statePscState,
     setStatePscState
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     statePscName,
     setStatePscName
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     statePscExamName,
     setStatePscExamName
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     statePscYear,
     setStatePscYear
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     statePscStage,
     setStatePscStage
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
     statePscPaper,
     setStatePscPaper
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
 
   const [
@@ -591,14 +478,8 @@ export function CompactMcqEditor() {
     message,
     setMessage
   ] =
-    useState(
-      ''
-    );
+    useState('');
 
-
-  /* =========================================================
-     PREVIEW CLEANUP
-     ========================================================= */
 
   function clearPendingImagePreviews() {
 
@@ -612,16 +493,11 @@ export function CompactMcqEditor() {
       }
     );
 
-
     setPendingExplanationImages(
       []
     );
   }
 
-
-  /* =========================================================
-     LOAD RECENT QUESTIONS
-     ========================================================= */
 
   async function loadRecentQuestions():
     Promise<void> {
@@ -631,7 +507,6 @@ export function CompactMcqEditor() {
     ) {
       return;
     }
-
 
     const {
       data,
@@ -681,28 +556,27 @@ export function CompactMcqEditor() {
       (
         data ||
         []
-      )
-        .map(
-          item => ({
-            ...item,
+      ).map(
+        item => ({
+          ...item,
 
-            options:
-              safeArray(
-                item.options
-              ),
+          options:
+            safeArray(
+              item.options
+            ),
 
-            tags:
-              safeArray(
-                item.tags
-              ),
+          tags:
+            safeArray(
+              item.tags
+            ),
 
-            explanation_image_paths:
-              safeArray(
-                item.explanation_image_paths
-              )
-          })
-        ) as
-          RecentQuestion[];
+          explanation_image_paths:
+            safeArray(
+              item.explanation_image_paths
+            )
+        })
+      ) as
+        RecentQuestion[];
 
 
     setRecentQuestions(
@@ -721,205 +595,96 @@ export function CompactMcqEditor() {
   );
 
 
-  /* =========================================================
-     RESET FORM
-     ========================================================= */
-
   function resetForm(
-    keepMessage =
-      false
-  ):
-    void {
+    keepMessage = false
+  ): void {
 
     clearPendingImagePreviews();
 
+    setEditingId('');
+    setQuestion('');
 
-    setEditingId(
-      ''
-    );
+    setOptionA('');
+    setOptionB('');
+    setOptionC('');
+    setOptionD('');
 
+    setCorrectIndex(0);
 
-    setQuestion(
-      ''
-    );
-
-
-    setOptionA(
-      ''
-    );
-
-    setOptionB(
-      ''
-    );
-
-    setOptionC(
-      ''
-    );
-
-    setOptionD(
-      ''
-    );
-
-
-    setCorrectIndex(
-      0
-    );
-
-
-    setExplanation(
-      ''
-    );
-
+    setExplanation('');
 
     setExistingExplanationImagePaths(
       []
     );
 
-
     setRemovedExplanationImagePaths(
       []
     );
-
 
     setExplanationImageUrls(
       {}
     );
 
-
     setSubject(
       'Polity'
     );
 
-
-    setTopic(
-      ''
-    );
-
+    setTopic('');
 
     setPaper(
       'GS-I'
     );
 
-
     setDifficulty(
       'medium'
     );
-
 
     setStatus(
       'published'
     );
 
-
-    setTagsText(
-      ''
-    );
-
+    setTagsText('');
 
     setIsPyq(
       false
     );
 
-
-    setPyqYear(
-      ''
-    );
-
+    setPyqYear('');
 
     setQuestionOrigin(
       'general'
     );
 
+    setSource('');
+    setSourceUrl('');
 
-    setSource(
-      ''
-    );
+    setUpscExamName('');
+    setUpscExamCycle('');
+    setUpscExamStage('');
+    setUpscExamPaper('');
+    setUpscExamYear('');
 
-
-    setSourceUrl(
-      ''
-    );
-
-
-    setUpscExamName(
-      ''
-    );
-
-
-    setUpscExamCycle(
-      ''
-    );
-
-
-    setUpscExamStage(
-      ''
-    );
-
-
-    setUpscExamPaper(
-      ''
-    );
-
-
-    setUpscExamYear(
-      ''
-    );
-
-
-    setStatePscState(
-      ''
-    );
-
-
-    setStatePscName(
-      ''
-    );
-
-
-    setStatePscExamName(
-      ''
-    );
-
-
-    setStatePscYear(
-      ''
-    );
-
-
-    setStatePscStage(
-      ''
-    );
-
-
-    setStatePscPaper(
-      ''
-    );
-
+    setStatePscState('');
+    setStatePscName('');
+    setStatePscExamName('');
+    setStatePscYear('');
+    setStatePscStage('');
+    setStatePscPaper('');
 
     setAdvancedOpen(
       false
     );
 
-
     if (
       !keepMessage
     ) {
-
-      setMessage(
-        ''
-      );
-
+      setMessage('');
     }
   }
 
 
-  /* =========================================================
-     LOAD QUESTION FOR EDITING
-     ========================================================= */
-
   async function loadForEditing(
-    id:
-      string
+    id: string
   ):
     Promise<void> {
 
@@ -940,8 +705,8 @@ export function CompactMcqEditor() {
 
     const item =
       recentQuestions.find(
-        questionItem =>
-          questionItem.id ===
+        row =>
+          row.id ===
           id
       );
 
@@ -966,38 +731,25 @@ export function CompactMcqEditor() {
       ''
     );
 
-
     setOptionA(
-      options[
-        0
-      ] ||
+      options[0] ||
       ''
     );
-
 
     setOptionB(
-      options[
-        1
-      ] ||
+      options[1] ||
       ''
     );
-
 
     setOptionC(
-      options[
-        2
-      ] ||
+      options[2] ||
       ''
     );
-
 
     setOptionD(
-      options[
-        3
-      ] ||
+      options[3] ||
       ''
     );
-
 
     setCorrectIndex(
       Number(
@@ -1005,7 +757,6 @@ export function CompactMcqEditor() {
         0
       )
     );
-
 
     setExplanation(
       item.explanation ||
@@ -1023,7 +774,6 @@ export function CompactMcqEditor() {
       imagePaths
     );
 
-
     setRemovedExplanationImagePaths(
       []
     );
@@ -1034,22 +784,36 @@ export function CompactMcqEditor() {
       0
     ) {
 
-      const urls =
-        await createPrelimsExplanationImageUrls(
-          imagePaths
+      try {
+
+        const urls =
+          await createPrelimsExplanationImageUrls(
+            imagePaths
+          );
+
+        setExplanationImageUrls(
+          urls
         );
 
+      } catch (
+        error
+      ) {
 
-      setExplanationImageUrls(
-        urls
-      );
+        console.error(
+          'Unable to load explanation image previews:',
+          error
+        );
+
+        setExplanationImageUrls(
+          {}
+        );
+      }
 
     } else {
 
       setExplanationImageUrls(
         {}
       );
-
     }
 
 
@@ -1058,30 +822,25 @@ export function CompactMcqEditor() {
       'Polity'
     );
 
-
     setTopic(
       item.topic ||
       ''
     );
-
 
     setPaper(
       item.paper ||
       'GS-I'
     );
 
-
     setDifficulty(
       item.difficulty ||
       'medium'
     );
 
-
     setStatus(
       item.status ||
       'draft'
     );
-
 
     setTagsText(
       (
@@ -1092,13 +851,11 @@ export function CompactMcqEditor() {
       )
     );
 
-
     setIsPyq(
       Boolean(
         item.is_pyq
       )
     );
-
 
     setPyqYear(
       item.pyq_year
@@ -1108,12 +865,10 @@ export function CompactMcqEditor() {
         : ''
     );
 
-
     setSource(
       item.source ||
       ''
     );
-
 
     setSourceUrl(
       item.source_url ||
@@ -1144,7 +899,6 @@ export function CompactMcqEditor() {
       setQuestionOrigin(
         'general'
       );
-
     }
 
 
@@ -1153,24 +907,20 @@ export function CompactMcqEditor() {
       ''
     );
 
-
     setUpscExamCycle(
       item.upsc_exam_cycle ||
       ''
     );
-
 
     setUpscExamStage(
       item.upsc_exam_stage ||
       ''
     );
 
-
     setUpscExamPaper(
       item.upsc_exam_paper ||
       ''
     );
-
 
     setUpscExamYear(
       item.upsc_exam_year
@@ -1186,18 +936,15 @@ export function CompactMcqEditor() {
       ''
     );
 
-
     setStatePscName(
       item.state_psc_name ||
       ''
     );
 
-
     setStatePscExamName(
       item.state_psc_exam_name ||
       ''
     );
-
 
     setStatePscYear(
       item.state_psc_year
@@ -1207,23 +954,19 @@ export function CompactMcqEditor() {
         : ''
     );
 
-
     setStatePscStage(
       item.state_psc_stage ||
       ''
     );
-
 
     setStatePscPaper(
       item.state_psc_paper ||
       ''
     );
 
-
     setAdvancedOpen(
       true
     );
-
 
     setMessage(
       'Question loaded for editing.'
@@ -1231,13 +974,8 @@ export function CompactMcqEditor() {
   }
 
 
-  /* =========================================================
-     SAVE QUESTION
-     ========================================================= */
-
   async function saveQuestion(
-    event:
-      FormEvent
+    event: FormEvent
   ):
     Promise<void> {
 
@@ -1279,109 +1017,6 @@ export function CompactMcqEditor() {
       return;
     }
 
-    /* =========================================================
-   DUPLICATE QUESTION CHECK
-   ========================================================= */
-
-const normalizedCurrentQuestion =
-  normalizeQuestionText(
-    question
-  );
-
-
-setMessage(
-  'Checking for duplicate question...'
-);
-
-
-const {
-  data:
-    existingQuestions,
-
-  error:
-    duplicateCheckError
-} =
-  await client
-    .from(
-      'questions'
-    )
-    .select(
-      'id, question'
-    )
-    .eq(
-      'exam_stage',
-      'prelims'
-    )
-    .limit(
-      5000
-    );
-
-
-if (
-  duplicateCheckError
-) {
-
-  console.error(
-    'Duplicate question check failed:',
-    duplicateCheckError
-  );
-
-
-  setMessage(
-    `Unable to check duplicate questions: ${duplicateCheckError.message}`
-  );
-
-
-  return;
-}
-
-
-const duplicateQuestion =
-  (
-    existingQuestions ||
-    []
-  ).find(
-    item => {
-
-      /*
-       * When editing an existing question,
-       * do not compare the question against itself.
-       */
-
-      if (
-        editingId &&
-        item.id ===
-          editingId
-      ) {
-
-        return false;
-
-      }
-
-
-      return (
-        normalizeQuestionText(
-          item.question ||
-          ''
-        ) ===
-        normalizedCurrentQuestion
-      );
-    }
-  );
-
-
-if (
-  duplicateQuestion
-) {
-
-  setMessage(
-    '⚠️ This question already exists in the Prelims question bank. Duplicate question was not saved.'
-  );
-
-
-  return;
-}
-    
 
     if (
       options.some(
@@ -1481,6 +1116,101 @@ if (
     }
 
 
+    /* =======================================================
+       DUPLICATE CHECK
+       ======================================================= */
+
+    const normalizedCurrentQuestion =
+      normalizeQuestionText(
+        question
+      );
+
+
+    setMessage(
+      'Checking for duplicate question...'
+    );
+
+
+    const {
+      data:
+        existingQuestions,
+
+      error:
+        duplicateCheckError
+    } =
+      await client
+        .from(
+          'questions'
+        )
+        .select(
+          'id, question'
+        )
+        .eq(
+          'exam_stage',
+          'prelims'
+        )
+        .limit(
+          5000
+        );
+
+
+    if (
+      duplicateCheckError
+    ) {
+
+      console.error(
+        'Duplicate question check failed:',
+        duplicateCheckError
+      );
+
+      setMessage(
+        `Unable to check duplicate questions: ${duplicateCheckError.message}`
+      );
+
+      return;
+    }
+
+
+    const duplicateQuestion =
+      (
+        existingQuestions ||
+        []
+      ).find(
+        item => {
+
+          if (
+            editingId &&
+            item.id ===
+              editingId
+          ) {
+
+            return false;
+          }
+
+
+          return (
+            normalizeQuestionText(
+              item.question ||
+              ''
+            ) ===
+            normalizedCurrentQuestion
+          );
+        }
+      );
+
+
+    if (
+      duplicateQuestion
+    ) {
+
+      setMessage(
+        '⚠️ This question already exists in the Prelims question bank. Duplicate question was not saved.'
+      );
+
+      return;
+    }
+
+
     setSaving(
       true
     );
@@ -1513,7 +1243,6 @@ if (
       setSaving(
         false
       );
-
 
       setMessage(
         'Admin session expired. Sign in again.'
@@ -1579,7 +1308,6 @@ if (
             )
           : null,
 
-
       upsc_exam_name:
         questionOrigin ===
           'upsc'
@@ -1616,7 +1344,6 @@ if (
               upscExamYear
             )
           : null,
-
 
       state_psc_state:
         questionOrigin ===
@@ -1661,7 +1388,6 @@ if (
           ? statePscPaper.trim() ||
             null
           : null,
-
 
       source:
         source.trim() ||
@@ -1709,7 +1435,6 @@ if (
                     image.file
                 )
             });
-
         }
 
 
@@ -1761,11 +1486,8 @@ if (
                 'Unable to clean failed uploaded images:',
                 cleanupError
               );
-
             }
-
           }
-
 
           throw error;
         }
@@ -1790,9 +1512,7 @@ if (
               'Unable to delete removed explanation images:',
               cleanupError
             );
-
           }
-
         }
 
 
@@ -1813,7 +1533,6 @@ if (
           'Question updated successfully.'
         );
 
-
         return;
 
       } catch (
@@ -1825,11 +1544,9 @@ if (
           saveError
         );
 
-
         setSaving(
           false
         );
-
 
         setMessage(
           saveError instanceof
@@ -1837,7 +1554,6 @@ if (
             ? saveError.message
             : 'Unable to update question.'
         );
-
 
         return;
       }
@@ -1883,12 +1599,10 @@ if (
         false
       );
 
-
       setMessage(
         insertError?.message ||
         'Unable to create question.'
       );
-
 
       return;
     }
@@ -1939,9 +1653,7 @@ if (
         if (
           imageUpdateError
         ) {
-
           throw imageUpdateError;
-
         }
       }
 
@@ -1999,7 +1711,6 @@ if (
             'Unable to clean failed uploaded images:',
             cleanupError
           );
-
         }
       }
 
@@ -2030,10 +1741,6 @@ if (
   }
 
 
-  /* =========================================================
-     LAYOUT
-     ========================================================= */
-
   const compactGrid = {
 
     display:
@@ -2044,7 +1751,6 @@ if (
 
     gap:
       '10px'
-
   };
 
 
@@ -2052,16 +1758,11 @@ if (
 
     <section
       className="panel"
-
       style={{
         padding:
           '16px'
       }}
     >
-
-      {/* =====================================================
-          HEADER
-          ===================================================== */}
 
       <div
         style={{
@@ -2119,9 +1820,7 @@ if (
 
         <button
           type="button"
-
           className="secondary-btn"
-
           onClick={() =>
             resetForm()
           }
@@ -2132,10 +1831,6 @@ if (
       </div>
 
 
-      {/* =====================================================
-          LOAD RECENT QUESTION
-          ===================================================== */}
-
       <label
         style={{
           marginTop:
@@ -2145,12 +1840,10 @@ if (
 
         Edit Recent Question
 
-
         <select
           value={
             editingId
           }
-
           onChange={
             event =>
               void loadForEditing(
@@ -2174,12 +1867,10 @@ if (
                   key={
                     item.id
                   }
-
                   value={
                     item.id
                   }
                 >
-
                   {
                     item.question.length >
                     90
@@ -2189,7 +1880,6 @@ if (
                         )}...`
                       : item.question
                   }
-
                 </option>
 
               )
@@ -2207,40 +1897,28 @@ if (
         }
       >
 
-        {/* ===================================================
-            QUESTION
-            =================================================== */}
-
         <label>
 
           Question
-
 
           <textarea
             rows={
               3
             }
-
             value={
               question
             }
-
             onChange={
               event =>
                 setQuestion(
                   event.target.value
                 )
             }
-
             placeholder="Enter UPSC-style MCQ"
           />
 
         </label>
 
-
-        {/* ===================================================
-            OPTIONS
-            =================================================== */}
 
         <div
           style={
@@ -2256,7 +1934,6 @@ if (
               value={
                 optionA
               }
-
               onChange={
                 event =>
                   setOptionA(
@@ -2276,7 +1953,6 @@ if (
               value={
                 optionB
               }
-
               onChange={
                 event =>
                   setOptionB(
@@ -2296,7 +1972,6 @@ if (
               value={
                 optionC
               }
-
               onChange={
                 event =>
                   setOptionC(
@@ -2316,7 +1991,6 @@ if (
               value={
                 optionD
               }
-
               onChange={
                 event =>
                   setOptionD(
@@ -2329,10 +2003,6 @@ if (
 
         </div>
 
-
-        {/* ===================================================
-            CORE METADATA
-            =================================================== */}
 
         <div
           style={{
@@ -2347,12 +2017,10 @@ if (
 
             Correct Answer
 
-
             <select
               value={
                 correctIndex
               }
-
               onChange={
                 event =>
                   setCorrectIndex(
@@ -2363,35 +2031,19 @@ if (
               }
             >
 
-              <option
-                value={
-                  0
-                }
-              >
+              <option value={0}>
                 A
               </option>
 
-              <option
-                value={
-                  1
-                }
-              >
+              <option value={1}>
                 B
               </option>
 
-              <option
-                value={
-                  2
-                }
-              >
+              <option value={2}>
                 C
               </option>
 
-              <option
-                value={
-                  3
-                }
-              >
+              <option value={3}>
                 D
               </option>
 
@@ -2402,88 +2054,64 @@ if (
 
           <label>
 
-  Subject
+            Subject
 
+            <select
+              value={
+                subject
+              }
+              onChange={
+                event =>
+                  setSubject(
+                    event.target.value
+                  )
+              }
+            >
 
-  <select
-    value={
-      subject
-    }
+              {
+                SUBJECTS.map(
+                  item => (
 
-    onChange={
-      event =>
-        setSubject(
-          event.target.value
-        )
-    }
-  >
+                    <option
+                      key={
+                        item
+                      }
+                      value={
+                        item
+                      }
+                    >
+                      {item}
+                    </option>
 
-    <option value="Polity">
-      Polity
-    </option>
+                  )
+                )
+              }
 
-    <option value="History">
-      History
-    </option>
+            </select>
 
-    <option value="Geography">
-      Geography
-    </option>
+          </label>
 
-    <option value="Economy">
-      Economy
-    </option>
-
-    <option value="Environment">
-      Environment
-    </option>
-
-    <option value="Science & Tech">
-      Science & Tech
-    </option>
-
-    <option value="Current Affairs">
-      Current Affairs
-    </option>
-
-    <option value="Disaster Management">
-      Disaster Management
-    </option>
-
-    <option value="Agriculture">
-      Agriculture
-    </option>
-
-    <option value="International Relations">
-      International Relations
-    </option>
-
-    <option value="Defence">
-      Defence
-    </option>
-
-  </select>
-
-</label>
 
           <label>
 
             Topic
 
-
             <input
               value={
                 topic
               }
-
               onChange={
                 event =>
                   setTopic(
                     event.target.value
                   )
               }
-
-              placeholder="Fundamental Rights"
+              placeholder={
+                subject ===
+                'CSAT'
+                  ? 'Ratio & Proportion'
+                  : 'Fundamental Rights'
+              }
             />
 
           </label>
@@ -2493,12 +2121,10 @@ if (
 
             Difficulty
 
-
             <select
               value={
                 difficulty
               }
-
               onChange={
                 event =>
                   setDifficulty(
@@ -2533,40 +2159,28 @@ if (
         </div>
 
 
-        {/* ===================================================
-            EXPLANATION
-            =================================================== */}
-
         <label>
 
           Explanation
-
 
           <textarea
             rows={
               4
             }
-
             value={
               explanation
             }
-
             onChange={
               event =>
                 setExplanation(
                   event.target.value
                 )
             }
-
             placeholder="Why is the correct answer correct?"
           />
 
         </label>
 
-
-        {/* ===================================================
-            EXPLANATION IMAGES
-            =================================================== */}
 
         <section
           style={{
@@ -2608,8 +2222,6 @@ if (
           </p>
 
 
-          {/* EXISTING SAVED IMAGES */}
-
           {
             existingExplanationImagePaths.length >
             0 && (
@@ -2646,7 +2258,6 @@ if (
                         key={
                           path
                         }
-
                         style={{
                           position:
                             'relative',
@@ -2676,9 +2287,7 @@ if (
                               src={
                                 url
                               }
-
                               alt="Existing MCQ explanation"
-
                               style={{
                                 display:
                                   'block',
@@ -2712,13 +2321,10 @@ if (
 
                         <button
                           type="button"
-
                           disabled={
                             saving
                           }
-
                           aria-label="Remove explanation image"
-
                           onClick={() => {
 
                             setExistingExplanationImagePaths(
@@ -2744,7 +2350,6 @@ if (
                             );
 
                           }}
-
                           style={{
                             position:
                               'absolute',
@@ -2780,7 +2385,6 @@ if (
                       </div>
 
                     );
-
                   }
                 )
               }
@@ -2790,17 +2394,13 @@ if (
           )}
 
 
-          {/* NEW IMAGE PICKER */}
-
           <StudentNoteImagePicker
             images={
               pendingExplanationImages
             }
-
             onChange={
               setPendingExplanationImages
             }
-
             maxImages={
               Math.max(
                 0,
@@ -2809,7 +2409,6 @@ if (
                 existingExplanationImagePaths.length
               )
             }
-
             disabled={
               saving
             }
@@ -2834,10 +2433,6 @@ if (
         </section>
 
 
-        {/* ===================================================
-            QUESTION TYPE
-            =================================================== */}
-
         <div
           style={
             compactGrid
@@ -2848,19 +2443,17 @@ if (
 
             Question Type
 
-
             <select
               value={
                 isPyq
                   ? 'pyq'
                   : 'practice'
               }
-
               onChange={
                 event =>
                   setIsPyq(
                     event.target.value ===
-                      'pyq'
+                    'pyq'
                   )
               }
             >
@@ -2889,25 +2482,19 @@ if (
 
               PYQ Year
 
-
               <input
                 type="number"
-
                 min="1950"
-
                 max="2100"
-
                 value={
                   pyqYear
                 }
-
                 onChange={
                   event =>
                     setPyqYear(
                       event.target.value
                     )
                 }
-
                 placeholder="2025"
               />
 
@@ -2920,12 +2507,10 @@ if (
 
             Status
 
-
             <select
               value={
                 status
               }
-
               onChange={
                 event =>
                   setStatus(
@@ -2962,20 +2547,22 @@ if (
 
             Paper
 
-
             <input
               value={
                 paper
               }
-
               onChange={
                 event =>
                   setPaper(
                     event.target.value
                   )
               }
-
-              placeholder="GS-I"
+              placeholder={
+                subject ===
+                'CSAT'
+                  ? 'CSAT'
+                  : 'GS-I'
+              }
             />
 
           </label>
@@ -2983,20 +2570,13 @@ if (
         </div>
 
 
-        {/* ===================================================
-            ADVANCED TOGGLE
-            =================================================== */}
-
         <button
           type="button"
-
           className="secondary-btn"
-
           style={{
             marginTop:
               '12px'
           }}
-
           onClick={() =>
             setAdvancedOpen(
               current =>
@@ -3011,10 +2591,6 @@ if (
           }
         </button>
 
-
-        {/* ===================================================
-            ADVANCED
-            =================================================== */}
 
         {
           advancedOpen && (
@@ -3045,12 +2621,10 @@ if (
 
                 Origin
 
-
                 <select
                   value={
                     questionOrigin
                   }
-
                   onChange={
                     event =>
                       setQuestionOrigin(
@@ -3087,19 +2661,16 @@ if (
 
                 Source
 
-
                 <input
                   value={
                     source
                   }
-
                   onChange={
                     event =>
                       setSource(
                         event.target.value
                       )
                   }
-
                   placeholder="UPSC / NCERT / Book"
                 />
 
@@ -3110,21 +2681,17 @@ if (
 
                 Source URL
 
-
                 <input
                   type="url"
-
                   value={
                     sourceUrl
                   }
-
                   onChange={
                     event =>
                       setSourceUrl(
                         event.target.value
                       )
                   }
-
                   placeholder="https://..."
                 />
 
@@ -3135,30 +2702,28 @@ if (
 
                 Tags
 
-
                 <input
                   value={
                     tagsText
                   }
-
                   onChange={
                     event =>
                       setTagsText(
                         event.target.value
                       )
                   }
-
-                  placeholder="Polity, PYQ, Article 21"
+                  placeholder={
+                    subject ===
+                    'CSAT'
+                      ? 'CSAT, Mathematics, Ratio'
+                      : 'Polity, PYQ, Article 21'
+                  }
                 />
 
               </label>
 
             </div>
 
-
-            {/* ===============================================
-                OTHER UPSC
-                =============================================== */}
 
             {
               questionOrigin ===
@@ -3177,19 +2742,16 @@ if (
 
                   UPSC Exam
 
-
                   <input
                     value={
                       upscExamName
                     }
-
                     onChange={
                       event =>
                         setUpscExamName(
                           event.target.value
                         )
                     }
-
                     placeholder="CAPF / CDS / NDA"
                   />
 
@@ -3200,14 +2762,11 @@ if (
 
                   Year
 
-
                   <input
                     type="number"
-
                     value={
                       upscExamYear
                     }
-
                     onChange={
                       event =>
                         setUpscExamYear(
@@ -3223,19 +2782,16 @@ if (
 
                   Cycle
 
-
                   <input
                     value={
                       upscExamCycle
                     }
-
                     onChange={
                       event =>
                         setUpscExamCycle(
                           event.target.value
                         )
                     }
-
                     placeholder="I / II"
                   />
 
@@ -3246,12 +2802,10 @@ if (
 
                   Stage
 
-
                   <input
                     value={
                       upscExamStage
                     }
-
                     onChange={
                       event =>
                         setUpscExamStage(
@@ -3267,12 +2821,10 @@ if (
 
                   Paper
 
-
                   <input
                     value={
                       upscExamPaper
                     }
-
                     onChange={
                       event =>
                         setUpscExamPaper(
@@ -3287,10 +2839,6 @@ if (
 
             )}
 
-
-            {/* ===============================================
-                STATE PSC
-                =============================================== */}
 
             {
               questionOrigin ===
@@ -3309,12 +2857,10 @@ if (
 
                   State
 
-
                   <input
                     value={
                       statePscState
                     }
-
                     onChange={
                       event =>
                         setStatePscState(
@@ -3330,12 +2876,10 @@ if (
 
                   PSC Name
 
-
                   <input
                     value={
                       statePscName
                     }
-
                     onChange={
                       event =>
                         setStatePscName(
@@ -3351,12 +2895,10 @@ if (
 
                   Examination
 
-
                   <input
                     value={
                       statePscExamName
                     }
-
                     onChange={
                       event =>
                         setStatePscExamName(
@@ -3372,14 +2914,11 @@ if (
 
                   Year
 
-
                   <input
                     type="number"
-
                     value={
                       statePscYear
                     }
-
                     onChange={
                       event =>
                         setStatePscYear(
@@ -3395,12 +2934,10 @@ if (
 
                   Stage
 
-
                   <input
                     value={
                       statePscStage
                     }
-
                     onChange={
                       event =>
                         setStatePscStage(
@@ -3416,12 +2953,10 @@ if (
 
                   Paper
 
-
                   <input
                     value={
                       statePscPaper
                     }
-
                     onChange={
                       event =>
                         setStatePscPaper(
@@ -3441,16 +2976,11 @@ if (
         )}
 
 
-        {/* ===================================================
-            MESSAGE
-            =================================================== */}
-
         {
           message && (
 
           <div
             className="callout"
-
             style={{
               marginTop:
                 '10px'
@@ -3461,10 +2991,6 @@ if (
 
         )}
 
-
-        {/* ===================================================
-            SAVE BAR
-            =================================================== */}
 
         <div
           style={{
@@ -3487,13 +3013,10 @@ if (
 
           <button
             type="button"
-
             className="secondary-btn"
-
             onClick={() =>
               resetForm()
             }
-
             disabled={
               saving
             }
@@ -3504,9 +3027,7 @@ if (
 
           <button
             type="submit"
-
             className="primary-btn"
-
             disabled={
               saving
             }
@@ -3525,7 +3046,6 @@ if (
       </form>
 
     </section>
-
   );
 }
 
