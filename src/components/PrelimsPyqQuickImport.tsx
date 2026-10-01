@@ -78,9 +78,8 @@ type DuplicateMatch = {
     | 'database'
     | 'batch';
 
-  existing_question?: string;
   existing_id?: string;
-
+  existing_question?: string;
   duplicate_of_number?: string;
 };
 
@@ -92,34 +91,23 @@ type DuplicateCheckResult = {
 
 
 /* =========================================================
-   GENERAL HELPERS
+   BASIC HELPERS
    ========================================================= */
 
 function isRecord(
   value: unknown
-):
-  value is Record<
-    string,
-    unknown
-  > {
-
+): value is Record<string, unknown> {
   return (
-    typeof value ===
-      'object' &&
-    value !==
-      null &&
-    !Array.isArray(
-      value
-    )
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value)
   );
 }
 
 
 function safeString(
   value: unknown
-):
-  string {
-
+): string {
   if (
     value === null ||
     value === undefined
@@ -127,31 +115,23 @@ function safeString(
     return '';
   }
 
-  return String(
-    value
-  );
+  return String(value);
 }
 
 
 function currentYear():
   string {
-
   return String(
-    new Date()
-      .getFullYear()
+    new Date().getFullYear()
   );
 }
 
 
 function answerLetter(
   index: number
-):
-  string {
-
+): string {
   if (
-    !Number.isInteger(
-      index
-    ) ||
+    !Number.isInteger(index) ||
     index < 0
   ) {
     return '-';
@@ -167,85 +147,39 @@ function answerLetter(
    DUPLICATE NORMALIZATION
    ========================================================= */
 
-/*
- * These questions will be treated as the same:
- *
- * "What is Article 14?"
- * "what is article 14 ?"
- * "What   is Article 14?"
- *
- * Capitalization, punctuation and extra spaces are ignored.
- */
-
 function normalizeQuestionText(
   value: string
-):
-  string {
-
+): string {
   return value
-    .normalize(
-      'NFKC'
-    )
-
+    .normalize('NFKC')
     .toLowerCase()
-
-    .replace(
-      /[“”]/g,
-      '"'
-    )
-
-    .replace(
-      /[‘’]/g,
-      "'"
-    )
-
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
     .replace(
       /[.,!?;:()[\]{}"'“”‘’\-–—_/\\]+/g,
       ' '
     )
-
-    .replace(
-      /\s+/g,
-      ' '
-    )
-
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
 
 /* =========================================================
-   EASY PASTE PARSER
+   EASY TEXT PARSER
    ========================================================= */
 
 function newDraft(
   questionNumber: string
-):
-  DraftQuestion {
-
+): DraftQuestion {
   return {
-
     questionNumber,
-
-    questionLines:
-      [],
-
-    options:
-      [],
-
-    correctLetter:
-      '',
-
-    explanationLines:
-      [],
-
-    subject:
-      'General Studies',
-
-    topic:
-      '',
-
-    difficulty:
-      'medium'
+    questionLines: [],
+    options: [],
+    correctLetter: '',
+    explanationLines: [],
+    subject: 'General Studies',
+    topic: '',
+    difficulty: 'medium'
   };
 }
 
@@ -253,22 +187,13 @@ function newDraft(
 function finaliseDraft(
   draft: DraftQuestion,
   fallbackNumber: number
-):
-  QuestionPayload {
-
+): QuestionPayload {
   const question =
-    draft
-      .questionLines
-      .join(
-        ' '
-      )
+    draft.questionLines
+      .join(' ')
       .trim();
 
-
-  if (
-    !question
-  ) {
-
+  if (!question) {
     throw new Error(
       `Question ${
         draft.questionNumber ||
@@ -277,12 +202,9 @@ function finaliseDraft(
     );
   }
 
-
   if (
-    draft.options.length <
-    2
+    draft.options.length < 2
   ) {
-
     throw new Error(
       `Question ${
         draft.questionNumber ||
@@ -291,11 +213,9 @@ function finaliseDraft(
     );
   }
 
-
   if (
     !draft.correctLetter
   ) {
-
     throw new Error(
       `Question ${
         draft.questionNumber ||
@@ -304,23 +224,17 @@ function finaliseDraft(
     );
   }
 
-
   const correctIndex =
-    draft
-      .correctLetter
+    draft.correctLetter
       .toUpperCase()
-      .charCodeAt(
-        0
-      ) -
+      .charCodeAt(0) -
     65;
-
 
   if (
     correctIndex < 0 ||
     correctIndex >=
       draft.options.length
   ) {
-
     throw new Error(
       `Question ${
         draft.questionNumber ||
@@ -329,14 +243,10 @@ function finaliseDraft(
     );
   }
 
-
   return {
-
     question_number:
       draft.questionNumber ||
-      String(
-        fallbackNumber
-      ),
+      String(fallbackNumber),
 
     question,
 
@@ -347,23 +257,16 @@ function finaliseDraft(
       correctIndex,
 
     explanation:
-      draft
-        .explanationLines
-        .join(
-          ' '
-        )
+      draft.explanationLines
+        .join(' ')
         .trim(),
 
     subject:
-      draft
-        .subject
-        .trim() ||
+      draft.subject.trim() ||
       'General Studies',
 
     topic:
-      draft
-        .topic
-        .trim(),
+      draft.topic.trim(),
 
     difficulty:
       draft.difficulty,
@@ -378,44 +281,29 @@ function finaliseDraft(
 
 function parseEasyText(
   rawText: string
-):
-  QuestionPayload[] {
-
+): QuestionPayload[] {
   const text =
     rawText
-      .replace(
-        /\r/g,
-        ''
-      )
+      .replace(/\r/g, '')
       .trim();
 
-
-  if (
-    !text
-  ) {
-
+  if (!text) {
     throw new Error(
       'Paste the question paper first.'
     );
   }
 
-
   const lines =
-    text.split(
-      '\n'
-    );
-
+    text.split('\n');
 
   const questions:
     QuestionPayload[] =
     [];
 
-
   let current:
     DraftQuestion |
     null =
     null;
-
 
   let section:
     | 'question'
@@ -426,26 +314,19 @@ function parseEasyText(
 
   function flush():
     void {
-
-    if (
-      !current
-    ) {
+    if (!current) {
       return;
     }
-
 
     questions.push(
       finaliseDraft(
         current,
-        questions.length +
-        1
+        questions.length + 1
       )
     );
 
-
     current =
       null;
-
 
     section =
       'question';
@@ -456,36 +337,26 @@ function parseEasyText(
     const originalLine
     of lines
   ) {
-
     const line =
       originalLine.trim();
 
-
-    if (
-      !line
-    ) {
+    if (!line) {
       continue;
     }
 
-
     if (
-      line ===
-        '---' ||
-      line ===
-        '==='
+      line === '---' ||
+      line === '==='
     ) {
-
       flush();
 
       continue;
     }
 
-
     const questionMatch =
       line.match(
         /^(?:q(?:uestion)?\s*)?(\d+)\s*[\.\)\:\-]\s*(.+)$/i
       );
-
 
     if (
       questionMatch &&
@@ -496,270 +367,171 @@ function parseEasyText(
         )
       )
     ) {
-
-      if (
-        current
-      ) {
+      if (current) {
         flush();
       }
 
-
       current =
         newDraft(
-          questionMatch[
-            1
-          ]
+          questionMatch[1]
         );
 
-
-      current
-        .questionLines
-        .push(
-          questionMatch[
-            2
-          ]
-        );
-
+      current.questionLines.push(
+        questionMatch[2]
+      );
 
       section =
         'question';
 
-
       continue;
     }
 
-
-    if (
-      !current
-    ) {
-
+    if (!current) {
       current =
         newDraft(
           String(
-            questions.length +
-            1
+            questions.length + 1
           )
         );
     }
-
 
     const optionMatch =
       line.match(
         /^\(?([A-D])\)?\s*[\.\)\:\-]\s*(.+)$/i
       );
 
-
-    if (
-      optionMatch
-    ) {
-
-      current
-        .options
-        .push(
-          optionMatch[
-            2
-          ].trim()
-        );
-
+    if (optionMatch) {
+      current.options.push(
+        optionMatch[2].trim()
+      );
 
       section =
         'options';
 
-
       continue;
     }
-
 
     const answerMatch =
       line.match(
         /^(?:answer|ans|correct(?:\s+answer)?)\s*[\:\-]\s*\(?([A-D])\)?/i
       );
 
-
-    if (
-      answerMatch
-    ) {
-
+    if (answerMatch) {
       current.correctLetter =
-        answerMatch[
-          1
-        ].toUpperCase();
-
+        answerMatch[1]
+          .toUpperCase();
 
       continue;
     }
-
 
     const explanationMatch =
       line.match(
         /^(?:explanation|explain|solution)\s*[\:\-]\s*(.*)$/i
       );
 
-
-    if (
-      explanationMatch
-    ) {
-
+    if (explanationMatch) {
       section =
         'explanation';
 
-
       if (
-        explanationMatch[
-          1
-        ]
+        explanationMatch[1]
       ) {
-
-        current
-          .explanationLines
-          .push(
-            explanationMatch[
-              1
-            ]
-          );
+        current.explanationLines.push(
+          explanationMatch[1]
+        );
       }
-
 
       continue;
     }
-
 
     const subjectMatch =
       line.match(
         /^subject\s*[\:\-]\s*(.+)$/i
       );
 
-
-    if (
-      subjectMatch
-    ) {
-
+    if (subjectMatch) {
       current.subject =
-        subjectMatch[
-          1
-        ].trim();
-
+        subjectMatch[1].trim();
 
       continue;
     }
-
 
     const topicMatch =
       line.match(
         /^topic\s*[\:\-]\s*(.+)$/i
       );
 
-
-    if (
-      topicMatch
-    ) {
-
+    if (topicMatch) {
       current.topic =
-        topicMatch[
-          1
-        ].trim();
-
+        topicMatch[1].trim();
 
       continue;
     }
-
 
     const difficultyMatch =
       line.match(
         /^difficulty\s*[\:\-]\s*(easy|medium|hard)$/i
       );
 
-
-    if (
-      difficultyMatch
-    ) {
-
+    if (difficultyMatch) {
       current.difficulty =
-        difficultyMatch[
-          1
-        ]
-          .toLowerCase() as
-          Difficulty;
-
+        difficultyMatch[1]
+          .toLowerCase() as Difficulty;
 
       continue;
     }
-
 
     if (
       section ===
       'explanation'
     ) {
-
-      current
-        .explanationLines
-        .push(
-          line
-        );
-
+      current.explanationLines.push(
+        line
+      );
 
       continue;
     }
 
-
     if (
       section ===
         'options' &&
-      current.options.length >
-        0
+      current.options.length > 0
     ) {
-
       const lastIndex =
-        current.options.length -
-        1;
-
+        current.options.length - 1;
 
       current.options[
         lastIndex
       ] =
         `${
-          current.options[
-            lastIndex
-          ]
+          current.options[lastIndex]
         } ${line}`;
-
 
       continue;
     }
 
-
-    current
-      .questionLines
-      .push(
-        line
-      );
+    current.questionLines.push(
+      line
+    );
   }
-
 
   flush();
 
-
   if (
-    questions.length ===
-    0
+    questions.length === 0
   ) {
-
     throw new Error(
       'No questions could be detected.'
     );
   }
 
-
   if (
-    questions.length >
-    250
+    questions.length > 250
   ) {
-
     throw new Error(
       'Maximum 250 questions can be imported at one time.'
     );
   }
-
 
   return questions;
 }
@@ -771,181 +543,130 @@ function parseEasyText(
 
 function parseJsonText(
   rawText: string
-):
-  QuestionPayload[] {
-
-  if (
-    !rawText.trim()
-  ) {
-
+): QuestionPayload[] {
+  if (!rawText.trim()) {
     throw new Error(
       'Paste JSON first.'
     );
   }
 
-
   let parsed:
     unknown;
 
-
   try {
-
     parsed =
       JSON.parse(
         rawText
       );
 
   } catch {
-
     throw new Error(
       'Invalid JSON format.'
     );
   }
 
-
   let items:
     unknown[];
 
-
   if (
-    Array.isArray(
-      parsed
-    )
+    Array.isArray(parsed)
   ) {
-
     items =
       parsed;
 
   } else if (
-    isRecord(
-      parsed
-    ) &&
+    isRecord(parsed) &&
     Array.isArray(
       parsed.questions
     )
   ) {
-
     items =
       parsed.questions;
 
   } else {
-
     throw new Error(
       'JSON must be an array or contain a questions array.'
     );
   }
 
-
   if (
-    items.length ===
-    0
+    items.length === 0
   ) {
-
     throw new Error(
       'No questions found.'
     );
   }
 
-
   if (
-    items.length >
-    250
+    items.length > 250
   ) {
-
     throw new Error(
       'Maximum 250 questions can be imported at one time.'
     );
   }
-
 
   return items.map(
     (
       item,
       index
     ) => {
-
-      if (
-        !isRecord(
-          item
-        )
-      ) {
-
+      if (!isRecord(item)) {
         throw new Error(
           `Question ${
-            index +
-            1
+            index + 1
           } is invalid.`
         );
       }
-
 
       const question =
         safeString(
           item.question
         ).trim();
 
-
-      if (
-        !question
-      ) {
-
+      if (!question) {
         throw new Error(
           `Question ${
-            index +
-            1
+            index + 1
           } has no text.`
         );
       }
-
 
       if (
         !Array.isArray(
           item.options
         )
       ) {
-
         throw new Error(
           `Question ${
-            index +
-            1
+            index + 1
           } has no options array.`
         );
       }
 
-
       const options =
-        item
-          .options
+        item.options
           .map(
             option =>
               safeString(
                 option
               ).trim()
           )
-          .filter(
-            Boolean
-          );
-
+          .filter(Boolean);
 
       if (
-        options.length <
-        2
+        options.length < 2
       ) {
-
         throw new Error(
           `Question ${
-            index +
-            1
+            index + 1
           } needs at least two options.`
         );
       }
-
 
       const correctIndex =
         Number(
           item.correct_index
         );
-
 
       if (
         !Number.isInteger(
@@ -955,15 +676,12 @@ function parseJsonText(
         correctIndex >=
           options.length
       ) {
-
         throw new Error(
           `Question ${
-            index +
-            1
+            index + 1
           } has an invalid correct_index.`
         );
       }
-
 
       const rawDifficulty =
         safeString(
@@ -971,7 +689,6 @@ function parseJsonText(
         )
           .trim()
           .toLowerCase();
-
 
       const difficulty:
         Difficulty =
@@ -982,16 +699,13 @@ function parseJsonText(
           ? rawDifficulty
           : 'medium';
 
-
       return {
-
         question_number:
           safeString(
             item.question_number
           ).trim() ||
           String(
-            index +
-            1
+            index + 1
           ),
 
         question,
@@ -1023,17 +737,14 @@ function parseJsonText(
           Array.isArray(
             item.tags
           )
-            ? item
-                .tags
+            ? item.tags
                 .map(
                   tag =>
                     safeString(
                       tag
                     ).trim()
                 )
-                .filter(
-                  Boolean
-                )
+                .filter(Boolean)
             : [
                 'PYQ',
                 'Prelims'
@@ -1045,7 +756,7 @@ function parseJsonText(
 
 
 /* =========================================================
-   QUESTION PREVIEW
+   NEW QUESTION PREVIEW
    ========================================================= */
 
 function PyqImportPreview({
@@ -1054,25 +765,19 @@ function PyqImportPreview({
   questions:
     QuestionPayload[];
 }) {
-
   const [
     showAll,
     setShowAll
   ] =
-    useState(
-      false
-    );
-
+    useState(false);
 
   if (
-    questions.length ===
-    0
+    questions.length === 0
   ) {
     return null;
   }
 
-
-  const visibleQuestions =
+  const visible =
     showAll
       ? questions
       : questions.slice(
@@ -1080,27 +785,7 @@ function PyqImportPreview({
           8
         );
 
-
-  const withoutExplanation =
-    questions.filter(
-      item =>
-        !item
-          .explanation
-          .trim()
-    ).length;
-
-
-  const withoutTopic =
-    questions.filter(
-      item =>
-        !item
-          .topic
-          .trim()
-    ).length;
-
-
   return (
-
     <section
       style={{
         marginTop:
@@ -1113,13 +798,9 @@ function PyqImportPreview({
           '1px solid rgba(45,212,191,.18)',
 
         borderRadius:
-          '12px',
-
-        background:
-          'rgba(15,23,42,.35)'
+          '12px'
       }}
     >
-
       <div
         style={{
           display:
@@ -1132,21 +813,18 @@ function PyqImportPreview({
             'center',
 
           gap:
-            '10px',
+            '8px',
 
           flexWrap:
             'wrap'
         }}
       >
-
         <div>
-
           <span
             className="eyebrow"
           >
             NEW QUESTIONS
           </span>
-
 
           <strong
             style={{
@@ -1154,7 +832,7 @@ function PyqImportPreview({
                 'block',
 
               marginTop:
-                '3px'
+                '4px'
             }}
           >
             {
@@ -1165,47 +843,36 @@ function PyqImportPreview({
                 1
                 ? ''
                 : 's'
-            } ready to import
+            } ready
           </strong>
-
         </div>
 
-
         {
-          questions.length >
-          8 && (
-
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={() =>
-              setShowAll(
-                current =>
-                  !current
-              )
-            }
-          >
-            {
-              showAll
-                ? 'Show Less'
-                : `Show All ${
-                    questions.length
-                  }`
-            }
-          </button>
-
-        )}
-
+          questions.length > 8 && (
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() =>
+                setShowAll(
+                  current =>
+                    !current
+                )
+              }
+            >
+              {
+                showAll
+                  ? 'Show Less'
+                  : 'Show All'
+              }
+            </button>
+          )
+        }
       </div>
-
 
       <div
         style={{
           display:
             'grid',
-
-          gridTemplateColumns:
-            'repeat(3, minmax(0, 1fr))',
 
           gap:
             '8px',
@@ -1214,302 +881,73 @@ function PyqImportPreview({
             '10px'
         }}
       >
-
-        <div
-          className="callout"
-        >
-
-          <small>
-            New Questions
-          </small>
-
-          <strong
-            style={{
-              display:
-                'block'
-            }}
-          >
-            {
-              questions.length
-            }
-          </strong>
-
-        </div>
-
-
-        <div
-          className="callout"
-        >
-
-          <small>
-            No Explanation
-          </small>
-
-          <strong
-            style={{
-              display:
-                'block'
-            }}
-          >
-            {
-              withoutExplanation
-            }
-          </strong>
-
-        </div>
-
-
-        <div
-          className="callout"
-        >
-
-          <small>
-            No Topic
-          </small>
-
-          <strong
-            style={{
-              display:
-                'block'
-            }}
-          >
-            {
-              withoutTopic
-            }
-          </strong>
-
-        </div>
-
-      </div>
-
-
-      <div
-        style={{
-          display:
-            'grid',
-
-          gap:
-            '6px',
-
-          marginTop:
-            '10px'
-        }}
-      >
-
         {
-          visibleQuestions.map(
+          visible.map(
             (
               item,
               index
-            ) => {
+            ) => (
+              <article
+                key={
+                  `${
+                    item.question_number
+                  }-${index}`
+                }
+                style={{
+                  padding:
+                    '10px',
 
-              const answer =
-                answerLetter(
-                  item.correct_index
-                );
+                  border:
+                    '1px solid rgba(255,255,255,.08)',
 
-
-              const answerText =
-                item.options[
-                  item.correct_index
-                ] ||
-                '';
-
-
-              return (
-
-                <article
-                  key={
-                    `${
-                      item.question_number
-                    }-${index}`
+                  borderRadius:
+                    '10px'
+                }}
+              >
+                <strong>
+                  Q{
+                    item.question_number
+                  }. {
+                    item.question
                   }
+                </strong>
+
+                <small
                   style={{
                     display:
-                      'grid',
+                      'block',
 
-                    gridTemplateColumns:
-                      '55px minmax(0, 1fr) 120px',
+                    marginTop:
+                      '5px',
 
-                    gap:
-                      '10px',
-
-                    alignItems:
-                      'center',
-
-                    padding:
-                      '9px 10px',
-
-                    border:
-                      '1px solid rgba(255,255,255,.07)',
-
-                    borderRadius:
-                      '10px'
+                    color:
+                      '#94a3b8'
                   }}
                 >
+                  {
+                    item.subject
+                  }
 
-                  <strong>
-                    Q
-                    {
-                      item.question_number ||
-                      index +
-                      1
-                    }
-                  </strong>
+                  {' • '}
 
+                  {
+                    item.topic ||
+                    'No topic'
+                  }
 
-                  <div
-                    style={{
-                      minWidth:
-                        0
-                    }}
-                  >
+                  {' • '}
 
-                    <strong
-                      style={{
-                        display:
-                          'block',
-
-                        overflow:
-                          'hidden',
-
-                        textOverflow:
-                          'ellipsis',
-
-                        whiteSpace:
-                          'nowrap'
-                      }}
-                    >
-                      {
-                        item.question
-                      }
-                    </strong>
-
-
-                    <small
-                      style={{
-                        display:
-                          'block',
-
-                        marginTop:
-                          '3px',
-
-                        color:
-                          '#94a3b8',
-
-                        overflow:
-                          'hidden',
-
-                        textOverflow:
-                          'ellipsis',
-
-                        whiteSpace:
-                          'nowrap'
-                      }}
-                    >
-                      {
-                        item.subject ||
-                        'General Studies'
-                      }
-
-                      {' • '}
-
-                      {
-                        item.topic ||
-                        'No topic'
-                      }
-
-                      {' • '}
-
-                      {
-                        item.difficulty
-                      }
-                    </small>
-
-                  </div>
-
-
-                  <div
-                    style={{
-                      textAlign:
-                        'right'
-                    }}
-                  >
-
-                    <span
-                      className="tag"
-                    >
-                      Answer {
-                        answer
-                      }
-                    </span>
-
-
-                    <small
-                      style={{
-                        display:
-                          'block',
-
-                        marginTop:
-                          '4px',
-
-                        color:
-                          '#94a3b8',
-
-                        overflow:
-                          'hidden',
-
-                        textOverflow:
-                          'ellipsis',
-
-                        whiteSpace:
-                          'nowrap'
-                      }}
-                    >
-                      {
-                        answerText
-                      }
-                    </small>
-
-                  </div>
-
-                </article>
-
-              );
-            }
+                  Answer {
+                    answerLetter(
+                      item.correct_index
+                    )
+                  }
+                </small>
+              </article>
+            )
           )
         }
-
       </div>
-
-
-      {
-        !showAll &&
-        questions.length >
-        8 && (
-
-        <small
-          style={{
-            display:
-              'block',
-
-            textAlign:
-              'center',
-
-            marginTop:
-              '8px',
-
-            color:
-              '#94a3b8'
-          }}
-        >
-          Showing first 8 of {
-            questions.length
-          } questions
-        </small>
-
-      )}
-
     </section>
   );
 }
@@ -1525,32 +963,25 @@ function DuplicatePreview({
   duplicates:
     DuplicateMatch[];
 }) {
-
   const [
     showAll,
     setShowAll
   ] =
-    useState(
-      false
-    );
-
+    useState(false);
 
   if (
-    duplicates.length ===
-    0
+    duplicates.length === 0
   ) {
     return null;
   }
 
-
-  const visibleDuplicates =
+  const visible =
     showAll
       ? duplicates
       : duplicates.slice(
           0,
           8
         );
-
 
   const databaseCount =
     duplicates.filter(
@@ -1559,7 +990,6 @@ function DuplicatePreview({
         'database'
     ).length;
 
-
   const batchCount =
     duplicates.filter(
       item =>
@@ -1567,9 +997,7 @@ function DuplicatePreview({
         'batch'
     ).length;
 
-
   return (
-
     <section
       style={{
         marginTop:
@@ -1579,90 +1007,179 @@ function DuplicatePreview({
           '12px',
 
         border:
-          '1px solid rgba(251,191,36,.32)',
+          '1px solid rgba(251,191,36,.30)',
 
         borderRadius:
-          '12px',
-
-        background:
-          'rgba(251,191,36,.05)'
+          '12px'
       }}
     >
+      <div>
+        <span
+          className="eyebrow"
+        >
+          DUPLICATE PROTECTION
+        </span>
+
+        <strong
+          style={{
+            display:
+              'block',
+
+            marginTop:
+              '4px'
+          }}
+        >
+          {
+            duplicates.length
+          } duplicate question
+          {
+            duplicates.length ===
+              1
+              ? ''
+              : 's'
+          } blocked
+        </strong>
+
+        <small
+          style={{
+            display:
+              'block',
+
+            marginTop:
+              '4px',
+
+            color:
+              '#94a3b8'
+          }}
+        >
+          Already in database: {
+            databaseCount
+          } • Repeated in this paste: {
+            batchCount
+          }
+        </small>
+      </div>
 
       <div
         style={{
           display:
-            'flex',
-
-          justifyContent:
-            'space-between',
-
-          alignItems:
-            'center',
+            'grid',
 
           gap:
-            '10px',
+            '8px',
 
-          flexWrap:
-            'wrap'
+          marginTop:
+            '10px'
         }}
       >
-
-        <div>
-
-          <span
-            className="eyebrow"
-          >
-            DUPLICATE PROTECTION
-          </span>
-
-
-          <strong
-            style={{
-              display:
-                'block',
-
-              marginTop:
-                '4px'
-            }}
-          >
-            {
-              duplicates.length
-            } duplicate question
-            {
-              duplicates.length ===
-                1
-                ? ''
-                : 's'
-            } blocked
-          </strong>
-
-
-          <small
-            style={{
-              display:
-                'block',
-
-              marginTop:
-                '4px',
-
-              color:
-                '#94a3b8'
-            }}
-          >
-            These questions will not be added again.
-          </small>
-
-        </div>
-
-
         {
-          duplicates.length >
-          8 && (
+          visible.map(
+            (
+              item,
+              index
+            ) => (
+              <article
+                key={
+                  `${
+                    item.reason
+                  }-${
+                    item.question_number
+                  }-${index}`
+                }
+                style={{
+                  padding:
+                    '10px',
 
+                  border:
+                    '1px solid rgba(251,191,36,.18)',
+
+                  borderRadius:
+                    '10px'
+                }}
+              >
+                <div
+                  style={{
+                    display:
+                      'flex',
+
+                    gap:
+                      '6px',
+
+                    flexWrap:
+                      'wrap'
+                  }}
+                >
+                  <span
+                    className="tag"
+                  >
+                    Q{
+                      item.question_number
+                    }
+                  </span>
+
+                  <span
+                    className="tag"
+                  >
+                    {
+                      item.reason ===
+                        'database'
+                        ? 'Already in System'
+                        : 'Repeated in Paste'
+                    }
+                  </span>
+                </div>
+
+                <strong
+                  style={{
+                    display:
+                      'block',
+
+                    marginTop:
+                      '6px'
+                  }}
+                >
+                  {
+                    item.question
+                  }
+                </strong>
+
+                {
+                  item.reason ===
+                    'batch' &&
+                  item.duplicate_of_number && (
+                    <small
+                      style={{
+                        display:
+                          'block',
+
+                        marginTop:
+                          '5px',
+
+                        color:
+                          '#94a3b8'
+                      }}
+                    >
+                      Same as Q{
+                        item.duplicate_of_number
+                      } in this pasted paper.
+                    </small>
+                  )
+                }
+              </article>
+            )
+          )
+        }
+      </div>
+
+      {
+        duplicates.length > 8 && (
           <button
             type="button"
             className="secondary-btn"
+            style={{
+              marginTop:
+                '10px'
+            }}
             onClick={() =>
               setShowAll(
                 current =>
@@ -1678,221 +1195,8 @@ function DuplicatePreview({
                   }`
             }
           </button>
-
-        )}
-
-      </div>
-
-
-      <div
-        style={{
-          display:
-            'grid',
-
-          gridTemplateColumns:
-            'repeat(2, minmax(0, 1fr))',
-
-          gap:
-            '8px',
-
-          marginTop:
-            '10px'
-        }}
-      >
-
-        <div
-          className="callout"
-        >
-
-          <small>
-            Already in Database
-          </small>
-
-          <strong
-            style={{
-              display:
-                'block'
-            }}
-          >
-            {
-              databaseCount
-            }
-          </strong>
-
-        </div>
-
-
-        <div
-          className="callout"
-        >
-
-          <small>
-            Repeated in Current Paste
-          </small>
-
-          <strong
-            style={{
-              display:
-                'block'
-            }}
-          >
-            {
-              batchCount
-            }
-          </strong>
-
-        </div>
-
-      </div>
-
-
-      <div
-        style={{
-          display:
-            'grid',
-
-          gap:
-            '8px',
-
-          marginTop:
-            '10px'
-        }}
-      >
-
-        {
-          visibleDuplicates.map(
-            (
-              item,
-              index
-            ) => (
-
-            <article
-              key={
-                `${
-                  item.question_number
-                }-${
-                  item.reason
-                }-${index}`
-              }
-              style={{
-                padding:
-                  '10px',
-
-                border:
-                  '1px solid rgba(251,191,36,.18)',
-
-                borderRadius:
-                  '10px'
-              }}
-            >
-
-              <div
-                style={{
-                  display:
-                    'flex',
-
-                  gap:
-                    '6px',
-
-                  flexWrap:
-                    'wrap'
-                }}
-              >
-
-                <span
-                  className="tag"
-                >
-                  Q{
-                    item.question_number
-                  }
-                </span>
-
-
-                <span
-                  className="tag"
-                >
-                  {
-                    item.reason ===
-                      'database'
-                      ? 'Already in System'
-                      : 'Repeated in Paste'
-                  }
-                </span>
-
-              </div>
-
-
-              <strong
-                style={{
-                  display:
-                    'block',
-
-                  marginTop:
-                    '6px',
-
-                  lineHeight:
-                    1.4
-                }}
-              >
-                {
-                  item.question
-                }
-              </strong>
-
-
-              {
-                item.reason ===
-                  'batch' &&
-                item.duplicate_of_number && (
-
-                <small
-                  style={{
-                    display:
-                      'block',
-
-                    marginTop:
-                      '5px',
-
-                    color:
-                      '#94a3b8'
-                  }}
-                >
-                  Same as Q{
-                    item.duplicate_of_number
-                  } in the current pasted paper.
-                </small>
-
-              )}
-
-
-              {
-                item.reason ===
-                  'database' && (
-
-                <small
-                  style={{
-                    display:
-                      'block',
-
-                    marginTop:
-                      '5px',
-
-                    color:
-                      '#94a3b8'
-                  }}
-                >
-                  This question is already present in the Prelims question bank.
-                </small>
-
-              )}
-
-            </article>
-
-          )
-        }
-
-      </div>
-
+        )
+      }
     </section>
   );
 }
@@ -1903,28 +1207,21 @@ function DuplicatePreview({
    ========================================================= */
 
 export function PrelimsPyqQuickImport() {
-
   const [
     mode,
     setMode
   ] =
-    useState<
-      InputMode
-    >(
+    useState<InputMode>(
       'easy'
     );
-
 
   const [
     origin,
     setOrigin
   ] =
-    useState<
-      ImportOrigin
-    >(
+    useState<ImportOrigin>(
       'cse'
     );
-
 
   const [
     year,
@@ -1934,7 +1231,6 @@ export function PrelimsPyqQuickImport() {
       currentYear()
     );
 
-
   const [
     paper,
     setPaper
@@ -1943,17 +1239,13 @@ export function PrelimsPyqQuickImport() {
       'GS Paper I'
     );
 
-
   const [
     status,
     setStatus
   ] =
-    useState<
-      PublishStatus
-    >(
+    useState<PublishStatus>(
       'published'
     );
-
 
   const [
     source,
@@ -1963,22 +1255,17 @@ export function PrelimsPyqQuickImport() {
       'UPSC Official Paper'
     );
 
-
   const [
     sourceUrl,
     setSourceUrl
   ] =
     useState('');
 
-
   const [
     advancedOpen,
     setAdvancedOpen
   ] =
-    useState(
-      false
-    );
-
+    useState(false);
 
   const [
     examName,
@@ -1986,13 +1273,11 @@ export function PrelimsPyqQuickImport() {
   ] =
     useState('');
 
-
   const [
     stateName,
     setStateName
   ] =
     useState('');
-
 
   const [
     pscName,
@@ -2000,31 +1285,27 @@ export function PrelimsPyqQuickImport() {
   ] =
     useState('');
 
-
   const [
     rawText,
     setRawText
   ] =
     useState('');
 
-
   const [
     validatedQuestions,
     setValidatedQuestions
   ] =
-    useState<
-      QuestionPayload[]
-    >([]);
-
+    useState<QuestionPayload[]>(
+      []
+    );
 
   const [
     duplicateMatches,
     setDuplicateMatches
   ] =
-    useState<
-      DuplicateMatch[]
-    >([]);
-
+    useState<DuplicateMatch[]>(
+      []
+    );
 
   const [
     message,
@@ -2032,49 +1313,36 @@ export function PrelimsPyqQuickImport() {
   ] =
     useState('');
 
-
   const [
     importing,
     setImporting
   ] =
-    useState(
-      false
-    );
-
+    useState(false);
 
   const [
     checkingDuplicates,
     setCheckingDuplicates
   ] =
-    useState(
-      false
-    );
-
+    useState(false);
 
   const [
     result,
     setResult
   ] =
-    useState<
-      ImportResult |
-      null
-    >(
+    useState<ImportResult | null>(
       null
     );
 
 
   function resetValidation():
     void {
-
     setValidatedQuestions(
       []
     );
 
-
     setDuplicateMatches(
       []
     );
-
 
     setResult(
       null
@@ -2084,7 +1352,6 @@ export function PrelimsPyqQuickImport() {
 
   function parseInput():
     QuestionPayload[] {
-
     return mode ===
       'easy'
       ? parseEasyText(
@@ -2099,16 +1366,13 @@ export function PrelimsPyqQuickImport() {
   const detectedCount =
     useMemo(
       () => {
-
         if (
           !rawText.trim()
         ) {
           return 0;
         }
 
-
         try {
-
           return mode ===
             'easy'
             ? parseEasyText(
@@ -2119,10 +1383,8 @@ export function PrelimsPyqQuickImport() {
               ).length;
 
         } catch {
-
           return 0;
         }
-
       },
       [
         rawText,
@@ -2131,31 +1393,25 @@ export function PrelimsPyqQuickImport() {
     );
 
 
-  /* =========================================================
+  /* =======================================================
      DUPLICATE CHECK
-     ========================================================= */
+     ======================================================= */
 
   async function checkDuplicates(
     incoming:
       QuestionPayload[]
   ):
-    Promise<
-      DuplicateCheckResult
-    > {
-
-    if (
-      !supabase
-    ) {
-
+    Promise<DuplicateCheckResult> {
+    if (!supabase) {
       throw new Error(
         'Supabase is not configured.'
       );
     }
 
-
     /*
-     * STEP 1
-     * Check the same pasted paper for repeated questions.
+     * STEP 1:
+     * Detect repeated questions inside
+     * the same pasted batch.
      */
 
     const firstOccurrence =
@@ -2164,40 +1420,34 @@ export function PrelimsPyqQuickImport() {
         QuestionPayload
       >();
 
-
     const batchDuplicates:
       DuplicateMatch[] =
       [];
-
 
     const batchUnique:
       QuestionPayload[] =
       [];
 
-
     for (
       const item
       of incoming
     ) {
-
       const normalized =
         normalizeQuestionText(
           item.question
         );
 
+      if (!normalized) {
+        continue;
+      }
 
       const previous =
         firstOccurrence.get(
           normalized
         );
 
-
-      if (
-        previous
-      ) {
-
+      if (previous) {
         batchDuplicates.push({
-
           question_number:
             item.question_number,
 
@@ -2209,19 +1459,15 @@ export function PrelimsPyqQuickImport() {
 
           duplicate_of_number:
             previous.question_number
-
         });
-
 
         continue;
       }
-
 
       firstOccurrence.set(
         normalized,
         item
       );
-
 
       batchUnique.push(
         item
@@ -2230,8 +1476,8 @@ export function PrelimsPyqQuickImport() {
 
 
     /*
-     * STEP 2
-     * Check all existing Prelims questions.
+     * STEP 2:
+     * Compare with existing Prelims bank.
      */
 
     const {
@@ -2239,9 +1485,7 @@ export function PrelimsPyqQuickImport() {
       error
     } =
       await supabase
-        .from(
-          'questions'
-        )
+        .from('questions')
         .select(
           'id, question'
         )
@@ -2249,28 +1493,18 @@ export function PrelimsPyqQuickImport() {
           'exam_stage',
           'prelims'
         )
-        .limit(
-          10000
-        );
+        .limit(10000);
 
-
-    if (
-      error
-    ) {
-
+    if (error) {
       throw new Error(
         `Unable to check existing questions: ${error.message}`
       );
     }
 
-
     const existingQuestions =
       (
-        data ||
-        []
-      ) as
-        ExistingQuestion[];
-
+        data || []
+      ) as ExistingQuestion[];
 
     const existingMap =
       new Map<
@@ -2278,16 +1512,12 @@ export function PrelimsPyqQuickImport() {
         ExistingQuestion
       >();
 
-
     existingQuestions.forEach(
       item => {
-
         const normalized =
           normalizeQuestionText(
-            item.question ||
-            ''
+            item.question || ''
           );
-
 
         if (
           normalized &&
@@ -2295,7 +1525,6 @@ export function PrelimsPyqQuickImport() {
             normalized
           )
         ) {
-
           existingMap.set(
             normalized,
             item
@@ -2304,40 +1533,30 @@ export function PrelimsPyqQuickImport() {
       }
     );
 
-
     const databaseDuplicates:
       DuplicateMatch[] =
       [];
-
 
     const uniqueQuestions:
       QuestionPayload[] =
       [];
 
-
     for (
       const item
       of batchUnique
     ) {
-
       const normalized =
         normalizeQuestionText(
           item.question
         );
-
 
       const existing =
         existingMap.get(
           normalized
         );
 
-
-      if (
-        existing
-      ) {
-
+      if (existing) {
         databaseDuplicates.push({
-
           question_number:
             item.question_number,
 
@@ -2352,22 +1571,17 @@ export function PrelimsPyqQuickImport() {
 
           existing_question:
             existing.question
-
         });
-
 
         continue;
       }
-
 
       uniqueQuestions.push(
         item
       );
     }
 
-
     return {
-
       uniqueQuestions,
 
       duplicates: [
@@ -2378,120 +1592,91 @@ export function PrelimsPyqQuickImport() {
   }
 
 
-  /* =========================================================
-     VALIDATE + CHECK DUPLICATES
-     ========================================================= */
+  /* =======================================================
+     VALIDATE
+     ======================================================= */
 
   async function validate():
     Promise<void> {
-
-    setResult(
-      null
-    );
-
+    setResult(null);
 
     setDuplicateMatches(
       []
     );
 
+    setCheckingDuplicates(
+      true
+    );
 
     try {
-
       const parsedQuestions =
         parseInput();
-
-
-      setCheckingDuplicates(
-        true
-      );
-
 
       setMessage(
         `Checking ${parsedQuestions.length} questions for duplicates...`
       );
 
-
-      const checkResult =
+      const checked =
         await checkDuplicates(
           parsedQuestions
         );
 
-
       setValidatedQuestions(
-        checkResult.uniqueQuestions
+        checked.uniqueQuestions
       );
-
 
       setDuplicateMatches(
-        checkResult.duplicates
+        checked.duplicates
       );
 
-
       if (
-        checkResult.duplicates.length ===
+        checked.duplicates.length ===
         0
       ) {
-
         setMessage(
-          `✓ ${checkResult.uniqueQuestions.length} questions validated. No duplicates found.`
+          `✓ ${checked.uniqueQuestions.length} questions validated. No duplicates found.`
         );
 
-
-        return;
-      }
-
-
-      if (
-        checkResult.uniqueQuestions.length ===
+      } else if (
+        checked.uniqueQuestions.length ===
         0
       ) {
-
         setMessage(
-          `⚠ All ${parsedQuestions.length} questions are already present or repeated. Nothing new can be imported.`
+          `⚠ All ${parsedQuestions.length} questions are duplicates. Nothing new can be imported.`
         );
 
-
-        return;
+      } else {
+        setMessage(
+          `✓ ${checked.uniqueQuestions.length} new question${
+            checked.uniqueQuestions.length ===
+              1
+              ? ''
+              : 's'
+          } ready. ${checked.duplicates.length} duplicate question${
+            checked.duplicates.length ===
+              1
+              ? ''
+              : 's'
+          } blocked.`
+        );
       }
 
-
-      setMessage(
-        `✓ ${checkResult.uniqueQuestions.length} new question${
-          checkResult.uniqueQuestions.length ===
-            1
-            ? ''
-            : 's'
-        } ready. ${checkResult.duplicates.length} duplicate question${
-          checkResult.duplicates.length ===
-            1
-            ? ''
-            : 's'
-        } blocked.`
-      );
-
-    } catch (
-      error
-    ) {
-
+    } catch (error) {
       setValidatedQuestions(
         []
       );
-
 
       setDuplicateMatches(
         []
       );
 
-
       setMessage(
-        error instanceof
-          Error
+        error instanceof Error
           ? error.message
           : 'Validation failed.'
       );
 
     } finally {
-
       setCheckingDuplicates(
         false
       );
@@ -2499,20 +1684,15 @@ export function PrelimsPyqQuickImport() {
   }
 
 
-  /* =========================================================
-     IMPORT METADATA
-     ========================================================= */
+  /* =======================================================
+     METADATA
+     ======================================================= */
 
   function buildMetadata(
     total: number
   ):
-    Record<
-      string,
-      unknown
-    > {
-
+    Record<string, unknown> {
     const common = {
-
       source:
         source.trim(),
 
@@ -2525,14 +1705,11 @@ export function PrelimsPyqQuickImport() {
         total
     };
 
-
     if (
       origin ===
       'cse'
     ) {
-
       return {
-
         ...common,
 
         pyq_year:
@@ -2546,14 +1723,11 @@ export function PrelimsPyqQuickImport() {
       };
     }
 
-
     if (
       origin ===
       'upsc'
     ) {
-
       return {
-
         ...common,
 
         upsc_exam_name:
@@ -2570,9 +1744,7 @@ export function PrelimsPyqQuickImport() {
       };
     }
 
-
     return {
-
       ...common,
 
       state_psc_state:
@@ -2596,31 +1768,22 @@ export function PrelimsPyqQuickImport() {
   }
 
 
-  /* =========================================================
-     IMPORT PAPER
-     ========================================================= */
+  /* =======================================================
+     IMPORT
+     ======================================================= */
 
   async function importPaper():
     Promise<void> {
-
-    if (
-      !supabase
-    ) {
-
+    if (!supabase) {
       setMessage(
         'Supabase is not configured.'
       );
 
-
       return;
     }
 
-
     const yearNumber =
-      Number(
-        year
-      );
-
+      Number(year);
 
     if (
       !Number.isInteger(
@@ -2629,43 +1792,32 @@ export function PrelimsPyqQuickImport() {
       yearNumber < 1950 ||
       yearNumber > 2100
     ) {
-
       setMessage(
         'Enter a valid examination year.'
       );
 
-
       return;
     }
 
-
-    if (
-      !paper.trim()
-    ) {
-
+    if (!paper.trim()) {
       setMessage(
         'Enter paper name.'
       );
 
-
       return;
     }
-
 
     if (
       origin !==
         'cse' &&
       !examName.trim()
     ) {
-
       setMessage(
         'Enter examination name.'
       );
 
-
       return;
     }
-
 
     if (
       origin ===
@@ -2675,21 +1827,17 @@ export function PrelimsPyqQuickImport() {
         !pscName.trim()
       )
     ) {
-
       setMessage(
         'Enter State and PSC name.'
       );
 
-
       return;
     }
-
 
     if (
       validatedQuestions.length ===
       0
     ) {
-
       setMessage(
         duplicateMatches.length >
           0
@@ -2697,64 +1845,46 @@ export function PrelimsPyqQuickImport() {
           : 'Validate the paper before importing.'
       );
 
-
       return;
     }
 
+    setImporting(true);
 
-    setImporting(
-      true
-    );
-
-
-    setResult(
-      null
-    );
-
-
-    setMessage(
-      'Running final duplicate check...'
-    );
-
+    setResult(null);
 
     try {
-
       /*
-       * SECOND CHECK immediately before writing to DB.
+       * SECOND DUPLICATE CHECK
+       * immediately before import.
        */
+
+      setMessage(
+        'Running final duplicate check...'
+      );
 
       const finalCheck =
         await checkDuplicates(
           validatedQuestions
         );
 
-
       const questions =
         finalCheck.uniqueQuestions;
 
-
-      const allDuplicates = [
+      const combinedDuplicates = [
         ...duplicateMatches,
         ...finalCheck.duplicates
       ];
 
-
-      /*
-       * Avoid displaying the same duplicate twice.
-       */
-
       const seen =
-        new Set<
-          string
-        >();
-
+        new Set<string>();
 
       const cleanDuplicates =
-        allDuplicates.filter(
+        combinedDuplicates.filter(
           item => {
-
             const key =
-              `${item.reason}|${
+              `${
+                item.reason
+              }|${
                 item.question_number
               }|${
                 normalizeQuestionText(
@@ -2762,50 +1892,36 @@ export function PrelimsPyqQuickImport() {
                 )
               }`;
 
-
             if (
-              seen.has(
-                key
-              )
+              seen.has(key)
             ) {
-
               return false;
             }
 
-
-            seen.add(
-              key
-            );
-
+            seen.add(key);
 
             return true;
           }
         );
 
-
       setDuplicateMatches(
         cleanDuplicates
       );
-
 
       setValidatedQuestions(
         questions
       );
 
-
       if (
         questions.length ===
         0
       ) {
-
         setMessage(
-          '⚠ All questions were detected as duplicates. Nothing was imported.'
+          '⚠ All questions are duplicates. Nothing was imported.'
         );
-
 
         return;
       }
-
 
       const confirmed =
         window.confirm(
@@ -2822,77 +1938,59 @@ export function PrelimsPyqQuickImport() {
                     1
                     ? ''
                     : 's'
-                } will NOT be imported.`
+                } will be skipped.`
               : ''
           }`
         );
 
-
-      if (
-        !confirmed
-      ) {
+      if (!confirmed) {
         return;
       }
-
 
       setMessage(
         'Importing new questions...'
       );
 
-
       const {
         data,
         error
       } =
-        await supabase
-          .rpc(
-            'import_prelims_pyq_paper',
-            {
+        await supabase.rpc(
+          'import_prelims_pyq_paper',
+          {
+            p_origin:
+              origin,
 
-              p_origin:
-                origin,
+            p_metadata:
+              buildMetadata(
+                questions.length
+              ),
 
-              p_metadata:
-                buildMetadata(
-                  questions.length
-                ),
+            p_questions:
+              questions
+          }
+        );
 
-              p_questions:
-                questions
-            }
-          );
-
-
-      if (
-        error
-      ) {
-
+      if (error) {
         console.error(
           'PYQ import failed:',
           error
         );
 
-
         setMessage(
           error.message
         );
 
-
         return;
       }
 
-
       const response =
-        isRecord(
-          data
-        )
+        isRecord(data)
           ? data
           : {};
 
-
       const importResult:
         ImportResult = {
-
         total_questions:
           Number(
             response.total_questions ??
@@ -2924,11 +2022,9 @@ export function PrelimsPyqQuickImport() {
           )
       };
 
-
       setResult(
         importResult
       );
-
 
       setMessage(
         `✓ Import completed. ${questions.length} new question${
@@ -2949,44 +2045,34 @@ export function PrelimsPyqQuickImport() {
         }`
       );
 
-    } catch (
-      error
-    ) {
-
+    } catch (error) {
       console.error(
         'PYQ import error:',
         error
       );
 
-
       setMessage(
-        error instanceof
-          Error
+        error instanceof Error
           ? error.message
           : 'Unable to import PYQ paper.'
       );
 
     } finally {
-
-      setImporting(
-        false
-      );
+      setImporting(false);
     }
   }
 
 
-  /* =========================================================
+  /* =======================================================
      SAMPLE
-     ========================================================= */
+     ======================================================= */
 
   function insertSample():
     void {
-
     if (
       mode ===
       'easy'
     ) {
-
       setRawText(
 `1. Which Article of the Constitution guarantees equality before law?
 A. Article 12
@@ -3012,7 +2098,6 @@ Difficulty: Easy`
       );
 
     } else {
-
       setRawText(
         JSON.stringify(
           [
@@ -3057,9 +2142,7 @@ Difficulty: Easy`
       );
     }
 
-
     resetValidation();
-
 
     setMessage(
       'Sample inserted. Validate before import.'
@@ -3067,29 +2150,17 @@ Difficulty: Easy`
   }
 
 
-  /* =========================================================
-     CLEAR
-     ========================================================= */
-
   function clearInput():
     void {
-
-    setRawText(
-      ''
-    );
-
+    setRawText('');
 
     resetValidation();
 
-
-    setMessage(
-      ''
-    );
+    setMessage('');
   }
 
 
   const compactGrid = {
-
     display:
       'grid',
 
@@ -3101,12 +2172,11 @@ Difficulty: Easy`
   };
 
 
-  /* =========================================================
+  /* =======================================================
      UI
-     ========================================================= */
+     ======================================================= */
 
   return (
-
     <section
       className="panel"
       style={{
@@ -3114,7 +2184,6 @@ Difficulty: Easy`
           '16px'
       }}
     >
-
       <div
         style={{
           display:
@@ -3130,15 +2199,12 @@ Difficulty: Easy`
             'wrap'
         }}
       >
-
         <div>
-
           <span
             className="eyebrow"
           >
             QUICK PYQ IMPORT
           </span>
-
 
           <h2
             style={{
@@ -3149,18 +2215,15 @@ Difficulty: Easy`
             Import Complete Prelims Paper
           </h2>
 
-
           <small
             style={{
               color:
                 '#94a3b8'
             }}
           >
-            Duplicate questions are checked against the complete Prelims question bank before import.
+            Questions are checked for duplicates before import.
           </small>
-
         </div>
-
 
         <button
           type="button"
@@ -3178,13 +2241,8 @@ Difficulty: Easy`
               : 'More Details'
           }
         </button>
-
       </div>
 
-
-      {/* =====================================================
-          EXAM DETAILS
-          ===================================================== */}
 
       <div
         style={{
@@ -3194,9 +2252,7 @@ Difficulty: Easy`
             '12px'
         }}
       >
-
         <label>
-
           Origin
 
           <select
@@ -3205,78 +2261,50 @@ Difficulty: Easy`
             }
             onChange={
               event => {
-
                 const next =
-                  event
-                    .target
-                    .value as
-                    ImportOrigin;
+                  event.target
+                    .value as ImportOrigin;
 
-
-                setOrigin(
-                  next
-                );
-
+                setOrigin(next);
 
                 resetValidation();
 
-
-                setMessage(
-                  ''
-                );
-
+                setMessage('');
 
                 if (
                   next ===
                   'cse'
                 ) {
-
                   setPaper(
                     'GS Paper I'
                   );
-
 
                   setSource(
                     'UPSC Official Paper'
                   );
 
                 } else {
-
-                  setPaper(
-                    ''
-                  );
+                  setPaper('');
                 }
               }
             }
           >
-
-            <option
-              value="cse"
-            >
+            <option value="cse">
               UPSC CSE
             </option>
 
-
-            <option
-              value="upsc"
-            >
+            <option value="upsc">
               Other UPSC
             </option>
 
-
-            <option
-              value="state"
-            >
+            <option value="state">
               State PSC
             </option>
-
           </select>
-
         </label>
 
 
         <label>
-
           Year
 
           <input
@@ -3288,105 +2316,73 @@ Difficulty: Easy`
             }
             onChange={
               event => {
-
                 setYear(
                   event.target.value
                 );
 
-
                 resetValidation();
-
-
-                setMessage(
-                  ''
-                );
               }
             }
           />
-
         </label>
 
 
         <label>
-
           Paper
 
           {
             origin ===
               'cse'
               ? (
-
                 <select
                   value={
                     paper
                   }
                   onChange={
                     event => {
-
                       setPaper(
                         event.target.value
                       );
 
-
                       resetValidation();
-
-
-                      setMessage(
-                        ''
-                      );
                     }
                   }
                 >
-
                   <option
                     value="GS Paper I"
                   >
                     GS Paper I
                   </option>
 
-
                   <option
                     value="CSAT Paper II"
                   >
                     CSAT Paper II
                   </option>
-
                 </select>
-
               )
               : (
-
                 <input
                   value={
                     paper
                   }
                   onChange={
                     event => {
-
                       setPaper(
                         event.target.value
                       );
 
-
                       resetValidation();
-
-
-                      setMessage(
-                        ''
-                      );
                     }
                   }
                   placeholder="Paper name"
                 />
-
               )
           }
-
         </label>
 
 
         <label>
-
           Status
 
           <select
@@ -3396,204 +2392,161 @@ Difficulty: Easy`
             onChange={
               event =>
                 setStatus(
-                  event
-                    .target
-                    .value as
-                    PublishStatus
+                  event.target
+                    .value as PublishStatus
                 )
             }
           >
-
             <option
               value="published"
             >
               Published
             </option>
 
-
             <option
               value="draft"
             >
               Draft
             </option>
-
           </select>
-
         </label>
-
       </div>
 
-
-      {/* OTHER UPSC / STATE PSC */}
 
       {
         origin !==
           'cse' && (
+          <div
+            style={{
+              ...compactGrid,
 
-        <div
-          style={{
-            ...compactGrid,
+              marginTop:
+                '8px'
+            }}
+          >
+            {
+              origin ===
+                'state' && (
+                <>
+                  <label>
+                    State
 
-            marginTop:
-              '8px'
-          }}
-        >
+                    <input
+                      value={
+                        stateName
+                      }
+                      onChange={
+                        event => {
+                          setStateName(
+                            event.target.value
+                          );
 
-          {
-            origin ===
-              'state' && (
+                          resetValidation();
+                        }
+                      }
+                      placeholder="Maharashtra"
+                    />
+                  </label>
 
-            <>
+                  <label>
+                    PSC
 
-              <label>
+                    <input
+                      value={
+                        pscName
+                      }
+                      onChange={
+                        event => {
+                          setPscName(
+                            event.target.value
+                          );
 
-                State
+                          resetValidation();
+                        }
+                      }
+                      placeholder="MPSC"
+                    />
+                  </label>
+                </>
+              )
+            }
 
-                <input
-                  value={
-                    stateName
-                  }
-                  onChange={
-                    event => {
+            <label>
+              Examination
 
-                      setStateName(
-                        event.target.value
-                      );
-
-
-                      resetValidation();
-                    }
-                  }
-                  placeholder="Maharashtra"
-                />
-
-              </label>
-
-
-              <label>
-
-                PSC
-
-                <input
-                  value={
-                    pscName
-                  }
-                  onChange={
-                    event => {
-
-                      setPscName(
-                        event.target.value
-                      );
-
-
-                      resetValidation();
-                    }
-                  }
-                  placeholder="MPSC"
-                />
-
-              </label>
-
-            </>
-
-          )}
-
-
-          <label>
-
-            Examination
-
-            <input
-              value={
-                examName
-              }
-              onChange={
-                event => {
-
-                  setExamName(
-                    event.target.value
-                  );
-
-
-                  resetValidation();
+              <input
+                value={
+                  examName
                 }
-              }
-              placeholder={
-                origin ===
-                  'state'
-                  ? 'State Services'
-                  : 'CAPF / CDS / NDA'
-              }
-            />
+                onChange={
+                  event => {
+                    setExamName(
+                      event.target.value
+                    );
 
-          </label>
+                    resetValidation();
+                  }
+                }
+                placeholder={
+                  origin ===
+                    'state'
+                    ? 'State Services'
+                    : 'CAPF / CDS / NDA'
+                }
+              />
+            </label>
+          </div>
+        )
+      }
 
-        </div>
-
-      )}
-
-
-      {/* ADVANCED */}
 
       {
         advancedOpen && (
+          <div
+            style={{
+              ...compactGrid,
 
-        <div
-          style={{
-            ...compactGrid,
+              marginTop:
+                '8px'
+            }}
+          >
+            <label>
+              Source
 
-            marginTop:
-              '8px'
-          }}
-        >
+              <input
+                value={
+                  source
+                }
+                onChange={
+                  event =>
+                    setSource(
+                      event.target.value
+                    )
+                }
+              />
+            </label>
 
-          <label>
+            <label>
+              Source URL
 
-            Source
+              <input
+                type="url"
+                value={
+                  sourceUrl
+                }
+                onChange={
+                  event =>
+                    setSourceUrl(
+                      event.target.value
+                    )
+                }
+                placeholder="https://..."
+              />
+            </label>
+          </div>
+        )
+      }
 
-            <input
-              value={
-                source
-              }
-              onChange={
-                event =>
-                  setSource(
-                    event.target.value
-                  )
-              }
-            />
-
-          </label>
-
-
-          <label>
-
-            Source URL
-
-            <input
-              type="url"
-              value={
-                sourceUrl
-              }
-              onChange={
-                event =>
-                  setSourceUrl(
-                    event.target.value
-                  )
-              }
-              placeholder="https://..."
-            />
-
-          </label>
-
-        </div>
-
-      )}
-
-
-      {/* =====================================================
-          INPUT MODE
-          ===================================================== */}
 
       <div
         style={{
@@ -3610,7 +2563,6 @@ Difficulty: Easy`
             '12px'
         }}
       >
-
         <button
           type="button"
           className={
@@ -3620,25 +2572,16 @@ Difficulty: Easy`
               : 'filter'
           }
           onClick={() => {
-
-            setMode(
-              'easy'
-            );
-
+            setMode('easy');
 
             resetValidation();
 
-
-            setMessage(
-              ''
-            );
-
+            setMessage('');
           }}
         >
           Easy Paste
         </button>
 
-
         <button
           type="button"
           className={
@@ -3648,30 +2591,17 @@ Difficulty: Easy`
               : 'filter'
           }
           onClick={() => {
-
-            setMode(
-              'json'
-            );
-
+            setMode('json');
 
             resetValidation();
 
-
-            setMessage(
-              ''
-            );
-
+            setMessage('');
           }}
         >
           JSON
         </button>
-
       </div>
 
-
-      {/* =====================================================
-          QUESTION INPUT
-          ===================================================== */}
 
       <div
         style={{
@@ -3697,7 +2627,6 @@ Difficulty: Easy`
             '6px'
         }}
       >
-
         <strong>
           {
             mode ===
@@ -3706,7 +2635,6 @@ Difficulty: Easy`
               : 'Paste Question JSON'
           }
         </strong>
-
 
         <div
           style={{
@@ -3720,21 +2648,17 @@ Difficulty: Easy`
               'center'
           }}
         >
-
           {
-            detectedCount >
-            0 && (
-
-            <span
-              className="tag"
-            >
-              {
-                detectedCount
-              } detected
-            </span>
-
-          )}
-
+            detectedCount > 0 && (
+              <span
+                className="tag"
+              >
+                {
+                  detectedCount
+                } detected
+              </span>
+            )
+          }
 
           <button
             type="button"
@@ -3745,36 +2669,25 @@ Difficulty: Easy`
           >
             Sample
           </button>
-
         </div>
-
       </div>
 
 
       <textarea
-        rows={
-          12
-        }
-        spellCheck={
-          false
-        }
+        rows={12}
+        spellCheck={false}
         value={
           rawText
         }
         onChange={
           event => {
-
             setRawText(
               event.target.value
             );
 
-
             resetValidation();
 
-
-            setMessage(
-              ''
-            );
+            setMessage('');
           }
         }
         placeholder={
@@ -3795,11 +2708,7 @@ Difficulty: Medium`
     "question_number": "1",
     "question": "...",
     "options": ["A", "B", "C", "D"],
-    "correct_index": 0,
-    "explanation": "...",
-    "subject": "Polity",
-    "topic": "Constitution",
-    "difficulty": "medium"
+    "correct_index": 0
   }
 ]`
         }
@@ -3825,27 +2734,20 @@ Difficulty: Medium`
       />
 
 
-      {/* MESSAGE */}
-
       {
         message && (
+          <div
+            className="callout"
+            style={{
+              marginTop:
+                '10px'
+            }}
+          >
+            {message}
+          </div>
+        )
+      }
 
-        <div
-          className="callout"
-          style={{
-            marginTop:
-              '10px'
-          }}
-        >
-          {
-            message
-          }
-        </div>
-
-      )}
-
-
-      {/* DUPLICATES */}
 
       <DuplicatePreview
         duplicates={
@@ -3854,141 +2756,118 @@ Difficulty: Medium`
       />
 
 
-      {/* NEW QUESTIONS */}
-
       {
         validatedQuestions.length >
         0 && (
+          <PyqImportPreview
+            questions={
+              validatedQuestions
+            }
+          />
+        )
+      }
 
-        <PyqImportPreview
-          questions={
-            validatedQuestions
-          }
-        />
-
-      )}
-
-
-      {/* IMPORT RESULT */}
 
       {
         result && (
-
-        <div
-          style={{
-            display:
-              'grid',
-
-            gridTemplateColumns:
-              'repeat(4, minmax(0, 1fr))',
-
-            gap:
-              '8px',
-
-            marginTop:
-              '10px'
-          }}
-        >
-
           <div
-            className="callout"
+            style={{
+              display:
+                'grid',
+
+              gridTemplateColumns:
+                'repeat(4, minmax(0, 1fr))',
+
+              gap:
+                '8px',
+
+              marginTop:
+                '10px'
+            }}
           >
-
-            <small>
-              New
-            </small>
-
-            <strong
-              style={{
-                display:
-                  'block'
-              }}
+            <div
+              className="callout"
             >
-              {
-                result.created_new ??
-                0
-              }
-            </strong>
+              <small>
+                New
+              </small>
 
-          </div>
+              <strong
+                style={{
+                  display:
+                    'block'
+                }}
+              >
+                {
+                  result.created_new ??
+                  0
+                }
+              </strong>
+            </div>
 
-
-          <div
-            className="callout"
-          >
-
-            <small>
-              Linked
-            </small>
-
-            <strong
-              style={{
-                display:
-                  'block'
-              }}
+            <div
+              className="callout"
             >
-              {
-                result.linked_existing ??
-                0
-              }
-            </strong>
+              <small>
+                Linked
+              </small>
 
-          </div>
+              <strong
+                style={{
+                  display:
+                    'block'
+                }}
+              >
+                {
+                  result.linked_existing ??
+                  0
+                }
+              </strong>
+            </div>
 
-
-          <div
-            className="callout"
-          >
-
-            <small>
-              Existing
-            </small>
-
-            <strong
-              style={{
-                display:
-                  'block'
-              }}
+            <div
+              className="callout"
             >
-              {
-                result.already_linked ??
-                0
-              }
-            </strong>
+              <small>
+                Existing
+              </small>
 
-          </div>
+              <strong
+                style={{
+                  display:
+                    'block'
+                }}
+              >
+                {
+                  result.already_linked ??
+                  0
+                }
+              </strong>
+            </div>
 
-
-          <div
-            className="callout"
-          >
-
-            <small>
-              Review
-            </small>
-
-            <strong
-              style={{
-                display:
-                  'block'
-              }}
+            <div
+              className="callout"
             >
-              {
-                result.needs_review ??
-                0
-              }
-            </strong>
+              <small>
+                Review
+              </small>
 
+              <strong
+                style={{
+                  display:
+                    'block'
+                }}
+              >
+                {
+                  result.needs_review ??
+                  0
+                }
+              </strong>
+            </div>
           </div>
+        )
+      }
 
-        </div>
-
-      )}
-
-
-      {/* =====================================================
-          BUTTONS
-          ===================================================== */}
 
       <div
         style={{
@@ -4011,7 +2890,6 @@ Difficulty: Medium`
             '12px'
         }}
       >
-
         <button
           type="button"
           className="secondary-btn"
@@ -4026,7 +2904,6 @@ Difficulty: Medium`
           Clear
         </button>
 
-
         <div
           style={{
             display:
@@ -4039,7 +2916,6 @@ Difficulty: Medium`
               'wrap'
           }}
         >
-
           <button
             type="button"
             className="secondary-btn"
@@ -4058,7 +2934,6 @@ Difficulty: Medium`
                 : 'Validate & Check Duplicates'
             }
           </button>
-
 
           <button
             type="button"
@@ -4089,11 +2964,8 @@ Difficulty: Medium`
                 : 'Validate Before Import'
             }
           </button>
-
         </div>
-
       </div>
-
     </section>
   );
 }
