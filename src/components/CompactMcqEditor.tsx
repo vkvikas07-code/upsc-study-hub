@@ -2811,107 +2811,107 @@ export function CompactMcqEditor() {
             }}
           >
 
-            <div
-              style={
-                compactGrid
-              }
-            >
+           <div
+  style={
+    compactGrid
+  }
+>
 
-              <label>
+  <label>
 
-                Origin
+    Origin
 
-                <select
-                  value={
-                    questionOrigin
-                  }
-                  onChange={
-                    event =>
-                      setQuestionOrigin(
-                        event.target.value as
-                          QuestionOrigin
-                      )
-                  }
-                >
+    <select
+      value={
+        questionOrigin
+      }
+      onChange={
+        event =>
+          setQuestionOrigin(
+            event.target.value as
+              QuestionOrigin
+          )
+      }
+    >
 
-                  <option value="general">
-                    CSE / General
-                  </option>
+      <option value="general">
+        CSE / General
+      </option>
 
-                  <option value="upsc">
-                    Other UPSC
-                  </option>
+      <option value="upsc">
+        Other UPSC
+      </option>
 
-                  <option value="state_psc">
-                    State PSC
-                  </option>
+      <option value="state_psc">
+        State PSC
+      </option>
 
-                </select>
+    </select>
 
-              </label>
-
-
-              <label>
-
-                Tags
-
-                <input
-                  value={
-                    tagsText
-                  }
-                  onChange={
-                    event =>
-                      setTagsText(
-                        event.target.value
-                      )
-                  }
-                  placeholder="CSAT, Mathematics, Ratio"
-                />
-
-              </label>
+  </label>
 
 
-              <label>
+  <label>
 
-                Source
+    Source
 
-                <input
-                  value={
-                    source
-                  }
-                  onChange={
-                    event =>
-                      setSource(
-                        event.target.value
-                      )
-                  }
-                  placeholder="UPSC Official Paper"
-                />
+    <input
+      value={
+        source
+      }
+      onChange={
+        event =>
+          setSource(
+            event.target.value
+          )
+      }
+      placeholder="UPSC Official Paper"
+    />
 
-              </label>
+  </label>
 
 
-              <label>
+  <label>
 
-                Source URL
+    Source URL
 
-                <input
-                  type="url"
-                  value={
-                    sourceUrl
-                  }
-                  onChange={
-                    event =>
-                      setSourceUrl(
-                        event.target.value
-                      )
-                  }
-                  placeholder="https://..."
-                />
+    <input
+      type="url"
+      value={
+        sourceUrl
+      }
+      onChange={
+        event =>
+          setSourceUrl(
+            event.target.value
+          )
+      }
+      placeholder="https://..."
+    />
 
-              </label>
+  </label>
 
-            </div>
+
+  <label>
+
+    Tags
+
+    <input
+      value={
+        tagsText
+      }
+      onChange={
+        event =>
+          setTagsText(
+            event.target.value
+          )
+      }
+      placeholder="CSAT, Mathematics, Ratio"
+    />
+
+  </label>
+
+</div>
 
 
             {
