@@ -22,6 +22,10 @@ import {
   uploadPrelimsExplanationImages
 } from '../lib/prelimsImages';
 
+import {
+  MathText
+} from './MathText';
+
 
 type Difficulty =
   | 'easy'
@@ -105,7 +109,8 @@ const QUESTION_SELECT = `
 `;
 
 
-const MAX_EXPLANATION_IMAGES = 6;
+const MAX_EXPLANATION_IMAGES =
+  6;
 
 
 const SUBJECTS = [
@@ -127,39 +132,67 @@ const SUBJECTS = [
 function safeArray(
   value: unknown
 ): string[] {
-  if (!Array.isArray(value)) {
+
+  if (
+    !Array.isArray(
+      value
+    )
+  ) {
     return [];
   }
 
   return value
-    .map(item => String(item))
-    .filter(Boolean);
+    .map(
+      item =>
+        String(
+          item
+        )
+    )
+    .filter(
+      Boolean
+    );
 }
 
 
 function normalizeQuestionText(
   value: string
 ): string {
+
   return value
-    .normalize('NFKC')
+    .normalize(
+      'NFKC'
+    )
     .toLowerCase()
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
+    .replace(
+      /[“”]/g,
+      '"'
+    )
+    .replace(
+      /[‘’]/g,
+      "'"
+    )
     .replace(
       /[.,!?;:()[\]{}"'“”‘’\-–—_/\\]+/g,
       ' '
     )
-    .replace(/\s+/g, ' ')
+    .replace(
+      /\s+/g,
+      ' '
+    )
     .trim();
 }
 
 
 export function CompactMcqEditor() {
+
   const [
     recentQuestions,
     setRecentQuestions
   ] =
-    useState<RecentQuestion[]>([]);
+    useState<
+      RecentQuestion[]
+    >([]);
+
 
   const [
     editingId,
@@ -167,11 +200,13 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     question,
     setQuestion
   ] =
     useState('');
+
 
   const [
     optionA,
@@ -179,11 +214,13 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     optionB,
     setOptionB
   ] =
     useState('');
+
 
   const [
     optionC,
@@ -191,11 +228,13 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     optionD,
     setOptionD
   ] =
     useState('');
+
 
   const [
     correctIndex,
@@ -203,41 +242,61 @@ export function CompactMcqEditor() {
   ] =
     useState(0);
 
+
   const [
     explanation,
     setExplanation
   ] =
     useState('');
 
+
   const [
     pendingExplanationImages,
     setPendingExplanationImages
   ] =
-    useState<PendingNoteImage[]>([]);
+    useState<
+      PendingNoteImage[]
+    >([]);
+
 
   const [
     existingExplanationImagePaths,
     setExistingExplanationImagePaths
   ] =
-    useState<string[]>([]);
+    useState<
+      string[]
+    >([]);
+
 
   const [
     removedExplanationImagePaths,
     setRemovedExplanationImagePaths
   ] =
-    useState<string[]>([]);
+    useState<
+      string[]
+    >([]);
+
 
   const [
     explanationImageUrls,
     setExplanationImageUrls
   ] =
-    useState<Record<string, string>>({});
+    useState<
+      Record<
+        string,
+        string
+      >
+    >({});
+
 
   const [
     subject,
     setSubject
   ] =
-    useState('Polity');
+    useState(
+      'Polity'
+    );
+
 
   const [
     topic,
@@ -245,23 +304,37 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     paper,
     setPaper
   ] =
-    useState('GS-I');
+    useState(
+      'GS-I'
+    );
+
 
   const [
     difficulty,
     setDifficulty
   ] =
-    useState<Difficulty>('medium');
+    useState<
+      Difficulty
+    >(
+      'medium'
+    );
+
 
   const [
     status,
     setStatus
   ] =
-    useState<QuestionStatus>('published');
+    useState<
+      QuestionStatus
+    >(
+      'published'
+    );
+
 
   const [
     tagsText,
@@ -269,11 +342,15 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     isPyq,
     setIsPyq
   ] =
-    useState(false);
+    useState(
+      false
+    );
+
 
   const [
     pyqYear,
@@ -281,11 +358,17 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     questionOrigin,
     setQuestionOrigin
   ] =
-    useState<QuestionOrigin>('general');
+    useState<
+      QuestionOrigin
+    >(
+      'general'
+    );
+
 
   const [
     source,
@@ -293,11 +376,13 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     sourceUrl,
     setSourceUrl
   ] =
     useState('');
+
 
   const [
     upscExamName,
@@ -305,11 +390,13 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     upscExamCycle,
     setUpscExamCycle
   ] =
     useState('');
+
 
   const [
     upscExamStage,
@@ -317,11 +404,13 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     upscExamPaper,
     setUpscExamPaper
   ] =
     useState('');
+
 
   const [
     upscExamYear,
@@ -329,11 +418,13 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     statePscState,
     setStatePscState
   ] =
     useState('');
+
 
   const [
     statePscName,
@@ -341,11 +432,13 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     statePscExamName,
     setStatePscExamName
   ] =
     useState('');
+
 
   const [
     statePscYear,
@@ -353,11 +446,13 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     statePscStage,
     setStatePscStage
   ] =
     useState('');
+
 
   const [
     statePscPaper,
@@ -365,17 +460,24 @@ export function CompactMcqEditor() {
   ] =
     useState('');
 
+
   const [
     advancedOpen,
     setAdvancedOpen
   ] =
-    useState(false);
+    useState(
+      false
+    );
+
 
   const [
     saving,
     setSaving
   ] =
-    useState(false);
+    useState(
+      false
+    );
+
 
   const [
     message,
@@ -384,32 +486,47 @@ export function CompactMcqEditor() {
     useState('');
 
 
-  function clearPendingImagePreviews(): void {
+  function clearPendingImagePreviews():
+    void {
+
     pendingExplanationImages.forEach(
       image => {
+
         URL.revokeObjectURL(
           image.previewUrl
         );
+
       }
     );
 
-    setPendingExplanationImages([]);
+
+    setPendingExplanationImages(
+      []
+    );
   }
 
 
   async function loadRecentQuestions():
     Promise<void> {
-    if (!supabase) {
+
+    if (
+      !supabase
+    ) {
       return;
     }
+
 
     const {
       data,
       error
     } =
       await supabase
-        .from('questions')
-        .select(QUESTION_SELECT)
+        .from(
+          'questions'
+        )
+        .select(
+          QUESTION_SELECT
+        )
         .eq(
           'exam_stage',
           'prelims'
@@ -417,29 +534,41 @@ export function CompactMcqEditor() {
         .order(
           'created_at',
           {
-            ascending: false
+            ascending:
+              false
           }
         )
-        .limit(50);
+        .limit(
+          50
+        );
 
-    if (error) {
+
+    if (
+      error
+    ) {
+
       console.error(
         'Unable to load recent questions:',
         error
       );
 
+
       setMessage(
         error.message
       );
 
+
       return;
     }
 
+
     const loaded =
       (
-        data || []
+        data ||
+        []
       ).map(
         item => ({
+
           ...item,
 
           options:
@@ -456,8 +585,11 @@ export function CompactMcqEditor() {
             safeArray(
               item.explanation_image_paths
             )
+
         })
-      ) as RecentQuestion[];
+      ) as
+        RecentQuestion[];
+
 
     setRecentQuestions(
       loaded
@@ -467,15 +599,20 @@ export function CompactMcqEditor() {
 
   useEffect(
     () => {
+
       void loadRecentQuestions();
+
     },
     []
   );
 
 
   function resetForm(
-    keepMessage = false
-  ): void {
+    keepMessage =
+      false
+  ):
+    void {
+
     clearPendingImagePreviews();
 
     setEditingId('');
@@ -552,8 +689,14 @@ export function CompactMcqEditor() {
       false
     );
 
-    if (!keepMessage) {
-      setMessage('');
+
+    if (
+      !keepMessage
+    ) {
+
+      setMessage(
+        ''
+      );
     }
   }
 
@@ -562,90 +705,139 @@ export function CompactMcqEditor() {
     id: string
   ):
     Promise<void> {
-    setEditingId(id);
 
-    if (!id) {
+    setEditingId(
+      id
+    );
+
+
+    if (
+      !id
+    ) {
+
       resetForm();
 
       return;
     }
 
+
     const item =
       recentQuestions.find(
         row =>
-          row.id === id
+          row.id ===
+          id
       );
 
-    if (!item) {
+
+    if (
+      !item
+    ) {
       return;
     }
 
+
     clearPendingImagePreviews();
 
+
     const options =
-      item.options || [];
+      item.options ||
+      [];
+
 
     setQuestion(
-      item.question || ''
+      item.question ||
+      ''
     );
+
 
     setOptionA(
-      options[0] || ''
+      options[
+        0
+      ] ||
+      ''
     );
+
 
     setOptionB(
-      options[1] || ''
+      options[
+        1
+      ] ||
+      ''
     );
+
 
     setOptionC(
-      options[2] || ''
+      options[
+        2
+      ] ||
+      ''
     );
 
+
     setOptionD(
-      options[3] || ''
+      options[
+        3
+      ] ||
+      ''
     );
+
 
     setCorrectIndex(
       Number(
-        item.correct_index || 0
+        item.correct_index ||
+        0
       )
     );
 
+
     setExplanation(
-      item.explanation || ''
+      item.explanation ||
+      ''
     );
+
 
     const imagePaths =
       safeArray(
         item.explanation_image_paths
       );
 
+
     setExistingExplanationImagePaths(
       imagePaths
     );
+
 
     setRemovedExplanationImagePaths(
       []
     );
 
+
     if (
-      imagePaths.length > 0
+      imagePaths.length >
+      0
     ) {
+
       try {
+
         const urls =
           await createPrelimsExplanationImageUrls(
             imagePaths
           );
 
+
         setExplanationImageUrls(
           urls
         );
 
-      } catch (error) {
+      } catch (
+        error
+      ) {
+
         console.error(
           'Unable to load explanation image previews:',
           error
         );
+
 
         setExplanationImageUrls(
           {}
@@ -653,44 +845,59 @@ export function CompactMcqEditor() {
       }
 
     } else {
+
       setExplanationImageUrls(
         {}
       );
     }
 
+
     setSubject(
-      item.subject || 'Polity'
+      item.subject ||
+      'Polity'
     );
+
 
     setTopic(
-      item.topic || ''
+      item.topic ||
+      ''
     );
 
+
     setPaper(
-      item.paper || 'GS-I'
+      item.paper ||
+      'GS-I'
     );
+
 
     setDifficulty(
       item.difficulty ||
       'medium'
     );
 
+
     setStatus(
       item.status ||
       'draft'
     );
 
+
     setTagsText(
       (
-        item.tags || []
-      ).join(', ')
+        item.tags ||
+        []
+      ).join(
+        ', '
+      )
     );
+
 
     setIsPyq(
       Boolean(
         item.is_pyq
       )
     );
+
 
     setPyqYear(
       item.pyq_year
@@ -700,19 +907,25 @@ export function CompactMcqEditor() {
         : ''
     );
 
+
     setSource(
-      item.source || ''
+      item.source ||
+      ''
     );
 
+
     setSourceUrl(
-      item.source_url || ''
+      item.source_url ||
+      ''
     );
+
 
     if (
       item.state_psc_state ||
       item.state_psc_name ||
       item.state_psc_exam_name
     ) {
+
       setQuestionOrigin(
         'state_psc'
       );
@@ -720,35 +933,42 @@ export function CompactMcqEditor() {
     } else if (
       item.upsc_exam_name
     ) {
+
       setQuestionOrigin(
         'upsc'
       );
 
     } else {
+
       setQuestionOrigin(
         'general'
       );
     }
+
 
     setUpscExamName(
       item.upsc_exam_name ||
       ''
     );
 
+
     setUpscExamCycle(
       item.upsc_exam_cycle ||
       ''
     );
+
 
     setUpscExamStage(
       item.upsc_exam_stage ||
       ''
     );
 
+
     setUpscExamPaper(
       item.upsc_exam_paper ||
       ''
     );
+
 
     setUpscExamYear(
       item.upsc_exam_year
@@ -758,20 +978,24 @@ export function CompactMcqEditor() {
         : ''
     );
 
+
     setStatePscState(
       item.state_psc_state ||
       ''
     );
+
 
     setStatePscName(
       item.state_psc_name ||
       ''
     );
 
+
     setStatePscExamName(
       item.state_psc_exam_name ||
       ''
     );
+
 
     setStatePscYear(
       item.state_psc_year
@@ -781,19 +1005,23 @@ export function CompactMcqEditor() {
         : ''
     );
 
+
     setStatePscStage(
       item.state_psc_stage ||
       ''
     );
+
 
     setStatePscPaper(
       item.state_psc_paper ||
       ''
     );
 
+
     setAdvancedOpen(
       true
     );
+
 
     setMessage(
       'Question loaded for editing.'
@@ -805,18 +1033,25 @@ export function CompactMcqEditor() {
     event: FormEvent
   ):
     Promise<void> {
+
     event.preventDefault();
+
 
     const client =
       supabase;
 
-    if (!client) {
+
+    if (
+      !client
+    ) {
+
       setMessage(
         'Supabase is not configured.'
       );
 
       return;
     }
+
 
     const options = [
       optionA.trim(),
@@ -825,7 +1060,11 @@ export function CompactMcqEditor() {
       optionD.trim()
     ];
 
-    if (!question.trim()) {
+
+    if (
+      !question.trim()
+    ) {
+
       setMessage(
         'Enter the question.'
       );
@@ -833,12 +1072,14 @@ export function CompactMcqEditor() {
       return;
     }
 
+
     if (
       options.some(
         option =>
           !option
       )
     ) {
+
       setMessage(
         'All four options are required.'
       );
@@ -846,7 +1087,11 @@ export function CompactMcqEditor() {
       return;
     }
 
-    if (!explanation.trim()) {
+
+    if (
+      !explanation.trim()
+    ) {
+
       setMessage(
         'Add an explanation.'
       );
@@ -854,7 +1099,11 @@ export function CompactMcqEditor() {
       return;
     }
 
-    if (!subject.trim()) {
+
+    if (
+      !subject.trim()
+    ) {
+
       setMessage(
         'Select the subject.'
       );
@@ -862,11 +1111,13 @@ export function CompactMcqEditor() {
       return;
     }
 
+
     if (
       existingExplanationImagePaths.length +
       pendingExplanationImages.length >
       MAX_EXPLANATION_IMAGES
     ) {
+
       setMessage(
         `Maximum ${MAX_EXPLANATION_IMAGES} explanation images are allowed.`
       );
@@ -874,10 +1125,12 @@ export function CompactMcqEditor() {
       return;
     }
 
+
     if (
       isPyq &&
       !pyqYear.trim()
     ) {
+
       setMessage(
         'Enter the PYQ year.'
       );
@@ -885,17 +1138,20 @@ export function CompactMcqEditor() {
       return;
     }
 
+
     if (
       questionOrigin ===
         'upsc' &&
       !upscExamName.trim()
     ) {
+
       setMessage(
         'Enter the UPSC examination name.'
       );
 
       return;
     }
+
 
     if (
       questionOrigin ===
@@ -906,6 +1162,7 @@ export function CompactMcqEditor() {
         !statePscExamName.trim()
       )
     ) {
+
       setMessage(
         'Enter State, PSC and examination name.'
       );
@@ -915,7 +1172,7 @@ export function CompactMcqEditor() {
 
 
     /* ======================================================
-       DUPLICATE QUESTION PROTECTION
+       DUPLICATE PROTECTION
        ====================================================== */
 
     const normalizedCurrentQuestion =
@@ -923,9 +1180,11 @@ export function CompactMcqEditor() {
         question
       );
 
+
     setMessage(
       'Checking for duplicate question...'
     );
+
 
     const {
       data:
@@ -935,7 +1194,9 @@ export function CompactMcqEditor() {
         duplicateCheckError
     } =
       await client
-        .from('questions')
+        .from(
+          'questions'
+        )
         .select(
           'id, question'
         )
@@ -943,62 +1204,82 @@ export function CompactMcqEditor() {
           'exam_stage',
           'prelims'
         )
-        .limit(10000);
+        .limit(
+          10000
+        );
 
-    if (duplicateCheckError) {
+
+    if (
+      duplicateCheckError
+    ) {
+
       console.error(
         'Duplicate question check failed:',
         duplicateCheckError
       );
 
+
       setMessage(
         `Unable to check duplicate questions: ${duplicateCheckError.message}`
       );
 
+
       return;
     }
 
+
     const duplicateQuestion =
       (
-        existingQuestions || []
+        existingQuestions ||
+        []
       ).find(
         item => {
-          /*
-           * While editing a question,
-           * ignore that same row.
-           */
+
           if (
             editingId &&
-            item.id === editingId
+            item.id ===
+              editingId
           ) {
+
             return false;
           }
 
+
           return (
             normalizeQuestionText(
-              item.question || ''
+              item.question ||
+              ''
             ) ===
             normalizedCurrentQuestion
           );
         }
       );
 
-    if (duplicateQuestion) {
+
+    if (
+      duplicateQuestion
+    ) {
+
       setMessage(
         '⚠️ DUPLICATE BLOCKED: This question already exists in the Prelims question bank. It was not saved.'
       );
+
 
       return;
     }
 
 
-    setSaving(true);
+    setSaving(
+      true
+    );
+
 
     setMessage(
       editingId
         ? 'Updating question...'
         : 'Saving question...'
     );
+
 
     const {
       data:
@@ -1008,15 +1289,24 @@ export function CompactMcqEditor() {
         .auth
         .getUser();
 
+
     const user =
       authData.user;
 
-    if (!user) {
-      setSaving(false);
+
+    if (
+      !user
+    ) {
+
+      setSaving(
+        false
+      );
+
 
       setMessage(
         'Admin session expired. Sign in again.'
       );
+
 
       return;
     }
@@ -1024,15 +1314,20 @@ export function CompactMcqEditor() {
 
     const tags =
       tagsText
-        .split(',')
+        .split(
+          ','
+        )
         .map(
           value =>
             value.trim()
         )
-        .filter(Boolean);
+        .filter(
+          Boolean
+        );
 
 
     const payload = {
+
       question:
         question.trim(),
 
@@ -1076,37 +1371,29 @@ export function CompactMcqEditor() {
       upsc_exam_name:
         questionOrigin ===
           'upsc'
-          ? (
-              upscExamName.trim() ||
-              null
-            )
+          ? upscExamName.trim() ||
+            null
           : null,
 
       upsc_exam_cycle:
         questionOrigin ===
           'upsc'
-          ? (
-              upscExamCycle.trim() ||
-              null
-            )
+          ? upscExamCycle.trim() ||
+            null
           : null,
 
       upsc_exam_stage:
         questionOrigin ===
           'upsc'
-          ? (
-              upscExamStage.trim() ||
-              null
-            )
+          ? upscExamStage.trim() ||
+            null
           : null,
 
       upsc_exam_paper:
         questionOrigin ===
           'upsc'
-          ? (
-              upscExamPaper.trim() ||
-              null
-            )
+          ? upscExamPaper.trim() ||
+            null
           : null,
 
       upsc_exam_year:
@@ -1121,28 +1408,22 @@ export function CompactMcqEditor() {
       state_psc_state:
         questionOrigin ===
           'state_psc'
-          ? (
-              statePscState.trim() ||
-              null
-            )
+          ? statePscState.trim() ||
+            null
           : null,
 
       state_psc_name:
         questionOrigin ===
           'state_psc'
-          ? (
-              statePscName.trim() ||
-              null
-            )
+          ? statePscName.trim() ||
+            null
           : null,
 
       state_psc_exam_name:
         questionOrigin ===
           'state_psc'
-          ? (
-              statePscExamName.trim() ||
-              null
-            )
+          ? statePscExamName.trim() ||
+            null
           : null,
 
       state_psc_year:
@@ -1157,19 +1438,15 @@ export function CompactMcqEditor() {
       state_psc_stage:
         questionOrigin ===
           'state_psc'
-          ? (
-              statePscStage.trim() ||
-              null
-            )
+          ? statePscStage.trim() ||
+            null
           : null,
 
       state_psc_paper:
         questionOrigin ===
           'state_psc'
-          ? (
-              statePscPaper.trim() ||
-              null
-            )
+          ? statePscPaper.trim() ||
+            null
           : null,
 
       source:
@@ -1192,16 +1469,22 @@ export function CompactMcqEditor() {
        UPDATE EXISTING QUESTION
        ====================================================== */
 
-    if (editingId) {
+    if (
+      editingId
+    ) {
+
       let uploadedPaths:
         string[] =
         [];
 
+
       try {
+
         if (
           pendingExplanationImages.length >
           0
         ) {
+
           uploadedPaths =
             await uploadPrelimsExplanationImages({
               questionId:
@@ -1215,33 +1498,45 @@ export function CompactMcqEditor() {
             });
         }
 
+
         const finalImagePaths = [
           ...existingExplanationImagePaths,
           ...uploadedPaths
         ];
 
+
         const {
           error
         } =
           await client
-            .from('questions')
+            .from(
+              'questions'
+            )
             .update({
+
               ...payload,
 
               explanation_image_paths:
                 finalImagePaths
+
             })
             .eq(
               'id',
               editingId
             );
 
-        if (error) {
+
+        if (
+          error
+        ) {
+
           if (
             uploadedPaths.length >
             0
           ) {
+
             try {
+
               await removePrelimsExplanationImages(
                 uploadedPaths
               );
@@ -1249,6 +1544,7 @@ export function CompactMcqEditor() {
             } catch (
               cleanupError
             ) {
+
               console.error(
                 'Unable to clean failed uploaded images:',
                 cleanupError
@@ -1256,14 +1552,18 @@ export function CompactMcqEditor() {
             }
           }
 
+
           throw error;
         }
+
 
         if (
           removedExplanationImagePaths.length >
           0
         ) {
+
           try {
+
             await removePrelimsExplanationImages(
               removedExplanationImagePaths
             );
@@ -1271,6 +1571,7 @@ export function CompactMcqEditor() {
           } catch (
             cleanupError
           ) {
+
             console.error(
               'Unable to delete removed explanation images:',
               cleanupError
@@ -1278,33 +1579,49 @@ export function CompactMcqEditor() {
           }
         }
 
+
         await loadRecentQuestions();
 
-        resetForm(true);
 
-        setSaving(false);
+        resetForm(
+          true
+        );
+
+
+        setSaving(
+          false
+        );
+
 
         setMessage(
           'Question updated successfully.'
         );
+
 
         return;
 
       } catch (
         saveError
       ) {
+
         console.error(
           'Unable to update question:',
           saveError
         );
 
-        setSaving(false);
+
+        setSaving(
+          false
+        );
+
 
         setMessage(
-          saveError instanceof Error
+          saveError instanceof
+            Error
             ? saveError.message
             : 'Unable to update question.'
         );
+
 
         return;
       }
@@ -1323,8 +1640,11 @@ export function CompactMcqEditor() {
         insertError
     } =
       await client
-        .from('questions')
+        .from(
+          'questions'
+        )
         .insert({
+
           ...payload,
 
           explanation_image_paths:
@@ -1332,20 +1652,29 @@ export function CompactMcqEditor() {
 
           created_by:
             user.id
+
         })
-        .select('id')
+        .select(
+          'id'
+        )
         .single();
+
 
     if (
       insertError ||
       !createdQuestion
     ) {
-      setSaving(false);
+
+      setSaving(
+        false
+      );
+
 
       setMessage(
         insertError?.message ||
         'Unable to create question.'
       );
+
 
       return;
     }
@@ -1355,11 +1684,14 @@ export function CompactMcqEditor() {
       string[] =
       [];
 
+
     try {
+
       if (
         pendingExplanationImages.length >
         0
       ) {
+
         uploadedPaths =
           await uploadPrelimsExplanationImages({
             questionId:
@@ -1372,12 +1704,15 @@ export function CompactMcqEditor() {
               )
           });
 
+
         const {
           error:
             imageUpdateError
         } =
           await client
-            .from('questions')
+            .from(
+              'questions'
+            )
             .update({
               explanation_image_paths:
                 uploadedPaths
@@ -1387,22 +1722,33 @@ export function CompactMcqEditor() {
               createdQuestion.id
             );
 
+
         if (
           imageUpdateError
         ) {
+
           throw imageUpdateError;
         }
       }
+
 
       const hadImages =
         pendingExplanationImages.length >
         0;
 
+
       await loadRecentQuestions();
 
-      resetForm(true);
 
-      setSaving(false);
+      resetForm(
+        true
+      );
+
+
+      setSaving(
+        false
+      );
+
 
       setMessage(
         hadImages
@@ -1413,16 +1759,20 @@ export function CompactMcqEditor() {
     } catch (
       imageError
     ) {
+
       console.error(
         'Unable to upload explanation images:',
         imageError
       );
 
+
       if (
         uploadedPaths.length >
         0
       ) {
+
         try {
+
           await removePrelimsExplanationImages(
             uploadedPaths
           );
@@ -1430,6 +1780,7 @@ export function CompactMcqEditor() {
         } catch (
           cleanupError
         ) {
+
           console.error(
             'Unable to clean failed uploaded images:',
             cleanupError
@@ -1437,18 +1788,26 @@ export function CompactMcqEditor() {
         }
       }
 
+
       await client
-        .from('questions')
+        .from(
+          'questions'
+        )
         .delete()
         .eq(
           'id',
           createdQuestion.id
         );
 
-      setSaving(false);
+
+      setSaving(
+        false
+      );
+
 
       setMessage(
-        imageError instanceof Error
+        imageError instanceof
+          Error
           ? imageError.message
           : 'Unable to upload explanation images.'
       );
@@ -1457,6 +1816,7 @@ export function CompactMcqEditor() {
 
 
   const compactGrid = {
+
     display:
       'grid',
 
@@ -1468,7 +1828,33 @@ export function CompactMcqEditor() {
   };
 
 
+  const previewBoxStyle = {
+
+    marginTop:
+      '6px',
+
+    padding:
+      '9px 10px',
+
+    minHeight:
+      '36px',
+
+    border:
+      '1px solid rgba(255,255,255,.08)',
+
+    borderRadius:
+      '9px',
+
+    background:
+      'rgba(15,23,42,.35)',
+
+    overflowX:
+      'auto'
+  };
+
+
   return (
+
     <section
       className="panel"
       style={{
@@ -1476,6 +1862,7 @@ export function CompactMcqEditor() {
           '16px'
       }}
     >
+
       <div
         style={{
           display:
@@ -1494,12 +1881,15 @@ export function CompactMcqEditor() {
             'wrap'
         }}
       >
+
         <div>
+
           <span
             className="eyebrow"
           >
             MCQ EDITOR
           </span>
+
 
           <h2
             style={{
@@ -1514,6 +1904,7 @@ export function CompactMcqEditor() {
             }
           </h2>
 
+
           <small
             style={{
               color:
@@ -1522,7 +1913,9 @@ export function CompactMcqEditor() {
           >
             Add question, answer, explanation and optional visual explanation. Duplicate questions are blocked automatically.
           </small>
+
         </div>
+
 
         <button
           type="button"
@@ -1533,6 +1926,7 @@ export function CompactMcqEditor() {
         >
           New Question
         </button>
+
       </div>
 
 
@@ -1542,6 +1936,7 @@ export function CompactMcqEditor() {
             '12px'
         }}
       >
+
         Edit Recent Question
 
         <select
@@ -1555,13 +1950,18 @@ export function CompactMcqEditor() {
               )
           }
         >
-          <option value="">
+
+          <option
+            value=""
+          >
             Create new question
           </option>
+
 
           {
             recentQuestions.map(
               item => (
+
                 <option
                   key={
                     item.id
@@ -1580,10 +1980,13 @@ export function CompactMcqEditor() {
                       : item.question
                   }
                 </option>
+
               )
             )
           }
+
         </select>
+
       </label>
 
 
@@ -1592,11 +1995,19 @@ export function CompactMcqEditor() {
           saveQuestion
         }
       >
+
+        {/* =================================================
+            QUESTION
+            ================================================= */}
+
         <label>
+
           Question
 
           <textarea
-            rows={3}
+            rows={
+              4
+            }
             value={
               question
             }
@@ -1606,17 +2017,111 @@ export function CompactMcqEditor() {
                   event.target.value
                 )
             }
-            placeholder="Enter UPSC-style MCQ"
+            placeholder="Enter UPSC-style MCQ. Use $...$ for mathematics."
           />
+
         </label>
 
+
+        {
+          question.trim() && (
+
+          <section
+            style={{
+              marginTop:
+                '8px',
+
+              marginBottom:
+                '14px',
+
+              padding:
+                '14px',
+
+              border:
+                '1px solid rgba(45,212,191,.22)',
+
+              borderRadius:
+                '12px',
+
+              background:
+                'rgba(15,23,42,.45)'
+            }}
+          >
+
+            <div
+              style={{
+                display:
+                  'flex',
+
+                justifyContent:
+                  'space-between',
+
+                gap:
+                  '8px',
+
+                alignItems:
+                  'center',
+
+                flexWrap:
+                  'wrap',
+
+                marginBottom:
+                  '10px'
+              }}
+            >
+
+              <strong>
+                Actual Question Preview
+              </strong>
+
+
+              <span
+                className="tag"
+              >
+                Student View
+              </span>
+
+            </div>
+
+
+            <div
+              style={{
+                fontSize:
+                  '18px',
+
+                lineHeight:
+                  1.65,
+
+                overflowX:
+                  'auto'
+              }}
+            >
+
+              <MathText
+                text={
+                  question
+                }
+              />
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            OPTIONS
+            ================================================= */}
 
         <div
           style={
             compactGrid
           }
         >
+
           <label>
+
             Option A
 
             <input
@@ -1629,10 +2134,33 @@ export function CompactMcqEditor() {
                     event.target.value
                   )
               }
+              placeholder="Example: $\frac{p}{s}$"
             />
+
+
+            {
+              optionA.trim() && (
+
+              <div
+                style={
+                  previewBoxStyle
+                }
+              >
+                <MathText
+                  text={
+                    optionA
+                  }
+                />
+              </div>
+
+              )
+            }
+
           </label>
 
+
           <label>
+
             Option B
 
             <input
@@ -1645,10 +2173,33 @@ export function CompactMcqEditor() {
                     event.target.value
                   )
               }
+              placeholder="Example: $\frac{r}{q}$"
             />
+
+
+            {
+              optionB.trim() && (
+
+              <div
+                style={
+                  previewBoxStyle
+                }
+              >
+                <MathText
+                  text={
+                    optionB
+                  }
+                />
+              </div>
+
+              )
+            }
+
           </label>
 
+
           <label>
+
             Option C
 
             <input
@@ -1661,10 +2212,33 @@ export function CompactMcqEditor() {
                     event.target.value
                   )
               }
+              placeholder="Example: $\frac{s}{p}$"
             />
+
+
+            {
+              optionC.trim() && (
+
+              <div
+                style={
+                  previewBoxStyle
+                }
+              >
+                <MathText
+                  text={
+                    optionC
+                  }
+                />
+              </div>
+
+              )
+            }
+
           </label>
 
+
           <label>
+
             Option D
 
             <input
@@ -1677,10 +2251,36 @@ export function CompactMcqEditor() {
                     event.target.value
                   )
               }
+              placeholder="Example: $\frac{q}{r}$"
             />
+
+
+            {
+              optionD.trim() && (
+
+              <div
+                style={
+                  previewBoxStyle
+                }
+              >
+                <MathText
+                  text={
+                    optionD
+                  }
+                />
+              </div>
+
+              )
+            }
+
           </label>
+
         </div>
 
+
+        {/* =================================================
+            BASIC DETAILS
+            ================================================= */}
 
         <div
           style={{
@@ -1690,7 +2290,9 @@ export function CompactMcqEditor() {
               '10px'
           }}
         >
+
           <label>
+
             Correct Answer
 
             <select
@@ -1706,6 +2308,7 @@ export function CompactMcqEditor() {
                   )
               }
             >
+
               <option value={0}>
                 A
               </option>
@@ -1721,11 +2324,14 @@ export function CompactMcqEditor() {
               <option value={3}>
                 D
               </option>
+
             </select>
+
           </label>
 
 
           <label>
+
             Subject
 
             <select
@@ -1733,15 +2339,36 @@ export function CompactMcqEditor() {
                 subject
               }
               onChange={
-                event =>
+                event => {
+
+                  const nextSubject =
+                    event.target.value;
+
+
                   setSubject(
-                    event.target.value
-                  )
+                    nextSubject
+                  );
+
+
+                  if (
+                    nextSubject ===
+                      'CSAT' &&
+                    paper ===
+                      'GS-I'
+                  ) {
+
+                    setPaper(
+                      'CSAT'
+                    );
+                  }
+                }
               }
             >
+
               {
                 SUBJECTS.map(
                   item => (
+
                     <option
                       key={
                         item
@@ -1752,14 +2379,18 @@ export function CompactMcqEditor() {
                     >
                       {item}
                     </option>
+
                   )
                 )
               }
+
             </select>
+
           </label>
 
 
           <label>
+
             Topic
 
             <input
@@ -1779,10 +2410,12 @@ export function CompactMcqEditor() {
                   : 'Fundamental Rights'
               }
             />
+
           </label>
 
 
           <label>
+
             Difficulty
 
             <select
@@ -1797,6 +2430,7 @@ export function CompactMcqEditor() {
                   )
               }
             >
+
               <option value="easy">
                 Easy
               </option>
@@ -1808,16 +2442,26 @@ export function CompactMcqEditor() {
               <option value="hard">
                 Hard
               </option>
+
             </select>
+
           </label>
+
         </div>
 
 
+        {/* =================================================
+            EXPLANATION
+            ================================================= */}
+
         <label>
+
           Explanation
 
           <textarea
-            rows={4}
+            rows={
+              4
+            }
             value={
               explanation
             }
@@ -1829,8 +2473,68 @@ export function CompactMcqEditor() {
             }
             placeholder="Why is the correct answer correct?"
           />
+
         </label>
 
+
+        {
+          explanation.trim() &&
+          explanation.includes(
+            '$'
+          ) && (
+
+          <section
+            style={{
+              marginTop:
+                '8px',
+
+              marginBottom:
+                '12px',
+
+              padding:
+                '12px',
+
+              border:
+                '1px solid rgba(255,255,255,.08)',
+
+              borderRadius:
+                '10px',
+
+              background:
+                'rgba(15,23,42,.35)'
+            }}
+          >
+
+            <small
+              style={{
+                display:
+                  'block',
+
+                marginBottom:
+                  '7px',
+
+                color:
+                  '#94a3b8'
+              }}
+            >
+              Explanation Preview
+            </small>
+
+
+            <MathText
+              text={
+                explanation
+              }
+            />
+
+          </section>
+
+        )}
+
+
+        {/* =================================================
+            VISUAL EXPLANATION
+            ================================================= */}
 
         <section
           style={{
@@ -1841,11 +2545,13 @@ export function CompactMcqEditor() {
               '14px'
           }}
         >
+
           <span
             className="eyebrow"
           >
             VISUAL EXPLANATION
           </span>
+
 
           <h3
             style={{
@@ -1855,6 +2561,7 @@ export function CompactMcqEditor() {
           >
             Explanation Images
           </h3>
+
 
           <p
             style={{
@@ -1872,155 +2579,173 @@ export function CompactMcqEditor() {
           {
             existingExplanationImagePaths.length >
             0 && (
-              <div
-                style={{
-                  display:
-                    'grid',
 
-                  gridTemplateColumns:
-                    'repeat(auto-fill, minmax(150px, 1fr))',
+            <div
+              style={{
+                display:
+                  'grid',
 
-                  gap:
-                    '10px',
+                gridTemplateColumns:
+                  'repeat(auto-fill, minmax(150px, 1fr))',
 
-                  marginBottom:
-                    '12px'
-                }}
-              >
-                {
-                  existingExplanationImagePaths.map(
-                    path => {
-                      const url =
-                        explanationImageUrls[
+                gap:
+                  '10px',
+
+                marginBottom:
+                  '12px'
+              }}
+            >
+
+              {
+                existingExplanationImagePaths.map(
+                  path => {
+
+                    const url =
+                      explanationImageUrls[
+                        path
+                      ];
+
+
+                    return (
+
+                      <div
+                        key={
                           path
-                        ];
+                        }
+                        style={{
+                          position:
+                            'relative',
 
-                      return (
-                        <div
-                          key={
-                            path
+                          minHeight:
+                            '150px',
+
+                          overflow:
+                            'hidden',
+
+                          borderRadius:
+                            '12px',
+
+                          border:
+                            '1px solid rgba(255,255,255,.10)',
+
+                          background:
+                            '#0f172a'
+                        }}
+                      >
+
+                        {
+                          url
+                            ? (
+
+                            <img
+                              src={
+                                url
+                              }
+                              alt="Existing MCQ explanation"
+                              style={{
+                                display:
+                                  'block',
+
+                                width:
+                                  '100%',
+
+                                height:
+                                  '160px',
+
+                                objectFit:
+                                  'contain'
+                              }}
+                            />
+
+                          )
+                            : (
+
+                            <div
+                              style={{
+                                padding:
+                                  '14px'
+                              }}
+                            >
+                              Loading image...
+                            </div>
+
+                          )
+                        }
+
+
+                        <button
+                          type="button"
+                          disabled={
+                            saving
                           }
+                          aria-label="Remove explanation image"
+                          onClick={() => {
+
+                            setExistingExplanationImagePaths(
+                              current =>
+                                current.filter(
+                                  item =>
+                                    item !==
+                                    path
+                                )
+                            );
+
+
+                            setRemovedExplanationImagePaths(
+                              current =>
+                                current.includes(
+                                  path
+                                )
+                                  ? current
+                                  : [
+                                      ...current,
+                                      path
+                                    ]
+                            );
+
+                          }}
                           style={{
                             position:
-                              'relative',
+                              'absolute',
 
-                            minHeight:
-                              '150px',
+                            top:
+                              '7px',
 
-                            overflow:
-                              'hidden',
-
-                            borderRadius:
-                              '12px',
+                            right:
+                              '7px',
 
                             border:
-                              '1px solid rgba(255,255,255,.10)',
+                              0,
+
+                            borderRadius:
+                              '999px',
+
+                            padding:
+                              '5px 9px',
+
+                            cursor:
+                              'pointer',
 
                             background:
-                              '#0f172a'
+                              'rgba(15,23,42,.92)',
+
+                            color:
+                              '#fff'
                           }}
                         >
-                          {
-                            url
-                              ? (
-                                <img
-                                  src={
-                                    url
-                                  }
-                                  alt="Existing MCQ explanation"
-                                  style={{
-                                    display:
-                                      'block',
+                          ×
+                        </button>
 
-                                    width:
-                                      '100%',
+                      </div>
 
-                                    height:
-                                      '160px',
+                    );
+                  }
+                )
+              }
 
-                                    objectFit:
-                                      'contain'
-                                  }}
-                                />
-                              )
-                              : (
-                                <div
-                                  style={{
-                                    padding:
-                                      '14px'
-                                  }}
-                                >
-                                  Loading image...
-                                </div>
-                              )
-                          }
+            </div>
 
-                          <button
-                            type="button"
-                            disabled={
-                              saving
-                            }
-                            aria-label="Remove explanation image"
-                            onClick={() => {
-                              setExistingExplanationImagePaths(
-                                current =>
-                                  current.filter(
-                                    item =>
-                                      item !== path
-                                  )
-                              );
-
-                              setRemovedExplanationImagePaths(
-                                current =>
-                                  current.includes(
-                                    path
-                                  )
-                                    ? current
-                                    : [
-                                        ...current,
-                                        path
-                                      ]
-                              );
-                            }}
-                            style={{
-                              position:
-                                'absolute',
-
-                              top:
-                                '7px',
-
-                              right:
-                                '7px',
-
-                              border:
-                                0,
-
-                              borderRadius:
-                                '999px',
-
-                              padding:
-                                '5px 9px',
-
-                              cursor:
-                                'pointer',
-
-                              background:
-                                'rgba(15,23,42,.92)',
-
-                              color:
-                                '#fff'
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                    }
-                  )
-                }
-              </div>
-            )
-          }
+          )}
 
 
           <StudentNoteImagePicker
@@ -2033,6 +2758,7 @@ export function CompactMcqEditor() {
             maxImages={
               Math.max(
                 0,
+
                 MAX_EXPLANATION_IMAGES -
                 existingExplanationImagePaths.length
               )
@@ -2041,6 +2767,7 @@ export function CompactMcqEditor() {
               saving
             }
           />
+
 
           <small
             style={{
@@ -2056,15 +2783,22 @@ export function CompactMcqEditor() {
           >
             Maximum {MAX_EXPLANATION_IMAGES} images. Images are automatically compressed.
           </small>
+
         </section>
 
+
+        {/* =================================================
+            PYQ DETAILS
+            ================================================= */}
 
         <div
           style={
             compactGrid
           }
         >
+
           <label>
+
             Question Type
 
             <select
@@ -2081,6 +2815,7 @@ export function CompactMcqEditor() {
                   )
               }
             >
+
               <option value="practice">
                 Practice MCQ
               </option>
@@ -2088,36 +2823,42 @@ export function CompactMcqEditor() {
               <option value="pyq">
                 Previous Year Question
               </option>
+
             </select>
+
           </label>
 
 
           {
             isPyq && (
-              <label>
-                PYQ Year
 
-                <input
-                  type="number"
-                  min="1950"
-                  max="2100"
-                  value={
-                    pyqYear
-                  }
-                  onChange={
-                    event =>
-                      setPyqYear(
-                        event.target.value
-                      )
-                  }
-                  placeholder="2025"
-                />
-              </label>
-            )
-          }
+            <label>
+
+              PYQ Year
+
+              <input
+                type="number"
+                min="1950"
+                max="2100"
+                value={
+                  pyqYear
+                }
+                onChange={
+                  event =>
+                    setPyqYear(
+                      event.target.value
+                    )
+                }
+                placeholder="2025"
+              />
+
+            </label>
+
+          )}
 
 
           <label>
+
             Status
 
             <select
@@ -2132,6 +2873,7 @@ export function CompactMcqEditor() {
                   )
               }
             >
+
               <option value="published">
                 Published
               </option>
@@ -2143,11 +2885,14 @@ export function CompactMcqEditor() {
               <option value="archived">
                 Archived
               </option>
+
             </select>
+
           </label>
 
 
           <label>
+
             Paper
 
             <input
@@ -2167,9 +2912,15 @@ export function CompactMcqEditor() {
                   : 'GS-I'
               }
             />
+
           </label>
+
         </div>
 
+
+        {/* =================================================
+            ADVANCED DETAILS
+            ================================================= */}
 
         <button
           type="button"
@@ -2185,363 +2936,417 @@ export function CompactMcqEditor() {
             )
           }
         >
+
           {
             advancedOpen
               ? 'Hide Extra Details'
               : 'More Details'
           }
+
         </button>
 
 
         {
           advancedOpen && (
+
+          <div
+            style={{
+              marginTop:
+                '10px',
+
+              padding:
+                '12px',
+
+              border:
+                '1px solid rgba(255,255,255,.08)',
+
+              borderRadius:
+                '12px'
+            }}
+          >
+
             <div
-              style={{
-                marginTop:
-                  '10px',
-
-                padding:
-                  '12px',
-
-                border:
-                  '1px solid rgba(255,255,255,.08)',
-
-                borderRadius:
-                  '12px'
-              }}
+              style={
+                compactGrid
+              }
             >
+
+              <label>
+
+                Origin
+
+                <select
+                  value={
+                    questionOrigin
+                  }
+                  onChange={
+                    event =>
+                      setQuestionOrigin(
+                        event.target.value as
+                          QuestionOrigin
+                      )
+                  }
+                >
+
+                  <option value="general">
+                    CSE / General
+                  </option>
+
+                  <option value="upsc">
+                    Other UPSC
+                  </option>
+
+                  <option value="state_psc">
+                    State PSC
+                  </option>
+
+                </select>
+
+              </label>
+
+
+              <label>
+
+                Source
+
+                <input
+                  value={
+                    source
+                  }
+                  onChange={
+                    event =>
+                      setSource(
+                        event.target.value
+                      )
+                  }
+                  placeholder="UPSC / NCERT / Book"
+                />
+
+              </label>
+
+
+              <label>
+
+                Source URL
+
+                <input
+                  type="url"
+                  value={
+                    sourceUrl
+                  }
+                  onChange={
+                    event =>
+                      setSourceUrl(
+                        event.target.value
+                      )
+                  }
+                  placeholder="https://..."
+                />
+
+              </label>
+
+
+              <label>
+
+                Tags
+
+                <input
+                  value={
+                    tagsText
+                  }
+                  onChange={
+                    event =>
+                      setTagsText(
+                        event.target.value
+                      )
+                  }
+                  placeholder={
+                    subject ===
+                      'CSAT'
+                      ? 'CSAT, Mathematics, Ratio'
+                      : 'Polity, PYQ, Article 21'
+                  }
+                />
+
+              </label>
+
+            </div>
+
+
+            {
+              questionOrigin ===
+                'upsc' && (
+
               <div
-                style={
-                  compactGrid
-                }
+                style={{
+                  ...compactGrid,
+
+                  marginTop:
+                    '10px'
+                }}
               >
-                <label>
-                  Origin
-
-                  <select
-                    value={
-                      questionOrigin
-                    }
-                    onChange={
-                      event =>
-                        setQuestionOrigin(
-                          event.target.value as
-                            QuestionOrigin
-                        )
-                    }
-                  >
-                    <option value="general">
-                      CSE / General
-                    </option>
-
-                    <option value="upsc">
-                      Other UPSC
-                    </option>
-
-                    <option value="state_psc">
-                      State PSC
-                    </option>
-                  </select>
-                </label>
-
 
                 <label>
-                  Source
+
+                  UPSC Exam
 
                   <input
                     value={
-                      source
+                      upscExamName
                     }
                     onChange={
                       event =>
-                        setSource(
+                        setUpscExamName(
                           event.target.value
                         )
                     }
-                    placeholder="UPSC / NCERT / Book"
+                    placeholder="CAPF / CDS / NDA"
                   />
+
                 </label>
 
 
                 <label>
-                  Source URL
+
+                  Year
 
                   <input
-                    type="url"
+                    type="number"
                     value={
-                      sourceUrl
+                      upscExamYear
                     }
                     onChange={
                       event =>
-                        setSourceUrl(
+                        setUpscExamYear(
                           event.target.value
                         )
                     }
-                    placeholder="https://..."
                   />
+
                 </label>
 
 
                 <label>
-                  Tags
+
+                  Cycle
 
                   <input
                     value={
-                      tagsText
+                      upscExamCycle
                     }
                     onChange={
                       event =>
-                        setTagsText(
+                        setUpscExamCycle(
                           event.target.value
                         )
                     }
-                    placeholder={
-                      subject ===
-                        'CSAT'
-                        ? 'CSAT, Mathematics, Ratio'
-                        : 'Polity, PYQ, Article 21'
+                    placeholder="I / II"
+                  />
+
+                </label>
+
+
+                <label>
+
+                  Stage
+
+                  <input
+                    value={
+                      upscExamStage
+                    }
+                    onChange={
+                      event =>
+                        setUpscExamStage(
+                          event.target.value
+                        )
                     }
                   />
+
                 </label>
+
+
+                <label>
+
+                  Paper
+
+                  <input
+                    value={
+                      upscExamPaper
+                    }
+                    onChange={
+                      event =>
+                        setUpscExamPaper(
+                          event.target.value
+                        )
+                    }
+                  />
+
+                </label>
+
               </div>
 
-
-              {
-                questionOrigin ===
-                  'upsc' && (
-                  <div
-                    style={{
-                      ...compactGrid,
-
-                      marginTop:
-                        '10px'
-                    }}
-                  >
-                    <label>
-                      UPSC Exam
-
-                      <input
-                        value={
-                          upscExamName
-                        }
-                        onChange={
-                          event =>
-                            setUpscExamName(
-                              event.target.value
-                            )
-                        }
-                        placeholder="CAPF / CDS / NDA"
-                      />
-                    </label>
+            )}
 
 
-                    <label>
-                      Year
+            {
+              questionOrigin ===
+                'state_psc' && (
 
-                      <input
-                        type="number"
-                        value={
-                          upscExamYear
-                        }
-                        onChange={
-                          event =>
-                            setUpscExamYear(
-                              event.target.value
-                            )
-                        }
-                      />
-                    </label>
+              <div
+                style={{
+                  ...compactGrid,
 
+                  marginTop:
+                    '10px'
+                }}
+              >
 
-                    <label>
-                      Cycle
+                <label>
 
-                      <input
-                        value={
-                          upscExamCycle
-                        }
-                        onChange={
-                          event =>
-                            setUpscExamCycle(
-                              event.target.value
-                            )
-                        }
-                        placeholder="I / II"
-                      />
-                    </label>
+                  State
+
+                  <input
+                    value={
+                      statePscState
+                    }
+                    onChange={
+                      event =>
+                        setStatePscState(
+                          event.target.value
+                        )
+                    }
+                  />
+
+                </label>
 
 
-                    <label>
-                      Stage
+                <label>
 
-                      <input
-                        value={
-                          upscExamStage
-                        }
-                        onChange={
-                          event =>
-                            setUpscExamStage(
-                              event.target.value
-                            )
-                        }
-                      />
-                    </label>
+                  PSC Name
 
+                  <input
+                    value={
+                      statePscName
+                    }
+                    onChange={
+                      event =>
+                        setStatePscName(
+                          event.target.value
+                        )
+                    }
+                  />
 
-                    <label>
-                      Paper
-
-                      <input
-                        value={
-                          upscExamPaper
-                        }
-                        onChange={
-                          event =>
-                            setUpscExamPaper(
-                              event.target.value
-                            )
-                        }
-                      />
-                    </label>
-                  </div>
-                )
-              }
+                </label>
 
 
-              {
-                questionOrigin ===
-                  'state_psc' && (
-                  <div
-                    style={{
-                      ...compactGrid,
+                <label>
 
-                      marginTop:
-                        '10px'
-                    }}
-                  >
-                    <label>
-                      State
+                  Examination
 
-                      <input
-                        value={
-                          statePscState
-                        }
-                        onChange={
-                          event =>
-                            setStatePscState(
-                              event.target.value
-                            )
-                        }
-                      />
-                    </label>
+                  <input
+                    value={
+                      statePscExamName
+                    }
+                    onChange={
+                      event =>
+                        setStatePscExamName(
+                          event.target.value
+                        )
+                    }
+                  />
+
+                </label>
 
 
-                    <label>
-                      PSC Name
+                <label>
 
-                      <input
-                        value={
-                          statePscName
-                        }
-                        onChange={
-                          event =>
-                            setStatePscName(
-                              event.target.value
-                            )
-                        }
-                      />
-                    </label>
+                  Year
 
+                  <input
+                    type="number"
+                    value={
+                      statePscYear
+                    }
+                    onChange={
+                      event =>
+                        setStatePscYear(
+                          event.target.value
+                        )
+                    }
+                  />
 
-                    <label>
-                      Examination
-
-                      <input
-                        value={
-                          statePscExamName
-                        }
-                        onChange={
-                          event =>
-                            setStatePscExamName(
-                              event.target.value
-                            )
-                        }
-                      />
-                    </label>
+                </label>
 
 
-                    <label>
-                      Year
+                <label>
 
-                      <input
-                        type="number"
-                        value={
-                          statePscYear
-                        }
-                        onChange={
-                          event =>
-                            setStatePscYear(
-                              event.target.value
-                            )
-                        }
-                      />
-                    </label>
+                  Stage
 
+                  <input
+                    value={
+                      statePscStage
+                    }
+                    onChange={
+                      event =>
+                        setStatePscStage(
+                          event.target.value
+                        )
+                    }
+                  />
 
-                    <label>
-                      Stage
-
-                      <input
-                        value={
-                          statePscStage
-                        }
-                        onChange={
-                          event =>
-                            setStatePscStage(
-                              event.target.value
-                            )
-                        }
-                      />
-                    </label>
+                </label>
 
 
-                    <label>
-                      Paper
+                <label>
 
-                      <input
-                        value={
-                          statePscPaper
-                        }
-                        onChange={
-                          event =>
-                            setStatePscPaper(
-                              event.target.value
-                            )
-                        }
-                      />
-                    </label>
-                  </div>
-                )
-              }
-            </div>
-          )
-        }
+                  Paper
 
+                  <input
+                    value={
+                      statePscPaper
+                    }
+                    onChange={
+                      event =>
+                        setStatePscPaper(
+                          event.target.value
+                        )
+                    }
+                  />
+
+                </label>
+
+              </div>
+
+            )}
+
+          </div>
+
+        )}
+
+
+        {/* =================================================
+            MESSAGE
+            ================================================= */}
 
         {
           message && (
-            <div
-              className="callout"
-              style={{
-                marginTop:
-                  '10px'
-              }}
-            >
-              {message}
-            </div>
-          )
-        }
 
+          <div
+            className="callout"
+            style={{
+              marginTop:
+                '10px'
+            }}
+          >
+            {message}
+          </div>
+
+        )}
+
+
+        {/* =================================================
+            ACTIONS
+            ================================================= */}
 
         <div
           style={{
@@ -2561,6 +3366,7 @@ export function CompactMcqEditor() {
               '12px'
           }}
         >
+
           <button
             type="button"
             className="secondary-btn"
@@ -2582,6 +3388,7 @@ export function CompactMcqEditor() {
               saving
             }
           >
+
             {
               saving
                 ? 'Saving...'
@@ -2589,9 +3396,13 @@ export function CompactMcqEditor() {
                 ? 'Update MCQ'
                 : 'Save MCQ'
             }
+
           </button>
+
         </div>
+
       </form>
+
     </section>
   );
 }
