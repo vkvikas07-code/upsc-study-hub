@@ -1,6 +1,7 @@
 import {
   useEffect,
   useState,
+  type CSSProperties,
   type FormEvent
 } from 'react';
 
@@ -17,14 +18,14 @@ import type {
 } from './StudentNoteImagePicker';
 
 import {
+  MathText
+} from './MathText';
+
+import {
   createPrelimsExplanationImageUrls,
   removePrelimsExplanationImages,
   uploadPrelimsExplanationImages
 } from '../lib/prelimsImages';
-
-import {
-  MathText
-} from './MathText';
 
 
 type Difficulty =
@@ -251,45 +252,6 @@ export function CompactMcqEditor() {
 
 
   const [
-    pendingExplanationImages,
-    setPendingExplanationImages
-  ] =
-    useState<
-      PendingNoteImage[]
-    >([]);
-
-
-  const [
-    existingExplanationImagePaths,
-    setExistingExplanationImagePaths
-  ] =
-    useState<
-      string[]
-    >([]);
-
-
-  const [
-    removedExplanationImagePaths,
-    setRemovedExplanationImagePaths
-  ] =
-    useState<
-      string[]
-    >([]);
-
-
-  const [
-    explanationImageUrls,
-    setExplanationImageUrls
-  ] =
-    useState<
-      Record<
-        string,
-        string
-      >
-    >({});
-
-
-  const [
     subject,
     setSubject
   ] =
@@ -462,6 +424,45 @@ export function CompactMcqEditor() {
 
 
   const [
+    pendingExplanationImages,
+    setPendingExplanationImages
+  ] =
+    useState<
+      PendingNoteImage[]
+    >([]);
+
+
+  const [
+    existingExplanationImagePaths,
+    setExistingExplanationImagePaths
+  ] =
+    useState<
+      string[]
+    >([]);
+
+
+  const [
+    removedExplanationImagePaths,
+    setRemovedExplanationImagePaths
+  ] =
+    useState<
+      string[]
+    >([]);
+
+
+  const [
+    explanationImageUrls,
+    setExplanationImageUrls
+  ] =
+    useState<
+      Record<
+        string,
+        string
+      >
+    >({});
+
+
+  const [
     advancedOpen,
     setAdvancedOpen
   ] =
@@ -484,6 +485,46 @@ export function CompactMcqEditor() {
     setMessage
   ] =
     useState('');
+
+
+  const compactGrid:
+    CSSProperties = {
+
+    display:
+      'grid',
+
+    gridTemplateColumns:
+      'repeat(auto-fit, minmax(180px, 1fr))',
+
+    gap:
+      '10px'
+  };
+
+
+  const previewBoxStyle:
+    CSSProperties = {
+
+    marginTop:
+      '6px',
+
+    padding:
+      '9px 10px',
+
+    minHeight:
+      '36px',
+
+    border:
+      '1px solid rgba(255,255,255,.08)',
+
+    borderRadius:
+      '9px',
+
+    background:
+      'rgba(15,23,42,.35)',
+
+    overflowX:
+      'auto'
+  };
 
 
   function clearPendingImagePreviews():
@@ -548,7 +589,7 @@ export function CompactMcqEditor() {
     ) {
 
       console.error(
-        'Unable to load recent questions:',
+        'Unable to load questions:',
         error
       );
 
@@ -616,6 +657,7 @@ export function CompactMcqEditor() {
     clearPendingImagePreviews();
 
     setEditingId('');
+
     setQuestion('');
 
     setOptionA('');
@@ -623,21 +665,11 @@ export function CompactMcqEditor() {
     setOptionC('');
     setOptionD('');
 
-    setCorrectIndex(0);
+    setCorrectIndex(
+      0
+    );
 
     setExplanation('');
-
-    setExistingExplanationImagePaths(
-      []
-    );
-
-    setRemovedExplanationImagePaths(
-      []
-    );
-
-    setExplanationImageUrls(
-      {}
-    );
 
     setSubject(
       'Polity'
@@ -670,6 +702,7 @@ export function CompactMcqEditor() {
     );
 
     setSource('');
+
     setSourceUrl('');
 
     setUpscExamName('');
@@ -684,6 +717,18 @@ export function CompactMcqEditor() {
     setStatePscYear('');
     setStatePscStage('');
     setStatePscPaper('');
+
+    setExistingExplanationImagePaths(
+      []
+    );
+
+    setRemovedExplanationImagePaths(
+      []
+    );
+
+    setExplanationImageUrls(
+      {}
+    );
 
     setAdvancedOpen(
       false
@@ -751,33 +796,25 @@ export function CompactMcqEditor() {
 
 
     setOptionA(
-      options[
-        0
-      ] ||
+      options[0] ||
       ''
     );
 
 
     setOptionB(
-      options[
-        1
-      ] ||
+      options[1] ||
       ''
     );
 
 
     setOptionC(
-      options[
-        2
-      ] ||
+      options[2] ||
       ''
     );
 
 
     setOptionD(
-      options[
-        3
-      ] ||
+      options[3] ||
       ''
     );
 
@@ -794,62 +831,6 @@ export function CompactMcqEditor() {
       item.explanation ||
       ''
     );
-
-
-    const imagePaths =
-      safeArray(
-        item.explanation_image_paths
-      );
-
-
-    setExistingExplanationImagePaths(
-      imagePaths
-    );
-
-
-    setRemovedExplanationImagePaths(
-      []
-    );
-
-
-    if (
-      imagePaths.length >
-      0
-    ) {
-
-      try {
-
-        const urls =
-          await createPrelimsExplanationImageUrls(
-            imagePaths
-          );
-
-
-        setExplanationImageUrls(
-          urls
-        );
-
-      } catch (
-        error
-      ) {
-
-        console.error(
-          'Unable to load explanation image previews:',
-          error
-        );
-
-
-        setExplanationImageUrls(
-          {}
-        );
-      }
-
-    } else {
-
-      setExplanationImageUrls(
-        {}
-      );
-    }
 
 
     setSubject(
@@ -1018,6 +999,62 @@ export function CompactMcqEditor() {
     );
 
 
+    const imagePaths =
+      safeArray(
+        item.explanation_image_paths
+      );
+
+
+    setExistingExplanationImagePaths(
+      imagePaths
+    );
+
+
+    setRemovedExplanationImagePaths(
+      []
+    );
+
+
+    if (
+      imagePaths.length >
+      0
+    ) {
+
+      try {
+
+        const urls =
+          await createPrelimsExplanationImageUrls(
+            imagePaths
+          );
+
+
+        setExplanationImageUrls(
+          urls
+        );
+
+      } catch (
+        error
+      ) {
+
+        console.error(
+          'Unable to load image previews:',
+          error
+        );
+
+
+        setExplanationImageUrls(
+          {}
+        );
+      }
+
+    } else {
+
+      setExplanationImageUrls(
+        {}
+      );
+    }
+
+
     setAdvancedOpen(
       true
     );
@@ -1029,20 +1066,93 @@ export function CompactMcqEditor() {
   }
 
 
+  async function checkDuplicate():
+    Promise<
+      boolean
+    > {
+
+    if (
+      !supabase
+    ) {
+      return false;
+    }
+
+
+    const normalizedCurrent =
+      normalizeQuestionText(
+        question
+      );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from(
+          'questions'
+        )
+        .select(
+          'id, question'
+        )
+        .eq(
+          'exam_stage',
+          'prelims'
+        )
+        .limit(
+          10000
+        );
+
+
+    if (
+      error
+    ) {
+
+      throw new Error(
+        `Unable to check duplicate questions: ${error.message}`
+      );
+    }
+
+
+    return (
+      data ||
+      []
+    ).some(
+      item => {
+
+        if (
+          editingId &&
+          item.id ===
+            editingId
+        ) {
+
+          return false;
+        }
+
+
+        return (
+          normalizeQuestionText(
+            item.question ||
+            ''
+          ) ===
+          normalizedCurrent
+        );
+      }
+    );
+  }
+
+
   async function saveQuestion(
-    event: FormEvent
+    event:
+      FormEvent
   ):
     Promise<void> {
 
     event.preventDefault();
 
 
-    const client =
-      supabase;
-
-
     if (
-      !client
+      !supabase
     ) {
 
       setMessage(
@@ -1139,339 +1249,380 @@ export function CompactMcqEditor() {
     }
 
 
-    if (
-      questionOrigin ===
-        'upsc' &&
-      !upscExamName.trim()
-    ) {
-
-      setMessage(
-        'Enter the UPSC examination name.'
-      );
-
-      return;
-    }
-
-
-    if (
-      questionOrigin ===
-        'state_psc' &&
-      (
-        !statePscState.trim() ||
-        !statePscName.trim() ||
-        !statePscExamName.trim()
-      )
-    ) {
-
-      setMessage(
-        'Enter State, PSC and examination name.'
-      );
-
-      return;
-    }
-
-
-    /* ======================================================
-       DUPLICATE PROTECTION
-       ====================================================== */
-
-    const normalizedCurrentQuestion =
-      normalizeQuestionText(
-        question
-      );
-
-
-    setMessage(
-      'Checking for duplicate question...'
-    );
-
-
-    const {
-      data:
-        existingQuestions,
-
-      error:
-        duplicateCheckError
-    } =
-      await client
-        .from(
-          'questions'
-        )
-        .select(
-          'id, question'
-        )
-        .eq(
-          'exam_stage',
-          'prelims'
-        )
-        .limit(
-          10000
-        );
-
-
-    if (
-      duplicateCheckError
-    ) {
-
-      console.error(
-        'Duplicate question check failed:',
-        duplicateCheckError
-      );
-
-
-      setMessage(
-        `Unable to check duplicate questions: ${duplicateCheckError.message}`
-      );
-
-
-      return;
-    }
-
-
-    const duplicateQuestion =
-      (
-        existingQuestions ||
-        []
-      ).find(
-        item => {
-
-          if (
-            editingId &&
-            item.id ===
-              editingId
-          ) {
-
-            return false;
-          }
-
-
-          return (
-            normalizeQuestionText(
-              item.question ||
-              ''
-            ) ===
-            normalizedCurrentQuestion
-          );
-        }
-      );
-
-
-    if (
-      duplicateQuestion
-    ) {
-
-      setMessage(
-        '⚠️ DUPLICATE BLOCKED: This question already exists in the Prelims question bank. It was not saved.'
-      );
-
-
-      return;
-    }
-
-
     setSaving(
       true
     );
 
 
-    setMessage(
-      editingId
-        ? 'Updating question...'
-        : 'Saving question...'
-    );
-
-
-    const {
-      data:
-        authData
-    } =
-      await client
-        .auth
-        .getUser();
-
-
-    const user =
-      authData.user;
-
-
-    if (
-      !user
-    ) {
-
-      setSaving(
-        false
-      );
-
+    try {
 
       setMessage(
-        'Admin session expired. Sign in again.'
+        'Checking for duplicate question...'
       );
 
 
-      return;
-    }
+      const duplicate =
+        await checkDuplicate();
 
 
-    const tags =
-      tagsText
-        .split(
-          ','
-        )
-        .map(
-          value =>
-            value.trim()
-        )
-        .filter(
-          Boolean
+      if (
+        duplicate
+      ) {
+
+        setMessage(
+          '⚠️ DUPLICATE BLOCKED: This question already exists in the Prelims question bank.'
         );
 
 
-    const payload = {
-
-      question:
-        question.trim(),
-
-      options,
-
-      correct_index:
-        correctIndex,
-
-      explanation:
-        explanation.trim(),
-
-      subject:
-        subject.trim(),
-
-      difficulty,
-
-      exam_stage:
-        'prelims',
-
-      paper:
-        paper.trim() ||
-        null,
-
-      topic:
-        topic.trim() ||
-        null,
-
-      tags,
-
-      is_pyq:
-        isPyq,
-
-      pyq_year:
-        isPyq &&
-        pyqYear.trim()
-          ? Number(
-              pyqYear
-            )
-          : null,
-
-      upsc_exam_name:
-        questionOrigin ===
-          'upsc'
-          ? upscExamName.trim() ||
-            null
-          : null,
-
-      upsc_exam_cycle:
-        questionOrigin ===
-          'upsc'
-          ? upscExamCycle.trim() ||
-            null
-          : null,
-
-      upsc_exam_stage:
-        questionOrigin ===
-          'upsc'
-          ? upscExamStage.trim() ||
-            null
-          : null,
-
-      upsc_exam_paper:
-        questionOrigin ===
-          'upsc'
-          ? upscExamPaper.trim() ||
-            null
-          : null,
-
-      upsc_exam_year:
-        questionOrigin ===
-          'upsc' &&
-        upscExamYear.trim()
-          ? Number(
-              upscExamYear
-            )
-          : null,
-
-      state_psc_state:
-        questionOrigin ===
-          'state_psc'
-          ? statePscState.trim() ||
-            null
-          : null,
-
-      state_psc_name:
-        questionOrigin ===
-          'state_psc'
-          ? statePscName.trim() ||
-            null
-          : null,
-
-      state_psc_exam_name:
-        questionOrigin ===
-          'state_psc'
-          ? statePscExamName.trim() ||
-            null
-          : null,
-
-      state_psc_year:
-        questionOrigin ===
-          'state_psc' &&
-        statePscYear.trim()
-          ? Number(
-              statePscYear
-            )
-          : null,
-
-      state_psc_stage:
-        questionOrigin ===
-          'state_psc'
-          ? statePscStage.trim() ||
-            null
-          : null,
-
-      state_psc_paper:
-        questionOrigin ===
-          'state_psc'
-          ? statePscPaper.trim() ||
-            null
-          : null,
-
-      source:
-        source.trim() ||
-        null,
-
-      source_url:
-        sourceUrl.trim() ||
-        null,
-
-      status,
-
-      updated_at:
-        new Date()
-          .toISOString()
-    };
+        return;
+      }
 
 
-    /* ======================================================
-       UPDATE EXISTING QUESTION
-       ====================================================== */
+      const {
+        data:
+          authData
+      } =
+        await supabase
+          .auth
+          .getUser();
 
-    if (
-      editingId
-    ) {
+
+      const user =
+        authData.user;
+
+
+      if (
+        !user
+      ) {
+
+        setMessage(
+          'Admin session expired. Sign in again.'
+        );
+
+        return;
+      }
+
+
+      const tags =
+        tagsText
+          .split(
+            ','
+          )
+          .map(
+            value =>
+              value.trim()
+          )
+          .filter(
+            Boolean
+          );
+
+
+      const payload = {
+
+        question:
+          question.trim(),
+
+        options,
+
+        correct_index:
+          correctIndex,
+
+        explanation:
+          explanation.trim(),
+
+        subject:
+          subject.trim(),
+
+        topic:
+          topic.trim() ||
+          null,
+
+        paper:
+          paper.trim() ||
+          null,
+
+        difficulty,
+
+        tags,
+
+        exam_stage:
+          'prelims',
+
+        is_pyq:
+          isPyq,
+
+        pyq_year:
+          isPyq &&
+          pyqYear.trim()
+            ? Number(
+                pyqYear
+              )
+            : null,
+
+        status,
+
+        source:
+          source.trim() ||
+          null,
+
+        source_url:
+          sourceUrl.trim() ||
+          null,
+
+        upsc_exam_name:
+          questionOrigin ===
+            'upsc'
+            ? upscExamName.trim() ||
+              null
+            : null,
+
+        upsc_exam_cycle:
+          questionOrigin ===
+            'upsc'
+            ? upscExamCycle.trim() ||
+              null
+            : null,
+
+        upsc_exam_stage:
+          questionOrigin ===
+            'upsc'
+            ? upscExamStage.trim() ||
+              null
+            : null,
+
+        upsc_exam_paper:
+          questionOrigin ===
+            'upsc'
+            ? upscExamPaper.trim() ||
+              null
+            : null,
+
+        upsc_exam_year:
+          questionOrigin ===
+            'upsc' &&
+          upscExamYear.trim()
+            ? Number(
+                upscExamYear
+              )
+            : null,
+
+        state_psc_state:
+          questionOrigin ===
+            'state_psc'
+            ? statePscState.trim() ||
+              null
+            : null,
+
+        state_psc_name:
+          questionOrigin ===
+            'state_psc'
+            ? statePscName.trim() ||
+              null
+            : null,
+
+        state_psc_exam_name:
+          questionOrigin ===
+            'state_psc'
+            ? statePscExamName.trim() ||
+              null
+            : null,
+
+        state_psc_year:
+          questionOrigin ===
+            'state_psc' &&
+          statePscYear.trim()
+            ? Number(
+                statePscYear
+              )
+            : null,
+
+        state_psc_stage:
+          questionOrigin ===
+            'state_psc'
+            ? statePscStage.trim() ||
+              null
+            : null,
+
+        state_psc_paper:
+          questionOrigin ===
+            'state_psc'
+            ? statePscPaper.trim() ||
+              null
+            : null,
+
+        updated_at:
+          new Date()
+            .toISOString()
+      };
+
+
+      /* ===============================================
+         UPDATE
+         =============================================== */
+
+      if (
+        editingId
+      ) {
+
+        let uploadedPaths:
+          string[] =
+          [];
+
+
+        try {
+
+          if (
+            pendingExplanationImages.length >
+            0
+          ) {
+
+            uploadedPaths =
+              await uploadPrelimsExplanationImages({
+                questionId:
+                  editingId,
+
+                files:
+                  pendingExplanationImages.map(
+                    image =>
+                      image.file
+                  )
+              });
+          }
+
+
+          const finalPaths = [
+            ...existingExplanationImagePaths,
+            ...uploadedPaths
+          ];
+
+
+          const {
+            error
+          } =
+            await supabase
+              .from(
+                'questions'
+              )
+              .update({
+                ...payload,
+
+                explanation_image_paths:
+                  finalPaths
+              })
+              .eq(
+                'id',
+                editingId
+              );
+
+
+          if (
+            error
+          ) {
+
+            if (
+              uploadedPaths.length >
+              0
+            ) {
+
+              await removePrelimsExplanationImages(
+                uploadedPaths
+              );
+            }
+
+
+            throw error;
+          }
+
+
+          if (
+            removedExplanationImagePaths.length >
+            0
+          ) {
+
+            try {
+
+              await removePrelimsExplanationImages(
+                removedExplanationImagePaths
+              );
+
+            } catch (
+              cleanupError
+            ) {
+
+              console.error(
+                cleanupError
+              );
+            }
+          }
+
+
+          await loadRecentQuestions();
+
+
+          resetForm(
+            true
+          );
+
+
+          setMessage(
+            'Question updated successfully.'
+          );
+
+
+          return;
+
+        } catch (
+          error
+        ) {
+
+          throw error;
+        }
+      }
+
+
+      /* ===============================================
+         CREATE
+         =============================================== */
+
+      const {
+        data:
+          created,
+
+        error:
+          insertError
+      } =
+        await supabase
+          .from(
+            'questions'
+          )
+          .insert({
+            ...payload,
+
+            explanation_image_paths:
+              [],
+
+            created_by:
+              user.id
+          })
+          .select(
+            'id'
+          )
+          .single();
+
+
+      if (
+        insertError ||
+        !created
+      ) {
+
+        throw (
+          insertError ||
+          new Error(
+            'Unable to create question.'
+          )
+        );
+      }
+
 
       let uploadedPaths:
         string[] =
@@ -1488,7 +1639,7 @@ export function CompactMcqEditor() {
           uploadedPaths =
             await uploadPrelimsExplanationImages({
               questionId:
-                editingId,
+                created.id,
 
               files:
                 pendingExplanationImages.map(
@@ -1496,86 +1647,31 @@ export function CompactMcqEditor() {
                     image.file
                 )
             });
-        }
 
 
-        const finalImagePaths = [
-          ...existingExplanationImagePaths,
-          ...uploadedPaths
-        ];
+          const {
+            error:
+              imageUpdateError
+          } =
+            await supabase
+              .from(
+                'questions'
+              )
+              .update({
+                explanation_image_paths:
+                  uploadedPaths
+              })
+              .eq(
+                'id',
+                created.id
+              );
 
-
-        const {
-          error
-        } =
-          await client
-            .from(
-              'questions'
-            )
-            .update({
-
-              ...payload,
-
-              explanation_image_paths:
-                finalImagePaths
-
-            })
-            .eq(
-              'id',
-              editingId
-            );
-
-
-        if (
-          error
-        ) {
 
           if (
-            uploadedPaths.length >
-            0
+            imageUpdateError
           ) {
 
-            try {
-
-              await removePrelimsExplanationImages(
-                uploadedPaths
-              );
-
-            } catch (
-              cleanupError
-            ) {
-
-              console.error(
-                'Unable to clean failed uploaded images:',
-                cleanupError
-              );
-            }
-          }
-
-
-          throw error;
-        }
-
-
-        if (
-          removedExplanationImagePaths.length >
-          0
-        ) {
-
-          try {
-
-            await removePrelimsExplanationImages(
-              removedExplanationImagePaths
-            );
-
-          } catch (
-            cleanupError
-          ) {
-
-            console.error(
-              'Unable to delete removed explanation images:',
-              cleanupError
-            );
+            throw imageUpdateError;
           }
         }
 
@@ -1588,269 +1684,74 @@ export function CompactMcqEditor() {
         );
 
 
-        setSaving(
-          false
-        );
-
-
         setMessage(
-          'Question updated successfully.'
+          'Question saved successfully.'
         );
-
-
-        return;
 
       } catch (
-        saveError
+        error
       ) {
-
-        console.error(
-          'Unable to update question:',
-          saveError
-        );
-
-
-        setSaving(
-          false
-        );
-
-
-        setMessage(
-          saveError instanceof
-            Error
-            ? saveError.message
-            : 'Unable to update question.'
-        );
-
-
-        return;
-      }
-    }
-
-
-    /* ======================================================
-       CREATE NEW QUESTION
-       ====================================================== */
-
-    const {
-      data:
-        createdQuestion,
-
-      error:
-        insertError
-    } =
-      await client
-        .from(
-          'questions'
-        )
-        .insert({
-
-          ...payload,
-
-          explanation_image_paths:
-            [],
-
-          created_by:
-            user.id
-
-        })
-        .select(
-          'id'
-        )
-        .single();
-
-
-    if (
-      insertError ||
-      !createdQuestion
-    ) {
-
-      setSaving(
-        false
-      );
-
-
-      setMessage(
-        insertError?.message ||
-        'Unable to create question.'
-      );
-
-
-      return;
-    }
-
-
-    let uploadedPaths:
-      string[] =
-      [];
-
-
-    try {
-
-      if (
-        pendingExplanationImages.length >
-        0
-      ) {
-
-        uploadedPaths =
-          await uploadPrelimsExplanationImages({
-            questionId:
-              createdQuestion.id,
-
-            files:
-              pendingExplanationImages.map(
-                image =>
-                  image.file
-              )
-          });
-
-
-        const {
-          error:
-            imageUpdateError
-        } =
-          await client
-            .from(
-              'questions'
-            )
-            .update({
-              explanation_image_paths:
-                uploadedPaths
-            })
-            .eq(
-              'id',
-              createdQuestion.id
-            );
-
 
         if (
-          imageUpdateError
+          uploadedPaths.length >
+          0
         ) {
 
-          throw imageUpdateError;
+          try {
+
+            await removePrelimsExplanationImages(
+              uploadedPaths
+            );
+
+          } catch (
+            cleanupError
+          ) {
+
+            console.error(
+              cleanupError
+            );
+          }
         }
+
+
+        await supabase
+          .from(
+            'questions'
+          )
+          .delete()
+          .eq(
+            'id',
+            created.id
+          );
+
+
+        throw error;
       }
 
-
-      const hadImages =
-        pendingExplanationImages.length >
-        0;
-
-
-      await loadRecentQuestions();
-
-
-      resetForm(
-        true
-      );
-
-
-      setSaving(
-        false
-      );
-
-
-      setMessage(
-        hadImages
-          ? 'Question and explanation images saved successfully.'
-          : 'Question saved successfully.'
-      );
-
     } catch (
-      imageError
+      error
     ) {
 
       console.error(
-        'Unable to upload explanation images:',
-        imageError
-      );
-
-
-      if (
-        uploadedPaths.length >
-        0
-      ) {
-
-        try {
-
-          await removePrelimsExplanationImages(
-            uploadedPaths
-          );
-
-        } catch (
-          cleanupError
-        ) {
-
-          console.error(
-            'Unable to clean failed uploaded images:',
-            cleanupError
-          );
-        }
-      }
-
-
-      await client
-        .from(
-          'questions'
-        )
-        .delete()
-        .eq(
-          'id',
-          createdQuestion.id
-        );
-
-
-      setSaving(
-        false
+        'Unable to save MCQ:',
+        error
       );
 
 
       setMessage(
-        imageError instanceof
+        error instanceof
           Error
-          ? imageError.message
-          : 'Unable to upload explanation images.'
+          ? error.message
+          : 'Unable to save question.'
+      );
+
+    } finally {
+
+      setSaving(
+        false
       );
     }
   }
-
-
-  const compactGrid = {
-
-    display:
-      'grid',
-
-    gridTemplateColumns:
-      'repeat(auto-fit, minmax(180px, 1fr))',
-
-    gap:
-      '10px'
-  };
-
-
-  const previewBoxStyle = {
-
-    marginTop:
-      '6px',
-
-    padding:
-      '9px 10px',
-
-    minHeight:
-      '36px',
-
-    border:
-      '1px solid rgba(255,255,255,.08)',
-
-    borderRadius:
-      '9px',
-
-    background:
-      'rgba(15,23,42,.35)',
-
-    overflowX:
-      'auto'
-  };
 
 
   return (
@@ -1862,6 +1763,8 @@ export function CompactMcqEditor() {
           '16px'
       }}
     >
+
+      {/* HEADER */}
 
       <div
         style={{
@@ -1911,7 +1814,7 @@ export function CompactMcqEditor() {
                 '#94a3b8'
             }}
           >
-            Add question, answer, explanation and optional visual explanation. Duplicate questions are blocked automatically.
+            Add question, answer, explanation and optional visual explanation. Mathematical questions show a live student preview.
           </small>
 
         </div>
@@ -1929,6 +1832,8 @@ export function CompactMcqEditor() {
 
       </div>
 
+
+      {/* EDIT EXISTING */}
 
       <label
         style={{
@@ -1951,9 +1856,7 @@ export function CompactMcqEditor() {
           }
         >
 
-          <option
-            value=""
-          >
+          <option value="">
             Create new question
           </option>
 
@@ -1996,9 +1899,7 @@ export function CompactMcqEditor() {
         }
       >
 
-        {/* =================================================
-            QUESTION
-            ================================================= */}
+        {/* QUESTION INPUT */}
 
         <label>
 
@@ -2017,11 +1918,13 @@ export function CompactMcqEditor() {
                   event.target.value
                 )
             }
-            placeholder="Enter UPSC-style MCQ. Use $...$ for mathematics."
+            placeholder="Enter question. For mathematics use $...$ around the equation."
           />
 
         </label>
 
+
+        {/* QUESTION PREVIEW */}
 
         {
           question.trim() && (
@@ -2038,7 +1941,7 @@ export function CompactMcqEditor() {
                 '14px',
 
               border:
-                '1px solid rgba(45,212,191,.22)',
+                '1px solid rgba(45,212,191,.25)',
 
               borderRadius:
                 '12px',
@@ -2056,11 +1959,11 @@ export function CompactMcqEditor() {
                 justifyContent:
                   'space-between',
 
-                gap:
-                  '8px',
-
                 alignItems:
                   'center',
+
+                gap:
+                  '8px',
 
                 flexWrap:
                   'wrap',
@@ -2090,7 +1993,7 @@ export function CompactMcqEditor() {
                   '18px',
 
                 lineHeight:
-                  1.65,
+                  1.7,
 
                 overflowX:
                   'auto'
@@ -2110,9 +2013,7 @@ export function CompactMcqEditor() {
         )}
 
 
-        {/* =================================================
-            OPTIONS
-            ================================================= */}
+        {/* OPTIONS */}
 
         <div
           style={
@@ -2134,7 +2035,9 @@ export function CompactMcqEditor() {
                     event.target.value
                   )
               }
-              placeholder="Example: $\frac{p}{s}$"
+              placeholder={
+                'Example: $\\frac{p}{s}$'
+              }
             />
 
 
@@ -2146,11 +2049,13 @@ export function CompactMcqEditor() {
                   previewBoxStyle
                 }
               >
+
                 <MathText
                   text={
                     optionA
                   }
                 />
+
               </div>
 
               )
@@ -2173,7 +2078,9 @@ export function CompactMcqEditor() {
                     event.target.value
                   )
               }
-              placeholder="Example: $\frac{r}{q}$"
+              placeholder={
+                'Example: $\\frac{r}{q}$'
+              }
             />
 
 
@@ -2185,11 +2092,13 @@ export function CompactMcqEditor() {
                   previewBoxStyle
                 }
               >
+
                 <MathText
                   text={
                     optionB
                   }
                 />
+
               </div>
 
               )
@@ -2212,7 +2121,9 @@ export function CompactMcqEditor() {
                     event.target.value
                   )
               }
-              placeholder="Example: $\frac{s}{p}$"
+              placeholder={
+                'Example: $\\frac{s}{p}$'
+              }
             />
 
 
@@ -2224,11 +2135,13 @@ export function CompactMcqEditor() {
                   previewBoxStyle
                 }
               >
+
                 <MathText
                   text={
                     optionC
                   }
                 />
+
               </div>
 
               )
@@ -2251,7 +2164,9 @@ export function CompactMcqEditor() {
                     event.target.value
                   )
               }
-              placeholder="Example: $\frac{q}{r}$"
+              placeholder={
+                'Example: $\\frac{q}{r}$'
+              }
             />
 
 
@@ -2263,11 +2178,13 @@ export function CompactMcqEditor() {
                   previewBoxStyle
                 }
               >
+
                 <MathText
                   text={
                     optionD
                   }
                 />
+
               </div>
 
               )
@@ -2278,9 +2195,7 @@ export function CompactMcqEditor() {
         </div>
 
 
-        {/* =================================================
-            BASIC DETAILS
-            ================================================= */}
+        {/* BASIC DETAILS */}
 
         <div
           style={{
@@ -2352,13 +2267,11 @@ export function CompactMcqEditor() {
 
                   if (
                     nextSubject ===
-                      'CSAT' &&
-                    paper ===
-                      'GS-I'
+                    'CSAT'
                   ) {
 
                     setPaper(
-                      'CSAT'
+                      'CSAT Paper II'
                     );
                   }
                 }
@@ -2450,9 +2363,7 @@ export function CompactMcqEditor() {
         </div>
 
 
-        {/* =================================================
-            EXPLANATION
-            ================================================= */}
+        {/* EXPLANATION */}
 
         <label>
 
@@ -2471,17 +2382,14 @@ export function CompactMcqEditor() {
                   event.target.value
                 )
             }
-            placeholder="Why is the correct answer correct?"
+            placeholder="Explain why the correct answer is correct."
           />
 
         </label>
 
 
         {
-          explanation.trim() &&
-          explanation.includes(
-            '$'
-          ) && (
+          explanation.trim() && (
 
           <section
             style={{
@@ -2532,9 +2440,7 @@ export function CompactMcqEditor() {
         )}
 
 
-        {/* =================================================
-            VISUAL EXPLANATION
-            ================================================= */}
+        {/* VISUAL EXPLANATION */}
 
         <section
           style={{
@@ -2561,19 +2467,6 @@ export function CompactMcqEditor() {
           >
             Explanation Images
           </h3>
-
-
-          <p
-            style={{
-              margin:
-                '4px 0 10px',
-
-              color:
-                '#94a3b8'
-            }}
-          >
-            Add a map, diagram, chart, table, screenshot or other visual explanation.
-          </p>
 
 
           {
@@ -2619,17 +2512,14 @@ export function CompactMcqEditor() {
                           minHeight:
                             '150px',
 
-                          overflow:
-                            'hidden',
+                          border:
+                            '1px solid rgba(255,255,255,.10)',
 
                           borderRadius:
                             '12px',
 
-                          border:
-                            '1px solid rgba(255,255,255,.10)',
-
-                          background:
-                            '#0f172a'
+                          overflow:
+                            'hidden'
                         }}
                       >
 
@@ -2641,11 +2531,8 @@ export function CompactMcqEditor() {
                               src={
                                 url
                               }
-                              alt="Existing MCQ explanation"
+                              alt="Explanation"
                               style={{
-                                display:
-                                  'block',
-
                                 width:
                                   '100%',
 
@@ -2653,7 +2540,10 @@ export function CompactMcqEditor() {
                                   '160px',
 
                                 objectFit:
-                                  'contain'
+                                  'contain',
+
+                                display:
+                                  'block'
                               }}
                             />
 
@@ -2663,7 +2553,7 @@ export function CompactMcqEditor() {
                             <div
                               style={{
                                 padding:
-                                  '14px'
+                                  '12px'
                               }}
                             >
                               Loading image...
@@ -2678,7 +2568,6 @@ export function CompactMcqEditor() {
                           disabled={
                             saving
                           }
-                          aria-label="Remove explanation image"
                           onClick={() => {
 
                             setExistingExplanationImagePaths(
@@ -2709,28 +2598,10 @@ export function CompactMcqEditor() {
                               'absolute',
 
                             top:
-                              '7px',
+                              '6px',
 
                             right:
-                              '7px',
-
-                            border:
-                              0,
-
-                            borderRadius:
-                              '999px',
-
-                            padding:
-                              '5px 9px',
-
-                            cursor:
-                              'pointer',
-
-                            background:
-                              'rgba(15,23,42,.92)',
-
-                            color:
-                              '#fff'
+                              '6px'
                           }}
                         >
                           ×
@@ -2768,28 +2639,10 @@ export function CompactMcqEditor() {
             }
           />
 
-
-          <small
-            style={{
-              display:
-                'block',
-
-              marginTop:
-                '8px',
-
-              color:
-                '#94a3b8'
-            }}
-          >
-            Maximum {MAX_EXPLANATION_IMAGES} images. Images are automatically compressed.
-          </small>
-
         </section>
 
 
-        {/* =================================================
-            PYQ DETAILS
-            ================================================= */}
+        {/* PYQ DETAILS */}
 
         <div
           style={
@@ -2859,6 +2712,26 @@ export function CompactMcqEditor() {
 
           <label>
 
+            Paper
+
+            <input
+              value={
+                paper
+              }
+              onChange={
+                event =>
+                  setPaper(
+                    event.target.value
+                  )
+              }
+              placeholder="GS-I / CSAT Paper II"
+            />
+
+          </label>
+
+
+          <label>
+
             Status
 
             <select
@@ -2890,37 +2763,10 @@ export function CompactMcqEditor() {
 
           </label>
 
-
-          <label>
-
-            Paper
-
-            <input
-              value={
-                paper
-              }
-              onChange={
-                event =>
-                  setPaper(
-                    event.target.value
-                  )
-              }
-              placeholder={
-                subject ===
-                  'CSAT'
-                  ? 'CSAT'
-                  : 'GS-I'
-              }
-            />
-
-          </label>
-
         </div>
 
 
-        {/* =================================================
-            ADVANCED DETAILS
-            ================================================= */}
+        {/* ADVANCED */}
 
         <button
           type="button"
@@ -2949,7 +2795,7 @@ export function CompactMcqEditor() {
         {
           advancedOpen && (
 
-          <div
+          <section
             style={{
               marginTop:
                 '10px',
@@ -3007,6 +2853,26 @@ export function CompactMcqEditor() {
 
               <label>
 
+                Tags
+
+                <input
+                  value={
+                    tagsText
+                  }
+                  onChange={
+                    event =>
+                      setTagsText(
+                        event.target.value
+                      )
+                  }
+                  placeholder="CSAT, Mathematics, Ratio"
+                />
+
+              </label>
+
+
+              <label>
+
                 Source
 
                 <input
@@ -3019,7 +2885,7 @@ export function CompactMcqEditor() {
                         event.target.value
                       )
                   }
-                  placeholder="UPSC / NCERT / Book"
+                  placeholder="UPSC Official Paper"
                 />
 
               </label>
@@ -3041,31 +2907,6 @@ export function CompactMcqEditor() {
                       )
                   }
                   placeholder="https://..."
-                />
-
-              </label>
-
-
-              <label>
-
-                Tags
-
-                <input
-                  value={
-                    tagsText
-                  }
-                  onChange={
-                    event =>
-                      setTagsText(
-                        event.target.value
-                      )
-                  }
-                  placeholder={
-                    subject ===
-                      'CSAT'
-                      ? 'CSAT, Mathematics, Ratio'
-                      : 'Polity, PYQ, Article 21'
-                  }
                 />
 
               </label>
@@ -3100,7 +2941,6 @@ export function CompactMcqEditor() {
                           event.target.value
                         )
                     }
-                    placeholder="CAPF / CDS / NDA"
                   />
 
                 </label>
@@ -3140,7 +2980,6 @@ export function CompactMcqEditor() {
                           event.target.value
                         )
                     }
-                    placeholder="I / II"
                   />
 
                 </label>
@@ -3319,14 +3158,10 @@ export function CompactMcqEditor() {
 
             )}
 
-          </div>
+          </section>
 
         )}
 
-
-        {/* =================================================
-            MESSAGE
-            ================================================= */}
 
         {
           message && (
@@ -3344,9 +3179,7 @@ export function CompactMcqEditor() {
         )}
 
 
-        {/* =================================================
-            ACTIONS
-            ================================================= */}
+        {/* ACTIONS */}
 
         <div
           style={{
@@ -3370,11 +3203,11 @@ export function CompactMcqEditor() {
           <button
             type="button"
             className="secondary-btn"
-            onClick={() =>
-              resetForm()
-            }
             disabled={
               saving
+            }
+            onClick={() =>
+              resetForm()
             }
           >
             Clear
