@@ -507,6 +507,81 @@ function hasOrigin(
 }
 
 
+function formatPrelimsQuestion(
+  value: string
+): string {
+
+  const text =
+    String(
+      value || ''
+    )
+      .replace(
+        /\r\n?/g,
+        '\n'
+      )
+      .trim();
+
+
+  /*
+   * Only apply automatic numbered-statement formatting
+   * when the question actually contains both statement
+   * number 1 and statement number 2.
+   *
+   * This avoids unnecessarily changing normal questions.
+   */
+  const hasStatementOne =
+    /(?:^|\s)1\.\s+\S/.test(
+      text
+    );
+
+  const hasStatementTwo =
+    /(?:^|\s)2\.\s+\S/.test(
+      text
+    );
+
+
+  if (
+    !hasStatementOne ||
+    !hasStatementTwo
+  ) {
+
+    return text;
+  }
+
+
+  return text
+
+    /*
+     * Put statement 1, 2, 3, 4... on separate lines.
+     */
+    .replace(
+      /\s+(?=(?:\d{1,2})\.\s+\S)/g,
+      '\n'
+    )
+
+    /*
+     * Put common instruction lines below the statements.
+     */
+    .replace(
+      /\s+(?=Select the (?:correct )?answer\b)/gi,
+      '\n\n'
+    )
+
+    .replace(
+      /\s+(?=Which of the following codes?\b)/gi,
+      '\n\n'
+    )
+
+    /*
+     * Prevent too many blank lines.
+     */
+    .replace(
+      /\n{3,}/g,
+      '\n\n'
+    )
+
+    .trim();
+}
 /* =========================================================
    PAGE
    ========================================================= */
@@ -6121,9 +6196,21 @@ export function PracticePage() {
           </div>
 
 
-          <h2>
-            {q.question}
-          </h2>
+         <h2
+  style={{
+    whiteSpace:
+      'pre-line',
+
+    lineHeight:
+      1.45
+  }}
+>
+  {
+    formatPrelimsQuestion(
+      q.question
+    )
+  }
+</h2>
 
 
           <div
@@ -6488,10 +6575,21 @@ export function PracticePage() {
         </div>
 
 
-        <h2>
-          {q.question}
-        </h2>
+       <h2
+  style={{
+    whiteSpace:
+      'pre-line',
 
+    lineHeight:
+      1.45
+  }}
+>
+  {
+    formatPrelimsQuestion(
+      q.question
+    )
+  }
+</h2>
 
         <div
           className="option-list"
