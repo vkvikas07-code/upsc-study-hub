@@ -24,6 +24,9 @@ import {
   supabase
 } from '../lib/supabase';
 
+import {
+  MathText
+} from '../components/MathText';
 
 type QuestionOrigin =
   | 'cse'
@@ -6198,20 +6201,18 @@ export function PracticePage() {
 
          <h2
   style={{
-    whiteSpace:
-      'pre-line',
-
     lineHeight:
-      1.45
+      1.5
   }}
 >
-  {
-    formatPrelimsQuestion(
-      q.question
-    )
-  }
+  <MathText
+    text={
+      formatPrelimsQuestion(
+        q.question
+      )
+    }
+  />
 </h2>
-
 
           <div
             className="option-list"
@@ -6266,7 +6267,11 @@ export function PracticePage() {
                         }
                       </span>
 
-                      {option}
+<MathText
+  text={
+    option
+  }
+/>
 
                     </button>
                   );
@@ -6642,7 +6647,11 @@ export function PracticePage() {
                       }
                     </span>
 
-                    {option}
+                    <MathText
+  text={
+    option
+  }
+/>
 
                   </button>
                 );
