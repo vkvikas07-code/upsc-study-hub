@@ -1,7 +1,10 @@
 import React from 'react';
+
 import ReactDOM from 'react-dom/client';
 
-import { setupIonicReact } from '@ionic/react';
+import {
+  setupIonicReact
+} from '@ionic/react';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -15,22 +18,40 @@ import './admin-fixes.css';
 
 import SecureApp from './SecureApp';
 
+import {
+  LanguageProvider
+} from './i18n';
+
+
 setupIonicReact();
+
 
 ReactDOM
   .createRoot(
-    document.getElementById('root')!
+    document.getElementById(
+      'root'
+    )!
   )
   .render(
+
     <React.StrictMode>
-      <SecureApp />
+
+      <LanguageProvider>
+
+        <SecureApp />
+
+      </LanguageProvider>
+
     </React.StrictMode>
+
   );
+
 
 if (
   'serviceWorker' in navigator &&
   import.meta.env.PROD
 ) {
+
   window.addEventListener(
     'load',
     () =>
