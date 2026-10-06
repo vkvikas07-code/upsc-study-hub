@@ -24,48 +24,92 @@ import type {
   NavKey
 } from '../types';
 
+import {
+  useLanguage,
+  type AppLanguage
+} from '../i18n';
 
-const items: Array<{
-  key: NavKey;
-  label: string;
-  icon: string;
-}> = [
+
+type NavItem = {
+  key:
+    NavKey;
+
+  labelKey:
+    | 'home'
+    | 'learn'
+    | 'practice'
+    | 'current'
+    | 'me';
+
+  icon:
+    string;
+};
+
+
+const items:
+  NavItem[] = [
 
   {
-    key: 'home',
-    label: 'Home',
-    icon: homeOutline
+    key:
+      'home',
+
+    labelKey:
+      'home',
+
+    icon:
+      homeOutline
   },
 
   {
-    key: 'learn',
-    label: 'Learn',
-    icon: bookOutline
+    key:
+      'learn',
+
+    labelKey:
+      'learn',
+
+    icon:
+      bookOutline
   },
 
   {
-    key: 'practice',
-    label: 'Practice',
-    icon: createOutline
+    key:
+      'practice',
+
+    labelKey:
+      'practice',
+
+    icon:
+      createOutline
   },
 
   {
-    key: 'current',
-    label: 'Current',
-    icon: newspaperOutline
+    key:
+      'current',
+
+    labelKey:
+      'current',
+
+    icon:
+      newspaperOutline
   },
 
   {
-    key: 'profile',
-    label: 'Me',
-    icon: personCircleOutline
+    key:
+      'profile',
+
+    labelKey:
+      'me',
+
+    icon:
+      personCircleOutline
   }
 
 ];
 
 
 function getScrollKey(
-  active: NavKey
+  active:
+    NavKey
 ) {
 
   return `upsc-scroll-${active}`;
@@ -73,7 +117,8 @@ function getScrollKey(
 
 
 function readSavedScroll(
-  active: NavKey
+  active:
+    NavKey
 ) {
 
   try {
@@ -86,7 +131,9 @@ function readSavedScroll(
       );
 
 
-    if (!stored) {
+    if (
+      !stored
+    ) {
 
       return 0;
     }
@@ -115,8 +162,11 @@ function readSavedScroll(
 
 
 function saveStoredScroll(
-  active: NavKey,
-  value: number
+  active:
+    NavKey,
+
+  value:
+    number
 ) {
 
   try {
@@ -125,6 +175,7 @@ function saveStoredScroll(
       getScrollKey(
         active
       ),
+
       String(
         Math.max(
           0,
@@ -137,13 +188,14 @@ function saveStoredScroll(
 
   } catch {
 
-    // Storage may be unavailable in some browsers.
+    // Ignore storage errors.
   }
 }
 
 
 function clearStoredScroll(
-  active: NavKey
+  active:
+    NavKey
 ) {
 
   try {
@@ -161,44 +213,139 @@ function clearStoredScroll(
 }
 
 
+function LanguageSelector() {
+
+  const {
+    language,
+    setLanguage,
+    t
+  } =
+    useLanguage();
+
+
+  return (
+
+    <div
+      style={{
+        marginTop:
+          '18px'
+      }}
+    >
+
+      <small
+        style={{
+          display:
+            'block',
+
+          marginBottom:
+            '7px',
+
+          color:
+            '#94a3b8'
+        }}
+      >
+        {
+          t(
+            'language'
+          )
+        }
+      </small>
+
+
+      <select
+        value={
+          language
+        }
+        onChange={
+          event =>
+            setLanguage(
+              event.target
+                .value as
+                AppLanguage
+            )
+        }
+        aria-label={
+          t(
+            'language'
+          )
+        }
+        style={{
+          width:
+            '100%'
+        }}
+      >
+
+        <option value="en">
+          English
+        </option>
+
+        <option value="hi">
+          हिंदी
+        </option>
+
+        <option value="mr">
+          मराठी
+        </option>
+
+      </select>
+
+    </div>
+
+  );
+}
+
+
 export function Shell({
   active,
   onNavigate,
   children
 }: {
-  active: NavKey;
-  onNavigate: (key: NavKey) => void;
-  children: ReactNode;
+  active:
+    NavKey;
+
+  onNavigate:
+    (
+      key:
+        NavKey
+    ) =>
+      void;
+
+  children:
+    ReactNode;
 }) {
 
+  const {
+    t
+  } =
+    useLanguage();
+
+
   const mainRef =
-    useRef<HTMLElement | null>(
+    useRef<
+      HTMLElement |
+      null
+    >(
       null
     );
 
 
-  /*
-   * Used only to throttle scroll saving.
-   *
-   * We no longer repeatedly force the scroll
-   * position while the student is scrolling.
-   */
-
   const scrollSaveFrameRef =
-    useRef<number | null>(
+    useRef<
+      number |
+      null
+    >(
       null
     );
 
 
   const restoreFrameRef =
-    useRef<number | null>(
+    useRef<
+      number |
+      null
+    >(
       null
     );
 
-
-  /* =======================================================
-     SIMPLE + SMOOTH SCROLL STATE
-  ======================================================= */
 
   useEffect(
     () => {
@@ -207,7 +354,9 @@ export function Shell({
         mainRef.current;
 
 
-      if (!main) {
+      if (
+        !main
+      ) {
 
         return;
       }
@@ -216,15 +365,6 @@ export function Shell({
       let disposed =
         false;
 
-
-      /*
-       * Restore once.
-       *
-       * The previous implementation repeatedly
-       * restored at many time intervals and watched
-       * DOM mutations. That could interrupt normal
-       * touch / mouse scrolling.
-       */
 
       const restoreSavedPosition =
         () => {
@@ -274,8 +414,9 @@ export function Shell({
                 const maxScroll =
                   Math.max(
                     0,
+
                     main.scrollHeight -
-                      main.clientHeight
+                    main.clientHeight
                   );
 
 
@@ -289,13 +430,6 @@ export function Shell({
             );
         };
 
-
-      /*
-       * Save at most once per animation frame.
-       *
-       * This avoids doing sessionStorage writes
-       * for every individual scroll event.
-       */
 
       const handleScroll =
         () => {
@@ -336,11 +470,6 @@ export function Shell({
         };
 
 
-      /*
-       * Save when app/browser is moved into
-       * the background.
-       */
-
       const handleVisibilityChange =
         () => {
 
@@ -354,18 +483,10 @@ export function Shell({
               main.scrollTop
             );
 
+
             return;
           }
 
-
-          /*
-           * Some mobile browsers reset an inner
-           * scroll container to zero when returning
-           * to the app.
-           *
-           * Restore only if that actually happened.
-           * Never fight the user's current position.
-           */
 
           if (
             main.scrollTop <=
@@ -428,10 +549,6 @@ export function Shell({
       );
 
 
-      /*
-       * Initial restoration.
-       */
-
       restoreSavedPosition();
 
 
@@ -474,6 +591,7 @@ export function Shell({
             scrollSaveFrameRef.current
           );
 
+
           scrollSaveFrameRef.current =
             null;
         }
@@ -488,6 +606,7 @@ export function Shell({
             restoreFrameRef.current
           );
 
+
           restoreFrameRef.current =
             null;
         }
@@ -501,10 +620,6 @@ export function Shell({
   );
 
 
-  /* =======================================================
-     APP NAVIGATION
-  ======================================================= */
-
   function navigate(
     next:
       NavKey
@@ -513,10 +628,6 @@ export function Shell({
     const main =
       mainRef.current;
 
-
-    /*
-     * Save page position before leaving.
-     */
 
     if (
       main
@@ -528,14 +639,6 @@ export function Shell({
       );
     }
 
-
-    /*
-     * Normal app navigation opens the selected
-     * section from the top.
-     *
-     * Browser/app background switching is handled
-     * separately and preserves the position.
-     */
 
     if (
       next !==
@@ -563,17 +666,11 @@ export function Shell({
   }
 
 
-  /* =======================================================
-     PAGE
-  ======================================================= */
-
   return (
 
     <div
       className="app-shell"
     >
-
-      {/* DESKTOP SIDEBAR */}
 
       <aside
         className="desktop-sidebar"
@@ -597,7 +694,11 @@ export function Shell({
             </strong>
 
             <span>
-              Learn. Practice. Progress.
+              {
+                t(
+                  'tagline'
+                )
+              }
             </span>
 
           </div>
@@ -615,16 +716,13 @@ export function Shell({
                   key={
                     item.key
                   }
-
                   type="button"
-
                   className={
                     active ===
                     item.key
                       ? 'nav-active'
                       : ''
                   }
-
                   onClick={() =>
                     navigate(
                       item.key
@@ -640,7 +738,9 @@ export function Shell({
 
                   <span>
                     {
-                      item.label
+                      t(
+                        item.labelKey
+                      )
                     }
                   </span>
 
@@ -653,11 +753,12 @@ export function Shell({
         </nav>
 
 
+        <LanguageSelector />
+
+
         <button
           type="button"
-
           className="admin-link"
-
           onClick={() =>
             navigate(
               'admin'
@@ -671,20 +772,21 @@ export function Shell({
             }
           />
 
-          Admin Studio
+          {
+            t(
+              'adminStudio'
+            )
+          }
 
         </button>
 
       </aside>
 
 
-      {/* MAIN SCROLL CONTAINER */}
-
       <main
         ref={
           mainRef
         }
-
         className="main-area"
       >
 
@@ -694,8 +796,6 @@ export function Shell({
 
       </main>
 
-
-      {/* MOBILE NAVIGATION */}
 
       <nav
         className="mobile-bottom-nav"
@@ -709,16 +809,13 @@ export function Shell({
                 key={
                   item.key
                 }
-
                 type="button"
-
                 className={
                   active ===
                   item.key
                     ? 'nav-active'
                     : ''
                 }
-
                 onClick={() =>
                   navigate(
                     item.key
@@ -734,7 +831,9 @@ export function Shell({
 
                 <span>
                   {
-                    item.label
+                    t(
+                      item.labelKey
+                    )
                   }
                 </span>
 
