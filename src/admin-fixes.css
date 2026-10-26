@@ -383,3 +383,114 @@
   }
 
 }
+
+/* ================================
+   READABLE QUESTION / OPTION / EXPLANATION
+   ================================ */
+
+.readable-text {
+  width: 100%;
+  min-width: 0;
+  color: #f8fafc;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+  text-align: left;
+}
+
+.readable-text p {
+  margin: 0 0 14px 0;
+}
+
+.readable-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* Question text */
+.practice-question-text {
+  font-size: clamp(1.05rem, 1.3vw, 1.35rem);
+  font-weight: 600;
+  line-height: 1.8;
+}
+
+/* Option row */
+.practice-option-button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  text-align: left;
+}
+
+.practice-option-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.practice-option-text-wrap {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.practice-option-text {
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+
+/* Prevent ugly vertical letter breaking in option text */
+.practice-option-text,
+.practice-option-text * {
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+}
+
+/* Explanation box */
+.practice-explanation-text {
+  font-size: 1rem;
+  line-height: 1.85;
+}
+
+/* Optional: appearance section readability */
+.practice-appearance-text {
+  font-size: 0.98rem;
+  line-height: 1.75;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .practice-question-text {
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+
+  .practice-option-button {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .practice-option-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .practice-option-text {
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .practice-explanation-text {
+    font-size: 0.96rem;
+    line-height: 1.8;
+  }
+}
