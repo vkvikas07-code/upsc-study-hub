@@ -800,7 +800,7 @@ export function PracticePage() {
             className="panel"
             style={{
               maxWidth:
-                '920px',
+  '880px',
 
               margin:
                 '0 auto'
@@ -859,21 +859,27 @@ export function PracticePage() {
             </div>
 
             <div
-              className="practice-question-text"
-              style={{
-                marginTop:
-                  '22px',
+  className="practice-question-text"
+  style={{
+    marginTop:
+      '20px',
 
-                marginBottom:
-                  '20px',
+    marginBottom:
+      '18px',
 
-                fontSize:
-                  '1.08rem',
+    fontSize:
+      '0.98rem',
 
-                fontWeight:
-                  700
-              }}
-            >
+    fontWeight:
+      600,
+
+    lineHeight:
+      1.7,
+
+    letterSpacing:
+      '-0.005em'
+  }}
+>
               <ReadableMathText
                 text={
                   currentQuestion.question
@@ -1047,18 +1053,27 @@ export function PracticePage() {
                         </span>
 
                         <div
-                          className="practice-option-text-wrap"
-                          style={{
-                            minWidth:
-                              0,
+  className="practice-option-text-wrap"
+  style={{
+    minWidth:
+      0,
 
-                            width:
-                              '100%',
+    width:
+      '100%',
 
-                            paddingTop:
-                              '5px'
-                          }}
-                        >
+    paddingTop:
+      '6px',
+
+    fontSize:
+      '0.94rem',
+
+    fontWeight:
+      500,
+
+    lineHeight:
+      1.6
+  }}
+>
                           <ReadableMathText
                             text={
                               option
