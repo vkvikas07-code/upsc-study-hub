@@ -71,6 +71,9 @@ type MainsQuestion = {
     string |
     null;
 
+  gs_relevance_papers?:
+    string[];
+
   subject: string;
 
   topic:
@@ -153,6 +156,7 @@ const MAINS_SELECT = `
   gs_paper,
   optional_subject,
   optional_paper,
+  gs_relevance_papers,
   subject,
   topic,
   syllabus_link,
@@ -370,6 +374,24 @@ export function MainsQuestionManager() {
     useState(
       'Paper-I'
     );
+
+
+  const [
+    optionalGsRelevant,
+    setOptionalGsRelevant
+  ] =
+    useState(
+      false
+    );
+
+
+  const [
+    gsRelevancePapers,
+    setGsRelevancePapers
+  ] =
+    useState<
+      string[]
+    >([]);
 
 
   const [
@@ -642,6 +664,29 @@ export function MainsQuestionManager() {
     );
 
 
+  function toggleGsRelevancePaper(
+    paper:
+      string
+  ) {
+
+    setGsRelevancePapers(
+      current =>
+        current.includes(
+          paper
+        )
+          ? current.filter(
+              item =>
+                item !==
+                paper
+            )
+          : [
+              ...current,
+              paper
+            ]
+    );
+  }
+
+
   /* =========================================================
      IMAGE PREVIEW CLEANUP
      ========================================================= */
@@ -826,6 +871,16 @@ export function MainsQuestionManager() {
     );
 
 
+    setOptionalGsRelevant(
+      false
+    );
+
+
+    setGsRelevancePapers(
+      []
+    );
+
+
     setSubject(
       'Indian Heritage & Culture'
     );
@@ -980,6 +1035,23 @@ export function MainsQuestionManager() {
     setOptionalPaper(
       item.optional_paper ||
       'Paper-I'
+    );
+
+
+    const loadedGsRelevance =
+      safeStringArray(
+        item.gs_relevance_papers
+      );
+
+
+    setGsRelevancePapers(
+      loadedGsRelevance
+    );
+
+
+    setOptionalGsRelevant(
+      loadedGsRelevance.length >
+      0
     );
 
 
@@ -1258,6 +1330,22 @@ export function MainsQuestionManager() {
 
 
     if (
+      sectionType ===
+        'optional' &&
+      optionalGsRelevant &&
+      gsRelevancePapers.length ===
+        0
+    ) {
+
+      setMessage(
+        'Select at least one GS paper, or choose "No, purely Optional".'
+      );
+
+      return;
+    }
+
+
+    if (
       existingFrameworkImagePaths.length +
       pendingFrameworkImages.length >
       MAX_FRAMEWORK_IMAGES
@@ -1353,6 +1441,13 @@ export function MainsQuestionManager() {
           'optional'
           ? optionalPaper
           : null,
+
+      gs_relevance_papers:
+        sectionType ===
+          'optional' &&
+        optionalGsRelevant
+          ? gsRelevancePapers
+          : [],
 
       subject:
         subject.trim(),
@@ -2539,6 +2634,188 @@ export function MainsQuestionManager() {
               </label>
 
             </div>
+
+          )}
+
+
+          {/* OPTIONAL -> GS RELEVANCE */}
+
+          {
+            sectionType ===
+              'optional' && (
+
+            <section
+              style={{
+                margin:
+                  '4px 0 18px',
+
+                padding:
+                  '16px',
+
+                border:
+                  '1px solid rgba(45,212,191,.22)',
+
+                borderRadius:
+                  '14px',
+
+                background:
+                  'rgba(20,184,166,.055)'
+              }}
+            >
+
+              <strong>
+                Is this Optional question also relevant to General Studies?
+              </strong>
+
+
+              <p
+                style={{
+                  margin:
+                    '6px 0 12px',
+
+                  color:
+                    '#94a3b8',
+
+                  fontSize:
+                    '.82rem',
+
+                  lineHeight:
+                    1.55
+                }}
+              >
+                Select Yes to cross-list this question in the relevant GS practice bank. The question will still remain an Optional question.
+              </p>
+
+
+              <div
+                style={{
+                  display:
+                    'flex',
+
+                  gap:
+                    '10px',
+
+                  flexWrap:
+                    'wrap'
+                }}
+              >
+
+                <button
+                  type="button"
+                  className={
+                    optionalGsRelevant
+                      ? 'primary-btn'
+                      : 'secondary-btn'
+                  }
+                  onClick={() =>
+                    setOptionalGsRelevant(
+                      true
+                    )
+                  }
+                >
+                  Yes, also useful for GS
+                </button>
+
+
+                <button
+                  type="button"
+                  className={
+                    !optionalGsRelevant
+                      ? 'primary-btn'
+                      : 'secondary-btn'
+                  }
+                  onClick={() => {
+
+                    setOptionalGsRelevant(
+                      false
+                    );
+
+                    setGsRelevancePapers(
+                      []
+                    );
+                  }}
+                >
+                  No, purely Optional
+                </button>
+
+              </div>
+
+
+              {
+                optionalGsRelevant && (
+
+                <div
+                  style={{
+                    display:
+                      'grid',
+
+                    gridTemplateColumns:
+                      'repeat(4, minmax(100px, 1fr))',
+
+                    gap:
+                      '8px',
+
+                    marginTop:
+                      '14px'
+                  }}
+                >
+
+                  {
+                    [
+                      'GS-I',
+                      'GS-II',
+                      'GS-III',
+                      'GS-IV'
+                    ].map(
+                      paper => {
+
+                        const selected =
+                          gsRelevancePapers.includes(
+                            paper
+                          );
+
+
+                        return (
+
+                          <button
+                            key={
+                              paper
+                            }
+                            type="button"
+                            className={
+                              selected
+                                ? 'primary-btn'
+                                : 'secondary-btn'
+                            }
+                            onClick={() =>
+                              toggleGsRelevancePaper(
+                                paper
+                              )
+                            }
+                            style={{
+                              justifyContent:
+                                'center'
+                            }}
+                          >
+                            {
+                              selected
+                                ? '✓ '
+                                : ''
+                            }
+                            {paper}
+                          </button>
+
+                        );
+                      }
+                    )
+                  }
+
+                </div>
+
+                )
+              }
+
+            </section>
 
           )}
 
@@ -4137,6 +4414,38 @@ export function MainsQuestionManager() {
                           : `${item.optional_subject} • ${item.optional_paper}`
                       }
                     </span>
+
+
+                    {
+                      item.section_type ===
+                        'optional' &&
+                      safeStringArray(
+                        item.gs_relevance_papers
+                      ).length >
+                        0 && (
+
+                      <div
+                        className="tag-row"
+                        style={{
+                          marginTop:
+                            '8px'
+                        }}
+                      >
+                        <span
+                          className="tag"
+                        >
+                          Also relevant to:{' '}
+                          {
+                            safeStringArray(
+                              item.gs_relevance_papers
+                            ).join(
+                              ', '
+                            )
+                          }
+                        </span>
+                      </div>
+
+                    )}
 
 
                     <h3>

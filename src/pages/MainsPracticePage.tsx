@@ -63,6 +63,9 @@ type WorkspaceView =
 type MainsQuestion =
   MainsWorkspaceQuestion & {
 
+    gs_relevance_papers:
+      string[];
+
     question_type:
       QuestionType;
 
@@ -440,6 +443,7 @@ export function MainsPracticePage() {
           gs_paper,
           optional_subject,
           optional_paper,
+          gs_relevance_papers,
           subject,
           topic,
           syllabus_link,
@@ -515,6 +519,23 @@ export function MainsPracticePage() {
               item.tags
             )
               ? item.tags
+              : [],
+
+          gs_relevance_papers:
+            Array.isArray(
+              item.gs_relevance_papers
+            )
+              ? item
+                  .gs_relevance_papers
+                  .map(
+                    value =>
+                      String(
+                        value
+                      )
+                  )
+                  .filter(
+                    Boolean
+                  )
               : [],
 
           framework_image_paths:
@@ -655,10 +676,33 @@ export function MainsPracticePage() {
           item => {
 
             if (
-              sectionFilter !==
-                'all' &&
+              sectionFilter ===
+                'gs'
+            ) {
+
+              const isGsQuestion =
+                item.section_type ===
+                  'gs' ||
+                (
+                  item.section_type ===
+                    'optional' &&
+                  item.gs_relevance_papers.length >
+                    0
+                );
+
+
+              if (
+                !isGsQuestion
+              ) {
+
+                return false;
+              }
+
+            } else if (
+              sectionFilter ===
+                'optional' &&
               item.section_type !==
-                sectionFilter
+                'optional'
             ) {
 
               return false;
@@ -677,15 +721,26 @@ export function MainsPracticePage() {
 
 
             if (
-              item.section_type ===
-                'gs' &&
+              sectionFilter !==
+                'optional' &&
               gsFilter !==
-                'all' &&
-              item.gs_paper !==
-                gsFilter
+                'all'
             ) {
 
-              return false;
+              const matchesGsPaper =
+                item.gs_paper ===
+                  gsFilter ||
+                item.gs_relevance_papers.includes(
+                  gsFilter
+                );
+
+
+              if (
+                !matchesGsPaper
+              ) {
+
+                return false;
+              }
             }
 
 
@@ -759,6 +814,7 @@ export function MainsPracticePage() {
                     '',
                   item.optional_paper ||
                     '',
+                  ...item.gs_relevance_papers,
                   ...(item.tags ||
                     [])
                 ]
@@ -935,6 +991,9 @@ export function MainsPracticePage() {
 
         optional_paper:
           item.optional_paper,
+
+        gs_relevance_papers:
+          [],
 
         subject:
           item.subject,
@@ -1837,6 +1896,30 @@ export function MainsPracticePage() {
                       : `${item.optional_subject || 'Optional'} • ${item.optional_paper || ''}`}
 
                   </span>
+
+
+                  {
+                    item.section_type ===
+                      'optional' &&
+                    item.gs_relevance_papers.length >
+                      0 && (
+
+                    <span
+                      className="tag"
+                      style={{
+                        marginLeft:
+                          '8px'
+                      }}
+                    >
+                      Also useful for{' '}
+                      {
+                        item.gs_relevance_papers.join(
+                          ', '
+                        )
+                      }
+                    </span>
+
+                  )}
 
 
                   {item.directive && (
