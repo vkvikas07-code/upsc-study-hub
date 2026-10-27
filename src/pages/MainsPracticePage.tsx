@@ -45,6 +45,7 @@ type QuestionType =
 type SectionFilter =
   | 'all'
   | 'gs'
+  | 'essay'
   | 'optional';
 
 
@@ -470,6 +471,7 @@ export function MainsPracticePage() {
           'section_type',
           [
             'gs',
+            'essay',
             'optional'
           ]
         )
@@ -700,6 +702,15 @@ export function MainsPracticePage() {
 
             } else if (
               sectionFilter ===
+                'essay' &&
+              item.section_type !==
+                'essay'
+            ) {
+
+              return false;
+
+            } else if (
+              sectionFilter ===
                 'optional' &&
               item.section_type !==
                 'optional'
@@ -723,6 +734,8 @@ export function MainsPracticePage() {
             if (
               sectionFilter !==
                 'optional' &&
+              sectionFilter !==
+                'essay' &&
               gsFilter !==
                 'all'
             ) {
@@ -1381,6 +1394,12 @@ export function MainsPracticePage() {
               </option>
 
               <option
+                value="essay"
+              >
+                Essay
+              </option>
+
+              <option
                 value="optional"
               >
                 Optional Subject
@@ -1893,7 +1912,10 @@ export function MainsPracticePage() {
                       'gs'
                       ? item.gs_paper ||
                         'General Studies'
-                      : `${item.optional_subject || 'Optional'} • ${item.optional_paper || ''}`}
+                      : item.section_type ===
+                          'essay'
+                        ? 'Essay'
+                        : `${item.optional_subject || 'Optional'} • ${item.optional_paper || ''}`}
 
                   </span>
 

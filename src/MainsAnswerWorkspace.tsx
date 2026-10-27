@@ -24,6 +24,7 @@ export type MainsWorkspaceQuestion = {
 
   section_type:
     | 'gs'
+    | 'essay'
     | 'optional';
 
   gs_paper:

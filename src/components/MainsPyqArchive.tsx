@@ -143,6 +143,7 @@ export type MainsPyqArchiveQuestion =
 
     section_type:
       | 'gs'
+      | 'essay'
       | 'optional';
   };
 
@@ -337,6 +338,8 @@ function isAnswerable(
   return (
     item.section_type ===
       'gs' ||
+    item.section_type ===
+      'essay' ||
     item.section_type ===
       'optional'
   );

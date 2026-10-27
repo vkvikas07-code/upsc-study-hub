@@ -39,6 +39,7 @@ type QuestionType =
 
 type SectionType =
   | 'gs'
+  | 'essay'
   | 'optional';
 
 
@@ -1290,6 +1291,8 @@ export function MainsQuestionManager() {
 
 
     if (
+      sectionType !==
+        'essay' &&
       !subject.trim()
     ) {
 
@@ -1450,7 +1453,10 @@ export function MainsQuestionManager() {
           : [],
 
       subject:
-        subject.trim(),
+        sectionType ===
+          'essay'
+          ? 'Essay'
+          : subject.trim(),
 
       topic:
         topic.trim() ||
@@ -2443,6 +2449,12 @@ export function MainsQuestionManager() {
                 </option>
 
                 <option
+                  value="essay"
+                >
+                  Essay
+                </option>
+
+                <option
                   value="optional"
                 >
                   Optional Subject
@@ -2899,7 +2911,15 @@ export function MainsQuestionManager() {
 
               <input
                 value={
-                  subject
+                  sectionType ===
+                    'essay'
+                    ? 'Essay'
+                    : subject
+                }
+
+                disabled={
+                  sectionType ===
+                    'essay'
                 }
 
                 onChange={
@@ -2909,7 +2929,12 @@ export function MainsQuestionManager() {
                     )
                 }
 
-                placeholder="Indian Society / Governance / Economy..."
+                placeholder={
+                  sectionType ===
+                    'essay'
+                    ? 'Essay'
+                    : 'Indian Society / Governance / Economy...'
+                }
               />
 
             </label>
@@ -3953,6 +3978,12 @@ export function MainsQuestionManager() {
               </option>
 
               <option
+                value="essay"
+              >
+                Essay
+              </option>
+
+              <option
                 value="optional"
               >
                 Optional Subjects
@@ -4411,7 +4442,10 @@ export function MainsQuestionManager() {
                         item.section_type ===
                           'gs'
                           ? item.gs_paper
-                          : `${item.optional_subject} • ${item.optional_paper}`
+                          : item.section_type ===
+                              'essay'
+                            ? 'Essay'
+                            : `${item.optional_subject} • ${item.optional_paper}`
                       }
                     </span>
 
