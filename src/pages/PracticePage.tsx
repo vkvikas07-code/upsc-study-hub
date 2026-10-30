@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { TopBar } from '../components/TopBar';
 import { MathText } from '../components/MathText';
 import { supabase } from '../lib/supabase';
+import { PRELIMS_SUBJECTS } from '../lib/prelimsSubjects';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 type SessionMode = 'practice' | 'exam';
@@ -296,16 +297,49 @@ export function PracticePage() {
 
   const subjects =
     useMemo(
-      () =>
-        Array.from(
-          new Set(
-            questions.map(
-              (item) =>
-                item.subject
+      () => {
+
+        const configuredSubjects:
+          string[] =
+          [
+            ...PRELIMS_SUBJECTS
+          ];
+
+
+        const additionalSubjects =
+          Array.from(
+            new Set(
+              questions
+                .map(
+                  item =>
+                    item.subject
+                )
+                .filter(
+                  item =>
+                    Boolean(
+                      item
+                    )
+                )
             )
           )
-        ).sort(),
-      [questions]
+            .filter(
+              item =>
+                !configuredSubjects.includes(
+                  item
+                )
+            )
+            .sort();
+
+
+        return [
+          ...configuredSubjects,
+          ...additionalSubjects
+        ];
+
+      },
+      [
+        questions
+      ]
     );
 
   const topics =

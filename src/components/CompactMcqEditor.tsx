@@ -10,6 +10,10 @@ import {
 } from '../lib/supabase';
 
 import {
+  PRELIMS_SUBJECTS
+} from '../lib/prelimsSubjects';
+
+import {
   StudentNoteImagePicker
 } from './StudentNoteImagePicker';
 
@@ -114,20 +118,8 @@ const MAX_EXPLANATION_IMAGES =
   6;
 
 
-const SUBJECTS = [
-  'Polity',
-  'History',
-  'Geography',
-  'Economy',
-  'Environment',
-  'Science & Tech',
-  'Current Affairs',
-  'Disaster Management',
-  'Agriculture',
-  'International Relations',
-  'Defence',
-  'CSAT'
-];
+const SUBJECTS =
+  PRELIMS_SUBJECTS;
 
 
 function safeArray(
