@@ -25,6 +25,10 @@ import {
 } from '../lib/supabase';
 
 import {
+  dedupeMainsQuestions
+} from '../lib/mainsQuestionDuplicate';
+
+import {
   MainsAnswerWorkspace
 } from '../MainsAnswerWorkspace';
 
@@ -567,7 +571,9 @@ export function MainsPracticePage() {
 
 
     setQuestions(
-      formatted
+      dedupeMainsQuestions(
+        formatted
+      )
     );
 
 

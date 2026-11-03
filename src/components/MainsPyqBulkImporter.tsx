@@ -7,6 +7,10 @@ import {
   supabase
 } from '../lib/supabase';
 
+import {
+  normalizeMainsQuestionText
+} from '../lib/mainsQuestionDuplicate';
+
 
 type ImportStatus =
   | 'draft'
@@ -1496,79 +1500,15 @@ function paperKeyFromRecord(
 
 function makeQuestionKey(
   item: {
-    examAuthority:
-      string;
-
-    examName:
-      string;
-
-    year:
-      number;
-
-    paperType:
-      string;
-
-    paperName:
-      string;
-
-    optionalSubject:
-      string |
-      null;
-
-    optionalPaper:
-      string |
-      null;
-
-    questionNumber:
-      string |
-      null;
-
-    question:
-      string;
+    question: string;
   }
 ) {
 
-  return [
-    normalizeKeyPart(
-      item.examAuthority
-    ),
-
-    normalizeKeyPart(
-      item.examName
-    ),
-
-    String(
-      item.year
-    ),
-
-    normalizeKeyPart(
-      item.paperType
-    ),
-
-    normalizeKeyPart(
-      item.paperName
-    ),
-
-    normalizeKeyPart(
-      item.optionalSubject
-    ),
-
-    normalizeKeyPart(
-      item.optionalPaper
-    ),
-
-    normalizeKeyPart(
-      item.questionNumber
-    ),
-
-    normalizeKeyPart(
-      item.question
-    )
-
-  ].join(
-    '|'
+  return normalizeMainsQuestionText(
+    item.question
   );
 }
+
 
 
 function questionKeyFromRecord(
@@ -1576,77 +1516,11 @@ function questionKeyFromRecord(
     ExistingQuestion
 ) {
 
-  const authority =
-    clean(
-      item.exam_authority
-    ) ||
-    'UPSC';
-
-
-  const examName =
-    clean(
-      item.exam_name
-    ) ||
-    (
-      authority
-        .toUpperCase() ===
-        'UPSC'
-        ? 'Civil Services Examination'
-        : ''
-    );
-
-
-  const paperName =
-    clean(
-      item.paper_name
-    ) ||
-    (
-      item.section_type ===
-        'essay'
-        ? 'Essay'
-        : item.gs_paper ||
-          [
-            item.optional_subject,
-            item.optional_paper
-          ]
-            .filter(
-              Boolean
-            )
-            .join(
-              ' '
-            )
-    );
-
-
-  return makeQuestionKey({
-
-    examAuthority:
-      authority,
-
-    examName,
-
-    year:
-      item.pyq_year ||
-      0,
-
-    paperType:
-      item.section_type,
-
-    paperName,
-
-    optionalSubject:
-      item.optional_subject,
-
-    optionalPaper:
-      item.optional_paper,
-
-    questionNumber:
-      item.question_number,
-
-    question:
-      item.question
-  });
+  return normalizeMainsQuestionText(
+    item.question
+  );
 }
+
 
 
 async function loadAllPapers() {

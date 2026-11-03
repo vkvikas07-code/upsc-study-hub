@@ -8,6 +8,10 @@ import {
   supabase
 } from '../lib/supabase';
 
+import {
+  dedupeMainsQuestions
+} from '../lib/mainsQuestionDuplicate';
+
 
 type PaperType =
   | 'essay'
@@ -616,7 +620,9 @@ export function MainsPyqArchive({
 
 
     setQuestions(
-      formatted
+      dedupeMainsQuestions(
+        formatted
+      )
     );
 
     setLoading(

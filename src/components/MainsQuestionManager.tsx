@@ -12,6 +12,10 @@ import {
 } from '../lib/supabase';
 
 import {
+  normalizeMainsQuestionText
+} from '../lib/mainsQuestionDuplicate';
+
+import {
   StudentNoteImagePicker
 } from './StudentNoteImagePicker';
 
@@ -1251,6 +1255,96 @@ export function MainsQuestionManager() {
 
 
   /* =========================================================
+     DUPLICATE CHECK
+     ========================================================= */
+
+  async function findDuplicateMainsQuestion() {
+
+    const client =
+      supabase;
+
+
+    if (
+      !client
+    ) {
+      return null;
+    }
+
+
+    const normalizedCurrent =
+      normalizeMainsQuestionText(
+        question
+      );
+
+
+    if (
+      !normalizedCurrent
+    ) {
+      return null;
+    }
+
+
+    const {
+      data,
+      error
+    } =
+      await client
+        .from(
+          'mains_questions'
+        )
+        .select(`
+          id,
+          question,
+          section_type,
+          gs_paper,
+          optional_subject,
+          optional_paper,
+          question_type,
+          pyq_year
+        `)
+        .limit(
+          10000
+        );
+
+
+    if (
+      error
+    ) {
+
+      throw new Error(
+        `Unable to check duplicate Mains questions: ${error.message}`
+      );
+    }
+
+
+    return (
+      data ||
+      []
+    ).find(
+      item => {
+
+        if (
+          editingId &&
+          item.id ===
+            editingId
+        ) {
+
+          return false;
+        }
+
+
+        return (
+          normalizeMainsQuestionText(
+            item.question
+          ) ===
+          normalizedCurrent
+        );
+      }
+    ) || null;
+  }
+
+
+  /* =========================================================
      SAVE QUESTION
      ========================================================= */
 
@@ -1365,6 +1459,93 @@ export function MainsQuestionManager() {
     setSaving(
       true
     );
+
+
+    setMessage(
+      'Checking for duplicate Mains question...'
+    );
+
+
+    try {
+
+      const duplicate =
+        await findDuplicateMainsQuestion();
+
+
+      if (
+        duplicate
+      ) {
+
+        const duplicateLocation =
+          duplicate.section_type ===
+            'gs'
+            ? duplicate.gs_paper ||
+              'General Studies'
+            : duplicate.section_type ===
+                'optional'
+              ? [
+                  duplicate.optional_subject,
+                  duplicate.optional_paper
+                ]
+                  .filter(
+                    Boolean
+                  )
+                  .join(
+                    ' / '
+                  ) ||
+                'Optional'
+              : duplicate.section_type ===
+                  'essay'
+                ? 'Essay'
+                : 'Mains';
+
+
+        const duplicateYear =
+          duplicate.question_type ===
+            'pyq' &&
+          duplicate.pyq_year
+            ? ` • ${duplicate.pyq_year}`
+            : '';
+
+
+        setSaving(
+          false
+        );
+
+
+        setMessage(
+          `⚠️ DUPLICATE BLOCKED: This Mains question already exists in ${duplicateLocation}${duplicateYear}. Edit the existing question instead.`
+        );
+
+
+        return;
+      }
+
+    } catch (
+      duplicateError
+    ) {
+
+      console.error(
+        'Mains duplicate check failed:',
+        duplicateError
+      );
+
+
+      setSaving(
+        false
+      );
+
+
+      setMessage(
+        duplicateError instanceof
+          Error
+          ? duplicateError.message
+          : 'Unable to check duplicate Mains questions.'
+      );
+
+
+      return;
+    }
 
 
     setMessage(
