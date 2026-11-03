@@ -446,12 +446,41 @@
   line-height: 1.75;
 }
 
-/* Prevent ugly vertical letter breaking in option text */
-.practice-option-text,
-.practice-option-text * {
+/* Prevent ugly vertical breaking in normal option text */
+.practice-option-text {
   word-break: normal !important;
   overflow-wrap: break-word !important;
   white-space: normal !important;
+}
+
+/* IMPORTANT:
+   Never apply normal text wrapping to KaTeX internals.
+   KaTeX needs its own inline layout for decimals,
+   fractions, equations and symbols.
+*/
+.practice-option-text .katex,
+.practice-option-text .katex * {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.practice-option-text .katex {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.practice-option-text .katex-display {
+  margin: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.practice-option-text-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 /* Explanation box */
