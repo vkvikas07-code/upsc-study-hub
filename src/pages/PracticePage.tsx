@@ -1031,7 +1031,7 @@ export function PracticePage() {
                             '44px minmax(0, 1fr)',
 
                           alignItems:
-                            'start',
+                            'center',
 
                           gap:
                             '14px',
@@ -1047,7 +1047,7 @@ export function PracticePage() {
                             '14px',
 
                           padding:
-                            '14px',
+                            '11px 14px',
 
                           textAlign:
                             'left'
@@ -1096,16 +1096,25 @@ export function PracticePage() {
       '100%',
 
     paddingTop:
-      '6px',
+      0,
+
+    display:
+      'flex',
+
+    alignItems:
+      'center',
+
+    minHeight:
+      '38px',
 
     fontSize:
-      '0.94rem',
+      '0.96rem',
 
     fontWeight:
       500,
 
     lineHeight:
-      1.6
+      1.45
   }}
 >
                           <ReadableMathText

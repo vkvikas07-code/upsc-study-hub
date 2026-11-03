@@ -233,7 +233,10 @@ export function MathText({
           'pre-wrap',
 
         overflowWrap:
-          'anywhere',
+          'break-word',
+
+        wordBreak:
+          'normal',
 
         ...style
       }}
@@ -297,7 +300,19 @@ export function MathText({
                           'auto',
 
                         overflowY:
-                          'hidden'
+                          'hidden',
+
+                        whiteSpace:
+                          'nowrap',
+
+                        overflowWrap:
+                          'normal',
+
+                        wordBreak:
+                          'normal',
+
+                        lineHeight:
+                          1.2
                       }
                     : {
                         display:
@@ -307,7 +322,19 @@ export function MathText({
                           'middle',
 
                         maxWidth:
-                          '100%'
+                          '100%',
+
+                        whiteSpace:
+                          'nowrap',
+
+                        overflowWrap:
+                          'normal',
+
+                        wordBreak:
+                          'normal',
+
+                        lineHeight:
+                          1.2
                       }
                 }
 
