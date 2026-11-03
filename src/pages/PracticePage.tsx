@@ -44,6 +44,33 @@ function toStringArray(value: unknown): string[] {
   return value.map((item) => String(item)).filter(Boolean);
 }
 
+
+function normalizeOptionText(
+  value: unknown
+): string {
+
+  return String(
+    value ?? ''
+  )
+    .replace(
+      /\r\n?/g,
+      '\n'
+    )
+    .replace(
+      /\s+/g,
+      ' '
+    )
+    .replace(
+      /(\d)\s*\.\s*(\d)/g,
+      '$1.$2'
+    )
+    .replace(
+      /\s*=\s*/g,
+      ' = '
+    )
+    .trim();
+}
+
 function toDifficulty(value: unknown): Difficulty {
   if (value === 'easy' || value === 'hard') return value;
   return 'medium';
@@ -214,7 +241,13 @@ export function PracticePage() {
             options:
               toStringArray(
                 item.options
-              ),
+              )
+                .map(
+                  normalizeOptionText
+                )
+                .filter(
+                  Boolean
+                ),
 
             correct_index:
               Number.isFinite(

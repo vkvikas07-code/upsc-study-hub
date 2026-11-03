@@ -147,6 +147,33 @@ function safeArray(
 }
 
 
+function normalizeOptionText(
+  value: unknown
+): string {
+
+  return String(
+    value ?? ''
+  )
+    .replace(
+      /\r\n?/g,
+      '\n'
+    )
+    .replace(
+      /\s+/g,
+      ' '
+    )
+    .replace(
+      /(\d)\s*\.\s*(\d)/g,
+      '$1.$2'
+    )
+    .replace(
+      /\s*=\s*/g,
+      ' = '
+    )
+    .trim();
+}
+
+
 function normalizeQuestionText(
   value: string
 ): string {
@@ -607,7 +634,13 @@ export function CompactMcqEditor() {
           options:
             safeArray(
               item.options
-            ),
+            )
+              .map(
+                normalizeOptionText
+              )
+              .filter(
+                Boolean
+              ),
 
           tags:
             safeArray(
@@ -1156,11 +1189,14 @@ export function CompactMcqEditor() {
 
 
     const options = [
-      optionA.trim(),
-      optionB.trim(),
-      optionC.trim(),
-      optionD.trim()
-    ];
+      optionA,
+      optionB,
+      optionC,
+      optionD
+    ]
+      .map(
+        normalizeOptionText
+      );
 
 
     if (
