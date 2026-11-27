@@ -71,26 +71,26 @@ function sectionLabel(item: MainsQuestion): string {
   }
 }
 
-function WorkspaceTabs({ active, onChange }: {
+function WorkspaceTabs({
+  active,
+  onChange
+}: {
   active: WorkspaceView;
   onChange: (value: WorkspaceView) => void;
 }) {
-  const tabs: Array<{ key: WorkspaceView; title: string }> = [
-    { key: 'practice', title: 'Answer Practice' },
-    { key: 'pyq', title: 'Previous Year Papers' },
-    { key: 'evaluations', title: 'My Evaluations' }
-  ];
-
   return (
     <section className="panel" style={{ marginBottom: 16, padding: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
-        {tabs.map(tab => (
-          <button key={tab.key} type="button"
-            className={active === tab.key ? 'filter active' : 'filter'}
-            onClick={() => onChange(tab.key)}>
-            {tab.title}
-          </button>
-        ))}
-      </div>
-    </section>
-  );
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 8
+        }}
+      >
+        <button
+          type="button"
+          className={active === 'practice' ? 'filter active' : 'filter'}
+          onClick={() => onChange('practice')}
+        >
+          Answer Practice
+        </button>
