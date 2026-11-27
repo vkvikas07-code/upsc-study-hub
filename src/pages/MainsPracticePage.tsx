@@ -93,4 +93,8 @@ function WorkspaceTabs({
           onClick={() => onChange('practice')}
         >
           Answer Practice
-        </button>
+              </section>
+      )}
+    </div>
+  );
+}
