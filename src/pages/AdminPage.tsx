@@ -22,8 +22,8 @@ import {
 } from '../components/PrelimsTestManager';
 
 import {
-  MainsQuestionManager
-} from '../components/MainsQuestionManager';
+  MainsPracticeAdminHub
+} from '../components/MainsPracticeAdminHub';
 
 import {
   MainsEvaluationManager
@@ -5007,7 +5007,7 @@ export function AdminPage({
               <MainsPyqManager />
             )
             : (
-              <MainsQuestionManager />
+            <MainsPracticeAdminHub />
             )}
 
         </>
