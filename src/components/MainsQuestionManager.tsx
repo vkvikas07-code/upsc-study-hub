@@ -39,6 +39,45 @@ type FormData = {
   tags: string; difficulty: Difficulty; status: Status;
 };
 
+const DIRECTIVE_GROUPS: ReadonlyArray<{ label: string; values: readonly string[] }> = [
+  { label: 'Core analytical and evaluative', values: [
+    'Discuss', 'Critically Discuss', 'Examine', 'Critically Examine',
+    'Analyse', 'Critically Analyse', 'Evaluate', 'Critically Evaluate',
+    'Assess', 'Critically Assess', 'Comment', 'Critically Comment',
+    'Review', 'Critically Review', 'Appraise', 'Critically Appraise',
+    'Scrutinise', 'Investigate', 'Deliberate', 'Debate',
+    'Interpret',
+  ] },
+  { label: 'Explanation and description', values: [
+    'Explain', 'Elaborate', 'Elucidate', 'Illustrate',
+    'Describe', 'Define', 'Enumerate', 'List',
+    'State', 'Outline', 'Highlight', 'Bring Out',
+    'Identify', 'Trace', 'Account For', 'Give Reasons',
+    'Explain with Examples', 'Illustrate with Examples', 'Explain the Significance', 'Examine the Implications',
+    'Write a Short Note', 'Write a Note',
+  ] },
+  { label: 'Comparison and argument', values: [
+    'Compare', 'Contrast', 'Compare and Contrast', 'Differentiate',
+    'Distinguish Between', 'Relate', 'Correlate', 'Establish the Relationship',
+    'Justify', 'Substantiate', 'Demonstrate', 'Support with Examples',
+    'To What Extent', 'How Far Do You Agree?', 'Do You Agree?', 'Examine the Validity',
+    'Prove',
+  ] },
+  { label: 'Causes, impacts and solutions', values: [
+    'Examine the Causes', 'Analyse the Causes', 'Examine the Consequences', 'Analyse the Impact',
+    'Assess the Impact', 'Evaluate the Effectiveness', 'Discuss the Challenges', 'Identify the Issues',
+    'Suggest Measures', 'Suggest Solutions', 'Suggest Reforms', 'Suggest a Way Forward',
+    'Recommend', 'Propose', 'Suggest Remedies',
+  ] },
+  { label: 'Essay and compulsory languages', values: [
+    'Write an Essay', 'Essay Writing', 'Write a Report', 'Report Writing',
+    'Write a Letter', 'Letter Writing', 'Translate', 'Translation',
+    'Summarise', 'Summarise the Passage', 'Précis Writing', 'Comprehension',
+    'Paraphrase', 'Grammar', 'Correct the Sentences', 'Fill in the Blanks',
+    'Explain in Context', 'Use in a Sentence',
+  ] },
+];
+
 const GS = ['GS-I', 'GS-II', 'GS-III', 'GS-IV'];
 const LANGUAGES = [
   'Assamese', 'Bengali', 'Bodo', 'Dogri', 'English', 'Gujarati', 'Hindi',
@@ -113,6 +152,18 @@ export function MainsQuestionManager() {
   const [filterGs, setFilterGs] = useState('all');
   const [filterOptional, setFilterOptional] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
+
+  // Suggested directives include both standard command words and custom
+  // directives previously saved in CSE questions. Nothing restricts typing.
+  const directiveSuggestions = useMemo(() =>
+    Array.from(new Set([
+      ...DIRECTIVE_GROUPS.flatMap(group => group.values),
+      ...questions.flatMap(item =>
+        item.directive && item.directive.trim() ? [item.directive.trim()] : []
+      )
+    ])).sort((a, b) => a.localeCompare(b)),
+    [questions]
+  );
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm(previous => ({ ...previous, [key]: value }));
@@ -408,11 +459,22 @@ export function MainsQuestionManager() {
           }}
         >
           <label>Directive
-            <select value={form.directive} onChange={(event: ValueChangeEvent) => set('directive', event.target.value)}>
-              {['Discuss', 'Examine', 'Analyse', 'Critically Analyse', 'Evaluate', 'Comment',
-                'Elucidate', 'Translate', 'Summarise', 'Comprehension', 'Write an Essay']
-                .map(value => <option key={value} value={value}>{value}</option>)}
-            </select>
+            <input
+              type="text"
+              list="cse-mains-directive-suggestions"
+              value={form.directive}
+              onChange={(event: ValueChangeEvent) =>
+                set('directive', event.target.value)
+              }
+              placeholder="Choose a suggestion or type the exact directive"
+              autoComplete="off"
+              title="Select a suggested directive or type the exact command from the question"
+            />
+            <datalist id="cse-mains-directive-suggestions">
+              {directiveSuggestions.map(value => (
+                <option key={value} value={value} />
+              ))}
+            </datalist>
           </label>
           <label>Marks
             <input type="number" min="0.5" step="0.5" value={form.marks}
