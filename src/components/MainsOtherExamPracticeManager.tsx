@@ -511,7 +511,15 @@ export function MainsOtherExamPracticeManager() {
         <textarea rows={3} value={syllabusLink} onChange={e => setSyllabusLink(e.target.value)}
           placeholder="Mention the exact examination syllabus linkage." />
       </label>
-      <div className="form-two">
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: '16px',
+          alignItems: 'end',
+          width: '100%'
+        }}
+      >
         <label>Directive
           <select value={directive} onChange={e => setDirective(e.target.value)}>
             {['Discuss','Examine','Evaluate','Analyse','Comment','Elucidate','Critically examine','Critically analyse'].map(v =>
