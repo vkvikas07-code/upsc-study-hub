@@ -51,6 +51,45 @@ type StoredQuestion = {
 const PAGE_SIZE = 1000;
 const MAX_FRAMEWORK_IMAGES = 6;
 const GS_PAPERS = ['GS-I', 'GS-II', 'GS-III', 'GS-IV'];
+
+const DIRECTIVE_GROUPS: ReadonlyArray<{ label: string; values: readonly string[] }> = [
+  { label: 'Core analytical and evaluative', values: [
+    'Discuss', 'Critically Discuss', 'Examine', 'Critically Examine',
+    'Analyse', 'Critically Analyse', 'Evaluate', 'Critically Evaluate',
+    'Assess', 'Critically Assess', 'Comment', 'Critically Comment',
+    'Review', 'Critically Review', 'Appraise', 'Critically Appraise',
+    'Scrutinise', 'Investigate', 'Deliberate', 'Debate',
+    'Interpret',
+  ] },
+  { label: 'Explanation and description', values: [
+    'Explain', 'Elaborate', 'Elucidate', 'Illustrate',
+    'Describe', 'Define', 'Enumerate', 'List',
+    'State', 'Outline', 'Highlight', 'Bring Out',
+    'Identify', 'Trace', 'Account For', 'Give Reasons',
+    'Explain with Examples', 'Illustrate with Examples', 'Explain the Significance', 'Examine the Implications',
+    'Write a Short Note', 'Write a Note',
+  ] },
+  { label: 'Comparison and argument', values: [
+    'Compare', 'Contrast', 'Compare and Contrast', 'Differentiate',
+    'Distinguish Between', 'Relate', 'Correlate', 'Establish the Relationship',
+    'Justify', 'Substantiate', 'Demonstrate', 'Support with Examples',
+    'To What Extent', 'How Far Do You Agree?', 'Do You Agree?', 'Examine the Validity',
+    'Prove',
+  ] },
+  { label: 'Causes, impacts and solutions', values: [
+    'Examine the Causes', 'Analyse the Causes', 'Examine the Consequences', 'Analyse the Impact',
+    'Assess the Impact', 'Evaluate the Effectiveness', 'Discuss the Challenges', 'Identify the Issues',
+    'Suggest Measures', 'Suggest Solutions', 'Suggest Reforms', 'Suggest a Way Forward',
+    'Recommend', 'Propose', 'Suggest Remedies',
+  ] },
+  { label: 'Essay and compulsory languages', values: [
+    'Write an Essay', 'Essay Writing', 'Write a Report', 'Report Writing',
+    'Write a Letter', 'Letter Writing', 'Translate', 'Translation',
+    'Summarise', 'Summarise the Passage', 'Précis Writing', 'Comprehension',
+    'Paraphrase', 'Grammar', 'Correct the Sentences', 'Fill in the Blanks',
+    'Explain in Context', 'Use in a Sentence',
+  ] },
+];
 const EDIT_SELECT = `id, question, question_type, section_type,
   exam_authority, exam_name, state_name, paper_name, gs_paper,
   optional_subject, optional_paper, gs_relevance_papers, subject,
@@ -125,6 +164,18 @@ export function MainsOtherExamPracticeManager() {
   const [message, setMessage] = useState('');
   const [recent, setRecent] = useState<StoredQuestion[]>([]);
   const [search, setSearch] = useState('');
+
+  // Reuse the same command-word suggestions as the UPSC CSE manager.
+  // The input remains free text, so exact original question wording is allowed.
+  const directiveSuggestions = useMemo(() =>
+    Array.from(new Set([
+      ...DIRECTIVE_GROUPS.flatMap(group => group.values),
+      ...recent.flatMap(item =>
+        item.directive?.trim() ? [item.directive.trim()] : []
+      )
+    ])).sort((a, b) => a.localeCompare(b)),
+    [recent]
+  );
 
   const resolvedAuthority = scope === 'upsc_other' ? 'UPSC' : authority.trim();
 
@@ -521,10 +572,20 @@ export function MainsOtherExamPracticeManager() {
         }}
       >
         <label>Directive
-          <select value={directive} onChange={e => setDirective(e.target.value)}>
-            {['Discuss','Examine','Evaluate','Analyse','Comment','Elucidate','Critically examine','Critically analyse'].map(v =>
-              <option value={v} key={v}>{v}</option>)}
-          </select>
+          <input
+            type="text"
+            list="other-upsc-psc-mains-directive-suggestions"
+            value={directive}
+            onChange={event => setDirective(event.target.value)}
+            placeholder="Choose a suggestion or type the exact directive"
+            autoComplete="off"
+            title="Choose a suggested command or enter the original question's exact directive"
+          />
+          <datalist id="other-upsc-psc-mains-directive-suggestions">
+            {directiveSuggestions.map(value => (
+              <option key={value} value={value} />
+            ))}
+          </datalist>
         </label>
         <label>Marks
           <input type="number" step="0.5" min="0.5" value={marks}
