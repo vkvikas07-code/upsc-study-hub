@@ -399,7 +399,14 @@ export function MainsQuestionManager() {
           <textarea rows={3} value={form.syllabus} onChange={(event: ValueChangeEvent) => set('syllabus', event.target.value)}
             placeholder="Mention exact examination syllabus linkage" />
         </label>
-        <div className="form-two">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            alignItems: 'end'
+          }}
+        >
           <label>Directive
             <select value={form.directive} onChange={(event: ValueChangeEvent) => set('directive', event.target.value)}>
               {['Discuss', 'Examine', 'Analyse', 'Critically Analyse', 'Evaluate', 'Comment',
